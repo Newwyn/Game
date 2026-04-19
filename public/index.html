@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legend of Capsules - Assassin Prototype</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <p id="loading-text">Đang kết nối tới máy chủ...</p>
+    </div>
+
+    <!-- Top Bar -->
+    <div id="top-bar">
+        <div class="top-label">⚔️ PVP BATTLE</div>
+    </div>
+
+    <!-- Auto toggle button -->
+    <div id="top-left-controls">
+        <button id="btn-auto" onclick="toggleAuto()">AUTO MODE: OFF</button>
+        <button id="btn-pause" onclick="togglePause()">⏸ PAUSE</button>
+    </div>
+
+    <!-- Countdown Overlay -->
+    <div id="countdown-overlay">
+        <div id="countdown-text">3</div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu">
+        <div class="pause-box">
+            <h2>TẠM DỪNG</h2>
+            <p id="pause-desc">Trận đấu đang được tạm dừng.</p>
+            <div class="pause-buttons">
+                <button onclick="togglePause()">Tiếp tục</button>
+                <button onclick="requestReset()" class="danger-btn">Chơi lại trận này</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <div id="game-container"></div>
+
+    <!-- Stat Panels -->
+    <div id="left-stats" class="stat-container left-side"></div>
+    <div id="right-stats" class="stat-container right-side"></div>
+
+    <!-- Combat HUD (Bottom) -->
+    <div id="combat-hud">
+        <!-- Generates 4 cards dynamically via JS or hardcoded for layout -->
+        <!-- Card 1 -->
+        <div class="member-card" id="member-0" style="--class-color: #1e293b;">
+            <div class="card-header">
+                <div class="class-icon">🥷</div>
+                <div class="card-info">
+                    <span class="class-name">Assassin 1</span>
+                    <span class="range-tag melee-tag">Cận chiến</span>
+                </div>
+            </div>
+            <div class="stat-bar">
+                <div class="fill hp-fill" style="width:100%"></div>
+            </div>
+            
+            <div class="orb-bar" id="orb-bar-0">
+                <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
+            </div>
+
+            <div class="skills-row">
+                <button class="skill-btn" onclick="queueSkill(0, 0)" id="btn-0-0">
+                    <span class="queue-num"></span>
+                    <div class="skill-icon">1</div>
+                    <span class="cost">1 orb</span>
+                </button>
+                <button class="skill-btn" onclick="queueSkill(0, 1)" id="btn-0-1">
+                    <span class="queue-num"></span>
+                    <div class="skill-icon">2</div>
+                    <span class="cost">2 orb</span>
+                </button>
+                <button class="skill-btn ultimate" onclick="queueSkill(0, 2)" id="btn-0-2">
+                    <span class="queue-num"></span>
+                    <div class="skill-icon">3</div>
+                    <span class="cost">3 orb</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="member-card" id="member-1" style="--class-color: #1e293b;">
+            <div class="card-header">
+                <div class="class-icon">🥷</div>
+                <div class="card-info">
+                    <span class="class-name">Assassin 2</span>
+                    <span class="range-tag melee-tag">Cận chiến</span>
+                </div>
+            </div>
+            <div class="stat-bar">
+                <div class="fill hp-fill" style="width:100%"></div>
+            </div>
+            <div class="orb-bar" id="orb-bar-1">
+                <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
+            </div>
+            <div class="skills-row">
+                <button class="skill-btn" onclick="queueSkill(1, 0)" id="btn-1-0"><span class="queue-num"></span><div class="skill-icon">Q</div><span class="cost">1 orb</span></button>
+                <button class="skill-btn" onclick="queueSkill(1, 1)" id="btn-1-1"><span class="queue-num"></span><div class="skill-icon">W</div><span class="cost">2 orb</span></button>
+                <button class="skill-btn ultimate" onclick="queueSkill(1, 2)" id="btn-1-2"><span class="queue-num"></span><div class="skill-icon">E</div><span class="cost">3 orb</span></button>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="member-card" id="member-2" style="--class-color: #1e293b;">
+            <div class="card-header"><div class="class-icon">🥷</div><div class="card-info"><span class="class-name">Assassin 3</span><span class="range-tag melee-tag">Cận chiến</span></div></div>
+            <div class="stat-bar"><div class="fill hp-fill" style="width:100%"></div></div>
+            <div class="orb-bar" id="orb-bar-2">
+                <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
+            </div>
+            <div class="skills-row">
+                <button class="skill-btn" onclick="queueSkill(2, 0)" id="btn-2-0"><span class="queue-num"></span><div class="skill-icon">A</div><span class="cost">1 orb</span></button>
+                <button class="skill-btn" onclick="queueSkill(2, 1)" id="btn-2-1"><span class="queue-num"></span><div class="skill-icon">S</div><span class="cost">2 orb</span></button>
+                <button class="skill-btn ultimate" onclick="queueSkill(2, 2)" id="btn-2-2"><span class="queue-num"></span><div class="skill-icon">D</div><span class="cost">3 orb</span></button>
+            </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="member-card" id="member-3" style="--class-color: #1e293b;">
+            <div class="card-header"><div class="class-icon">🥷</div><div class="card-info"><span class="class-name">Assassin 4</span><span class="range-tag melee-tag">Cận chiến</span></div></div>
+            <div class="stat-bar"><div class="fill hp-fill" style="width:100%"></div></div>
+            <div class="orb-bar" id="orb-bar-3">
+                <div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="orb"></div>
+            </div>
+            <div class="skills-row">
+                <button class="skill-btn" onclick="queueSkill(3, 0)" id="btn-3-0"><span class="queue-num"></span><div class="skill-icon">Z</div><span class="cost">1 orb</span></button>
+                <button class="skill-btn" onclick="queueSkill(3, 1)" id="btn-3-1"><span class="queue-num"></span><div class="skill-icon">X</div><span class="cost">2 orb</span></button>
+                <button class="skill-btn ultimate" onclick="queueSkill(3, 2)" id="btn-3-2"><span class="queue-num"></span><div class="skill-icon">C</div><span class="cost">3 orb</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Result Overlay -->
+    <div id="battle-result">
+        <p class="result-text"></p>
+    </div>
+
+    <!-- Scripts -->
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+    <script>
+        // Hotkeys mapping
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === '1') window.queueSkill(0, 0);
+            if (key === '2') window.queueSkill(0, 1);
+            if (key === '3') window.queueSkill(0, 2);
+            if (key === 'q') window.queueSkill(1, 0);
+            if (key === 'w') window.queueSkill(1, 1);
+            if (key === 'e') window.queueSkill(1, 2);
+            if (key === 'a') window.queueSkill(2, 0);
+            if (key === 's') window.queueSkill(2, 1);
+            if (key === 'd') window.queueSkill(2, 2);
+            if (key === 'z') window.queueSkill(3, 0);
+            if (key === 'x') window.queueSkill(3, 1);
+            if (key === 'c') window.queueSkill(3, 2);
+        });
+    </script>
+</body>
+</html>
