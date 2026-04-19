@@ -20,7 +20,7 @@ const MAX_SQUAD_SIZE = 1; // 1 member for testing
 const CLASS_DEFS = {
     assassin: {
         name: 'Assassin', emoji: '🥷', color: '#1e293b',
-        maxHp: 1200, maxMp: 5000, atk: 250, def: 50,
+        maxHp: 1200, maxMp: 5000, pAtk: 250, mAtk: 0, pDef: 50, mDef: 50,
         crit: 350, critDmg: 500, acc: 1000, dodge: 200, pen: 150, block: 50, lifesteal: 0,
         mpAtk: 200, mpSec: 100,
         atkSpeed: 800, range: 'melee', atkRange: 1.8, moveSpeed: 0.025,
@@ -35,7 +35,7 @@ const CLASS_DEFS = {
     },
     monster_tank: {
         name: 'Tanker', emoji: '🛡️', color: '#eab308',
-        maxHp: 5000, maxMp: 1000, atk: 150, def: 300,
+        maxHp: 5000, maxMp: 1000, pAtk: 150, mAtk: 0, pDef: 300, mDef: 200,
         crit: 50, critDmg: 200, acc: 900, dodge: 50, pen: 0, block: 400, lifesteal: 0,
         mpAtk: 100, mpSec: 50,
         atkSpeed: 1500, range: 'melee', atkRange: 1.8, moveSpeed: 0.025,
@@ -43,7 +43,7 @@ const CLASS_DEFS = {
     },
     monster_archer: {
         name: 'Xạ Thủ', emoji: '🏹', color: '#ef4444',
-        maxHp: 3000, maxMp: 1000, atk: 250, def: 100,
+        maxHp: 3000, maxMp: 1000, pAtk: 250, mAtk: 0, pDef: 100, mDef: 100,
         crit: 150, critDmg: 500, acc: 1100, dodge: 100, pen: 300, block: 50, lifesteal: 0,
         mpAtk: 150, mpSec: 50,
         atkSpeed: 1000, range: 'ranged', atkRange: 10, moveSpeed: 0.025,
@@ -51,10 +51,18 @@ const CLASS_DEFS = {
     },
     monster_supporter: {
         name: 'Hỗ Trợ', emoji: '🪄', color: '#22c55e',
-        maxHp: 3000, maxMp: 1000, atk: 120, def: 100,
+        maxHp: 3000, maxMp: 1000, pAtk: 0, mAtk: 120, pDef: 100, mDef: 200,
         crit: 100, critDmg: 300, acc: 1000, dodge: 100, pen: 0, block: 50, lifesteal: 0,
         mpAtk: 300, mpSec: 150,
         atkSpeed: 1200, range: 'ranged', atkRange: 6, moveSpeed: 0.025,
+        skills: [], passives: []
+    },
+    monster_dummy: {
+        name: 'Cọc Gỗ (Test)', emoji: '🪵', color: '#78350f',
+        maxHp: 9999999, maxMp: 1, pAtk: 0, mAtk: 0, pDef: 500, mDef: 500,
+        crit: 0, critDmg: 0, acc: 0, dodge: 0, pen: 0, block: 0, lifesteal: 0,
+        mpAtk: 0, mpSec: 0,
+        atkSpeed: 999999, range: 'melee', atkRange: 1.8, moveSpeed: 0,
         skills: [], passives: []
     }
 };
@@ -84,7 +92,7 @@ function createSquad(side) {
             return {
                 classId, name: def.name, emoji: def.emoji, color: def.color,
                 hp: def.maxHp, maxHp: def.maxHp, mp: 0, maxMp: def.maxMp,
-                atk: def.atk, def: def.def, 
+                pAtk: def.pAtk, mAtk: def.mAtk, pDef: def.pDef, mDef: def.mDef, 
                 crit: def.crit, critDmg: def.critDmg, acc: def.acc, dodge: def.dodge, pen: def.pen, block: def.block, lifesteal: def.lifesteal,
                 mpAtk: def.mpAtk, mpSec: def.mpSec,
                 atkSpeed: def.atkSpeed, atkRange: def.atkRange, range: def.range, moveSpeed: def.moveSpeed,
@@ -101,7 +109,7 @@ function createSquad(side) {
         return {
             classId, name: def.name, emoji: def.emoji, color: def.color,
             hp: def.maxHp, maxHp: def.maxHp, mp: 0, maxMp: def.maxMp,
-            atk: def.atk, def: def.def,
+            pAtk: def.pAtk, mAtk: def.mAtk, pDef: def.pDef, mDef: def.mDef,
             crit: def.crit, critDmg: def.critDmg, acc: def.acc, dodge: def.dodge, pen: def.pen, block: def.block, lifesteal: def.lifesteal,
             mpAtk: def.mpAtk, mpSec: def.mpSec,
             atkSpeed: def.atkSpeed, atkRange: def.atkRange, range: def.range, moveSpeed: def.moveSpeed,
@@ -112,32 +120,92 @@ function createSquad(side) {
     });
 }
 
+// ============================================================
+// EFFECTIVE STATS ENGINE (Buff/Debuff applied dynamically)
+// ============================================================
+function getEffectiveStats(member, now) {
+    const def = CLASS_DEFS[member.classId];
+    const stats = {
+        pAtk: member.pAtk,
+        mAtk: member.mAtk,
+        pDef: member.pDef,
+        mDef: member.mDef,
+        crit: member.crit,
+        critDmg: member.critDmg,
+        acc: member.acc,
+        dodge: member.dodge,
+        pen: member.pen,
+        block: member.block,
+        atkSpeed: member.atkSpeed,
+        moveSpeed: member.moveSpeed,
+        mpAtk: member.mpAtk,
+    };
+
+    // Base values (from CLASS_DEFS) for comparison
+    const base = {
+        pAtk: def.pAtk,
+        mAtk: def.mAtk,
+        pDef: def.pDef,
+        mDef: def.mDef,
+        crit: def.crit,
+        critDmg: def.critDmg,
+        acc: def.acc,
+        dodge: def.dodge,
+        pen: def.pen,
+        block: def.block,
+        atkSpeed: def.atkSpeed,
+        moveSpeed: def.moveSpeed,
+        mpAtk: def.mpAtk,
+    };
+
+    // Apply status effects
+    member.statusEffects.forEach(ef => {
+        if (now >= ef.endTime) return; // expired
+
+        if (ef.type === 'seal') {
+            // Seal debuff: -10% Physical DEF
+            stats.pDef = Math.floor(stats.pDef * 0.9);
+        }
+        if (ef.type === 'stealth') {
+            // Stealth buff: +10% P.ATK, +10% attack speed (lower delay)
+            stats.pAtk = Math.floor(stats.pAtk * 1.1);
+            stats.atkSpeed = Math.floor(stats.atkSpeed * 0.9);
+        }
+    });
+
+    return { stats, base };
+}
+
 function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
+    const atkEff = getEffectiveStats(attacker, now).stats;
+    const tgtEff = getEffectiveStats(target, now).stats;
+
+    // Use Physical or Magical based on attacker's primary type
+    const isMagical = attacker.classId === 'monster_supporter';
+    const activeAtk = isMagical ? atkEff.mAtk : atkEff.pAtk;
+    const activeDef = isMagical ? tgtEff.mDef : tgtEff.pDef;
+
     // 1. Dodge Check
-    const attackerAcc = attacker.acc || 0;
-    const targetDodge = target.dodge || 0;
-    const dodgeChance = Math.max(0, targetDodge - attackerAcc) / 1000;
+    const dodgeChance = Math.max(0, tgtEff.dodge - atkEff.acc) / 1000;
     if (Math.random() < dodgeChance) {
         return { damage: 0, isMiss: true, isBlock: false, isCrit: false };
     }
 
-    // 2. Base Damage from current Stats
-    const isStealth = attacker.statusEffects.some(ef => ef.type === 'stealth' && now < ef.endTime);
-    const baseAtk = isStealth ? attacker.atk * 1.15 : attacker.atk;
-    let rawDamage = baseAtk * skillMultiplier;
+    // 2. Base Damage from effective stats
+    let rawDamage = activeAtk * skillMultiplier;
 
     // 3. Crit Check
-    const critChance = attacker.crit / 1000;
+    const critChance = atkEff.crit / 1000;
     let isCrit = false;
     if (Math.random() < critChance) {
         isCrit = true;
-        rawDamage *= (2.0 + (attacker.critDmg / 1000));
+        rawDamage *= (2.0 + (atkEff.critDmg / 1000));
     }
 
     // 4. Block Check (Only if not Crit)
     let isBlock = false;
     if (!isCrit) {
-        const blockChance = target.block / 1000;
+        const blockChance = tgtEff.block / 1000;
         if (Math.random() < blockChance) {
             isBlock = true;
             rawDamage *= 0.5;
@@ -145,9 +213,8 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
     }
 
     // 5. PEN & DEF mitigation
-    const attackerPen = attacker.pen || 0;
-    const effectiveDef = target.def * (1 - attackerPen / 1000);
-    const mitigation = effectiveDef / (effectiveDef + 300); // Mitigation curve
+    const effectiveDef = activeDef * (1 - atkEff.pen / 1000);
+    const mitigation = effectiveDef / (effectiveDef + 300);
     const finalDamage = Math.max(1, Math.floor(rawDamage * (1 - mitigation)));
 
     return { damage: finalDamage, isMiss: false, isBlock, isCrit };
@@ -194,6 +261,7 @@ function findBestTarget(attacker, enemySquad, now) {
 // SOCKET HANDLING
 // ============================================================
 io.on('connection', (socket) => {
+    console.log(`[CONNECTION] New client connected: ${socket.id}`);
     if (TEST_MODE) {
         // AUTO-START with NPC
         const roomId = `room_test_${Date.now()}`;
@@ -281,14 +349,72 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('debugAction', (data) => {
+        const roomId = socket.roomId;
+        if (!roomId || !rooms[roomId]) return;
+        const player = rooms[roomId].players[socket.id];
+        if (!player) return;
+
+        if (data.type === 'fillMana') {
+            player.squad.forEach(m => m.mp = m.maxMp);
+        } else if (data.type === 'noMana') {
+            player.debugNoMana = !!data.value;
+        } else if (data.type === 'godMode') {
+            player.debugGodMode = !!data.value;
+        }
+    });
+
+    socket.on('debugEnemyAction', (data) => {
+        const roomId = socket.roomId;
+        const room = rooms[roomId];
+        if (!room) return;
+
+        const cid = socket.id;
+        const opponentId = Object.keys(room.players).find(id => id !== cid);
+        if (!opponentId) return;
+
+        if (data.type === 'spawnStandard' || data.type === 'spawnDummy') {
+            // Reset player targets
+            room.players[cid].squad.forEach(m => {
+                m.targetIndex = -1;
+                m.lockedTargetIndex = -1;
+                m.state = 'idle';
+            });
+
+            if (data.type === 'spawnDummy') {
+                room.players[opponentId].debugGodMode = true; // Immortal dummy
+                const def = CLASS_DEFS['monster_dummy'];
+                room.players[opponentId].squad = [{
+                    classId: 'monster_dummy', name: def.name, emoji: def.emoji, color: def.color,
+                    hp: def.maxHp, maxHp: def.maxHp, mp: 0, maxMp: def.maxMp,
+                    pAtk: def.pAtk, mAtk: def.mAtk, pDef: def.pDef, mDef: def.mDef,
+                    crit: def.crit, critDmg: def.critDmg, acc: def.acc, dodge: def.dodge, pen: def.pen, block: def.block, lifesteal: def.lifesteal,
+                    mpAtk: def.mpAtk, mpSec: def.mpSec,
+                    atkSpeed: def.atkSpeed, atkRange: def.atkRange, range: def.range, moveSpeed: def.moveSpeed,
+                    alive: true, x: 25, y: 0, z: 0, side: 'right',
+                    state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: 0,
+                    skillCooldowns: [], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: []
+                }];
+            } else {
+                room.players[opponentId].debugGodMode = false; // Normal monsters
+                room.players[opponentId].squad = createSquad('right');
+            }
+
+            io.to(roomId).emit('squadResized', { playerId: opponentId, newSquad: room.players[opponentId].squad });
+            broadcastState(roomId);
+        }
+    });
+
     socket.on('togglePause', () => {
         const roomId = socket.roomId;
         if (!roomId || !rooms[roomId]) return;
         const room = rooms[roomId];
         
         if (room.status === 'paused') {
-            room.status = 'active';
-        } else if (room.status === 'active') {
+            room.status = room.previousStatus || 'active';
+            room.lastTick = Date.now(); // Prevent countdown jump
+        } else if (room.status === 'active' || room.status === 'starting') {
+            room.previousStatus = room.status;
             room.status = 'paused';
         }
         
@@ -421,8 +547,10 @@ function startBattleLoop(roomId) {
                     const skillDef = def.skills[skillIdxToCast];
                     const cost = skillDef.orbCost * ORB_COST;
 
-                    // If enough mana and off cooldown
-                    if (member.mp >= cost && now >= member.skillCooldowns[skillIdxToCast]) {
+                    // If enough mana (or debugNoMana) and off cooldown (or debugNoMana)
+                    const hasEnoughMana = playerData.debugNoMana || member.mp >= cost;
+                    const isOffCooldown = playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast];
+                    if (hasEnoughMana && isOffCooldown) {
                         const isSelfBuff = skillDef.type === 'stealth' || skillDef.type === 'self_buff';
                         const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : member.atkRange;
                         
@@ -442,8 +570,8 @@ function startBattleLoop(roomId) {
                             return; 
                         } else {
                             member.queuedSkills.shift(); // Dequeue
-                            if (!TEST_MODE) member.mp -= cost;
-                            member.skillCooldowns[skillIdxToCast] = now + skillDef.cooldown;
+                            if (!playerData.debugNoMana) member.mp -= cost;
+                            if (!playerData.debugNoMana) member.skillCooldowns[skillIdxToCast] = now + skillDef.cooldown;
 
                             if (skillDef.castTime > 0) {
                                 member.state = 'casting';
@@ -478,7 +606,8 @@ function startBattleLoop(roomId) {
                     member.z += dirZ * member.moveSpeed * tickRate;
                 } else {
                     member.state = 'attacking';
-                    if (now - member.lastAttackTime >= member.atkSpeed) {
+                    const effAtkSpeed = getEffectiveStats(member, now).stats.atkSpeed;
+                    if (now - member.lastAttackTime >= effAtkSpeed) {
                         const result = calculateDamage(member, target, 1.0, now);
                         
                         if (result.isMiss) {
@@ -489,13 +618,9 @@ function startBattleLoop(roomId) {
                         } else {
                             const dmg = result.damage;
                             
-                            // Apply Invincibility for Player
-                            if (playerId !== 'npc_dummy' && opponentId === 'npc_monster') {
-                                // Assassin is attacking NPC, NPC takes damage
+                            if (!opponentData.debugGodMode) {
                                 target.hp = Math.max(0, target.hp - dmg);
                                 if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
-                            } else {
-                                // NPC is attacking Player (Player is invincible)
                             }
                             
                             // Mana from attack
@@ -569,9 +694,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
                 const result = calculateDamage(member, target, multiplier, now);
                 const dmg = result.damage;
                 
-                if (casterId === 'npc_monster') {
-                    // NPC target player, no damage
-                } else {
+                if (!opponentData.debugGodMode) {
                     target.hp = Math.max(0, target.hp - dmg);
                     if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
                 }
@@ -591,8 +714,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
                 
                 const result = calculateDamage(member, target, skillDef.multiplier, now);
                 const dmg = result.damage;
-                if (casterId === 'npc_monster') {
-                } else {
+                if (!opponentData.debugGodMode) {
                     target.hp = Math.max(0, target.hp - dmg);
                     if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
                 }
@@ -609,8 +731,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
                 const result = calculateDamage(member, enemy, skillDef.multiplier, now);
                 const dmg = result.damage;
                 
-                if (casterId === 'npc_monster') {
-                } else {
+                if (!opponentData.debugGodMode) {
                     enemy.hp = Math.max(0, enemy.hp - dmg);
                     if (enemy.hp === 0) { enemy.alive = false; enemy.state = 'dead'; }
                 }
@@ -626,8 +747,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
             target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'seal');
             target.statusEffects.push({ type: 'seal', endTime: now + 7000 });
 
-            if (casterId === 'npc_monster') {
-            } else {
+            if (!opponentData.debugGodMode) {
                 target.hp = Math.max(0, target.hp - dmg);
                 if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
             }
@@ -659,7 +779,19 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
 
 function broadcastState(roomId) {
     if (!rooms[roomId]) return;
-    io.to(roomId).emit('stateUpdate', { players: rooms[roomId].players });
+    const now = Date.now();
+    // Build a payload with effective stats for each member
+    const enrichedPlayers = {};
+    Object.entries(rooms[roomId].players).forEach(([pid, pdata]) => {
+        enrichedPlayers[pid] = {
+            ...pdata,
+            squad: pdata.squad.map(m => {
+                const { stats, base } = getEffectiveStats(m, now);
+                return { ...m, effectiveStats: stats, baseStats: base };
+            })
+        };
+    });
+    io.to(roomId).emit('stateUpdate', { players: enrichedPlayers });
 }
 
 function checkWinCondition(roomId) {

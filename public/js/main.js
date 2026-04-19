@@ -60,6 +60,152 @@ function playBeep(freq, type, duration) {
 const ORB_COST = 1000;
 
 // ============================================================
+// ANIMATION HELPERS
+// ============================================================
+class SpriteAnimator {
+    constructor(texture, cols, rows, fps = 10, material = null) {
+        this.texture = texture;
+        this.cols = cols;
+        this.rows = rows;
+        this.fps = fps;
+        this.material = material; // Reference to ShaderMaterial if used
+        this.frameWidth = 1 / cols;
+        this.frameHeight = 1 / rows;
+        
+        this.texture.repeat.set(this.frameWidth, this.frameHeight);
+        this.texture.wrapS = THREE.RepeatWrapping;
+        this.currentFrame = 0;
+        this.totalFramesInRow = cols;
+        this.elapsed = 0;
+        this.isFlip = false;
+        this.currentRow = -1;
+
+        this.updateUniforms();
+    }
+
+    updateUniforms() {
+        const uvRow = (this.rows - 1) - this.currentRow;
+        const offsetX = this.currentFrame * this.frameWidth;
+        const offsetY = uvRow * this.frameHeight;
+
+        if (this.material && this.material.uniforms.uvOffset) {
+            this.material.uniforms.uvOffset.value.set(offsetX, offsetY);
+            this.material.uniforms.uvRepeat.value.set(this.frameWidth, this.frameHeight);
+        } else {
+            this.texture.offset.set(offsetX, offsetY);
+            this.texture.repeat.set(this.frameWidth, this.frameHeight);
+        }
+    }
+
+    setRow(rowIdx, totalFrames = null, fps = null, loop = true, onComplete = null) {
+        if (this.currentRow !== rowIdx || this.isTransient) {
+            this.currentRow = rowIdx;
+            this.currentFrame = 0;
+            this.totalFramesInRow = totalFrames || this.cols;
+            if (fps) this.fps = fps;
+            this.isTransient = !loop;
+            this.onComplete = onComplete;
+            this.updateUniforms();
+        }
+    }
+
+    switchSheet(newTexture, cols, rows) {
+        if (this.texture === newTexture) return;
+        this.texture = newTexture;
+        if (this.material) this.material.uniforms.map.value = newTexture;
+        this.cols = cols;
+        this.rows = rows;
+        this.frameWidth = 1 / cols;
+        this.frameHeight = 1 / rows;
+        this.currentFrame = 0;
+        this.elapsed = 0;
+        this.updateUniforms();
+    }
+
+    update(dt) {
+        this.elapsed += dt;
+        if (this.elapsed >= 1 / this.fps) {
+            this.elapsed = 0;
+            const nextFrame = this.currentFrame + 1;
+            
+            if (nextFrame >= this.totalFramesInRow) {
+                if (this.isTransient) {
+                    if (this.onComplete) this.onComplete();
+                    this.isTransient = false;
+                    return;
+                }
+                this.currentFrame = 0;
+            } else {
+                this.currentFrame = nextFrame;
+            }
+            this.updateUniforms();
+        }
+    }
+
+    setFlip(flip) {
+        this.isFlip = flip;
+    }
+}
+
+// ============================================================
+// CHROMA KEY SHADER
+// ============================================================
+function createChromaKeyMaterial(texture, keyColor = new THREE.Color(1, 0, 1)) {
+    return new THREE.ShaderMaterial({
+        uniforms: {
+            map: { value: texture },
+            keyColor: { value: keyColor },
+            similarity: { value: 0.40 }, // Balanced similarity
+            smoothness: { value: 0.05 },
+            opacity: { value: 1.0 },
+            uvOffset: { value: new THREE.Vector2(0, 0) },
+            uvRepeat: { value: new THREE.Vector2(1, 1) }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform sampler2D map;
+            uniform vec3 keyColor;
+            uniform float similarity;
+            uniform float smoothness;
+            uniform float opacity;
+            uniform vec2 uvOffset;
+            uniform vec2 uvRepeat;
+            varying vec2 vUv;
+
+            void main() {
+                // APPLY SAFE UV INSET (Padding) to avoid edge bleeding
+                vec2 safeVuv = vUv * 0.90 + 0.05; 
+                vec2 animatedUv = safeVuv * uvRepeat + uvOffset;
+                
+                vec4 texColor = texture2D(map, animatedUv);
+                
+                float diff = distance(texColor.rgb, keyColor);
+                float mask = smoothstep(similarity, similarity + smoothness, diff);
+                
+                gl_FragColor = vec4(texColor.rgb, texColor.a * mask * opacity);
+                if (gl_FragColor.a < 0.1) discard;
+            }
+        `,
+        transparent: true
+    });
+}
+
+// Load textures
+const loader = new THREE.TextureLoader();
+const assassinMainTex = loader.load('assets/assassin_main.png');
+const assassinExtraTex = loader.load('assets/assassin_extra.png');
+assassinMainTex.magFilter = THREE.NearestFilter;
+assassinMainTex.minFilter = THREE.NearestFilter;
+assassinExtraTex.magFilter = THREE.NearestFilter;
+assassinExtraTex.minFilter = THREE.NearestFilter;
+
+// ============================================================
 // CAPSULE CREATION & VFX
 // ============================================================
 function createCharTexture(emoji, color, label, isMyTeam) {
@@ -119,31 +265,35 @@ function updateBarSprite(sprite, percent) {
     texture.needsUpdate = true;
 }
 
-function createTeamLabel(text, color) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 48;
-    const ctx = canvas.getContext('2d');
-    ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
-    ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
-    ctx.strokeText(text, 128, 32); ctx.fillText(text, 128, 32);
-    const texture = new THREE.CanvasTexture(canvas);
-    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(4, 0.75, 1);
-    return sprite;
-}
 
 function createCapsuleGroup(memberData, classDef, isMyTeam) {
     const group = new THREE.Group();
-    const tex = createCharTexture(classDef.emoji, memberData.color, memberData.name, isMyTeam);
-    const mat = new THREE.SpriteMaterial({ map: tex });
-    const body = new THREE.Sprite(mat);
-    body.scale.set(1.8, 2.2, 1); body.position.y = 1;
-    group.add(body); group.userData.body = body;
-
-    const hpBar = createBarSprite('#22c55e'); hpBar.position.y = 2.5; group.add(hpBar); group.userData.hpBar = hpBar;
     
-    const castBar = createBarSprite('#facc15'); castBar.position.y = 2.7; castBar.visible = false;
+    if (memberData.classId === 'assassin') {
+        const tex = assassinMainTex.clone();
+        tex.needsUpdate = true;
+        const mat = createChromaKeyMaterial(tex);
+        const geo = new THREE.PlaneGeometry(1, 1);
+        const body = new THREE.Mesh(geo, mat);
+        body.scale.set(3.5, 3.5, 1); // Increased scale
+        body.position.y = 1.6;
+        group.add(body);
+        group.userData.body = body;
+        group.userData.mainTex = tex;
+        group.userData.extraTex = assassinExtraTex.clone();
+        group.userData.animator = new SpriteAnimator(tex, 6, 4, 12, mat); 
+        group.userData.lastX = memberData.x;
+    } else {
+        const tex = createCharTexture(classDef.emoji, memberData.color, memberData.name, isMyTeam);
+        const mat = new THREE.SpriteMaterial({ map: tex });
+        const body = new THREE.Sprite(mat);
+        body.scale.set(1.8, 2.2, 1); body.position.y = 1;
+        group.add(body); group.userData.body = body;
+    }
+
+    const hpBar = createBarSprite('#22c55e'); hpBar.position.y = 3.0; group.add(hpBar); group.userData.hpBar = hpBar;
+    
+    const castBar = createBarSprite('#facc15'); castBar.position.y = 3.2; castBar.visible = false;
     group.add(castBar); group.userData.castBar = castBar;
 
     group.position.set(memberData.x, 0, memberData.z || 0);
@@ -579,8 +729,41 @@ function updateSceneFromState(players) {
             const group = capsules[playerId][i];
             if (!group) return;
 
+            const prevX = group.position.x;
             group.position.x += (member.x - group.position.x) * 0.15;
             group.position.z += (member.z - group.position.z) * 0.15;
+
+            // Handle Character Animation and Flip
+            if (group.userData.animator) {
+                const animator = group.userData.animator;
+                
+                // Flip logic
+                const dx = member.x - group.userData.lastX;
+                if (Math.abs(dx) > 0.001) animator.setFlip(dx < 0);
+                group.userData.lastX = member.x;
+                group.userData.body.scale.x = animator.isFlip ? -3.5 : 3.5;
+
+                // Handle Billboarding
+                group.userData.body.quaternion.copy(camera.quaternion);
+
+                // Handle Opacity for Stealth
+                const isStealth = member.statusEffects.some(ef => ef.type === 'stealth');
+                if (animator.material) {
+                    const targetOpacity = isStealth ? (playerId === socket.id ? 0.3 : 0.0) : 1.0;
+                    animator.material.uniforms.opacity.value += (targetOpacity - animator.material.uniforms.opacity.value) * 0.1;
+                }
+
+                // Priority for transient skill animations
+                if (!animator.isTransient) {
+                    animator.switchSheet(group.userData.mainTex, 6, 4);
+                    if (member.state === 'moving') animator.setRow(1, 6, 12); 
+                    else if (member.state === 'attacking') animator.setRow(2, 5, 12); 
+                    else if (member.state === 'casting') animator.setRow(3, 5, 12); 
+                    else animator.setRow(0, 4, 8); // Idle: 4 frames
+                }
+                
+                animator.update(0.016);
+            }
 
             updateBarSprite(group.userData.hpBar, member.hp / member.maxHp);
 
@@ -610,7 +793,7 @@ function updateSceneFromState(players) {
             } else {
                 const isStealth = member.statusEffects.some(ef => ef.type === 'stealth');
                 if (isStealth) {
-                    if (playerId === myId) {
+                    if (playerId === socket.id) {
                         group.userData.body.material.opacity = 0.3;
                         group.visible = true;
                     } else {
@@ -624,9 +807,9 @@ function updateSceneFromState(players) {
         });
     });
 
-    if (myId && players[myId]) {
-        const myAlive = players[myId].squad.filter(m => m.alive);
-        const opponentId = Object.keys(players).find(id => id !== myId);
+    if (socket.id && players[socket.id]) {
+        const myAlive = players[socket.id].squad.filter(m => m.alive);
+        const opponentId = Object.keys(players).find(id => id !== socket.id);
         const enemyAlive = opponentId && players[opponentId] ? players[opponentId].squad.filter(m => m.alive) : [];
 
         if (myAlive.length > 0) {
@@ -662,26 +845,58 @@ function updateSceneFromState(players) {
 // ============================================================
 function getStatPanelHTML(member) {
     const s = member;
+    const eff = member.effectiveStats || {};
+    const base = member.baseStats || {};
+
+    // Helper: returns colored <b> tag based on comparison
+    function cv(label, effVal, baseVal, suffix = '', format = null) {
+        const val = format ? format(effVal) : effVal;
+        let color = '#94a3b8'; // default grey
+        if (effVal > baseVal) color = '#4ade80'; // green = buffed
+        else if (effVal < baseVal) color = '#ef4444'; // red = debuffed
+        return `<div style="display:flex; justify-content:space-between;"><span>${label}</span> <b style="color:${color}">${val}${suffix}</b></div>`;
+    }
+
+    // Active status effects label
+    let statusHTML = '';
+    const now = Date.now();
+    if (s.statusEffects && s.statusEffects.length > 0) {
+        const activeEffects = s.statusEffects.filter(ef => now < ef.endTime);
+        if (activeEffects.length > 0) {
+            const tags = activeEffects.map(ef => {
+                const remaining = ((ef.endTime - now) / 1000).toFixed(1);
+                if (ef.type === 'seal') return `<span style="color:#ef4444;font-size:11px;">🔴 Ấn (${remaining}s)</span>`;
+                if (ef.type === 'stealth') return `<span style="color:#4ade80;font-size:11px;">🟢 Tàng Hình (${remaining}s)</span>`;
+                return `<span style="font-size:11px;">${ef.type} (${remaining}s)</span>`;
+            });
+            statusHTML = `<div style="margin-top:6px;padding:4px 6px;background:rgba(0,0,0,0.3);border-radius:6px;">${tags.join(' ')}</div>`;
+        }
+    }
+
     return `
         <div class="stat-panel-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <b style="font-size:18px;">${member.name}</b>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <b style="font-size:16px;">${s.name}</b>
             </div>
-            <div style="font-size:13px; line-height:1.8;">
-                <div style="display:flex; justify-content:space-between;"><span>ATK</span> <b style="color:#fbbf24">${s.atk}</b></div>
+            <div style="font-size:12px; line-height:1.9;">
+                ${cv('P.ATK', eff.pAtk ?? s.pAtk, base.pAtk ?? s.pAtk)}
+                ${cv('M.ATK', eff.mAtk ?? s.mAtk, base.mAtk ?? s.mAtk)}
                 <div style="display:flex; justify-content:space-between;"><span>HP</span> <b style="color:#ef4444">${Math.floor(s.hp)}/${s.maxHp}</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>DEF</span> <b style="color:#94a3b8">${s.def}</b></div>
-                <hr style="border:0; border-top:1px solid #334155; margin:8px 0;">
-                <div style="display:flex; justify-content:space-between;"><span>Crit Rate</span> <b>${s.crit/10}%</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>Crit DMG</span> <b>+${s.critDmg/10}%</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>Dodge</span> <b>${s.dodge/10}%</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>Block</span> <b>${s.block/10}%</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>Penetration</span> <b>${s.pen/10}%</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>Accuracy</span> <b>${s.acc/10}%</b></div>
-                <hr style="border:0; border-top:1px solid #334155; margin:8px 0;">
-                <div style="display:flex; justify-content:space-between;"><span>Speed (Move)</span> <b>${s.moveSpeed}</b></div>
-                <div style="display:flex; justify-content:space-between;"><span>MP Recov/Atk</span> <b>${s.mpAtk}</b></div>
+                ${cv('P.DEF', eff.pDef ?? s.pDef, base.pDef ?? s.pDef)}
+                ${cv('M.DEF', eff.mDef ?? s.mDef, base.mDef ?? s.mDef)}
+                <hr style="border:0; border-top:1px solid #334155; margin:6px 0;">
+                ${cv('Crit Rate', eff.crit ?? s.crit, base.crit ?? s.crit, '%', v => (v/10))}
+                ${cv('Crit DMG', eff.critDmg ?? s.critDmg, base.critDmg ?? s.critDmg, '%', v => '+' + (v/10))}
+                ${cv('Dodge', eff.dodge ?? s.dodge, base.dodge ?? s.dodge, '%', v => (v/10))}
+                ${cv('Block', eff.block ?? s.block, base.block ?? s.block, '%', v => (v/10))}
+                ${cv('Penetration', eff.pen ?? s.pen, base.pen ?? s.pen, '%', v => (v/10))}
+                ${cv('Accuracy', eff.acc ?? s.acc, base.acc ?? s.acc, '%', v => (v/10))}
+                <hr style="border:0; border-top:1px solid #334155; margin:6px 0;">
+                ${cv('Tốc đánh (ms)', eff.atkSpeed ?? s.atkSpeed, base.atkSpeed ?? s.atkSpeed)}
+                ${cv('Speed (Move)', eff.moveSpeed ?? s.moveSpeed, base.moveSpeed ?? s.moveSpeed)}
+                ${cv('MP Recov/Atk', eff.mpAtk ?? s.mpAtk, base.mpAtk ?? s.mpAtk)}
             </div>
+            ${statusHTML}
         </div>
     `;
 }
@@ -723,23 +938,52 @@ socket.on('skillExecuted', (data) => {
             let type = 'normal';
             if (effect.isCrit || data.isBackstab) type = 'crit';
             else if (effect.isBlock) type = 'block';
-            
             spawnDamageNumber(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z, effect.damage, type);
             
             if (data.type !== 'projectile') {
                 if (data.isBackstab || effect.isCrit) spawnBackstabVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
                 else spawnSlashVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
             }
-            
-            if (data.skillIdx === 0) {
-                spawnSealVfx(tgtGrp, 7000);
-            }
+            if (data.skillIdx === 0) spawnSealVfx(tgtGrp, 7000);
         }
     };
 
-    if (data.dash && memberGrp) {
+    if (data.type === 'melee_strike' && memberGrp && memberGrp.userData.animator) {
+        // ASSASSIN SKILL 2 (Shadow Blink)
+        const animator = memberGrp.userData.animator;
+        animator.switchSheet(memberGrp.userData.extraTex, 4, 4);
+        animator.setRow(2, 4, 15, false); // Vanish
+        memberGrp.userData.body.material.opacity = 0.7;
+
+        setTimeout(() => {
+            memberGrp.position.set(data.newX, 0, data.newZ);
+            animator.setRow(3, 4, 15, false, () => {
+                memberGrp.userData.body.material.opacity = 1;
+            });
+            spawnSlashVfx(data.newX, 1, data.newZ);
+            data.effects.forEach(processHit);
+        }, 200);
+
+    } else if (data.type === 'projectile' && memberGrp) {
+        // ASSASSIN SKILL 1 (Throwing)
+        if (memberGrp.userData.animator) {
+            memberGrp.userData.animator.switchSheet(memberGrp.userData.extraTex, 4, 4);
+            memberGrp.userData.animator.setRow(0, 4, 15, false);
+        }
+
+        data.effects.forEach((effect, idx) => {
+            const tgtGrp = capsules[actualOpponentId]?.[effect.targetIndex];
+            if (tgtGrp) {
+                setTimeout(() => {
+                    spawnProjectile(memberGrp.position.clone().add(new THREE.Vector3(0,1,0)), tgtGrp.position.clone().add(new THREE.Vector3(0,1,0)), '#facc15');
+                    setTimeout(() => processHit(effect), 400);
+                }, idx * 250);
+            }
+        });
+
+    } else if (data.dash && memberGrp) {
+        // Generic Dash (for non-Assassins or fallback)
         if (data.effects.length > 1) {
-            // Sequential Dash Animation
             data.effects.forEach((effect, i) => {
                 setTimeout(() => {
                     const stepTgt = capsules[actualOpponentId]?.[effect.targetIndex];
@@ -748,36 +992,22 @@ socket.on('skillExecuted', (data) => {
                         memberGrp.position.z = stepTgt.position.z;
                         processHit(effect);
                     }
-                    // On final step, move to behind the target
                     if (i === data.effects.length - 1) {
                         setTimeout(() => {
                             memberGrp.position.x = data.newX;
                             memberGrp.position.z = data.newZ;
                         }, 100);
                     }
-                }, i * 150); // 150ms between dashes
+                }, i * 150);
             });
         } else {
-            // Immediate jump (1 target or fallback)
             memberGrp.position.x = data.newX;
             memberGrp.position.z = data.newZ;
             data.effects.forEach(processHit);
         }
-    } else if (data.type === 'projectile' && memberGrp) {
-        data.effects.forEach((effect, idx) => {
-            const tgtGrp = capsules[actualOpponentId]?.[effect.targetIndex];
-            if (tgtGrp) {
-                setTimeout(() => {
-                    spawnProjectile(memberGrp.position.clone().add(new THREE.Vector3(0,1,0)), tgtGrp.position.clone().add(new THREE.Vector3(0,1,0)), '#facc15');
-                    setTimeout(() => processHit(effect), 400); // 400ms sync with projectile duration
-                }, idx * 250); // delay second projectile by 250ms
-            }
-        });
     } else if (data.type === 'stealth' && memberGrp) {
-        // Small puff of smoke for stealth activation
         spawnAoeExplosion(memberGrp.position.x, memberGrp.position.z);
     } else {
-        // Standard non-dash skills
         data.effects.forEach(processHit);
     }
 
@@ -785,10 +1015,7 @@ socket.on('skillExecuted', (data) => {
         spawnAoeExplosion(memberGrp.position.x, memberGrp.position.z);
     }
 
-    if(memberGrp) {
-        // Hide cast bar
-        memberGrp.userData.castBar.visible = false;
-    }
+    if (memberGrp) memberGrp.userData.castBar.visible = false;
 });
 
 socket.on('countdown', (data) => {
@@ -820,6 +1047,27 @@ socket.on('pauseState', (data) => {
         document.getElementById('game-container').style.filter = 'none';
         const btn = document.getElementById('btn-pause');
         if (btn) btn.textContent = '⏸ PAUSE';
+    }
+});
+
+socket.on('squadResized', (data) => {
+    const pId = data.playerId;
+    const newSquad = data.newSquad;
+    
+    // Remove all old capsules for this player
+    if (capsules[pId]) {
+        capsules[pId].forEach(group => scene.remove(group));
+        capsules[pId] = [];
+    }
+
+    // Creating new capsules
+    if (roomData && classDefs) {
+        const isMyTeam = (pId === socket.id);
+        newSquad.forEach((member) => {
+            const group = createCapsuleGroup(member, classDefs[member.classId], isMyTeam);
+            scene.add(group);
+            capsules[pId].push(group);
+        });
     }
 });
 
@@ -873,6 +1121,40 @@ window.requestReset = function() {
 };
 
 // ============================================================
+// DEBUG CONTROLS
+// ============================================================
+let debugNoManaState = false;
+let debugGodModeState = false;
+
+window.debugFillMana = function() {
+    socket.emit('debugAction', { type: 'fillMana' });
+};
+
+window.debugToggleNoMana = function() {
+    debugNoManaState = !debugNoManaState;
+    const btn = document.getElementById('btn-debug-no-mana');
+    if (btn) {
+        btn.classList.toggle('active', debugNoManaState);
+        btn.innerHTML = `✨ Dùng Skill Miễn Phí: ${debugNoManaState ? 'ON' : 'OFF'}`;
+    }
+    socket.emit('debugAction', { type: 'noMana', value: debugNoManaState });
+};
+
+window.debugToggleGodMode = function() {
+    debugGodModeState = !debugGodModeState;
+    const btn = document.getElementById('btn-debug-god-mode');
+    if (btn) {
+        btn.classList.toggle('active', debugGodModeState);
+        btn.innerHTML = `🛡️ Bất Tử (Bỏ Qua Sát Thương): ${debugGodModeState ? 'ON' : 'OFF'}`;
+    }
+    socket.emit('debugAction', { type: 'godMode', value: debugGodModeState });
+};
+
+window.debugSpawnEnemy = function(type) {
+    socket.emit('debugEnemyAction', { type: type });
+};
+
+// ============================================================
 // LOOP
 // ============================================================
 function animate() {
@@ -887,4 +1169,52 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
 });
+// ============================================================
+// DRAGGABLE UI HELPERS
+// ============================================================
+function makeDraggable(el) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    el.onmousedown = dragMouseDown;
+
+    function dragMouseDown(e) {
+        if (e.target.tagName === 'BUTTON') return; // Don't drag when clicking buttons
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+        el.style.cursor = 'grabbing';
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        el.style.top = (el.offsetTop - pos2) + "px";
+        el.style.left = (el.offsetLeft - pos1) + "px";
+        el.style.right = 'auto'; // Disable right-anchor if dragging
+        el.style.bottom = 'auto';
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        el.style.cursor = 'grab';
+    }
+}
+
+// Apply draggability
+const dragTargets = ['debug-controls', 'enemy-debug-controls', 'left-stats', 'right-stats'];
+dragTargets.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.style.cursor = 'grab';
+        makeDraggable(el);
+    }
+});
+
 animate();

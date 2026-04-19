@@ -1,67 +1,72 @@
-# 🎮 DỰ ÁN: 2.5D RPG (Tên mã: Pet Battle Online)
+# Nhật ký Dự án: Hệ thống Chiến đấu Pet Battle Online (Cập nhật 19/04/2026)
 
-## 🎯 Mục tiêu dự án
-Phát triển một tựa game nhập vai 2.5D trực tuyến với định hướng nghệ thuật và gameplay kết hợp giữa ba tượng đài:
-1.  **Đồ họa & Môi trường**: Phong cách 2.5D (nhân vật 2D trên nền 3D/Isometric).
-2.  **Gameplay Chiến đấu**: Hành động thời gian thực (Real-time) giống **King's Raid**, người chơi điều khiển đội hình 4 nhân vật với hệ thống sử dụng kỹ năng (Skill) Chủ động (Active) và Bị động (Passive), có xếp hàng (Skill Queue) và Auto Mode.
-3.  **Khám phá & Bản đồ**: Cơ chế thám hiểm thế giới kiểu bán mở (Semi-Openworld).
+Hôm nay chúng ta đã tập trung vào việc chuyển đổi toàn bộ nhân vật Assassin từ dạng 3D thô sơ sang nhân vật 2D Animated hoàn chỉnh với các hiệu ứng kỹ năng đặc kịch.
 
-## 🛠 Thư viện / Công nghệ sử dụng
-*   **Máy chủ (Backend):** Node.js + Socket.io.
-*   **Đồ họa (Frontend):** Three.js (Lưới không gian 3D, UI nổi 2D).
-*   **Quản lý mã nguồn:** Git & GitHub (Remote: `https://github.com/Newwyn/Game`).
+## ✅ Các hạng mục đã hoàn thành
+
+### 1. Hệ thống Hoạt ảnh 2D (Sprite Animation)
+- **SpriteAnimator Engine**: Xây dựng bộ điều khiển hoạt ảnh (logic frame-by-frame) cực kỳ linh hoạt, hỗ trợ chuyển đổi giữa nhiều Sprite Sheet (Main và Extra).
+- **Chroma-Key Rendering**: Triển khai Shader xử lý màu Magenta (#FF00FF) để tẩy nền trong suốt thời gian thực, khắc phục lỗi hình nền ô vuông (checkerboard).
+- **Safe-Crop UV Mapping**: Cập nhật logic lấy 90% phần lõi của mỗi khung hình để loại bỏ triệt để hiện tượng dính viền hoặc bị chia đôi nhân vật do sai lệch pixel.
+- **Billboarding**: Đảm bảo nhân vật luôn hướng về phía Camera trong không gian 2.5D.
+
+### 2. Kỹ năng Assassin (Visual Effects)
+- **Tấn công thường**: Hiệu ứng vung kiếm theo hướng mặt nhân vật.
+- **Skill 1 (Phi Tiêu)**: Animation Ném (Throw) kết hợp phóng vật thể.
+- **Skill 2 (Đột Kích - Shadow Blink)**: 
+    - Hiệu ứng **Vanish** (Mờ dần).
+    - Cơ chế **Teleport** tức thời.
+    - Hiệu ứng **Appear** (Hiện hình) kết hợp bóng mờ (After-images).
+- **Skill 3 (Tàng Hình)**: Hoạt ảnh Niệm chú (Cast) sau đó mờ dần về độ trong suốt 30% (mắt thường phe mình vẫn thấy mờ, phe địch sẽ thấy mất hút).
+
+### 3. Công cụ Test & Giao diện
+- **Bảng Công cụ Phe Địch**: Bổ sung bảng điều khiển kéo thả riêng cho phe địch.
+- **Cọc Gỗ (Training Dummy)**: Tạo thực thể bất tử để test sát thương, tự động hiển thị bảng chỉ số chi tiết của Dummy.
+- **Stat Table**: Cập nhật hiển thị màu xanh (Buff) và màu đỏ (Debuff) trực quan cho các chỉ số nhân vật.
+- **No Cooldown Mode**: Tắt thời gian hồi chiêu để test skill liên tục.
+
+## ⚠️ Các vấn đề cần xử lý tiếp (Tồn đọng)
+- **Căn chỉnh Frame**: Một vài tư thế vẫn bị nhảy hoặc lệch nhẹ (do ảnh AI tạo ra không đều 100%). Sẽ thực hiện tinh chỉnh lại tọa độ chuẩn trong buổi tới.
+- **Skill Execution**: Tối ưu lại thời gian trễ giữa Animation và thời điểm gây sát thương để cảm giác chiến đấu "đã" hơn.
+
+## ⚔️ Chi tiết Chỉ số & Kỹ năng Assassin (As) - Thông số kỹ thuật
+
+Nhân vật Assassin (As) là "cỗ máy sát thương" với các chỉ số cơ bản cực cao về bạo kích và tốc độ.
+
+### 📊 Chỉ số cơ bản (Base Stats)
+- **HP**: 1200 | **P.Atk**: 250 (Sát thương vật lý cao nhất nhóm prototype).
+- **Tỷ lệ Chí mạng**: 35% (Gấp 2-3 lần các class khác).
+- **Sát thương Chí mạng**: +50% (Mặc định gây 200% damage khi bạo kích).
+- **Né tránh**: 20% | **Xuyên giáp**: 15%.
+- **Tốc độ đánh**: 0.8 giây/đòn (Rất nhanh).
+
+### ⚡ Hệ thống Kỹ năng Chi tiết
+
+#### 1. Skill 1: Lưỡi Dao Tử Thần (Death Dagger)
+- **Mana**: 1 Orb (1000 MP) | **Hồi chiêu**: 7 giây.
+- **Sát thương**: 150% P.Atk.
+- **Cơ chế Ẩn (Seal)**: Đánh dấu **Ấn Chiếu (Seal)** lên mục tiêu trong **7 giây**. Mục tiêu bị dính Ấn sẽ chịu thêm sát thương từ kỹ năng số 2.
+- **Buff Tàng Hình**: Nếu đang trong trạng thái Tàng Hình, Assassin sẽ ném **2 phi tiêu** cùng lúc vào **2 kẻ địch có HP thấp nhất**.
+
+#### 2. Skill 2: Đột Kích (Shadow Blink)
+- **Mana**: 2 Orbs (2000 MP) | **Hồi chiêu**: 7 giây.
+- **Sát thương Gốc**: 250% P.Atk.
+- **Cơ chế Chuỗi (Chain Dash)**:
+    - Nếu trên sân có kẻ địch bị dính **Ấn Chiếu (Seal)**, Assassin sẽ **dịch chuyển và chém tất cả** các mục tiêu đó trong một chuỗi combo liên hoàn.
+    - Sát thương lên các mục tiêu bị dính Ấn tăng vọt lên **450% P.Atk** (Multiplier 2.5 x 1.8).
+    - Sau khi kết thúc chuỗi, Assassin sẽ xuất hiện sau lưng kẻ địch yếu máu nhất.
+- **Nội tại kèm theo**: Luôn kích hoạt **Backstab** (+50% Crit DMG) vì dịch chuyển ra sau lưng.
+
+#### 3. Skill 3: Tàng Hình (Stealth)
+- **Mana**: 3 Orbs (3000 MP) | **Hồi chiêu**: 10 giây.
+- **Thời gian**: 5 giây.
+- **Cơ chế Ẩn (Untargetable)**:
+    - Kẻ địch không thể chọn làm mục tiêu cho các kỹ năng đơn lẻ.
+    - Giảm 70% khả năng bị AI nhắm tới.
+- **Buff**: Tăng mạnh Né tránh và Bạo kích trong suốt 5 giây. Đòn đánh đầu tiên khi hiện hình sau tàng hình được cộng thêm sát thương đột biến.
+
+#### 4. Nội tại: Đánh Lén (Backstab Passive)
+- Tăng **50% Sát thương Chí mạng** mỗi khi Assassin đứng ở phía sau mục tiêu (Dựa trên tọa độ X).
 
 ---
-
-## 🚀 Tiến độ hiện tại
-
-### ✅ Giai đoạn 1: Server & Render Cơ bản (Hoàn thành)
-*   Khởi tạo Server WebSocket đồng bộ nhiều người chơi.
-*   Hệ thống Render nhân vật dạng Capsule với Texture tùy chỉnh theo Class.
-*   Camera Isometric 45 độ, hỗ trợ zoom proximity (tự động zoom khi 2 đội áp sát).
-
-### ✅ Giai đoạn 2: Hệ thống Combat & Kỹ năng (Hoàn thành)
-*   Cơ chế chiến đấu không gian 2.5D (X, Z plane) với tính toán va chạm vật lý.
-*   Hệ thống 4 Class cơ bản: Tank, Warrior, Archer, Healer (đang sử dụng mẫu Assassin làm Prototype).
-*   **AI Quái vật (NPC)**: Quái có thể tự tìm mục tiêu, né tránh nhân vật tàng hình và áp sát khi là cận chiến.
-
-### ✅ Giai đoạn 2.5: King's Raid Stat Engine & Skill Synergy (🔥 MỚI NHẤT)
-
-#### 1. Hệ thống Stat Engine 1000 điểm
-*   **Chỉ số Granular**: Chuyển đổi toàn bộ chỉ số sang thang đo 1000 (Ví dụ: 350 Crit = 35% tỷ lệ).
-*   **Damage Flow Logic (4 Lớp)**:
-    1.  **Né tránh (Dodge)**: Nếu mục tiêu né thành công -> Hiện `MISS`, không mất máu.
-    2.  **Bạo kích (Crit)**: Kiểm tra tỷ lệ bạo kích để nhân sát thương theo `Crit DMG`.
-    3.  **Chặn đứng (Block)**: Nếu chặn được -> Giảm một phần sát thương nhận vào.
-    4.  **Phòng thủ (DEF)**: Tính toán giảm trừ cuối cùng dựa trên Giáp và Xuyên thấu (Penetration).
-
-#### 2. Chi tiết kỹ năng Sát Thủ (Assassin Prototype)
-*   **Skill 1 (Phi Tiêu)**: Sát thương tầm xa + Gắn **"Ấn" (Seal)** lên mục tiêu trong 7s.
-    *   *Hiệu ứng Tàng Hình*: Nếu đang trong trạng thái Skill 3, sẽ ném 2 phi tiêu vào 2 mục tiêu ít máu nhất. Nếu chỉ còn 1 mục tiêu, ném bồi 2 phát vào cùng 1 kẻ địch.
-*   **Skill 2 (Đột Kích)**: Dịch chuyển áp sát lưng địch.
-    *   *Chain Dash*: Nếu có mục tiêu dính "Ấn", Assassin sẽ lướt chuỗi qua tất cả các mục tiêu đó trước khi dừng lại sau lưng kẻ yếu nhất.
-*   **Skill 3 (Tàng Hình)**: Biến mất trong 5 giây.
-    *   Khi tàng hình: Kẻ địch (Tanker) không thể chọn làm mục tiêu, cường hóa Skill 1 thành ném đôi.
-
-#### 3. UX/UI & Cân bằng
-*   **Dual Stat Panels**: Hiển thị bảng thông số (HP, ATK, DEF, Crit...) của tất cả nhân vật 2 bên trái/phải liên tục.
-*   **Mana & Cooldown**: Cooldown 7s (Skill 1-2) và 10s (Skill 3). Mana khởi điểm = 0, tích lũy qua đánh tay.
-*   **Combat Feedback**: Hiển thị nhãn `CRIT`, `BLOCK`, `MISS` nổi bật.
-
-#### 4. Nhật ký sửa lỗi (Technical Bug Log)
-*   **Lỗi: Kẹt màn hình Loading**: Lỗi `ReferenceError` do truy cập `socket.id` quá sớm (Race Condition). Giải quyết bằng cách dùng `socket.id` trực tiếp từ thư viện và thêm cơ chế null-check cho `cid`.
-*   **Lỗi: Tàng hình vẫn bị đánh**: Cập nhật logic `canBeTargeted` để NPC bỏ qua mục tiêu tàng hình và chuyển hướng sang đồng đội khác.
-
----
-
-## 📋 Nhiệm vụ tiếp theo (Giai đoạn 3)
-*   [ ] **Trang bị**: Hệ thống Item (Vũ khí, Giáp, Trang sức) cộng chỉ số Stat Engine.
-*   [ ] **Explore Mode**: Map thế giới mở với NPC giao nhiệm vụ.
-*   [ ] **Animation Spine 2D**: Thay thế các khối Capsule bằng Artwork thật.
-
----
-
-## 💡 Hướng dẫn cho người dùng mới (Khi máy không có Git)
-Nếu máy bạn báo lỗi "Git not recognized", bạn cần cài đặt **Git for Windows** tại [git-scm.com](https://git-scm.com/). Sau khi cài đặt, hãy khởi động lại ứng dụng và yêu cầu AI thực hiện lệnh Push.
-
-*Cập nhật lần cuối: 19/04/2026 bởi Antigravity AI.*
+**Trạng thái**: Tạm dừng (Chờ chỉnh sửa Asset hoàn thiện vào ngày mai).

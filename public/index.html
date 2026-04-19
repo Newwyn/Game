@@ -46,7 +46,23 @@
 
     <!-- Stat Panels -->
     <div id="left-stats" class="stat-container left-side"></div>
+
+    <!-- Debug Controls (Left side, under stats) -->
+    <div id="debug-controls" style="position: absolute; left: 20px; top: 400px; z-index: 50; display: flex; gap: 8px; flex-direction: column; width: 240px; background: rgba(15, 23, 42, 0.85); padding: 12px; border-radius: 12px; border: 2px solid #5b21b6; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+        <h3 style="font-size: 14px; margin-bottom: 5px; color: #a78bfa; text-align: center; text-transform: uppercase; letter-spacing: 1px;">⚙️ Công cụ Test</h3>
+        <button id="btn-debug-fill-mana" class="debug-btn" onclick="debugFillMana()">💎 Bơm Đầy Mana</button>
+        <button id="btn-debug-no-mana" class="debug-btn toggle" onclick="debugToggleNoMana()">✨ Dùng Skill Miễn Phí: OFF</button>
+        <button id="btn-debug-god-mode" class="debug-btn toggle" onclick="debugToggleGodMode()">🛡️ Bất Tử (Bỏ Qua Sát Thương): OFF</button>
+    </div>
+
     <div id="right-stats" class="stat-container right-side"></div>
+    
+    <!-- Enemy Debug Tool (Right side, under stats) -->
+    <div id="enemy-debug-controls" style="position: absolute; right: 20px; top: 150px; z-index: 50; display: flex; gap: 8px; flex-direction: column; width: 240px; background: rgba(69, 10, 10, 0.85); padding: 12px; border-radius: 12px; border: 2px solid #ef4444; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+        <h3 style="font-size: 14px; margin-bottom: 5px; color: #fca5a5; text-align: center; text-transform: uppercase; letter-spacing: 1px;">👹 Tool Phe Địch</h3>
+        <button class="debug-btn" onclick="debugSpawnEnemy('spawnStandard')">👹 Triệu Hồi 3 Quái</button>
+        <button class="debug-btn" onclick="debugSpawnEnemy('spawnDummy')">🪵 Triệu Hồi Cọc (Dummy)</button>
+    </div>
 
     <!-- Combat HUD (Bottom) -->
     <div id="combat-hud">
