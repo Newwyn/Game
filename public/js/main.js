@@ -60,6 +60,35 @@ function playBeep(freq, type, duration) {
 const ORB_COST = 1000;
 
 // ============================================================
+// COMBAT FEEL HELPERS
+// ============================================================
+function triggerHitFeedback(targetGrp) {
+    if (!targetGrp || !targetGrp.userData.body.material) return;
+    const mat = targetGrp.userData.body.material;
+    if (mat.uniforms && mat.uniforms.hitFlash) {
+        mat.uniforms.hitFlash.value = 1.0;
+        setTimeout(() => {
+            mat.uniforms.hitFlash.value = 0.0;
+        }, 50);
+    }
+}
+
+function triggerCameraShake(intensity = 0.2, duration = 200) {
+    const startPos = camera.position.clone();
+    const startTime = Date.now();
+    const shakeInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > duration) {
+            camera.position.copy(startPos);
+            clearInterval(shakeInterval);
+            return;
+        }
+        camera.position.x = startPos.x + (Math.random() - 0.5) * intensity;
+        camera.position.y = startPos.y + (Math.random() - 0.5) * intensity;
+    }, 16);
+}
+
+// ============================================================
 // ANIMATION HELPERS
 // ============================================================
 class SpriteAnimator {
@@ -72,28 +101,44 @@ class SpriteAnimator {
         this.frameWidth = 1 / cols;
         this.frameHeight = 1 / rows;
         
-        this.texture.repeat.set(this.frameWidth, this.frameHeight);
-        this.texture.wrapS = THREE.RepeatWrapping;
+        this.texture.generateMipmaps = false;
+        this.texture.matrixAutoUpdate = false; // Stop Three.js from touching the matrix
+        
         this.currentFrame = 0;
         this.totalFramesInRow = cols;
         this.elapsed = 0;
         this.isFlip = false;
         this.currentRow = -1;
+        this.frameCallbacks = {}; 
+        this.animConfigs = {}; 
+        this.pivotX = 0;
+        this.pivotY = 0;
+        // DO NOT call updateUniforms if currentRow is not set yet
+    }
 
-        this.updateUniforms();
+    setPivot(rowIdx, px, py) {
+        this.animConfigs[rowIdx] = { pivotX: px, pivotY: py };
+    }
+
+    onFrame(frameIdx, callback, once = true) {
+        if (!this.frameCallbacks[frameIdx]) this.frameCallbacks[frameIdx] = [];
+        this.frameCallbacks[frameIdx].push({ callback, once });
     }
 
     updateUniforms() {
-        const uvRow = (this.rows - 1) - this.currentRow;
-        const offsetX = this.currentFrame * this.frameWidth;
+        if (this.currentRow < 0) return;
+        
+        const row = Math.floor(this.currentRow);
+        const col = Math.floor(this.currentFrame) % this.cols; 
+        
+        const uvRow = (this.rows - 1) - row;
+        
+        const offsetX = col * this.frameWidth;
         const offsetY = uvRow * this.frameHeight;
 
         if (this.material && this.material.uniforms.uvOffset) {
             this.material.uniforms.uvOffset.value.set(offsetX, offsetY);
             this.material.uniforms.uvRepeat.value.set(this.frameWidth, this.frameHeight);
-        } else {
-            this.texture.offset.set(offsetX, offsetY);
-            this.texture.repeat.set(this.frameWidth, this.frameHeight);
         }
     }
 
@@ -105,6 +150,12 @@ class SpriteAnimator {
             if (fps) this.fps = fps;
             this.isTransient = !loop;
             this.onComplete = onComplete;
+            
+            // Apply Pivot Offsets for this row if they exist
+            const config = this.animConfigs[rowIdx];
+            this.pivotX = config ? config.pivotX : 0;
+            this.pivotY = config ? config.pivotY : 0;
+            
             this.updateUniforms();
         }
     }
@@ -138,6 +189,16 @@ class SpriteAnimator {
             } else {
                 this.currentFrame = nextFrame;
             }
+
+            // Trigger frame callbacks
+            if (this.frameCallbacks[this.currentFrame]) {
+                const callbacks = this.frameCallbacks[this.currentFrame];
+                this.frameCallbacks[this.currentFrame] = callbacks.filter(c => {
+                    c.callback();
+                    return !c.once; // Keep if not once
+                });
+            }
+
             this.updateUniforms();
         }
     }
@@ -158,6 +219,7 @@ function createChromaKeyMaterial(texture, keyColor = new THREE.Color(1, 0, 1)) {
             similarity: { value: 0.40 }, // Balanced similarity
             smoothness: { value: 0.05 },
             opacity: { value: 1.0 },
+            hitFlash: { value: 0.0 }, // 0.0 to 1.0 white flash
             uvOffset: { value: new THREE.Vector2(0, 0) },
             uvRepeat: { value: new THREE.Vector2(1, 1) }
         },
@@ -174,21 +236,24 @@ function createChromaKeyMaterial(texture, keyColor = new THREE.Color(1, 0, 1)) {
             uniform float similarity;
             uniform float smoothness;
             uniform float opacity;
+            uniform float hitFlash;
             uniform vec2 uvOffset;
             uniform vec2 uvRepeat;
             varying vec2 vUv;
 
             void main() {
-                // APPLY SAFE UV INSET (Padding) to avoid edge bleeding
-                vec2 safeVuv = vUv * 0.90 + 0.05; 
-                vec2 animatedUv = safeVuv * uvRepeat + uvOffset;
+                // PIXEL-PERFECT STABILIZATION: Inset UVs slightly (0.001) to avoid edge bleeding
+                vec2 safeUv = vUv * 0.998 + 0.001; 
+                vec2 animatedUv = (safeUv * uvRepeat) + uvOffset;
                 
                 vec4 texColor = texture2D(map, animatedUv);
                 
                 float diff = distance(texColor.rgb, keyColor);
                 float mask = smoothstep(similarity, similarity + smoothness, diff);
                 
-                gl_FragColor = vec4(texColor.rgb, texColor.a * mask * opacity);
+                vec3 finalRGB = mix(texColor.rgb, vec3(1.0, 1.0, 1.0), hitFlash);
+                
+                gl_FragColor = vec4(finalRGB, texColor.a * mask * opacity);
                 if (gl_FragColor.a < 0.1) discard;
             }
         `,
@@ -200,10 +265,13 @@ function createChromaKeyMaterial(texture, keyColor = new THREE.Color(1, 0, 1)) {
 const loader = new THREE.TextureLoader();
 const assassinMainTex = loader.load('assets/assassin_main.png');
 const assassinExtraTex = loader.load('assets/assassin_extra.png');
-assassinMainTex.magFilter = THREE.NearestFilter;
-assassinMainTex.minFilter = THREE.NearestFilter;
-assassinExtraTex.magFilter = THREE.NearestFilter;
-assassinExtraTex.minFilter = THREE.NearestFilter;
+[assassinMainTex, assassinExtraTex].forEach(t => {
+    t.magFilter = THREE.NearestFilter;
+    t.minFilter = THREE.NearestFilter;
+    t.generateMipmaps = false; // CRITICAL for sprite sheets
+    t.wrapS = THREE.ClampToEdgeWrapping;
+    t.wrapT = THREE.ClampToEdgeWrapping;
+});
 
 // ============================================================
 // CAPSULE CREATION & VFX
@@ -283,6 +351,14 @@ function createCapsuleGroup(memberData, classDef, isMyTeam) {
         group.userData.extraTex = assassinExtraTex.clone();
         group.userData.animator = new SpriteAnimator(tex, 6, 4, 12, mat); 
         group.userData.lastX = memberData.x;
+
+        // FIX AI JITTER: Nudge specific animations if they are off-center
+        // Row 0: Idle, Row 1: Run, Row 2: Attack, Row 3: Cast
+        const animator = group.userData.animator;
+        animator.setPivot(0, 0, 0);      // Idle is okay
+        animator.setPivot(1, -0.1, 0);   // Nudge Run slightly left
+        animator.setPivot(2, 0.2, 0.1);  // Nudge Attack forward and up
+        animator.setPivot(3, 0, -0.05);  // Nudge Cast down
     } else {
         const tex = createCharTexture(classDef.emoji, memberData.color, memberData.name, isMyTeam);
         const mat = new THREE.SpriteMaterial({ map: tex });
@@ -763,6 +839,7 @@ function updateSceneFromState(players) {
                 }
                 
                 animator.update(0.016);
+                if (animator.applyToMesh) animator.applyToMesh(group.userData.body);
             }
 
             updateBarSprite(group.userData.hpBar, member.hp / member.maxHp);
@@ -807,33 +884,25 @@ function updateSceneFromState(players) {
         });
     });
 
-    if (socket.id && players[socket.id]) {
-        const myAlive = players[socket.id].squad.filter(m => m.alive);
-        const opponentId = Object.keys(players).find(id => id !== socket.id);
-        const enemyAlive = opponentId && players[opponentId] ? players[opponentId].squad.filter(m => m.alive) : [];
+    if (socket.id && roomData && roomData.players && roomData.players[socket.id]) {
+        const myPd = roomData.players[socket.id];
+        const myAlive = myPd.squad.filter(m => m.alive);
+        const opponentId = Object.keys(roomData.players).find(id => id !== socket.id);
+        const enemyAlive = opponentId && roomData.players[opponentId] ? roomData.players[opponentId].squad.filter(m => m.alive) : [];
 
         if (myAlive.length > 0) {
             const myAvgX = myAlive.reduce((sum, m) => sum + m.x, 0) / myAlive.length;
 
-            // Auto-detect proximity: if closest enemy is within 15 units, go wide
             if (!cameraTargetWide && enemyAlive.length > 0) {
                 const enemyAvgX = enemyAlive.reduce((sum, m) => sum + m.x, 0) / enemyAlive.length;
                 const teamDist = Math.abs(myAvgX - enemyAvgX);
-                if (teamDist < 20) {
-                    cameraTargetWide = true;
-                }
+                if (teamDist < 20) cameraTargetWide = true;
             }
 
-            if (cameraTargetWide) {
-                // Center camera between both teams
-                if (enemyAlive.length > 0) {
-                    const enemyAvgX = enemyAlive.reduce((sum, m) => sum + m.x, 0) / enemyAlive.length;
-                    cameraTargetX = (myAvgX + enemyAvgX) / 2;
-                } else {
-                    cameraTargetX = myAvgX * 0.4;
-                }
+            if (cameraTargetWide && enemyAlive.length > 0) {
+                const enemyAvgX = enemyAlive.reduce((sum, m) => sum + m.x, 0) / enemyAlive.length;
+                cameraTargetX = (myAvgX + enemyAvgX) / 2;
             } else {
-                // Focus on player's team
                 cameraTargetX = myAvgX;
             }
         }
@@ -913,17 +982,36 @@ socket.on('stateUpdate', (data) => {
 
 socket.on('autoAttack', (data) => {
     const atkGrp = capsules[data.attackerId]?.[data.attackerIndex];
-    const tgtGrp = capsules[data.targetId]?.[data.targetIndex];
     if (atkGrp && roomData && roomData.players[data.attackerId]) {
-        triggerAttackAnim(atkGrp, roomData.players[data.attackerId].side === 'left' ? 1 : -1);
-    }
-    if (tgtGrp) {
-        let type = 'normal';
-        if (data.dodged) type = 'miss';
-        else if (data.isCrit) type = 'crit';
-        else if (data.isBlock) type = 'block';
-        spawnDamageNumber(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z, data.damage, type);
-        if (!data.dodged) spawnSlashVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
+        const attacker = roomData.players[data.attackerId];
+        triggerAttackAnim(atkGrp, attacker.side === 'left' ? 1 : -1);
+        
+        // HIT FRAME LOGIC: Queue the hit visual to fire on frame 3 (default for auto)
+        const hitFrame = classDefs[attacker.squad[data.attackerIndex].classId]?.autoHitFrame || 3;
+        
+        if (atkGrp.userData.animator && atkGrp.userData.animator.onFrame) {
+            atkGrp.userData.animator.onFrame(hitFrame, () => {
+                 const tgtGrp = capsules[data.targetId]?.[data.targetIndex];
+                 if (tgtGrp) {
+                    let type = 'normal';
+                    if (data.dodged) type = 'miss';
+                    else if (data.isCrit) type = 'crit';
+                    else if (data.isBlock) type = 'block';
+                    spawnDamageNumber(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z, data.damage, type);
+                    if (!data.dodged) {
+                        spawnSlashVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
+                        triggerHitFeedback(tgtGrp);
+                    }
+                 }
+            });
+        } else {
+            // Fallback for non-animated characters
+            const tgtGrp = capsules[data.targetId]?.[data.targetIndex];
+            if (tgtGrp) {
+                spawnDamageNumber(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z, data.damage, 'normal');
+                if (!data.dodged) { spawnSlashVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z); triggerHitFeedback(tgtGrp); }
+            }
+        }
     }
 });
 
@@ -932,6 +1020,11 @@ socket.on('skillExecuted', (data) => {
     const memberGrp = capsules[data.casterId]?.[data.casterIdx];
     const actualOpponentId = Object.keys(roomData.players).find(id => id !== data.casterId);
     
+    // DATA DRIVEN HIT FRAME
+    const casterClass = roomData.players[data.casterId]?.squad[data.casterIdx]?.classId;
+    const skillDef = classDefs[casterClass]?.skills[data.skillIdx];
+    const hitFrame = skillDef?.hitFrame || 3;
+
     const processHit = (effect) => {
         const tgtGrp = capsules[actualOpponentId]?.[effect.targetIndex];
         if (tgtGrp) {
@@ -943,13 +1036,13 @@ socket.on('skillExecuted', (data) => {
             if (data.type !== 'projectile') {
                 if (data.isBackstab || effect.isCrit) spawnBackstabVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
                 else spawnSlashVfx(tgtGrp.position.x, tgtGrp.position.y, tgtGrp.position.z);
+                triggerHitFeedback(tgtGrp);
             }
             if (data.skillIdx === 0) spawnSealVfx(tgtGrp, 7000);
         }
     };
 
     if (data.type === 'melee_strike' && memberGrp && memberGrp.userData.animator) {
-        // ASSASSIN SKILL 2 (Shadow Blink)
         const animator = memberGrp.userData.animator;
         animator.switchSheet(memberGrp.userData.extraTex, 4, 4);
         animator.setRow(2, 4, 15, false); // Vanish
@@ -960,27 +1053,43 @@ socket.on('skillExecuted', (data) => {
             animator.setRow(3, 4, 15, false, () => {
                 memberGrp.userData.body.material.opacity = 1;
             });
-            spawnSlashVfx(data.newX, 1, data.newZ);
-            data.effects.forEach(processHit);
+            
+            // SYNCED HIT: Wait for frame 3 of the 'Appear' animation
+            if (animator.onFrame) {
+                animator.onFrame(hitFrame, () => {
+                    spawnSlashVfx(data.newX, 1, data.newZ);
+                    if (data.isBackstab) triggerCameraShake(0.3, 300);
+                    data.effects.forEach(processHit);
+                });
+            } else {
+                spawnSlashVfx(data.newX, 1, data.newZ);
+                data.effects.forEach(processHit);
+            }
         }, 200);
 
     } else if (data.type === 'projectile' && memberGrp) {
-        // ASSASSIN SKILL 1 (Throwing)
         if (memberGrp.userData.animator) {
             memberGrp.userData.animator.switchSheet(memberGrp.userData.extraTex, 4, 4);
             memberGrp.userData.animator.setRow(0, 4, 15, false);
+            
+            // SYNCED HIT: Shoot projectiles at hitFrame
+            memberGrp.userData.animator.onFrame(hitFrame, () => {
+                data.effects.forEach((effect, idx) => {
+                    const tgtGrp = capsules[actualOpponentId]?.[effect.targetIndex];
+                    if (tgtGrp) {
+                        setTimeout(() => {
+                            spawnProjectile(memberGrp.position.clone().add(new THREE.Vector3(0,1,0)), tgtGrp.position.clone().add(new THREE.Vector3(0,1,0)), '#facc15');
+                            setTimeout(() => processHit(effect), 400);
+                        }, idx * 250);
+                    }
+                });
+            });
         }
-
-        data.effects.forEach((effect, idx) => {
-            const tgtGrp = capsules[actualOpponentId]?.[effect.targetIndex];
-            if (tgtGrp) {
-                setTimeout(() => {
-                    spawnProjectile(memberGrp.position.clone().add(new THREE.Vector3(0,1,0)), tgtGrp.position.clone().add(new THREE.Vector3(0,1,0)), '#facc15');
-                    setTimeout(() => processHit(effect), 400);
-                }, idx * 250);
-            }
-        });
-
+    } else if (data.type === 'stealth' && memberGrp) {
+        if (memberGrp.userData.animator) {
+             memberGrp.userData.animator.switchSheet(memberGrp.userData.mainTex, 6, 4);
+             memberGrp.userData.animator.setRow(3, 5, 12, false);
+        }
     } else if (data.dash && memberGrp) {
         // Generic Dash (for non-Assassins or fallback)
         if (data.effects.length > 1) {

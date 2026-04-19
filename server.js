@@ -24,10 +24,11 @@ const CLASS_DEFS = {
         crit: 350, critDmg: 500, acc: 1000, dodge: 200, pen: 150, block: 50, lifesteal: 0,
         mpAtk: 200, mpSec: 100,
         atkSpeed: 800, range: 'melee', atkRange: 1.8, moveSpeed: 0.025,
+        autoHitFrame: 3, // Frame index where damage occurs
         skills: [
-            { name: 'Phi Tiêu', orbCost: 1, cooldown: 7000, castTime: 0, type: 'projectile', multiplier: 1.5, castRange: 10, dash: false },
-            { name: 'Đột Kích', orbCost: 2, cooldown: 7000, castTime: 0, type: 'melee_strike', multiplier: 2.5, castRange: 1.8, dash: true },
-            { name: 'Tàng Hình', orbCost: 3, cooldown: 10000, castTime: 0, type: 'stealth', multiplier: 0, dash: false }
+            { name: 'Phi Tiêu', orbCost: 1, cooldown: 7000, castTime: 0, type: 'projectile', multiplier: 1.5, castRange: 10, dash: false, hitFrame: 3 },
+            { name: 'Đột Kích', orbCost: 2, cooldown: 7000, castTime: 0, type: 'melee_strike', multiplier: 2.5, castRange: 1.8, dash: true, hitFrame: 3 },
+            { name: 'Tàng Hình', orbCost: 3, cooldown: 10000, castTime: 0, type: 'stealth', multiplier: 0, dash: false, hitFrame: 2 }
         ],
         passives: [
             { name: 'Đánh Lén', type: 'backstab_crit', value: 0.50 }
@@ -176,46 +177,52 @@ function getEffectiveStats(member, now) {
     return { stats, base };
 }
 
+// ============================================================
+// COMBAT PIPELINE (Base -> Crit -> Block -> Mitigation -> Final)
+// ============================================================
 function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
     const atkEff = getEffectiveStats(attacker, now).stats;
     const tgtEff = getEffectiveStats(target, now).stats;
 
-    // Use Physical or Magical based on attacker's primary type
+    // 1. DETERMINE TYPE (Physical vs Magical)
     const isMagical = attacker.classId === 'monster_supporter';
     const activeAtk = isMagical ? atkEff.mAtk : atkEff.pAtk;
     const activeDef = isMagical ? tgtEff.mDef : tgtEff.pDef;
 
-    // 1. Dodge Check
+    // 2. HIT/DODGE CHECK
     const dodgeChance = Math.max(0, tgtEff.dodge - atkEff.acc) / 1000;
     if (Math.random() < dodgeChance) {
         return { damage: 0, isMiss: true, isBlock: false, isCrit: false };
     }
 
-    // 2. Base Damage from effective stats
-    let rawDamage = activeAtk * skillMultiplier;
+    // 3. BASE DAMAGE CALCULATION
+    let damage = activeAtk * skillMultiplier;
 
-    // 3. Crit Check
+    // 4. CRITICAL STRIKE CHECK
     const critChance = atkEff.crit / 1000;
     let isCrit = false;
     if (Math.random() < critChance) {
         isCrit = true;
-        rawDamage *= (2.0 + (atkEff.critDmg / 1000));
+        damage *= (2.0 + (atkEff.critDmg / 1000));
     }
 
-    // 4. Block Check (Only if not Crit)
+    // 5. BLOCK CHECK (Only if not Crit)
     let isBlock = false;
     if (!isCrit) {
         const blockChance = tgtEff.block / 1000;
         if (Math.random() < blockChance) {
             isBlock = true;
-            rawDamage *= 0.5;
+            damage *= 0.5; // Block reduces damage by 50%
         }
     }
 
-    // 5. PEN & DEF mitigation
-    const effectiveDef = activeDef * (1 - atkEff.pen / 1000);
-    const mitigation = effectiveDef / (effectiveDef + 300);
-    const finalDamage = Math.max(1, Math.floor(rawDamage * (1 - mitigation)));
+    // 6. ARMOR/DEFENSE MITIGATION
+    const penetration = atkEff.pen / 1000;
+    const effectiveDef = activeDef * (1 - penetration);
+    const mitigation = effectiveDef / (effectiveDef + 300); // DR Formula: Def / (Def + K)
+    
+    // 7. FINAL DAMAGE PIPELINE
+    const finalDamage = Math.max(1, Math.floor(damage * (1 - mitigation)));
 
     return { damage: finalDamage, isMiss: false, isBlock, isCrit };
 }

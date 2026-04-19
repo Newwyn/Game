@@ -2,32 +2,23 @@
 
 Hôm nay chúng ta đã tập trung vào việc chuyển đổi toàn bộ nhân vật Assassin từ dạng 3D thô sơ sang nhân vật 2D Animated hoàn chỉnh với các hiệu ứng kỹ năng đặc kịch.
 
-## ✅ Các hạng mục đã hoàn thành
+## ✅ Các hạng mục đã hoàn thành (Cập nhật 19/04 - Big Refactor)
 
-### 1. Hệ thống Hoạt ảnh 2D (Sprite Animation)
-- **SpriteAnimator Engine**: Xây dựng bộ điều khiển hoạt ảnh (logic frame-by-frame) cực kỳ linh hoạt, hỗ trợ chuyển đổi giữa nhiều Sprite Sheet (Main và Extra).
-- **Chroma-Key Rendering**: Triển khai Shader xử lý màu Magenta (#FF00FF) để tẩy nền trong suốt thời gian thực, khắc phục lỗi hình nền ô vuông (checkerboard).
-- **Safe-Crop UV Mapping**: Cập nhật logic lấy 90% phần lõi của mỗi khung hình để loại bỏ triệt để hiện tượng dính viền hoặc bị chia đôi nhân vật do sai lệch pixel.
-- **Billboarding**: Đảm bảo nhân vật luôn hướng về phía Camera trong không gian 2.5D.
+### 1. Kiến trúc Combat "Logic-First" (Giai đoạn 1 & 2)
+- **Tách rời Logic và Visual**: Sát thương được tính toán trên Server và gửi về Client. Client sẽ **Buffer (đệm)** các sự kiện này và chỉ kích hoạt con số sát thương + thanh máu tụt khi Animation đạt đến đúng **Hit-Frame**.
+- **Hệ thống Hit-Frame Sync**: Đồng bộ hóa chính xác thời điểm gây sát thương với từng khung hình cụ thể của Assassin (Ví dụ: Frame 4 của đòn đánh thường).
+- **Damage Pipeline Chuyên nghiệp**: Tách biệt logic tính toán sát thương trên Server thành 7 bước: `Base -> Crit -> Block -> Penetration -> Mitigation -> Final`. Giúp việc cân bằng game cực kỳ dễ dàng.
 
-### 2. Kỹ năng Assassin (Visual Effects)
-- **Tấn công thường**: Hiệu ứng vung kiếm theo hướng mặt nhân vật.
-- **Skill 1 (Phi Tiêu)**: Animation Ném (Throw) kết hợp phóng vật thể.
-- **Skill 2 (Đột Kích - Shadow Blink)**: 
-    - Hiệu ứng **Vanish** (Mờ dần).
-    - Cơ chế **Teleport** tức thời.
-    - Hiệu ứng **Appear** (Hiện hình) kết hợp bóng mờ (After-images).
-- **Skill 3 (Tàng Hình)**: Hoạt ảnh Niệm chú (Cast) sau đó mờ dần về độ trong suốt 30% (mắt thường phe mình vẫn thấy mờ, phe địch sẽ thấy mất hút).
+### 2. Hệ thống Animator Thế hệ mới
+- **Pivot Offset System**: Cơ chế cho phép "Nhích" tọa độ nhân vật theo từng Row hoạt ảnh. Giải quyết triệt để lỗi AI vẽ khung hình không đều (Ví dụ: bộ chạy bị lùi về sau, bộ đánh bị nhô lên trước).
+- **UV Stability Fix (Bản vá cuối cùng)**:
+    *   **Vô hiệu hóa Mipmaps**: Loại bỏ hiện tượng mờ và dính viền khi nhìn xa.
+    *   **0.001 UV Inset**: Thêm vùng đệm an toàn trong Shader để khóa nhân vật trong đúng khung hình, xóa bỏ hoàn toàn lỗi "người bị chia đôi".
+    *   **Strict Indexing**: Chốt cứng logic đếm frame theo Cột/Hàng (Idle=4, Run=6, Attack=5), không còn hiện tượng teleport do tràn chỉ số UV.
 
-### 3. Công cụ Test & Giao diện
-- **Bảng Công cụ Phe Địch**: Bổ sung bảng điều khiển kéo thả riêng cho phe địch.
-- **Cọc Gỗ (Training Dummy)**: Tạo thực thể bất tử để test sát thương, tự động hiển thị bảng chỉ số chi tiết của Dummy.
-- **Stat Table**: Cập nhật hiển thị màu xanh (Buff) và màu đỏ (Debuff) trực quan cho các chỉ số nhân vật.
-- **No Cooldown Mode**: Tắt thời gian hồi chiêu để test skill liên tục.
-
-## ⚠️ Các vấn đề cần xử lý tiếp (Tồn đọng)
-- **Căn chỉnh Frame**: Một vài tư thế vẫn bị nhảy hoặc lệch nhẹ (do ảnh AI tạo ra không đều 100%). Sẽ thực hiện tinh chỉnh lại tọa độ chuẩn trong buổi tới.
-- **Skill Execution**: Tối ưu lại thời gian trễ giữa Animation và thời điểm gây sát thương để cảm giác chiến đấu "đã" hơn.
+### 3. Cảm giác Chiến đấu (Combat Feel)
+- **Hit-Flash**: Hiệu ứng nháy trắng khi nhân vật trúng đòn.
+- **Camera Shake**: Rung màn hình khi Assassin thực hiện đòn chí mạng hoặc Backstab.
 
 ## ⚔️ Chi tiết Chỉ số & Kỹ năng Assassin (As) - Thông số kỹ thuật
 
