@@ -1,63 +1,51 @@
-# Nhật ký Dự án: Hệ thống Chiến đấu Pet Battle Online (Cập nhật 19/04/2026)
+# 📜 PROJECT PLAN: Pet Battle Online (2.5D RPG)
+*Cập nhật trạng thái: 20/04/2026*
 
-Hôm nay chúng ta đã tập trung vào việc chuyển đổi toàn bộ nhân vật Assassin từ dạng 3D thô sơ sang nhân vật 2D Animated hoàn chỉnh với các hiệu ứng kỹ năng đặc kịch.
-
-## ✅ Các hạng mục đã hoàn thành (Cập nhật 19/04 - Big Refactor)
-
-### 1. Kiến trúc Combat "Logic-First" (Giai đoạn 1 & 2)
-- **Tách rời Logic và Visual**: Sát thương được tính toán trên Server và gửi về Client. Client sẽ **Buffer (đệm)** các sự kiện này và chỉ kích hoạt con số sát thương + thanh máu tụt khi Animation đạt đến đúng **Hit-Frame**.
-- **Hệ thống Hit-Frame Sync**: Đồng bộ hóa chính xác thời điểm gây sát thương với từng khung hình cụ thể của Assassin (Ví dụ: Frame 4 của đòn đánh thường).
-- **Damage Pipeline Chuyên nghiệp**: Tách biệt logic tính toán sát thương trên Server thành 7 bước: `Base -> Crit -> Block -> Penetration -> Mitigation -> Final`. Giúp việc cân bằng game cực kỳ dễ dàng.
-
-### 2. Hệ thống Animator Thế hệ mới
-- **Pivot Offset System**: Cơ chế cho phép "Nhích" tọa độ nhân vật theo từng Row hoạt ảnh. Giải quyết triệt để lỗi AI vẽ khung hình không đều (Ví dụ: bộ chạy bị lùi về sau, bộ đánh bị nhô lên trước).
-- **UV Stability Fix (Bản vá cuối cùng)**:
-    *   **Vô hiệu hóa Mipmaps**: Loại bỏ hiện tượng mờ và dính viền khi nhìn xa.
-    *   **0.001 UV Inset**: Thêm vùng đệm an toàn trong Shader để khóa nhân vật trong đúng khung hình, xóa bỏ hoàn toàn lỗi "người bị chia đôi".
-    *   **Strict Indexing**: Chốt cứng logic đếm frame theo Cột/Hàng (Idle=4, Run=6, Attack=5), không còn hiện tượng teleport do tràn chỉ số UV.
-
-### 3. Cảm giác Chiến đấu (Combat Feel)
-- **Hit-Flash**: Hiệu ứng nháy trắng khi nhân vật trúng đòn.
-- **Camera Shake**: Rung màn hình khi Assassin thực hiện đòn chí mạng hoặc Backstab.
-
-## ⚔️ Chi tiết Chỉ số & Kỹ năng Assassin (As) - Thông số kỹ thuật
-
-Nhân vật Assassin (As) là "cỗ máy sát thương" với các chỉ số cơ bản cực cao về bạo kích và tốc độ.
-
-### 📊 Chỉ số cơ bản (Base Stats)
-- **HP**: 1200 | **P.Atk**: 250 (Sát thương vật lý cao nhất nhóm prototype).
-- **Tỷ lệ Chí mạng**: 35% (Gấp 2-3 lần các class khác).
-- **Sát thương Chí mạng**: +50% (Mặc định gây 200% damage khi bạo kích).
-- **Né tránh**: 20% | **Xuyên giáp**: 15%.
-- **Tốc độ đánh**: 0.8 giây/đòn (Rất nhanh).
-
-### ⚡ Hệ thống Kỹ năng Chi tiết
-
-#### 1. Skill 1: Lưỡi Dao Tử Thần (Death Dagger)
-- **Mana**: 1 Orb (1000 MP) | **Hồi chiêu**: 7 giây.
-- **Sát thương**: 150% P.Atk.
-- **Cơ chế Ẩn (Seal)**: Đánh dấu **Ấn Chiếu (Seal)** lên mục tiêu trong **7 giây**. Mục tiêu bị dính Ấn sẽ chịu thêm sát thương từ kỹ năng số 2.
-- **Buff Tàng Hình**: Nếu đang trong trạng thái Tàng Hình, Assassin sẽ ném **2 phi tiêu** cùng lúc vào **2 kẻ địch có HP thấp nhất**.
-
-#### 2. Skill 2: Đột Kích (Shadow Blink)
-- **Mana**: 2 Orbs (2000 MP) | **Hồi chiêu**: 7 giây.
-- **Sát thương Gốc**: 250% P.Atk.
-- **Cơ chế Chuỗi (Chain Dash)**:
-    - Nếu trên sân có kẻ địch bị dính **Ấn Chiếu (Seal)**, Assassin sẽ **dịch chuyển và chém tất cả** các mục tiêu đó trong một chuỗi combo liên hoàn.
-    - Sát thương lên các mục tiêu bị dính Ấn tăng vọt lên **450% P.Atk** (Multiplier 2.5 x 1.8).
-    - Sau khi kết thúc chuỗi, Assassin sẽ xuất hiện sau lưng kẻ địch yếu máu nhất.
-- **Nội tại kèm theo**: Luôn kích hoạt **Backstab** (+50% Crit DMG) vì dịch chuyển ra sau lưng.
-
-#### 3. Skill 3: Tàng Hình (Stealth)
-- **Mana**: 3 Orbs (3000 MP) | **Hồi chiêu**: 10 giây.
-- **Thời gian**: 5 giây.
-- **Cơ chế Ẩn (Untargetable)**:
-    - Kẻ địch không thể chọn làm mục tiêu cho các kỹ năng đơn lẻ.
-    - Giảm 70% khả năng bị AI nhắm tới.
-- **Buff**: Tăng mạnh Né tránh và Bạo kích trong suốt 5 giây. Đòn đánh đầu tiên khi hiện hình sau tàng hình được cộng thêm sát thương đột biến.
-
-#### 4. Nội tại: Đánh Lén (Backstab Passive)
-- Tăng **50% Sát thương Chí mạng** mỗi khi Assassin đứng ở phía sau mục tiêu (Dựa trên tọa độ X).
+## 🎬 Tóm tắt Dự án
+Xây dựng một Engine chiến đấu RPG 2.5D lấy cảm hứng từ **King's Raid**, tập trung vào sự kết hợp giữa hoạt ảnh Sprite 2D chất lượng cao và môi trường 3D.
 
 ---
-**Trạng thái**: Tạm dừng (Chờ chỉnh sửa Asset hoàn thiện vào ngày mai).
+
+## ✅ Giai đoạn 1 & 2: Core Engine & Sprite Animation (Hoàn thành)
+
+### 🎨 Hệ thống Visual & Animation
+- **Animated Sprites**: Nhân vật Assassin đã được tích hợp đầy đủ bộ hoạt ảnh (Idle, Run, Attack, Cast, Skill VFX).
+- **Shader Chroma Key**: Shader chuyên dụng để xóa nền Magenta và xử lý **Hit-Flash** (nháy trắng khi trúng đòn).
+- **Pixel-Perfect Scaling**: Cơ chế ổn định UV (0.001 inset) giúp loại bỏ hiện tượng vỡ hình và "chia đôi người" khi zoom.
+- **Pivot Offset System**: Giải quyết lỗi AI vẽ không đều bằng cách tinh chỉnh tọa độ X/Y theo từng Row hoạt ảnh.
+
+### ⚔️ Cơ chế Chiến đấu "Logic-First"
+- **7-Layer Damage Pipeline**: `Base -> Crit -> Block -> Penetration -> Defense Mitigation -> Buffs -> Final DMG`.
+- **Hit-Frame Sync**: Đồng bộ hóa sát thương theo từng Frame cụ thể. Sát thương chỉ xẩy ra khi nhân vật thực sự "chém trúng" (Frame 3/4).
+- **Combat Feel**: Tích hợp Camera Shake (Rung màn hình) và Hit-Flash mang lại cảm giác lực đánh mạnh mẽ.
+
+### ⚡ Kỹ năng Assassin (Prototype)
+- **Skill 1 (Phi Tiêu)**: Gây Ấn Chiếu (Seal) + Ném đôi khi Tàng Hình.
+- **Skill 2 (Đột Kích)**: Chain Dash (Lướt chuỗi) qua tất cả kẻ địch dính Ấn.
+- **Skill 3 (Tàng Hình)**: Trở nên không thể bị chọn làm mục tiêu + Buff mạnh sát thương.
+
+---
+
+## 🚀 Giai đoạn 3: Trang bị & Thám hiểm (Sắp thực hiện)
+
+### 1. Hệ thống Trang bị (Equipment System)
+- Xây dựng 4 slot trang bị: **Vũ khí, Giáp, Trang sức, Orb**.
+- Các trang bị sẽ cộng trực tiếp vào Stat Engine (Chi tiết 1000 điểm).
+
+### 2. Chế độ Thám hiểm (Explore Mode)
+- Xây dựng Map 2.5D di chuyển tự do (Làng, Rừng, Hầm ngục).
+- Cơ chế chuyển cảnh mượt mà giữa Explore Mode và Battle Mode.
+
+### 3. Chuẩn hóa Quái vật (Monster Refactor)
+- Chuyển đổi các quái vật (Tanker, Archer, Supporter) sang dạng Animated Sprites giống Assassin.
+
+---
+
+## 🛠 Fix Log (Nhật ký sửa lỗi)
+- **Fix**: Lỗi `socket.id` null gây kẹt màn hình Loading.
+- **Fix**: Lỗi nhân vật bị trượt tọa độ khi chuyển từ hoạt ảnh Run sang Attack.
+- **Fix**: Lỗi quái vật vẫn đánh người tàng hình (CanBeTargeted Fix).
+
+---
+**Trạng thái hệ thống**: 🟢 Normal (Đã đồng bộ GitHub).
+**Tiếp theo**: Phát triển Module Trang bị hoặc Explore Map.
