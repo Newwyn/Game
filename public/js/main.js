@@ -359,6 +359,7 @@ function createCapsuleGroup(memberData, classDef, isMyTeam) {
         animator.setPivot(1, -0.1, 0);   // Nudge Run slightly left
         animator.setPivot(2, 0.2, 0.1);  // Nudge Attack forward and up
         animator.setPivot(3, 0, -0.05);  // Nudge Cast down
+        animator.setRow(0);              // Initialize Row 0 (Idle) immediately for proper UV mapping
     } else {
         const tex = createCharTexture(classDef.emoji, memberData.color, memberData.name, isMyTeam);
         const mat = new THREE.SpriteMaterial({ map: tex });
@@ -627,6 +628,8 @@ function buildBattleScene(data) {
 
     document.getElementById('loading-screen').style.opacity = '0';
     setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+    document.getElementById('battle-result').style.display = 'none';
+    document.getElementById('pause-menu').style.display = 'none';
     document.getElementById('combat-hud').style.display = 'flex';
     document.getElementById('top-bar').style.display = 'flex';
     
@@ -1201,10 +1204,32 @@ function spawnBackstabVfx(x, y, z) {
 
 socket.on('battleEnd', (data) => {
     const cid = socket.id;
+    const isWin = (data.winnerId === cid);
     const resultEl = document.getElementById('battle-result');
     resultEl.style.display = 'flex';
-    resultEl.querySelector('.result-text').textContent = data.winnerId === cid ? '🏆 CHIẾN THẮNG!' : '💀 THẤT BẠI!';
-    resultEl.querySelector('.result-text').style.color = data.winnerId === cid ? '#ffd700' : '#ef4444';
+
+    const textEl = resultEl.querySelector('.result-text');
+    if (textEl) {
+        textEl.textContent = isWin ? '🏆 CHIẾN THẮNG!' : '💀 THẤT BẠI!';
+        textEl.style.color = isWin ? '#ffd700' : '#ef4444';
+    }
+
+    const subtextEl = document.getElementById('result-subtext');
+    if (subtextEl) {
+        subtextEl.textContent = isWin ? 'Tuyệt vời! Đội hình của bạn đã tiêu diệt toàn bộ đối thủ.' : 'Đội hình của bạn đã bị tiêu diệt hoàn toàn trong giao tranh.';
+    }
+
+    const retryBtn = document.getElementById('btn-retry');
+    if (retryBtn) {
+        retryBtn.innerHTML = isWin ? '<span>⚔️</span> Tiếp Tục Trận Mới' : '<span>🔄</span> Thử Lại (Chơi Lại Trận Này)';
+        if (isWin) {
+            retryBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            retryBtn.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.6)';
+        } else {
+            retryBtn.style.background = 'linear-gradient(135deg, #e11d48, #be123c)';
+            retryBtn.style.boxShadow = '0 8px 25px rgba(225, 29, 72, 0.6)';
+        }
+    }
 });
 
 // ============================================================
@@ -1226,6 +1251,10 @@ window.togglePause = function() {
 };
 
 window.requestReset = function() {
+    const resultEl = document.getElementById('battle-result');
+    if (resultEl) resultEl.style.display = 'none';
+    const pauseMenu = document.getElementById('pause-menu');
+    if (pauseMenu) pauseMenu.style.display = 'none';
     socket.emit('requestReset');
 };
 
@@ -1324,6 +1353,25 @@ dragTargets.forEach(id => {
         el.style.cursor = 'grab';
         makeDraggable(el);
     }
+});
+
+// Keyboard shortcuts (1, 2, 3 for skills; Space/Enter/R for retry)
+window.addEventListener('keydown', (e) => {
+    const resultEl = document.getElementById('battle-result');
+    const isResultOpen = resultEl && resultEl.style.display !== 'none' && resultEl.style.display !== '';
+
+    if (isResultOpen) {
+        if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyR') {
+            e.preventDefault();
+            window.requestReset();
+            return;
+        }
+    }
+
+    if (e.code === 'Digit1') window.queueSkill(0, 0);
+    else if (e.code === 'Digit2') window.queueSkill(0, 1);
+    else if (e.code === 'Digit3') window.queueSkill(0, 2);
+    else if (e.code === 'KeyP' || e.code === 'Escape') window.togglePause();
 });
 
 animate();

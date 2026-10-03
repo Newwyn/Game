@@ -156,7 +156,15 @@
 
     <!-- Battle Result Overlay -->
     <div id="battle-result">
-        <p class="result-text"></p>
+        <div class="result-box">
+            <p class="result-text"></p>
+            <p class="result-subtext" id="result-subtext">Trận đấu đã kết thúc!</p>
+            <div class="result-buttons">
+                <button id="btn-retry" onclick="requestReset()" class="retry-btn">
+                    <span>🔄</span> Thử Lại (Chơi Lại Trận Này)
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

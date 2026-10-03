@@ -407,6 +407,12 @@ io.on('connection', (socket) => {
                 room.players[opponentId].squad = createSquad('right');
             }
 
+            if (room.winner) {
+                room.winner = null;
+                room.status = 'active';
+                startBattleLoop(roomId);
+            }
+
             io.to(roomId).emit('squadResized', { playerId: opponentId, newSquad: room.players[opponentId].squad });
             broadcastState(roomId);
         }
@@ -433,6 +439,11 @@ io.on('connection', (socket) => {
         if (!roomId || !rooms[roomId]) return;
         const room = rooms[roomId];
         
+        if (room.interval) {
+            clearInterval(room.interval);
+            room.interval = null;
+        }
+
         // Restart logic
         Object.values(room.players).forEach(p => {
             p.squad = createSquad(p.side);
@@ -445,11 +456,17 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('battleStart', { roomId, players: room.players, classDefs: CLASS_DEFS });
         // Pause UI should close
         io.to(roomId).emit('pauseState', { paused: false, isBotMatch: room.isBotMatch });
+
+        // CRITICAL FIX: Restart the battle loop!
+        startBattleLoop(roomId);
     });
 
     socket.on('disconnect', () => {
         if (waitingPlayer === socket.id) waitingPlayer = null;
         if (socket.roomId && rooms[socket.roomId]) {
+            if (rooms[socket.roomId].interval) {
+                clearInterval(rooms[socket.roomId].interval);
+            }
             io.to(socket.roomId).emit('opponentDisconnected');
             delete rooms[socket.roomId];
         }
@@ -460,11 +477,25 @@ io.on('connection', (socket) => {
 // BATTLE ENGINE
 // ============================================================
 function startBattleLoop(roomId) {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.interval) {
+        clearInterval(room.interval);
+        room.interval = null;
+    }
+
     const tickRate = 50; // 50ms per tick
 
-    const interval = setInterval(() => {
-        const room = rooms[roomId];
-        if (!room || room.winner) { clearInterval(interval); return; }
+    room.interval = setInterval(() => {
+        const currentRoom = rooms[roomId];
+        if (!currentRoom || currentRoom.winner) {
+            if (currentRoom && currentRoom.interval) {
+                clearInterval(currentRoom.interval);
+                currentRoom.interval = null;
+            }
+            return;
+        }
 
         const now = Date.now();
 
