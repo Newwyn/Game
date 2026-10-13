@@ -1,0 +1,100 @@
+// ============================================================
+// OVERLAY — màn hình chờ, đếm ngược, tạm dừng, kết quả trận
+// ============================================================
+import { socket } from '../net/socket.js';
+import { myId } from '../state.js';
+import { playBeep } from '../audio/sfx.js';
+
+const $ = (id) => document.getElementById(id);
+
+export function showWaiting(message) {
+    $('loading-text').textContent = message;
+}
+
+/** Gọi khi trận bắt đầu: ẩn màn chờ và các hộp thoại, hiện HUD */
+export function enterBattleUI(data) {
+    const loading = $('loading-screen');
+    loading.style.opacity = '0';
+    setTimeout(() => { loading.style.display = 'none'; }, 500);
+    $('battle-result').style.display = 'none';
+    $('pause-menu').style.display = 'none';
+    $('combat-hud').style.display = 'flex';
+    $('top-bar').style.display = 'flex';
+
+    const badge = document.querySelector('.top-label');
+    if (badge) {
+        const hasNPC = Object.values(data.players).some(p => p.isNPC);
+        badge.textContent = hasNPC ? '🛡️ TEST MODE / NPC' : '⚔️ PVP BATTLE';
+    }
+}
+
+export function hideBattleResult() {
+    $('battle-result').style.display = 'none';
+    $('pause-menu').style.display = 'none';
+}
+
+export function isBattleResultOpen() {
+    const el = $('battle-result');
+    return !!el && el.style.display !== 'none' && el.style.display !== '';
+}
+
+function onCountdown(data) {
+    const overlay = $('countdown-overlay');
+    const text = $('countdown-text');
+    overlay.style.display = 'flex';
+    if (data.count === 'START') {
+        text.textContent = 'CHIẾN!';
+        playBeep(800, 'square', 0.5);
+        setTimeout(() => { overlay.style.display = 'none'; }, 1000);
+    } else {
+        text.textContent = data.count;
+        playBeep(400, 'square', 0.1);
+    }
+}
+
+function onPauseState(data) {
+    const pauseMenu = $('pause-menu');
+    const container = $('game-container');
+    const btn = $('btn-pause');
+    if (data.paused && data.isBotMatch) {
+        pauseMenu.style.display = 'flex';
+    } else if (data.paused) {
+        // Trận online: chỉ làm mờ màn hình
+        container.style.filter = 'blur(5px)';
+        if (btn) btn.textContent = '▶ Tiếp tục trận';
+    } else {
+        pauseMenu.style.display = 'none';
+        container.style.filter = 'none';
+        if (btn) btn.textContent = '⏸ PAUSE';
+    }
+}
+
+function onBattleEnd(data) {
+    const isWin = data.winnerId === myId();
+    const resultEl = $('battle-result');
+    resultEl.style.display = 'flex';
+
+    const textEl = resultEl.querySelector('.result-text');
+    if (textEl) {
+        textEl.textContent = isWin ? '🏆 CHIẾN THẮNG!' : '💀 THẤT BẠI!';
+        textEl.style.color = isWin ? '#ffd700' : '#ef4444';
+    }
+    const sub = $('result-subtext');
+    if (sub) {
+        sub.textContent = isWin
+            ? 'Tuyệt vời! Đội hình của bạn đã tiêu diệt toàn bộ đối thủ.'
+            : 'Đội hình của bạn đã bị tiêu diệt hoàn toàn trong giao tranh.';
+    }
+    const retry = $('btn-retry');
+    if (retry) {
+        retry.innerHTML = isWin ? '<span>⚔️</span> Tiếp Tục Trận Mới' : '<span>🔄</span> Thử Lại (Chơi Lại Trận Này)';
+        retry.style.background = isWin ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #e11d48, #be123c)';
+        retry.style.boxShadow = isWin ? '0 8px 25px rgba(16, 185, 129, 0.6)' : '0 8px 25px rgba(225, 29, 72, 0.6)';
+    }
+}
+
+export function registerOverlayEvents() {
+    socket.on('countdown', onCountdown);
+    socket.on('pauseState', onPauseState);
+    socket.on('battleEnd', onBattleEnd);
+}

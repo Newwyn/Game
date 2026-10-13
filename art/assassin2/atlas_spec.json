@@ -1,0 +1,290 @@
+{
+ "out": "src/assets/sprites/assassin2_atlas.png",
+ "meta": "src/characters/cutout/assassin2Atlas.json",
+ "width": 2048,
+ "sheets": {
+  "body": {
+   "file": "art/assassin2/02-body-parts.png",
+   "scale": 1.0
+  },
+  "hands": {
+   "file": "art/assassin2/03-hands-and-shuriken.png",
+   "scale": 0.5
+  },
+  "eyes": {
+   "file": "art/assassin2/04-eye-expressions.png",
+   "scale": 0.24
+  }
+ },
+ "parts": {
+  "head": {
+   "sheet": "body",
+   "comps": [
+    1
+   ]
+  },
+  "hairFront": {
+   "sheet": "body",
+   "comps": [
+    2
+   ]
+  },
+  "hairBack": {
+   "sheet": "body",
+   "comps": [
+    3
+   ]
+  },
+  "braidA": {
+   "sheet": "body",
+   "comps": [
+    4
+   ]
+  },
+  "braidB": {
+   "sheet": "body",
+   "comps": [
+    5
+   ]
+  },
+  "ribbonA": {
+   "sheet": "body",
+   "comps": [
+    6
+   ]
+  },
+  "ribbonB": {
+   "sheet": "body",
+   "comps": [
+    7
+   ]
+  },
+  "torso": {
+   "sheet": "body",
+   "comps": [
+    8
+   ],
+   "erase": [
+    [
+     710,
+     434
+    ]
+   ]
+  },
+  "coatFront": {
+   "sheet": "body",
+   "comps": [
+    9
+   ]
+  },
+  "coatBack": {
+   "sheet": "body",
+   "comps": [
+    10
+   ]
+  },
+  "scarf": {
+   "sheet": "body",
+   "comps": [
+    11
+   ]
+  },
+  "sash": {
+   "sheet": "body",
+   "comps": [
+    12
+   ]
+  },
+  "foreN": {
+   "sheet": "body",
+   "comps": [
+    13
+   ],
+   "erase": [
+    [
+     511,
+     669
+    ],
+    [
+     653,
+     713
+    ]
+   ]
+  },
+  "armF": {
+   "sheet": "body",
+   "comps": [
+    14
+   ]
+  },
+  "armN": {
+   "sheet": "body",
+   "comps": [
+    15
+   ]
+  },
+  "foreF": {
+   "sheet": "body",
+   "comps": [
+    16
+   ],
+   "erase": [
+    [
+     1069,
+     687
+    ],
+    [
+     1202,
+     716
+    ]
+   ]
+  },
+  "thighF": {
+   "sheet": "body",
+   "comps": [
+    17
+   ],
+   "erase": [
+    [
+     158,
+     765
+    ],
+    [
+     155,
+     958
+    ]
+   ]
+  },
+  "shinN": {
+   "sheet": "body",
+   "comps": [
+    18
+   ],
+   "erase": [
+    [
+     458,
+     808
+    ]
+   ]
+  },
+  "thighN": {
+   "sheet": "body",
+   "comps": [
+    19
+   ],
+   "erase": [
+    [
+     702,
+     775
+    ],
+    [
+     717,
+     959
+    ]
+   ]
+  },
+  "shinF": {
+   "sheet": "body",
+   "comps": [
+    20
+   ],
+   "erase": [
+    [
+     938,
+     812
+    ]
+   ]
+  },
+  "tasselA": {
+   "sheet": "body",
+   "comps": [
+    21
+   ]
+  },
+  "tasselB": {
+   "sheet": "body",
+   "comps": [
+    22
+   ]
+  },
+  "handSeal": {
+   "sheet": "hands",
+   "comps": [
+    1
+   ]
+  },
+  "handFist": {
+   "sheet": "hands",
+   "comps": [
+    2
+   ]
+  },
+  "handOpen": {
+   "sheet": "hands",
+   "comps": [
+    3
+   ]
+  },
+  "handOpen2": {
+   "sheet": "hands",
+   "comps": [
+    4
+   ]
+  },
+  "handFist2": {
+   "sheet": "hands",
+   "comps": [
+    5
+   ]
+  },
+  "shuriken": {
+   "sheet": "hands",
+   "comps": [
+    6
+   ],
+   "holes": true
+  },
+  "shurikenS": {
+   "sheet": "hands",
+   "comps": [
+    7
+   ],
+   "holes": true
+  },
+  "eyeOpen": {
+   "sheet": "eyes",
+   "comps": [
+    1,
+    2
+   ]
+  },
+  "eyeBlink": {
+   "sheet": "eyes",
+   "comps": [
+    3,
+    15,
+    7
+   ]
+  },
+  "eyePain": {
+   "sheet": "eyes",
+   "comps": [
+    4,
+    9
+   ]
+  },
+  "eyeDetermined": {
+   "sheet": "eyes",
+   "comps": [
+    11
+   ]
+  },
+  "eyeHappy": {
+   "sheet": "eyes",
+   "comps": [
+    5,
+    13
+   ]
+  }
+ }
+}

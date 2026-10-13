@@ -1,19 +1,30 @@
 {
   "name": "legend-of-capsules",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "dev": "concurrently -k -n server,vite -c yellow,cyan \"node --watch server.js\" \"vite\"",
+    "build": "vite build",
+    "start": "vite build && node server.js",
+    "serve": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Legend of Capsules - 2.5D real-time action RPG (Three.js + Socket.io)",
   "dependencies": {
     "docx": "^9.8.1",
     "express": "^5.2.1",
     "socket.io": "^4.8.3",
-    "three": "^0.184.0"
+    "socket.io-client": "^4.8.3",
+    "three": "~0.184.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "^6.4.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

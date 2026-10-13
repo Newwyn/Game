@@ -6,32 +6,63 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Client được Vite build vào dist/ (chạy `npm run build` hoặc `npm start`).
+// Khi phát triển, dùng `npm run dev` và mở http://localhost:5173 (Vite tự reload khi sửa code).
+const DIST_DIR = path.join(__dirname, 'dist');
+app.use(express.static(DIST_DIR));
+app.get('/', (req, res) => {
+    res.status(503).send('Chưa có bản build client. Hãy chạy <code>npm start</code> (build + chạy) hoặc <code>npm run dev</code> rồi mở http://localhost:5173');
+});
 
 // ============================================================
 // CLASS DEFINITIONS - Assassin Prototype
 // ============================================================
 const ORB_COST = 1000; // 1 Orb = 1000 Energy
+const CRIT_BASE = 1.5;  // hệ số chí mạng gốc (cộng thêm Crit DMG)
 const TEST_MODE = true; // Set to true to fight NPC Dummy
 const MAX_SQUAD_SIZE = 1; // 1 member for testing
 
 const CLASS_DEFS = {
     assassin: {
-        name: 'Assassin', emoji: '🥷', color: '#1e293b',
-        maxHp: 1200, maxMp: 5000, pAtk: 250, mAtk: 0, pDef: 50, mDef: 50,
+        name: 'Jessica', title: 'Lôi Ám', className: 'Sát Thủ', emoji: '🥷', color: '#1e293b',
+        // Lối chơi COMBO BỘC PHÁ: đánh thường vừa phải; Bùa gắn Ấn -> Tàng Hình -> Đột Kích nổ to
+        maxHp: 1200, maxMp: 5000, pAtk: 220, mAtk: 0, pDef: 50, mDef: 50,
         crit: 350, critDmg: 500, acc: 1000, dodge: 200, pen: 150, block: 50, lifesteal: 0,
         mpAtk: 200, mpSec: 100,
-        atkSpeed: 800, range: 'melee', atkRange: 1.8, moveSpeed: 0.025,
+        atkSpeed: 800, range: 'melee', atkRange: 2.4, moveSpeed: 0.01,
         autoHitFrame: 3, // Frame index where damage occurs
         skills: [
-            { name: 'Phi Tiêu', orbCost: 1, cooldown: 7000, castTime: 0, type: 'projectile', multiplier: 1.5, castRange: 10, dash: false, hitFrame: 3 },
-            { name: 'Đột Kích', orbCost: 2, cooldown: 7000, castTime: 0, type: 'melee_strike', multiplier: 2.5, castRange: 1.8, dash: true, hitFrame: 3 },
-            { name: 'Tàng Hình', orbCost: 3, cooldown: 10000, castTime: 0, type: 'stealth', multiplier: 0, dash: false, hitFrame: 2 }
+            { name: 'Phóng Bùa', orbCost: 1, cooldown: 7000, castTime: 0, type: 'projectile', multiplier: 1.5, castRange: 10, dash: false, hitFrame: 3, backstep: 5 },
+            { name: 'Đột Kích', orbCost: 2, cooldown: 7000, castTime: 0, type: 'melee_strike', multiplier: 2.5, castRange: 2.4, dash: true, hitFrame: 3 },
+            { name: 'Tàng Hình', orbCost: 3, cooldown: 10000, castTime: 0, type: 'stealth', multiplier: 0, dash: false, hitFrame: 2 } // 5s, không bị phá khi ra đòn; Đột Kích lúc tàng hình chắc chắn chí mạng
         ],
         passives: [
-            { name: 'Đánh Lén', type: 'backstab_crit', value: 0.50 }
+            { name: 'Đánh Lén', type: 'backstab_crit', value: 0.50 } // +50% tỉ lệ chí mạng khi đánh sau lưng hoặc đang tàng hình
+        ]
+    },
+    // Rok (Thiết Hộ) — class CHIẾN BINH: khiên lớn, đứng đầu hàng giữ quái, máu & thủ cao, đánh chậm
+    warrior: {
+        name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569',
+        maxHp: 3200, maxMp: 5000, pAtk: 150, mAtk: 0, pDef: 220, mDef: 160,
+        crit: 80, critDmg: 500, acc: 1000, dodge: 50, pen: 50, block: 250, lifesteal: 0,
+        mpAtk: 220, mpSec: 110,
+        atkSpeed: 1200, range: 'melee', atkRange: 2.4, moveSpeed: 0.01,
+        autoHitFrame: 3,
+        skills: [
+            // Sư Tử Gầm (niệm nhanh): linh hồn sư tử gầm vang — mọi quái trong 9 đơn vị phải đánh Rok trong 4 giây
+            //   và bị -10% P.DEF / M.DEF trong thời gian đó
+            { name: 'Sư Tử Gầm', orbCost: 1, cooldown: 9000, castTime: 0, type: 'taunt', radius: 9, duration: 4000, defDown: 0.1, multiplier: 0, hitFrame: 2 },
+            // Đẩy Khiên (niệm nhanh): húc khiên vào quái trước mặt (mục tiêu đang đánh), hất văng nó ra sau
+            //   xa bằng cú nhảy lùi của Jessica (5 đơn vị) + sát thương nhẹ; đáp đất xong còn bị CHOÁNG 1 giây
+            { name: 'Đẩy Khiên', orbCost: 2, cooldown: 8000, castTime: 0, type: 'knockback', castRange: 2.6, multiplier: 1.0, push: 5, knockTime: 450, stun: 1000, hitFrame: 2 },
+            // Dựng Khiên (niệm nhanh): khiên ánh sáng ĐỠ MỌI ĐÒN vào Rok trong 5 giây (đứng yên, không đánh)
+            //   + cả đội +20% P.DEF và +20% M.DEF trong lúc khiên dựng. Dùng Kỹ năng 1/2 -> khiên tự hạ.
+            { name: 'Dựng Khiên', orbCost: 3, cooldown: 15000, castTime: 0, type: 'guard', duration: 5000, teamDef: 0.2, multiplier: 0, hitFrame: 2 },
+        ],
+        passives: [
+            { name: 'Ý Chí Thép', type: 'low_hp_block', threshold: 0.3, value: 250 } // máu < 30%: +25% chặn đòn
         ]
     },
     monster_tank: {
@@ -39,7 +70,7 @@ const CLASS_DEFS = {
         maxHp: 5000, maxMp: 1000, pAtk: 150, mAtk: 0, pDef: 300, mDef: 200,
         crit: 50, critDmg: 200, acc: 900, dodge: 50, pen: 0, block: 400, lifesteal: 0,
         mpAtk: 100, mpSec: 50,
-        atkSpeed: 1500, range: 'melee', atkRange: 1.8, moveSpeed: 0.025,
+        atkSpeed: 1500, range: 'melee', atkRange: 2.4, moveSpeed: 0.01,
         skills: [], passives: []
     },
     monster_archer: {
@@ -47,7 +78,7 @@ const CLASS_DEFS = {
         maxHp: 3000, maxMp: 1000, pAtk: 250, mAtk: 0, pDef: 100, mDef: 100,
         crit: 150, critDmg: 500, acc: 1100, dodge: 100, pen: 300, block: 50, lifesteal: 0,
         mpAtk: 150, mpSec: 50,
-        atkSpeed: 1000, range: 'ranged', atkRange: 10, moveSpeed: 0.025,
+        atkSpeed: 1000, range: 'ranged', atkRange: 10, moveSpeed: 0.01,
         skills: [], passives: []
     },
     monster_supporter: {
@@ -55,7 +86,7 @@ const CLASS_DEFS = {
         maxHp: 3000, maxMp: 1000, pAtk: 0, mAtk: 120, pDef: 100, mDef: 200,
         crit: 100, critDmg: 300, acc: 1000, dodge: 100, pen: 0, block: 50, lifesteal: 0,
         mpAtk: 300, mpSec: 150,
-        atkSpeed: 1200, range: 'ranged', atkRange: 6, moveSpeed: 0.025,
+        atkSpeed: 1200, range: 'ranged', atkRange: 6, moveSpeed: 0.01,
         skills: [], passives: []
     },
     monster_dummy: {
@@ -69,15 +100,25 @@ const CLASS_DEFS = {
 };
 
 // We will use 1 Assassins if TEST_MODE is active
-const SQUAD_ORDER = TEST_MODE ? ['assassin'] : ['assassin', 'assassin', 'assassin', 'assassin'];
+const SQUAD_ORDER = TEST_MODE ? ['assassin', 'warrior'] : ['assassin', 'warrior', 'assassin', 'warrior'];
 
 // ============================================================
 // GAME STATE
 // ============================================================
 let rooms = {};
+
+// ------------------------------------------------------------
+// TỐC ĐỘ TRẬN: x1.0 / x1.5 / x2.0
+// Chỉ số trong CLASS_DEFS được chỉnh cho mức x1.5 (BASE_SPEED). Mỗi phòng có "đồng hồ trận" (room.clock, ms)
+// chạy nhanh/chậm theo tốc độ: hồi chiêu, tốc đánh, hiệu ứng, di chuyển, hồi mana đều theo đồng hồ này.
+// ------------------------------------------------------------
+const GAME_SPEEDS = [1, 1.5, 2];
+const BASE_SPEED = 1.5;
+const DEFAULT_SPEED = 1;
+const timeScaleOf = (room) => (room.speed ?? DEFAULT_SPEED) / BASE_SPEED;
 let waitingPlayer = null;
 
-function createSquad(side) {
+function createSquad(side, disabled = []) {
     const startX = side === 'left' ? -30 : 30;
     const direction = side === 'left' ? 1 : -1;
 
@@ -103,7 +144,9 @@ function createSquad(side) {
         });
     }
 
-    return SQUAD_ORDER.map((classId, index) => {
+    let order = SQUAD_ORDER.filter(c => !disabled.includes(c));
+    if (order.length === 0) order = [SQUAD_ORDER[0]];
+    return order.map((classId, index) => {
         const def = CLASS_DEFS[classId];
         let xOffset = index * 1.5 * direction;
 
@@ -164,15 +207,33 @@ function getEffectiveStats(member, now) {
         if (now >= ef.endTime) return; // expired
 
         if (ef.type === 'seal') {
-            // Seal debuff: -10% Physical DEF
-            stats.pDef = Math.floor(stats.pDef * 0.9);
+            // Ấn: -15% P.DEF
+            stats.pDef = Math.floor(stats.pDef * 0.85);
+        }
+        if (ef.type === 'taunted' && ef.defDown) {
+            // Sư Tử Gầm: bị khiếp sợ -> giảm thủ
+            stats.pDef = Math.floor(stats.pDef * (1 - ef.defDown));
+            stats.mDef = Math.floor(stats.mDef * (1 - ef.defDown));
+        }
+        if (ef.type === 'guard_aura') {
+            // Dựng Khiên của Chiến Binh: cả đội cứng hơn
+            stats.pDef = Math.floor(stats.pDef * (1 + (ef.value ?? 0.2)));
+            stats.mDef = Math.floor(stats.mDef * (1 + (ef.value ?? 0.2)));
+        }
+        if (ef.type === 'fortress') {
+            // Thành Trì: cả đội cứng cáp hơn (giảm sát thương tính ở calculateDamage)
         }
         if (ef.type === 'stealth') {
-            // Stealth buff: +10% P.ATK, +10% attack speed (lower delay)
-            stats.pAtk = Math.floor(stats.pAtk * 1.1);
+            // Tàng hình: +20% P.ATK, +10% tốc đánh
+            stats.pAtk = Math.floor(stats.pAtk * 1.2);
             stats.atkSpeed = Math.floor(stats.atkSpeed * 0.9);
         }
     });
+
+    // Nội tại Ý Chí Thép (Chiến Binh): máu thấp -> tăng chặn đòn
+    for (const p of def?.passives ?? []) {
+        if (p.type === 'low_hp_block' && member.maxHp > 0 && member.hp / member.maxHp < p.threshold) stats.block += p.value;
+    }
 
     return { stats, base };
 }
@@ -180,7 +241,24 @@ function getEffectiveStats(member, now) {
 // ============================================================
 // COMBAT PIPELINE (Base -> Crit -> Block -> Mitigation -> Final)
 // ============================================================
-function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
+/** Kẻ tấn công đứng SAU LƯNG mục tiêu? (mục tiêu luôn quay mặt về phía phe địch) */
+function isBehind(attacker, target) {
+    return target.side === 'right' ? attacker.x > target.x : attacker.x < target.x;
+}
+
+/** Cộng thêm tỉ lệ chí mạng từ nội tại (‰) */
+function passiveCritBonus(attacker, target, now) {
+    const def = CLASS_DEFS[attacker.classId];
+    let bonus = 0;
+    for (const p of def?.passives ?? []) {
+        if (p.type !== 'backstab_crit') continue;
+        const stealthed = attacker.statusEffects?.some(ef => ef.type === 'stealth' && ef.endTime > now);
+        if (stealthed || isBehind(attacker, target)) bonus += p.value * 1000;
+    }
+    return bonus;
+}
+
+function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}) {
     const atkEff = getEffectiveStats(attacker, now).stats;
     const tgtEff = getEffectiveStats(target, now).stats;
 
@@ -190,7 +268,9 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
     const activeDef = isMagical ? tgtEff.mDef : tgtEff.pDef;
 
     // 2. HIT/DODGE CHECK
-    const dodgeChance = Math.max(0, tgtEff.dodge - atkEff.acc) / 1000;
+    // Né thật = né của mục tiêu trừ phần CHÍNH XÁC VƯỢT 100% của kẻ tấn công
+    // (VD: Sát Thủ né 20% gặp Xạ Thủ chính xác 110% -> còn 10%; gặp quái chính xác 90% -> giữ 20%)
+    const dodgeChance = Math.max(0, tgtEff.dodge - Math.max(0, atkEff.acc - 1000)) / 1000;
     if (Math.random() < dodgeChance) {
         return { damage: 0, isMiss: true, isBlock: false, isCrit: false };
     }
@@ -199,11 +279,12 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
     let damage = activeAtk * skillMultiplier;
 
     // 4. CRITICAL STRIKE CHECK
-    const critChance = atkEff.crit / 1000;
+    // Chí mạng: nhân (1.5 + Crit DMG). VD Crit DMG 50% -> x2.0
+    const critChance = (atkEff.crit + passiveCritBonus(attacker, target, now)) / 1000;
     let isCrit = false;
-    if (Math.random() < critChance) {
+    if (opts.forceCrit || Math.random() < critChance) {
         isCrit = true;
-        damage *= (2.0 + (atkEff.critDmg / 1000));
+        damage *= (CRIT_BASE + (atkEff.critDmg / 1000));
     }
 
     // 5. BLOCK CHECK (Only if not Crit)
@@ -222,6 +303,14 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now) {
     const mitigation = effectiveDef / (effectiveDef + 300); // DR Formula: Def / (Def + K)
     
     // 7. FINAL DAMAGE PIPELINE
+    // Dựng Khiên: đỡ toàn bộ đòn đánh
+    if (target.statusEffects?.some(ef => ef.type === 'guard' && ef.endTime > now)) {
+        return { damage: 0, isMiss: false, isBlock: true, isCrit: false, guarded: true };
+    }
+    // Thành Trì: giảm sát thương nhận
+    const fort = target.statusEffects?.find(ef => ef.type === 'fortress' && ef.endTime > now);
+    if (fort) damage *= 1 - (fort.reduce ?? 0.3);
+
     const finalDamage = Math.max(1, Math.floor(damage * (1 - mitigation)));
 
     return { damage: finalDamage, isMiss: false, isBlock, isCrit };
@@ -252,16 +341,28 @@ function findLowestHpTarget(enemySquad, now) {
 function findBestTarget(attacker, enemySquad, now) {
     const alive = enemySquad.filter(m => canBeTargeted(m, now));
     if (alive.length === 0) return null;
+    // Khoảng cách 2D (x, z) — nhân vật giờ đi lại tự do trên mặt phẳng
+    const distTo = (m) => Math.hypot(attacker.x - m.x, (attacker.z || 0) - (m.z || 0));
     let closest = alive[0];
-    let closestDist = Math.abs(attacker.x - closest.x);
+    let closestDist = distTo(closest);
     alive.forEach(m => {
-        const dist = Math.abs(attacker.x - m.x);
+        const dist = distTo(m);
         if (dist < closestDist) {
             closestDist = dist;
             closest = m;
         }
     });
     return closest;
+}
+
+// ============================================================
+// GIỚI HẠN ĐẤU TRƯỜNG
+// ============================================================
+const ARENA_BOUNDS = { minX: -48, maxX: 48, minZ: -13, maxZ: 13 };
+
+function clampToArena(member) {
+    member.x = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, member.x));
+    member.z = Math.max(ARENA_BOUNDS.minZ, Math.min(ARENA_BOUNDS.maxZ, member.z));
 }
 
 // ============================================================
@@ -290,7 +391,8 @@ io.on('connection', (socket) => {
             },
             winner: null,
             countdown: 3,
-            lastTick: Date.now()
+            lastTick: Date.now(),
+            speed: DEFAULT_SPEED, clock: Date.now(),
         };
 
         socket.join(roomId);
@@ -313,7 +415,8 @@ io.on('connection', (socket) => {
             },
             winner: null,
             countdown: 3,
-            lastTick: Date.now()
+            lastTick: Date.now(),
+            speed: DEFAULT_SPEED, clock: Date.now(),
         };
 
         io.sockets.sockets.get(p1)?.join(roomId);
@@ -328,6 +431,13 @@ io.on('connection', (socket) => {
         waitingPlayer = socket.id;
         socket.emit('waiting', { message: 'Đang chờ đối thủ...' });
     }
+
+    socket.on('setSpeed', (data) => {
+        const room = rooms[socket.roomId];
+        if (!room || !room.players[socket.id] || !GAME_SPEEDS.includes(data?.speed)) return;
+        room.speed = data.speed;
+        io.to(socket.roomId).emit('speedChanged', { speed: room.speed });
+    });
 
     socket.on('toggleAuto', (data) => {
         const roomId = socket.roomId;
@@ -368,6 +478,25 @@ io.on('connection', (socket) => {
             player.debugNoMana = !!data.value;
         } else if (data.type === 'godMode') {
             player.debugGodMode = !!data.value;
+        } else if (data.type === 'toggleMember') {
+            // Bật / tắt 1 nhân vật ra trận (để test riêng từng nhân vật). Luôn giữ ít nhất 1 người.
+            const cls = data.value;
+            if (!SQUAD_ORDER.includes(cls)) return;
+            const off = new Set(player.disabledClasses ?? []);
+            if (off.has(cls)) off.delete(cls); else off.add(cls);
+            if (SQUAD_ORDER.every(c => off.has(c))) return; // không cho tắt hết
+            player.disabledClasses = [...off];
+            const room = rooms[roomId];
+            player.squad = createSquad(player.side, player.disabledClasses);
+            // Phe địch: xoá mục tiêu / khiêu khích trỏ vào đội hình cũ
+            Object.values(room.players).forEach(p => p.squad.forEach(m => {
+                m.targetIndex = -1; m.lockedTargetIndex = -1;
+                if (p !== player) m.statusEffects = m.statusEffects.filter(ef => ef.type !== 'taunted');
+            }));
+            if (room.winner) { room.winner = null; room.status = 'active'; startBattleLoop(roomId); }
+            io.to(roomId).emit('squadResized', { playerId: socket.id, newSquad: player.squad });
+            socket.emit('memberToggles', { disabled: player.disabledClasses });
+            broadcastState(roomId);
         }
     });
 
@@ -380,7 +509,14 @@ io.on('connection', (socket) => {
         const opponentId = Object.keys(room.players).find(id => id !== cid);
         if (!opponentId) return;
 
-        if (data.type === 'spawnStandard' || data.type === 'spawnDummy') {
+        if (data.type === 'godMode') {
+            // Bất tử cho phe quái (giữ nguyên khi triệu hồi lại quái)
+            room.enemyGodMode = !!data.value;
+            room.players[opponentId].debugGodMode = room.enemyGodMode;
+            return;
+        }
+        const DUMMY_TYPES = ['spawnDummy', 'addDummy', 'removeDummy'];
+        if (data.type === 'spawnStandard' || DUMMY_TYPES.includes(data.type)) {
             // Reset player targets
             room.players[cid].squad.forEach(m => {
                 m.targetIndex = -1;
@@ -388,23 +524,33 @@ io.on('connection', (socket) => {
                 m.state = 'idle';
             });
 
-            if (data.type === 'spawnDummy') {
-                room.players[opponentId].debugGodMode = true; // Immortal dummy
+            const opp = room.players[opponentId];
+            if (DUMMY_TYPES.includes(data.type)) {
+                // Cọc gỗ bất tử để test. Thêm / bớt từng cọc, mỗi cọc cách nhau DUMMY_GAP;
+                // máu đặt sẵn khác nhau (100%, 85%, 70%...) để thử các kỹ năng chọn mục tiêu theo máu.
+                const DUMMY_GAP = 3, MAX_DUMMIES = 8;
+                const current = opp.squad.every(m => m.classId === 'monster_dummy') ? opp.squad.length : 0;
+                let count = data.type === 'spawnDummy' ? 1 : current + (data.type === 'addDummy' ? 1 : -1);
+                count = Math.max(1, Math.min(MAX_DUMMIES, count));
+                opp.debugGodMode = true;
                 const def = CLASS_DEFS['monster_dummy'];
-                room.players[opponentId].squad = [{
-                    classId: 'monster_dummy', name: def.name, emoji: def.emoji, color: def.color,
-                    hp: def.maxHp, maxHp: def.maxHp, mp: 0, maxMp: def.maxMp,
-                    pAtk: def.pAtk, mAtk: def.mAtk, pDef: def.pDef, mDef: def.mDef,
-                    crit: def.crit, critDmg: def.critDmg, acc: def.acc, dodge: def.dodge, pen: def.pen, block: def.block, lifesteal: def.lifesteal,
-                    mpAtk: def.mpAtk, mpSec: def.mpSec,
-                    atkSpeed: def.atkSpeed, atkRange: def.atkRange, range: def.range, moveSpeed: def.moveSpeed,
-                    alive: true, x: 25, y: 0, z: 0, side: 'right',
-                    state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: 0,
-                    skillCooldowns: [], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: []
-                }];
+                opp.squad = Array.from({ length: count }, (_, i) => {
+                    const hp = Math.round(def.maxHp * Math.max(0.1, 1 - 0.15 * i));
+                    return {
+                        classId: 'monster_dummy', name: `${def.name} ${i + 1}`, emoji: def.emoji, color: def.color,
+                        hp, maxHp: def.maxHp, mp: 0, maxMp: def.maxMp,
+                        pAtk: def.pAtk, mAtk: def.mAtk, pDef: def.pDef, mDef: def.mDef,
+                        crit: def.crit, critDmg: def.critDmg, acc: def.acc, dodge: def.dodge, pen: def.pen, block: def.block, lifesteal: def.lifesteal,
+                        mpAtk: def.mpAtk, mpSec: def.mpSec,
+                        atkSpeed: def.atkSpeed, atkRange: def.atkRange, range: def.range, moveSpeed: def.moveSpeed,
+                        alive: true, x: 25 + i * DUMMY_GAP, y: 0, z: 0, side: 'right',
+                        state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: 0,
+                        skillCooldowns: [], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: []
+                    };
+                });
             } else {
-                room.players[opponentId].debugGodMode = false; // Normal monsters
-                room.players[opponentId].squad = createSquad('right');
+                opp.debugGodMode = !!room.enemyGodMode; // quái thường: theo nút Bất Tử phe địch
+                opp.squad = createSquad('right');
             }
 
             if (room.winner) {
@@ -413,7 +559,7 @@ io.on('connection', (socket) => {
                 startBattleLoop(roomId);
             }
 
-            io.to(roomId).emit('squadResized', { playerId: opponentId, newSquad: room.players[opponentId].squad });
+            io.to(roomId).emit('squadResized', { playerId: opponentId, newSquad: opp.squad });
             broadcastState(roomId);
         }
     });
@@ -446,7 +592,7 @@ io.on('connection', (socket) => {
 
         // Restart logic
         Object.values(room.players).forEach(p => {
-            p.squad = createSquad(p.side);
+            p.squad = createSquad(p.side, p.disabledClasses);
         });
         room.status = 'starting';
         room.countdown = 3;
@@ -497,12 +643,19 @@ function startBattleLoop(roomId) {
             return;
         }
 
-        const now = Date.now();
+        // Đồng hồ trận: chỉ chạy khi trận đang diễn ra, nhanh/chậm theo tốc độ phòng
+        const realNow = Date.now();
+        const realDt = Math.min(250, realNow - (room.lastReal ?? realNow));
+        room.lastReal = realNow;
+        if (room.clock == null) room.clock = realNow;
+        const ts = timeScaleOf(room);
+        if (room.status === 'active') room.clock += realDt * ts;
+        const now = room.clock;
 
-        // COUNTDOWN PHASE
+        // COUNTDOWN PHASE (giây thật)
         if (room.status === 'starting') {
-            if (now - room.lastTick >= 1000) {
-                room.lastTick = now;
+            if (realNow - room.lastTick >= 1000) {
+                room.lastTick = realNow;
                 io.to(roomId).emit('countdown', { count: room.countdown > 0 ? room.countdown : 'START' });
                 room.countdown--;
                 if (room.countdown < -1) {
@@ -530,8 +683,10 @@ function startBattleLoop(roomId) {
                 playerData.squad.forEach(member => {
                     if (!member.alive) return;
                     const def = CLASS_DEFS[member.classId];
-                    // Prioritize Skill 2 -> 1 -> 0
+                    // Prioritize Skill 2 -> 1 -> 0 (đang Dựng Khiên thì AUTO không tự hạ khiên)
+                    const guarding = member.statusEffects.some(ef => ef.type === 'guard' && ef.endTime > now);
                     for (let i = 2; i >= 0; i--) {
+                        if (guarding) continue;
                         if (member.mp >= def.skills[i].orbCost * ORB_COST && now > member.skillCooldowns[i]) {
                             if (!member.queuedSkills.includes(i)) {
                                 member.queuedSkills.push(i);
@@ -549,13 +704,44 @@ function startBattleLoop(roomId) {
                 member.statusEffects = member.statusEffects.filter(ef => ef.endTime > now);
 
                 // Mana Regen over time (Passive)
-                member.mp = Math.min(member.maxMp, member.mp + (member.mpSec / 20)); // mpSec is per 1000ms, tick is 50ms
+                member.mp = Math.min(member.maxMp, member.mp + (member.mpSec / 20) * ts); // mpSec mỗi 1000ms, tick 50ms
 
                 const def = CLASS_DEFS[member.classId];
 
+                // CHOÁNG: đứng im, không đánh, không niệm (bị ngắt niệm)
+                if (member.statusEffects.some(ef => ef.type === 'stun' && ef.endTime > now)) {
+                    member.state = 'stunned';
+                    member.castingSkillId = null;
+                    return;
+                }
+                if (member.state === 'stunned') member.state = 'idle';
+
+                // BỊ HẤT VĂNG (Đẩy Khiên): đang bay ra sau, chưa làm gì được
+                if (member.statusEffects.some(ef => ef.type === 'knocked' && ef.endTime > now)) {
+                    member.state = 'idle';
+                    return;
+                }
+
+                // DỰNG KHIÊN: đứng yên giữ khiên, không di chuyển / đánh.
+                // Nếu người chơi ra lệnh Kỹ năng 1 hoặc 2 -> cho dùng (khiên sẽ tự hạ khi kỹ năng thi triển)
+                if (member.statusEffects.some(ef => ef.type === 'guard' && ef.endTime > now)) {
+                    const wantsOther = member.queuedSkills.some(i => i !== 2 &&
+                        (playerData.debugNoMana || (member.mp >= def.skills[i].orbCost * ORB_COST && now >= member.skillCooldowns[i])));
+                    if (!wantsOther) {
+                        member.queuedSkills = member.queuedSkills.filter(i => i !== 2 || !def.skills[i] || def.skills[i].type !== 'guard');
+                        member.state = 'guarding';
+                        return;
+                    }
+                }
+                if (member.state === 'guarding') member.state = 'idle';
+
                 // FIND TARGET - respect locked target from dash
                 let target;
-                if (member.lockedTargetIndex >= 0 && opponentData.squad[member.lockedTargetIndex]?.alive) {
+                const taunt = member.statusEffects.find(ef => ef.type === 'taunted' && ef.endTime > now);
+                const taunter = taunt ? opponentData.squad[taunt.sourceIndex] : null;
+                if (taunter && taunter.alive && canBeTargeted(taunter, now)) {
+                    target = taunter; // bị Khiêu Khích: buộc đánh người khiêu khích
+                } else if (member.lockedTargetIndex >= 0 && opponentData.squad[member.lockedTargetIndex]?.alive) {
                     target = opponentData.squad[member.lockedTargetIndex];
                     if (!canBeTargeted(target, now)) {
                         member.lockedTargetIndex = -1;
@@ -589,7 +775,7 @@ function startBattleLoop(roomId) {
                     const hasEnoughMana = playerData.debugNoMana || member.mp >= cost;
                     const isOffCooldown = playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast];
                     if (hasEnoughMana && isOffCooldown) {
-                        const isSelfBuff = skillDef.type === 'stealth' || skillDef.type === 'self_buff';
+                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard'].includes(skillDef.type);
                         const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : member.atkRange;
                         
                         const dx = target ? target.x - member.x : 0;
@@ -603,8 +789,9 @@ function startBattleLoop(roomId) {
                             member.state = 'moving';
                             const dirX = dx / dist2D;
                             const dirZ = dz / dist2D;
-                            member.x += dirX * member.moveSpeed * tickRate;
-                            member.z += dirZ * member.moveSpeed * tickRate;
+                            member.x += dirX * member.moveSpeed * tickRate * ts;
+                            member.z += dirZ * member.moveSpeed * tickRate * ts;
+                            clampToArena(member);
                             return; 
                         } else {
                             member.queuedSkills.shift(); // Dequeue
@@ -629,7 +816,7 @@ function startBattleLoop(roomId) {
                     }
                 }
 
-                if (!target) return; // If no target and didn't cast self buff, wait
+                if (!target) { if (member.state === 'moving') member.state = 'idle'; return; } // không còn mục tiêu
 
                 // NORMAL MOVEMENT & ATTACK
                 const dx = target.x - member.x;
@@ -640,8 +827,9 @@ function startBattleLoop(roomId) {
                     member.state = 'moving';
                     const dirX = dx / dist2D;
                     const dirZ = dz / dist2D;
-                    member.x += dirX * member.moveSpeed * tickRate;
-                    member.z += dirZ * member.moveSpeed * tickRate;
+                    member.x += dirX * member.moveSpeed * tickRate * ts;
+                    member.z += dirZ * member.moveSpeed * tickRate * ts;
+                    clampToArena(member);
                 } else {
                     member.state = 'attacking';
                     const effAtkSpeed = getEffectiveStats(member, now).stats.atkSpeed;
@@ -691,12 +879,19 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
     const playerIds = Object.keys(room.players);
     const actualOpponentId = playerIds.find(id => id !== casterId); 
     const opponentData = room.players[actualOpponentId];
-    const now = Date.now();
+    const now = room.clock ?? Date.now();
     
     let effects = [];
     let isSpecialBackstab = false;
 
     const isStealth = member.statusEffects.some(ef => ef.type === 'stealth' && now < ef.endTime);
+
+    // Đang Dựng Khiên mà dùng kỹ năng khác -> hạ khiên (mất luôn buff thủ của cả đội)
+    let guardBroken = false;
+    if (skillDef.type !== 'guard' && member.statusEffects.some(ef => ef.type === 'guard' && ef.endTime > now)) {
+        endGuard(room.players[casterId].squad, casterIdx);
+        guardBroken = true;
+    }
 
     // Dash logic: Chain Dash through all sealed enemies
     if (skillDef.dash) {
@@ -716,11 +911,16 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
                 }
             });
 
+            // Thứ tự lướt chém: máu NHIỀU trước -> máu ÍT sau; kết thúc (đứng lại) ở mục tiêu máu ít nhất
+            sealedTargets.sort((a, b) => (b.member.hp - a.member.hp) || (a === finalTargetObj ? 1 : b === finalTargetObj ? -1 : 0));
+            const last = sealedTargets.indexOf(finalTargetObj);
+            if (last !== sealedTargets.length - 1) { sealedTargets.splice(last, 1); sealedTargets.push(finalTargetObj); }
+
             const finalTarget = finalTargetObj.member;
             
             // Teleport behind final target
             const dir = room.players[casterId].side === 'left' ? 1 : -1;
-            member.x = finalTarget.x + (1.5 * dir); 
+            member.x = finalTarget.x + (2.0 * dir); 
             member.z = finalTarget.z; 
             member.lockedTargetIndex = finalTargetObj.index;
 
@@ -729,7 +929,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
             sealedTargets.forEach(obj => {
                 const target = obj.member;
                 const multiplier = skillDef.multiplier * 1.8; // Strong backstab for all sealed
-                const result = calculateDamage(member, target, multiplier, now);
+                const result = calculateDamage(member, target, multiplier, now, { forceCrit: isStealth });
                 const dmg = result.damage;
                 
                 if (!opponentData.debugGodMode) {
@@ -746,11 +946,11 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
             const target = findBestTarget(member, opponentData.squad, now);
             if (target) {
                 const dir = room.players[casterId].side === 'left' ? 1 : -1;
-                member.x = target.x + (1.5 * dir); 
+                member.x = target.x + (2.0 * dir); 
                 member.z = target.z; 
                 member.lockedTargetIndex = opponentData.squad.indexOf(target);
                 
-                const result = calculateDamage(member, target, skillDef.multiplier, now);
+                const result = calculateDamage(member, target, skillDef.multiplier, now, { forceCrit: isStealth });
                 const dmg = result.damage;
                 if (!opponentData.debugGodMode) {
                     target.hp = Math.max(0, target.hp - dmg);
@@ -759,6 +959,77 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
                 effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
             }
         }
+    } else if (skillDef.type === 'taunt') {
+        // Khiêu Khích: quái trong bán kính phải đánh người dùng
+        opponentData.squad.forEach((enemy, i) => {
+            if (!enemy.alive || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.radius) return;
+            enemy.statusEffects = enemy.statusEffects.filter(ef => ef.type !== 'taunted');
+            enemy.statusEffects.push({ type: 'taunted', endTime: now + skillDef.duration, sourceIndex: casterIdx, defDown: skillDef.defDown ?? 0 });
+            enemy.lockedTargetIndex = -1;
+            effects.push({ targetIndex: i, taunted: true });
+        });
+    } else if (skillDef.type === 'shield_bash') {
+        const target = (member.targetIndex >= 0 && opponentData.squad[member.targetIndex]?.alive)
+            ? opponentData.squad[member.targetIndex] : findBestTarget(member, opponentData.squad, now);
+        if (target) {
+            // lao sát mục tiêu
+            const dir = Math.sign(target.x - member.x) || 1;
+            member.x = target.x - dir * 1.6;
+            member.z = target.z;
+            clampToArena(member);
+            const result = calculateDamage(member, target, skillDef.multiplier, now);
+            if (!opponentData.debugGodMode) {
+                target.hp = Math.max(0, target.hp - result.damage);
+                if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
+            }
+            target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'stun');
+            target.statusEffects.push({ type: 'stun', endTime: now + skillDef.stun });
+            effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: result.damage, isCrit: result.isCrit, isBlock: result.isBlock, stunned: true });
+        }
+    } else if (skillDef.type === 'knockback') {
+        // Quái trước mặt Rok: mục tiêu đang đánh, không có thì quái gần nhất
+        let target = (member.targetIndex >= 0 && opponentData.squad[member.targetIndex]?.alive)
+            ? opponentData.squad[member.targetIndex] : findBestTarget(member, opponentData.squad, now);
+        if (target) {
+            const ti = opponentData.squad.indexOf(target);
+            const result = calculateDamage(member, target, skillDef.multiplier, now);
+            if (!opponentData.debugGodMode) {
+                target.hp = Math.max(0, target.hp - result.damage);
+                if (target.hp === 0) { target.alive = false; target.state = 'dead'; }
+            }
+            const dir = Math.sign(target.x - member.x) || (member.side === 'left' ? 1 : -1);
+            const fromX = target.x;
+            target.x += dir * skillDef.push;
+            clampToArena(target);
+            target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'knocked');
+            target.statusEffects.push({ type: 'knocked', endTime: now + skillDef.knockTime });
+            if (skillDef.stun) {
+                // đáp đất xong bị choáng thêm `stun` ms
+                target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'stun');
+                target.statusEffects.push({ type: 'stun', endTime: now + skillDef.knockTime + skillDef.stun });
+            }
+            target.lastAttackTime = now; // đáp xuống rồi mới đánh tiếp
+            effects.push({ targetIndex: ti, damage: result.damage, isCrit: result.isCrit, isBlock: result.isBlock, isMiss: result.isMiss,
+                knockback: true, fromX, toX: target.x, toZ: target.z });
+        }
+    } else if (skillDef.type === 'guard') {
+        endGuard(room.players[casterId].squad, casterIdx);
+        member.statusEffects.push({ type: 'guard', endTime: now + skillDef.duration });
+        effects.push({ targetIndex: casterIdx, ally: true });
+        // Cả đội +20% P.DEF / M.DEF trong lúc khiên dựng
+        room.players[casterId].squad.forEach((ally, i) => {
+            if (!ally.alive) return;
+            ally.statusEffects.push({ type: 'guard_aura', endTime: now + skillDef.duration, value: skillDef.teamDef ?? 0.2, sourceIndex: casterIdx });
+            if (i !== casterIdx) effects.push({ targetIndex: i, ally: true, aura: true });
+        });
+    } else if (skillDef.type === 'fortress') {
+        // Thành Trì: cả đội (còn sống) nhận hiệu ứng giảm sát thương
+        room.players[casterId].squad.forEach((ally, i) => {
+            if (!ally.alive) return;
+            ally.statusEffects = ally.statusEffects.filter(ef => ef.type !== 'fortress');
+            ally.statusEffects.push({ type: 'fortress', endTime: now + skillDef.duration, reduce: skillDef.reduce });
+            effects.push({ targetIndex: i, ally: true });
+        });
     } else if (skillDef.type === 'stealth') {
         member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'stealth'); // Reset timer if casted again
         member.statusEffects.push({ type: 'stealth', endTime: now + 5000 });
@@ -777,6 +1048,13 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
             }
         });
     } else if (skillDef.type === 'projectile') {
+        // Nhảy lùi trước khi quăng (Phóng Bùa): lùi ra xa phía địch `backstep` đơn vị
+        if (skillDef.backstep) {
+            const foe = findLowestHpTarget(opponentData.squad, now) ?? opponentData.squad.find(m => m.alive);
+            const away = foe ? Math.sign(member.x - foe.x) || (member.side === 'left' ? -1 : 1) : (member.side === 'left' ? -1 : 1);
+            member.x += away * skillDef.backstep;
+            clampToArena(member);
+        }
         const createHit = (target) => {
             const result = calculateDamage(member, target, skillDef.multiplier, now);
             const dmg = result.damage;
@@ -811,13 +1089,23 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
 
     io.to(roomId).emit('skillExecuted', {
         casterId, casterIdx, skillIdx, type: skillDef.type, dash: skillDef.dash, 
-        newX: member.x, newZ: member.z, effects, isBackstab: isSpecialBackstab
+        newX: member.x, newZ: member.z, effects, isBackstab: isSpecialBackstab, guardBroken
+    });
+}
+
+/** Hạ khiên của Chiến Binh `casterIdx`: bỏ hiệu ứng guard + buff thủ nó phát cho cả đội */
+function endGuard(squad, casterIdx) {
+    const rok = squad[casterIdx];
+    if (rok) rok.statusEffects = rok.statusEffects.filter(ef => ef.type !== 'guard');
+    squad.forEach(ally => {
+        ally.statusEffects = ally.statusEffects.filter(ef => !(ef.type === 'guard_aura' && ef.sourceIndex === casterIdx));
     });
 }
 
 function broadcastState(roomId) {
     if (!rooms[roomId]) return;
-    const now = Date.now();
+    const room = rooms[roomId];
+    const now = room.clock ?? Date.now();
     // Build a payload with effective stats for each member
     const enrichedPlayers = {};
     Object.entries(rooms[roomId].players).forEach(([pid, pdata]) => {
@@ -829,7 +1117,7 @@ function broadcastState(roomId) {
             })
         };
     });
-    io.to(roomId).emit('stateUpdate', { players: enrichedPlayers });
+    io.to(roomId).emit('stateUpdate', { players: enrichedPlayers, clock: now, speed: room.speed ?? DEFAULT_SPEED, timeScale: timeScaleOf(room) });
 }
 
 function checkWinCondition(roomId) {

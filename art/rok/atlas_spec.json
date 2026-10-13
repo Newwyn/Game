@@ -1,0 +1,27 @@
+{
+ "out": "src/assets/sprites/rok_atlas.png",
+ "meta": "src/characters/cutout/rokAtlas.json",
+ "width": 2048,
+ "sheets": {
+  "body": {"file": "art/rok/02-body-parts.png", "scale": 1.0},
+  "hands": {"file": "art/rok/03-hands-shield.png", "scale": 1.0},
+  "eyes": {"file": "art/rok/04-eyes.png", "scale": 0.2}
+ },
+ "parts": {
+  "cape": {"sheet": "body", "comps": [1]}, "head": {"sheet": "body", "comps": [2]},
+  "hairFront": {"sheet": "body", "comps": [3]}, "hairBack": {"sheet": "body", "comps": [4]},
+  "torso": {"sheet": "body", "comps": [5]}, "scarf": {"sheet": "body", "comps": [6]},
+  "belt": {"sheet": "body", "comps": [7]}, "armN": {"sheet": "body", "comps": [8]},
+  "foreN": {"sheet": "body", "comps": [9]}, "armF": {"sheet": "body", "comps": [10]},
+  "foreF": {"sheet": "body", "comps": [11]}, "thighN": {"sheet": "body", "comps": [12]},
+  "shinN": {"sheet": "body", "comps": [13]}, "thighF": {"sheet": "body", "comps": [14]},
+  "shinF": {"sheet": "body", "comps": [15]},
+  "handFist": {"sheet": "hands", "comps": [1]}, "handOpen": {"sheet": "hands", "comps": [2]},
+  "handFist2": {"sheet": "hands", "comps": [3]}, "handOpen2": {"sheet": "hands", "comps": [4]},
+  "handBash": {"sheet": "hands", "comps": [5]}, "shield": {"sheet": "hands", "comps": [6]},
+  "shieldPlanted": {"sheet": "hands", "comps": [7, 8, 9, 11, 12, 13]}, "sword": {"sheet": "hands", "comps": [10]},
+  "eyeOpen": {"sheet": "eyes", "comps": [1, 4]}, "eyeBlink": {"sheet": "eyes", "comps": [2, 6]},
+  "eyePain": {"sheet": "eyes", "comps": [3, 5]}, "eyeAngry": {"sheet": "eyes", "comps": [7]},
+  "eyeDetermined": {"sheet": "eyes", "comps": [8]}, "eyeHappy": {"sheet": "eyes", "comps": [9, 10]}
+ }
+}

@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}#c{width:100vw;height:100vh}</style></head><body><div id="c"></div>
+<!-- Xem thử nhân vật 2D trong cảnh trận thật, chạy theo từng bước thời gian cố định (không cần server).
+     npm run dev rồi mở /tools/preview-scene.html — trong console:
+       step(0.5)            chạy 0.5 giây
+       act(0, 'attack')     nhân vật 0 diễn động tác
+       intro()              chạy lại màn mở đầu
+     Không có tham số ?manual=1 thì tự chạy theo thời gian thực. -->
+<script type="module">
+import * as THREE from 'three';
+import { mountRenderer, scene, camera, renderer } from '../src/core/scene.js';
+import { buildEnvironment } from '../src/core/environment.js';
+import { cameraRig } from '../src/core/cameraRig.js';
+import { updateVfx, spawnDashStreak, spawnLandingDust, spawnProjectile, spawnSlashVfx } from '../src/vfx/vfx.js';
+import { createCharacterView } from '../src/characters/registry.js';
+
+const q = new URLSearchParams(location.search);
+mountRenderer(document.getElementById('c'));
+buildEnvironment();
+cameraRig.setMode('combat');
+
+const classDef = { atkRange: 1.8, skills: [] };
+const COLORS = { assassin: '#1e293b', monster_tank: '#eab308', monster_archer: '#ef4444', monster_supporter: '#22c55e', monster_dummy: '#78350f' };
+const mk = (classId, x, side) => {
+  const member = { classId, color: COLORS[classId], side, x, z: 0, alive: true, hp: 100, maxHp: 100, state: 'idle', statusEffects: [] };
+  const v = createCharacterView(member, classDef, side === 'left');
+  scene.add(v.root);
+  return v;
+};
+// ?team=assassin,assassin|monster_tank,monster_archer  (trái | phải)
+const [L, Rt] = (q.get('team') || 'assassin,assassin|assassin,monster_tank,monster_archer,monster_supporter').split('|').map(t => t.split(','));
+const views = [
+  ...L.map((c, i) => mk(c, -2 - i * 2.5, 'left')),
+  ...Rt.map((c, i) => mk(c, 2.5 + i * 2.3, 'right')),
+];
+window.views = views;
+
+window.intro = () => {
+  cameraRig.snapTo(0, 0);
+  cameraRig.introZoom(2.6, 1.6);
+  views.forEach((v, i) => v.playIntro({
+    delay: 0.45 + i * 0.16,
+    onStart: (vv) => spawnDashStreak(vv, 9),
+    onLand: (vv) => { spawnLandingDust(vv.position); cameraRig.shake(0.18, 160); },
+  }));
+};
+window.act = (i, name) => {
+  const v = views[i];
+  v.playAction(name, { onHit: () => {
+    if (name === 'throw') spawnProjectile(v.position.clone().add(new THREE.Vector3(0, 1, 0)), new THREE.Vector3(4, 1, 0), '#fc0', 0.4, v.createProjectileMesh());
+    else spawnSlashVfx(views[views.length - 1].position);
+  } });
+};
+window.loco = (i, s) => { views[i].member.state = s; views[i].setLocomotion(s); };
+window.moveTo = (i, x) => { views[i].targetPos.x = x; };
+window.hurt = (i) => views[i].flashHit();
+window.kill = (i) => { views[i].member.alive = false; views[i].setLocomotion('dead'); };
+
+const tick = (dt) => {
+  updateVfx(dt);
+  views.forEach(v => v.update(dt, camera));
+  const xs = q.get('focus') ? [views[+q.get('focus')].position.x] : views.map(v => v.position.x);
+  cameraRig.frame(Math.min(...xs) - 1, Math.max(...xs) + 1, 0);
+  cameraRig.update(dt);
+  // ?studio=1: camera đặt gần, bám nhân vật số 0 (xem chi tiết động tác)
+  if (q.get('studio')) {
+    const v = views[0];
+    studioX += (v.position.x - studioX) * Math.min(1, dt * 4);
+    camera.position.set(studioX + 0.6, 1.1, 7.2); camera.fov = 38; camera.updateProjectionMatrix();
+    camera.lookAt(studioX + 0.6, 0.85, 0);
+  }
+};
+let studioX = views[0].position.x;
+window.step = (sec, dt = 1 / 60) => { for (let t = 0; t < sec - 1e-6; t += dt) tick(dt); if (q.get('studio')) renderer.render(scene, camera); else cameraRig.render(); };
+window.intro();
+if (!q.get('manual')) {
+  let last = performance.now();
+  const loop = (now) => { tick(Math.min(0.05, (now - last) / 1000)); last = now; cameraRig.render(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

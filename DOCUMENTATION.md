@@ -1,240 +1,277 @@
-# 📖 TÀI LIỆU THIẾT KẾ TRÒ CHƠI TOÀN DIỆN (GAME DESIGN DOCUMENT - GDD)
-## DỰ ÁN: LEGEND OF CAPSULES (2.5D ACTION RPG)
-> **Mã dự án:** `legend-of-capsules`  
-> **Phiên bản tài liệu:** 2.0 (Bản chuẩn hóa chuyên nghiệp ngành Game)  
-> **Tài liệu tham chiếu:** [https://github.com/Newwyn/Game](https://github.com/Newwyn/Game)  
-> **Dành cho:** Ban điều hành dự án, Đội ngũ Lập trình (Frontend/Backend), Họa sĩ (2D/VFX) và Game Designer
+# 📖 LEGEND OF CAPSULES — TÀI LIỆU THIẾT KẾ & KỸ THUẬT
+
+> **Mã dự án:** `legend-of-capsules` · **Kho mã:** [github.com/Newwyn/Game](https://github.com/Newwyn/Game)
+> **Phiên bản tài liệu:** 3.0 — cập nhật 13/10/2026 (thay toàn bộ bản 2.0: bỏ hướng 3D / spritesheet cũ)
+> **Trạng thái:** Đang hoàn thiện bộ nhân vật cơ bản (Jessica — Sát Thủ, Rok — Chiến Binh)
 
 ---
 
 ## 📌 MỤC LỤC
-1. [BẢNG THÔNG TIN DỰ ÁN (PROJECT ONE-PAGER)](#1-bảng-thông-tin-dự-án-project-one-pager)
-2. [TỔNG QUAN & TRỤ CỘT THIẾT KẾ (CORE PILLARS & HIGH CONCEPT)](#2-tổng-quan--trụ-cột-thiết-kế-core-pillars--high-concept)
-3. [VÒNG LẶP TRÒ CHƠI CỐT LÕI (CORE GAMEPLAY LOOP)](#3-vòng-lặp-trò-chơi-cốt-lõi-core-gameplay-loop)
-4. [HỆ THỐNG CHIẾN ĐẤU & CƠ CHẾ SÁT THƯƠNG (COMBAT & STAT ENGINE)](#4-hệ-thống-chiến-đấu--cơ-chế-sát-thương-combat--stat-engine)
-5. [THIẾT KẾ NHÂN VẬT & QUÁI VẬT (CLASSES & CREATURES)](#5-thiết-kế-nhân-vật--quái-vật-classes--creatures)
-6. [KIẾN TRÚC KỸ THUẬT & ĐỒ HỌA (TECHNICAL DESIGN & VISUAL SHADERS)](#6-kiến-trúc-kỹ-thuật--đồ-họa-technical-design--visual-shaders)
-7. [HỆ THỐNG GIAO DIỆN & ÂM THANH (UI/UX & AUDIO DESIGN)](#7-hệ-thống-giao-diện--âm-thanh-uiux--audio-design)
-8. [LỘ TRÌNH SẢN XUẤT & PHÂN BỔ NHIỆM VỤ (ROADMAP & PRODUCTION MILESTONES)](#8-lộ-trình-sản-xuất--phân-bổ-nhiệm-vụ-roadmap--production-milestones)
+1. [Tổng quan dự án](#1-tổng-quan-dự-án)
+2. [Lối chơi cốt lõi](#2-lối-chơi-cốt-lõi)
+3. [Hệ thống chiến đấu](#3-hệ-thống-chiến-đấu)
+4. [Class & nhân vật](#4-class--nhân-vật)
+5. [Quái vật](#5-quái-vật)
+6. [Hiệu ứng trạng thái](#6-hiệu-ứng-trạng-thái)
+7. [Đồ hoạ: nhân vật 2D ghép mảnh](#7-đồ-hoạ-nhân-vật-2d-ghép-mảnh)
+8. [Kiến trúc kỹ thuật](#8-kiến-trúc-kỹ-thuật)
+9. [Chế độ đánh thử (Test Mode)](#9-chế-độ-đánh-thử-test-mode)
+10. [Quy trình thêm nhân vật mới](#10-quy-trình-thêm-nhân-vật-mới)
+11. [Lộ trình](#11-lộ-trình)
 
 ---
 
-## 1. BẢNG THÔNG TIN DỰ ÁN (PROJECT ONE-PAGER)
+## 1. TỔNG QUAN DỰ ÁN
 
 | Hạng mục | Chi tiết |
 | :--- | :--- |
-| **Tên trò chơi** | **Legend of Capsules** |
-| **Thể loại (Genre)** | 2.5D Real-Time Action RPG / Creature Battler |
-| **Góc nhìn (Perspective)** | 2.5D Isometric / Fixed Orbit Camera (Nhân vật Sprite 2D trong không gian 3D) |
-| **Nền tảng (Platform)** | Web-first (HTML5 / WebGL), hỗ trợ Desktop & Mobile qua trình duyệt; mở rộng sang Mobile/PC qua WebView/Electron |
-| **Mô hình kinh doanh** | Free-to-Play (F2P) kết hợp vật phẩm trang trí, hệ thống mở gói sinh vật (Capsule Summon) và gói thám hiểm (Battle Pass) |
-| **Đối tượng mục tiêu** | Người chơi yêu thích dòng game nhập vai hành động nhịp độ cao, phong cách hoạt họa dễ thương, tính chiến thuật đội hình sâu và khả năng kết nối nhiều người chơi tức thời |
+| **Tên game** | Legend of Capsules |
+| **Thể loại** | Nhập vai **chiến thuật tự đánh (tactical auto-battle)** theo đội hình |
+| **Góc nhìn** | **Ngang (side view)** khi chiến đấu — nhân vật 2D ghép mảnh đứng trong cảnh 3D |
+| **Nền tảng** | Web (HTML5 / WebGL), chạy trên trình duyệt máy tính & điện thoại |
+| **Công nghệ** | Client: Three.js + Vite · Server: Node.js + Express + Socket.io |
+| **Phong cách** | Chibi đầu to, giáp & phụ kiện chi tiết, hiệu ứng kỹ năng rực rỡ |
+
+**Ý tưởng chính:** người chơi xây đội hình nhiều nhân vật thuộc các *class* khác nhau. Trong trận, nhân vật **tự di chuyển và tự đánh thường**; người chơi chỉ quyết định **khi nào dùng kỹ năng nào** (hoặc bật AUTO). Chiều sâu nằm ở việc phối hợp kỹ năng giữa các nhân vật (gắn Ấn → lướt chém, khiêu khích → bảo vệ đồng đội...).
 
 ---
 
-## 2. TỔNG QUAN & TRỤ CỘT THIẾT KẾ (CORE PILLARS & HIGH CONCEPT)
+## 2. LỐI CHƠI CỐT LÕI
 
-### 2.1 Định vị ý tưởng (High Concept)
-**Legend of Capsules** mang đến trải nghiệm nhập vai trực tuyến đa người chơi, nơi game thủ thu thập, huấn luyện và điều khiển đội hình các sinh vật dạng khối nhộng (Capsule Creatures) bước vào các trận chiến thời gian thực nghẹt thở. Điểm độc đáo của trò chơi nằm ở sự kết hợp giữa nét nghệ thuật hoạt ảnh 2D vẽ tay truyền thống lướt nhẹ trên không gian 3D sống động, kết hợp hệ thống năng lượng và chiến thuật tung kỹ năng có chiều sâu.
-
-### 2.2 Ba Trụ Cột Thiết Kế (Core Pillars)
-
-```
-                     ┌─────────────────────────────────────────────────┐
-                     │          LEGEND OF CAPSULES CORE DESIGN         │
-                     └────────────────────────┬────────────────────────┘
-                                              │
-         ┌────────────────────────────────────┼────────────────────────────────────┐
-         ▼                                    ▼                                    ▼
-┌──────────────────┐               ┌──────────────────┐               ┌──────────────────┐
-│   TRỤ CỘT 1:     │               │   TRỤ CỘT 2:     │               │   TRỤ CỘT 3:     │
-│  THỊ GIÁC 2.5D   │               │ HÀNH ĐỘNG REAL-  │               │ THU THẬP & THÁM  │
-│    ISOMETRIC     │               │  TIME CÓ LỰC     │               │ HIỂM BÁN MỞ      │
-└────────┬─────────┘               └────────┬─────────┘               └────────┬─────────┘
-         │                                  │                                  │
-  • Nhân vật 2D Sprite               • Tích lũy năng lượng              • Thuần hóa sinh vật
-  • Môi trường 3D đa chiều            để tung chuỗi kỹ năng              Capsule hoang dã
-  • Tối ưu mượt mà WebGL             • Hit-Frame Damage                 • Tương khắc hệ nguyên tố
-  • Phong cách cách điệu             • Hit-Flash & Camera Shake         • Bản đồ mở kết nối
-```
-
-1. **Trụ cột 1 - Thị giác 2.5D Isometric phong cách (Stylized 2.5D Visuals):**
-   - Sự hòa quyện giữa nhân vật dạng Sprite 2D hoạt họa (luôn quay mặt về phía máy quay theo cơ chế Billboard) và địa hình không gian 3D đa chiều.
-   - Góc nhìn camera Isometric có kiểm soát mang lại cảm giác thân quen, dễ quan sát toàn cục trận đấu nhưng vẫn phô diễn được chiều sâu phối cảnh.
-2. **Trụ cột 2 - Chiến đấu Hành động Thời gian thực có Chiều sâu (Dynamic Real-Time Combat):**
-   - Loại bỏ lối đánh theo lượt (turn-based) truyền thống; toàn bộ diễn biến xảy ra liên tục theo thời gian thực.
-   - Hệ thống quản lý năng lượng dạng khối (Orb/Energy System): Đòn đánh thường nạp năng lượng $\rightarrow$ người chơi tính toán thời điểm bấm nút thi triển chuỗi chiêu thức phối hợp (Combo Linking).
-   - Cảm giác lực đòn đánh (Game Feel): Tích hợp độ trễ vung đòn (Hit-Frame Sync), rung chấn màn hình (Camera Shake), nhấp nháy va chạm (Hit-Flash) và âm thanh phản hồi tần số cao.
-3. **Trụ cột 3 - Thu thập Sinh vật & Thám hiểm Thế giới (Creature Collection & World Exploration):**
-   - Hệ thống sinh vật phong phú với hệ thống nguyên tố tương sinh tương khắc.
-   - Khám phá các vùng đất mở, tìm kiếm quái vật quý hiếm, hạ máu và sử dụng thiết bị thu phục để mở rộng bộ sưu tập đội hình.
+- **Đội hình:** tối đa **4 nhân vật** ra trận; một trận có thể gặp **5–6 quái**.
+- **Không điều khiển di chuyển** (không WASD). Người chơi **click vào thẻ kỹ năng** của từng nhân vật để ra lệnh — áp dụng cho mọi nhân vật, không có phím tắt kỹ năng.
+- **AUTO:** tự dùng kỹ năng khi đủ Orb (ưu tiên Kỹ năng 3 → 2 → 1).
+- **Hàng đợi kỹ năng:** click nhiều kỹ năng sẽ xếp hàng; click lại kỹ năng đang chờ để huỷ.
+- **Tốc độ trận:** x1.0 / x1.5 / x2.0 (nút ⏩ hoặc phím **T**). Chỉ số được cân bằng ở mức **x1.5**; mọi hồi chiêu, tốc đánh, hiệu ứng, di chuyển đều chạy theo "đồng hồ trận".
+- **Kiểu niệm chú:**
+  - **Niệm nhanh** — dùng ngay lập tức (toàn bộ kỹ năng của Jessica và Rok).
+  - **Niệm trung bình** — đứng niệm một khoảng ngắn, có thanh niệm.
+  - **Niệm lâu** — niệm dài, có thể bị ngắt (choáng).
+- **Mở màn:** đếm ngược 3‑2‑1, camera lướt vào, từng nhân vật rơi xuống đáp đất rồi vào thế sẵn sàng.
 
 ---
 
-## 3. VÒNG LẶP TRÒ CHƠI CỐT LÕI (CORE GAMEPLAY LOOP)
+## 3. HỆ THỐNG CHIẾN ĐẤU
 
-Mọi hoạt động của người chơi đều vận hành xoay quanh vòng lặp 4 bước khép kín:
+Toàn bộ tính toán diễn ra **trên server** (vòng lặp 50ms); client chỉ hiển thị.
 
-```mermaid
-flowchart LR
-    A["THÁM HIỂM (Explore)<br/>Di chuyển qua các khu vực bản đồ, tìm kiếm Capsule hoang dã và nhiệm vụ"] --> B["GIAO TRANH (Combat)<br/>Chiến đấu thời gian thực, canh nhịp Orb tung kỹ năng tiêu diệt hoặc làm suy yếu địch"]
-    B --> C["THU PHỤC & PHẦN THƯỞNG (Reward & Catch)<br/>Ném thiết bị bắt quái hoặc thu thập nguyên liệu, trang bị rơi ra"]
-    C --> D["PHÁT TRIỂN & XÂY ĐỘI HÌNH (Progression)<br/>Nâng cấp chỉ số, khảm ngọc, lắp trang bị và phối hợp combo 4 thành viên"]
-    D --> A
+### 3.1 Chỉ số (thang 1000 = 100%)
+
+| Chỉ số | Ý nghĩa |
+| :--- | :--- |
+| HP / MP | Máu / năng lượng (MP tối đa 5000 = 5 Orb) |
+| P.ATK / M.ATK | Công vật lý / phép |
+| P.DEF / M.DEF | Thủ vật lý / phép |
+| Crit | Tỉ lệ chí mạng (‰) |
+| Crit DMG | Sát thương chí mạng cộng thêm (‰) — hệ số chí mạng = **1.5 + Crit DMG** |
+| Accuracy | Chính xác (1000 = 100%); phần **vượt 100%** trừ thẳng vào Né của mục tiêu |
+| Dodge | Né (‰) |
+| Penetration | Xuyên giáp (‰) |
+| Block | Chặn đòn (‰) — chặn giảm 50% sát thương |
+| Lifesteal | Hút máu (chưa dùng) |
+| MP/Atk, MP/s | Hồi MP mỗi đòn đánh / mỗi giây |
+| Atk Speed | Thời gian giữa 2 đòn đánh (ms, càng nhỏ càng nhanh) |
+
+### 3.2 Quy trình tính sát thương
+
 ```
+1. Né       : tỉ lệ né = max(0, Dodge_mục_tiêu − max(0, Acc_kẻ_đánh − 1000))  -> MISS
+2. Gốc      : ATK × hệ số kỹ năng
+3. Chí mạng : (Crit + nội tại) -> × (1.5 + Crit DMG)
+4. Chặn     : chỉ khi KHÔNG chí mạng, theo Block -> × 0.5
+5. Giáp     : DEF hiệu dụng = DEF × (1 − Xuyên giáp);  giảm = DEF / (DEF + 300)
+6. Đặc biệt : Dựng Khiên -> 0 sát thương (BLOCK);  Thành Trì -> giảm theo %
+7. Kết quả  : max(1, sát thương × (1 − giảm))
+```
+
+Quái **Hỗ Trợ** đánh phép (M.ATK vs M.DEF); còn lại đánh vật lý.
+
+### 3.3 Orb & hàng đợi kỹ năng
+- **1 Orb = 1000 MP**, tối đa 5 Orb. MP hồi theo giây (MP/s) và mỗi đòn đánh trúng (MP/Atk).
+- Kỹ năng tốn 1 / 2 / 3 Orb (Kỹ năng 1 / 2 / 3) và có hồi chiêu riêng.
+- Kỹ năng cần cự ly (VD Đẩy Khiên) → nhân vật tự đi tới tầm rồi mới dùng.
+
+### 3.4 Chọn mục tiêu
+- Mặc định đánh mục tiêu tốt nhất gần nhất; mục tiêu **đang tàng hình không thể bị chọn**.
+- Bị **Khiêu Khích / Sư Tử Gầm**: buộc đánh người gầm.
+- Sau khi lướt (Đột Kích) nhân vật **khoá mục tiêu** cuối cùng.
 
 ---
 
-## 4. HỆ THỐNG CHIẾN ĐẤU & CƠ CHẾ SÁT THƯƠNG (COMBAT & STAT ENGINE)
+## 4. CLASS & NHÂN VẬT
 
-### 4.1 Quy trình Xử lý Sát thương 7 Lớp (7-Layer Damage Pipeline)
-Mọi đòn tấn công trong game được tính toán nghiêm ngặt tại Máy chủ (Server-Authoritative) qua 7 bước:
+**Class = vai trò** (Sát Thủ, Chiến Binh...). Mỗi class có **nhiều nhân vật** khác nhau với ngoại hình và bộ kỹ năng riêng.
 
-```
-[1. Xác định Loại Sát Thương] ──> [2. Kiểm tra Né Tránh (Dodge vs Accuracy)]
-                                                  │
-                                            (Trúng đòn)
-                                                  │
-[4. Kiểm tra Bạo Kích] <────── [3. Tính Sát Thương Gốc (Base ATK x Skill Multiplier)]
-         │
-  (Có Crit / Không Crit)
-         │
-         ▼
-[5. Kiểm tra Đỡ Đòn (Block)] ──> [6. Giảm trừ Kháng Giáp (Mitigation Formula)]
-                                                  │
-                                                  ▼
-                                 [7. Áp dụng Hiệu ứng Trạng thái & Xuất Sát thương Cuối]
-```
+### 4.1 Jessica (Lôi Ám) — Sát Thủ 🥷
+*Lối chơi: COMBO BỘC PHÁ — gắn Ấn bằng bùa → tàng hình → lướt chém nổ to. Màu chủ đạo: sấm sét tím đen.*
 
-- **Công thức Giảm trừ Giáp (Damage Reduction - DR):**
-  $$\text{Mitigation} = \frac{\text{Effective DEF}}{\text{Effective DEF} + 300}$$
-  *Trong đó: $\text{Effective DEF} = \text{DEF} \times (1 - \text{Penetration Rate})$.*
-- **Công thức Bạo kích (Critical Strike):**
-  $$\text{Damage}_{\text{Crit}} = \text{Damage} \times \left(2.0 + \frac{\text{Crit Damage Rating}}{1000}\right)$$
-- **Công thức Đỡ đòn (Block):**
-  Khi kích hoạt Đỡ đòn thành công (chỉ áp dụng khi đòn đánh không bạo kích), lượng sát thương nhận vào tự động giảm đi **50%**.
+| HP | MP | P.ATK | P.DEF | M.DEF | Crit | Crit DMG | Dodge | Pen | Block | Tốc đánh | Tầm |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| 1200 | 5000 | 220 | 50 | 50 | 35% | ×2.0 | 20% | 15% | 5% | 800ms | 2.4 |
 
-### 4.2 Hệ thống 14 Chỉ số Chuẩn hóa (Standardized 1000-Point Rating)
-Các thuộc tính phụ đều quy đổi về hệ chuẩn 1000 điểm tương đương $100\%$:
-- **Chỉ số Sinh tồn:** Máu tối đa (`maxHp`), Giáp vật lý (`pDef`), Giáp phép thuật (`mDef`).
-- **Chỉ số Tấn công:** Công vật lý (`pAtk`), Công phép thuật (`mAtk`), Tốc độ ra đòn (`atkSpeed`), Tầm đánh (`atkRange`).
-- **Chỉ số Chiến thuật:** Tỷ lệ bạo kích (`crit`), Sát thương bạo kích cộng thêm (`critDmg`), Xuyên giáp (`pen`), Chính xác (`acc`), Né tránh (`dodge`), Đỡ đòn (`block`), Hút máu (`lifesteal`).
-- **Chỉ số Năng lượng:** Năng lượng hồi theo đòn đánh (`mpAtk`), Năng lượng tự hồi mỗi giây (`mpSec`).
+| Kỹ năng | Orb / Hồi | Mô tả |
+| :--- | :-: | :--- |
+| **1. Phóng Bùa** | 1 / 7s | Lộn mèo nhảy lùi 5 đơn vị rồi phóng bùa thẳng vào quái **ít máu nhất** (×1.5). Trúng: gắn **Ấn** 7s (−15% P.DEF). Đang tàng hình: phóng 2 lá vào 2 quái ít máu nhất. |
+| **2. Đột Kích** | 2 / 7s | Khuỵu người, biến mất trong khói rồi **lướt chém lần lượt mọi quái có Ấn**: máu nhiều trước, dừng lại sau lưng quái **ít máu nhất** (×2.5 ×1.8 với quái có Ấn). Không có Ấn: lướt ra sau mục tiêu tốt nhất (×2.5). Đang tàng hình: **chắc chắn chí mạng**. |
+| **3. Tàng Hình** | 3 / 10s | Kết ấn, nhắm mắt, khói bùng → tàng hình **5s**: không thể bị chọn, +20% P.ATK, +10% tốc đánh. **Không bị phá khi ra đòn.** Có hào quang sấm tím + mắt phát sáng; đòn chém đổi sang vệt sấm tím đen. |
+| *Nội tại: Đánh Lén* | — | +50% tỉ lệ chí mạng khi đánh **sau lưng** hoặc **đang tàng hình**. |
 
-### 4.3 Cơ chế Năng lượng Khối (Orb System)
-- $1000\text{ MP} = 1\text{ Orb}$.
-- Thanh năng lượng tối đa tích trữ được 5 Orbs.
-- Mỗi kỹ năng yêu cầu từ 1 đến 3 Orbs để kích hoạt, người chơi phải cân đối giữa việc xả chiêu nhỏ hồi nhanh hay tích trữ cho chiêu tối thượng.
+### 4.2 Rok (Thiết Hộ) — Chiến Binh 🛡️
+*Lối chơi: đứng đầu hàng giữ quái, máu & thủ cao, đánh chậm. Tay gần cầm kiếm, tay xa cầm khiên tròn lớn. Màu chủ đạo: vàng kim.*
+
+| HP | MP | P.ATK | P.DEF | M.DEF | Crit | Crit DMG | Dodge | Pen | Block | Tốc đánh | Tầm |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| 3200 | 5000 | 150 | 220 | 160 | 8% | ×2.0 | 5% | 5% | 25% | 1200ms | 2.4 |
+
+| Kỹ năng | Orb / Hồi | Mô tả |
+| :--- | :-: | :--- |
+| **1. Sư Tử Gầm** | 1 / 9s | Giơ kiếm gầm vang, **linh hồn sư tử vàng** lao ra kèm sóng âm. Mọi quái trong bán kính 9 phải đánh Rok trong **4s** và bị **−10% P.DEF / M.DEF**. |
+| **2. Đẩy Khiên** | 2 / 8s | Húc khiên vào quái **trước mặt (đang đánh)**: sát thương ×1.0, **hất văng ra sau 5 đơn vị** (bằng cú nhảy lùi của Jessica); đáp đất xong **choáng 1s**. Hiệu ứng khiên ánh sáng + luồng gió. |
+| **3. Dựng Khiên** | 3 / 15s | **Aura Thiết Vệ**: vòm lục giác vàng lớn, **đỡ mọi đòn** vào Rok trong **5s** (hiện BLOCK); Rok đứng thủ, không đánh. **Cả đội +20% P.DEF / M.DEF** (đồng đội có 3 khiên nhỏ bay quanh người). Dùng Kỹ năng 1 hoặc 2 trong lúc này → **khiên tự hạ** (mất cả buff đội). AUTO không tự hạ khiên. |
+| *Nội tại: Ý Chí Thép* | — | Máu dưới 30%: +25% chặn đòn. |
+
+**Đòn đánh thường của Rok:** bổ dọc — vung kiếm qua đầu (lưỡi ngả ra sau) rồi bổ mạnh xuống phía trước, vệt chém thép sáng gần thẳng đứng.
 
 ---
 
-## 5. THIẾT KẾ NHÂN VẬT & QUÁI VẬT (CLASSES & CREATURES)
+## 5. QUÁI VẬT
 
-### 5.1 Lớp Nhân vật Tiêu biểu: Sát Thủ (Assassin 🥷)
-- **Đặc trưng:** Cận chiến vật lý cơ động, sát thương bạo kích cao, khai thác điểm mù sau lưng và cơ chế tàng hình.
-- **Bộ Kỹ năng Chủ động:**
-  1. **Phi Tiêu (Shuriken Throw):** Tiêu hao 1 Orb | Hồi chiêu 7s. Phóng phi tiêu tầm xa gây $150\%$ sát thương và khắc **Ấn Chiếu (Seal)** lên mục tiêu (giảm $10\%$ Giáp đối phương trong 6s). *Nếu thi triển khi đang Tàng Hình, nhân vật sẽ phóng 2 phi tiêu liên hoàn.*
-  2. **Đột Kích (Shadow Dash):** Tiêu hao 2 Orbs | Hồi chiêu 7s. Lướt xuyên qua mục tiêu gây $250\%$ sát thương. *Nếu trên đấu trường có bất kỳ kẻ địch nào đang chịu Ấn Chiếu, sát thủ sẽ lướt chuỗi (Chain Dash) liên hoàn qua tất cả các mục tiêu đó.*
-  3. **Tàng Hình (Stealth Veil):** Tiêu hao 3 Orbs | Hồi chiêu 10s. Biến mất khỏi tầm chọn mục tiêu của toàn bộ kẻ địch, đồng thời nhận bùa lợi $+10\%$ Công vật lý và $+10\%$ Tốc độ đánh.
-- **Kỹ năng Bị động - Đánh Lén (Backstab Mastery):** Đòn đánh từ phía sau lưng đối thủ được tăng thêm $+50\%$ tỷ lệ Bạo kích.
+| Quái | HP | ATK | P.DEF / M.DEF | Đặc điểm |
+| :--- | :-: | :-: | :-: | :--- |
+| **Tanker** 🛡️ | 5000 | 150 (vật lý) | 300 / 200 | Chặn 40%, đánh chậm (1500ms), cận chiến |
+| **Xạ Thủ** 🏹 | 3000 | 250 (vật lý) | 100 / 100 | Tầm xa 10, chính xác 110%, xuyên giáp 30% |
+| **Hỗ Trợ** 🪄 | 3000 | 120 (phép) | 100 / 200 | Tầm 6, đánh phép |
+| **Cọc Gỗ** 🪵 | 9.999.999 | 0 | 500 / 500 | Chỉ để test, không đánh, bất tử; máu đặt sẵn 100%, 85%, 70%... |
 
-### 5.2 Phân loại Đối thủ & Quái vật (Monster Archetypes)
-1. **Thiết Vệ (Guardian Tanker 🛡️):** Sinh lực dồi dào, giáp cao, sở hữu tỷ lệ đỡ đòn $40\%$. Luôn tiến lên tuyến đầu thu hút hỏa lực để bảo vệ tuyến sau.
-2. **Xạ Thủ Tầm Xa (Marksman Archer 🏹):** Tầm bắn 10 ô, sở hữu chỉ số xuyên giáp $30\%$. Đứng ở cự ly an toàn liên tục xả sát thương vật lý.
-3. **Phù Thủy Hỗ Trợ (Mystic Supporter 🪄):** Sử dụng sát thương phép thuật, khả năng hồi phục năng lượng vượt trội, chuyên buff giáp và hồi máu cho đội ngũ.
-4. **Bù Nhìn Luyện Tập (Practice Dummy 🪵):** Mục tiêu bất tử chuyên dụng để người chơi và đội ngũ kiểm tra chỉ số DPS, thời gian hồi chiêu và tính chính xác của chuỗi combo.
+Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có tranh.
 
 ---
 
-## 6. KIẾN TRÚC KỸ THUẬT & ĐỒ HỌA (TECHNICAL DESIGN & VISUAL SHADERS)
+## 6. HIỆU ỨNG TRẠNG THÁI
 
-### 6.1 Mô hình Tổng thể Client - Server
-
-```mermaid
-graph TB
-    subgraph "CLIENT TẬP TRUNG (Browser WebGL)"
-        Renderer["Three.js 2.5D Engine (Scene / Camera / Lights)"]
-        ShaderMgr["Custom GLSL Shader (Chroma Key & Hit-Flash)"]
-        SpriteAnim["SpriteSheet Animator (UV Offset / Pivot System)"]
-        ClientNet["Socket.io Client (Real-time Event Listener)"]
-        UIComp["DOM / Canvas HUD Layer (Orb Bar, HP, Damage Text)"]
-        
-        Renderer --> ShaderMgr
-        ShaderMgr --> SpriteAnim
-        ClientNet --> Renderer
-        ClientNet --> UIComp
-    end
-
-    subgraph "SERVER TRUNG TÂM (Node.js Engine)"
-        SocketEngine["Socket.io Server (Room Management)"]
-        BattleLoop["Fixed Tick-Rate Loop (50ms / 20 FPS Physics)"]
-        DamageCalc["7-Layer Server-Authoritative Combat Pipeline"]
-        AIController["Monster AI State Machine (Wander / Target / Cast)"]
-        
-        SocketEngine <--> BattleLoop
-        BattleLoop --> DamageCalc
-        BattleLoop --> AIController
-    end
-
-    ClientNet <== WebSocket (JSON Packets) ==> SocketEngine
-```
-
-### 6.2 Giải pháp Đồ họa Độc quyền (Visual Engineering)
-1. **GPU Chroma Keying Shader:** Thay vì xử lý cắt phông ảnh nặng nề trên CPU, bộ đổ bóng GLSL tùy biến tự động loại bỏ màu nền Magenta tím (`#FF00FF`) trực tiếp trên card đồ họa với độ mượt khử răng cưa cao.
-2. **Khử Viền Pixel (0.001 UV Inset Stabilization):** Thu nhỏ nhẹ nhàng tọa độ UV của từng khung hình để loại bỏ triệt để hiện tượng lem màu viền và giật hình khi camera di chuyển hoặc phóng to thu nhỏ.
-3. **Hệ thống Tâm Xoay Động (Row-based Pivot Offset):** Định vị tọa độ tiếp xúc mặt đất độc lập cho từng hàng cử động (Đứng yên, Chạy, Vung kiếm, Xuất chiêu), triệt tiêu hoàn toàn hiện tượng trượt chân nhân vật.
-
----
-
-## 7. HỆ THỐNG GIAO DIỆN & ÂM THANH (UI/UX & AUDIO DESIGN)
-
-### 7.1 Giao diện Trận Đấu (HUD)
-- **Thanh Khối Năng Lượng (Orb Gauge):** Nằm chính giữa bên dưới màn hình, hiển thị trực quan các viên ngọc phát sáng khi tích đủ $1000\text{ MP}$.
-- **Hàng Kỹ Năng Thông Minh:** Biểu tượng kỹ năng hiển thị lớp phủ đếm ngược thời gian hồi (Cooldown Overlay), số lượng Orb tiêu hao và hiệu ứng phát sáng khi đủ điều kiện kích hoạt.
-- **Hệ thống Xếp Hàng Chiêu Thức (Skill Queue System):** Cho phép người chơi bấm chọn trước kỹ năng; khi đủ năng lượng hoặc hết hoạt ảnh vung tay, chiêu thức sẽ tự động xuất kích không độ trễ.
-- **Màn hình Kết Thúc Trận Đấu:** Hộp thoại thông báo Chiến Thắng / Thất Bại hiện đại, trang bị nút **"Thử Lại Trận Này"** tức thì kèm phím tắt bàn phím (`Space` / `Enter` / `R`).
-
-### 7.2 Thiết kế Âm thanh Tương tác (Web Audio Synthesizer)
-Tích hợp Web Audio API trực tiếp vào trình duyệt, tự động tổng hợp âm thanh va chạm đòn đánh, tiếng kích hoạt kỹ năng và tiếng phản hồi giao diện không phụ thuộc vào việc phải tải trước các file âm thanh nặng.
-
----
-
-## 8. LỘ TRÌNH SẢN XUẤT & PHÂN BỔ NHIỆM VỤ (ROADMAP & PRODUCTION MILESTONES)
-
-```
-[Milestone 1: Đấu trường Cốt lõi] ──> [Milestone 2: Trang bị & Bản đồ] ──> [Milestone 3: Đội hình & Bắt Thú] ──> [Milestone 4: Bản Beta MMO]
-        (ĐÃ HOÀN THÀNH)                      (GIAI ĐOẠN HIỆN TẠI)                   (KẾ HOẠCH BƯỚC TỚI)                (PHÁT HÀNH THỬ NGHIỆM)
-```
-
-### ✅ Milestone 1: Đấu trường Cốt lõi & Shader Engine (Hoàn thành)
-- Hoàn thiện Engine chiến đấu thời gian thực 2.5D trên nền WebGL.
-- Tích hợp nhân vật Sát Thủ đầy đủ hoạt ảnh và Custom Chroma Key Shader.
-- Xây dựng hệ thống quái vật AI thử nghiệm và đường ống tính toán sát thương 7 lớp.
-- Hoàn thiện cơ chế hồi sinh và khởi động lại trận đấu không độ trễ.
-
-### 🎯 Milestone 2: Hệ thống Trang bị & Bản đồ Thám hiểm (Giai đoạn tiếp theo)
-- **Hệ thống 4 Ô Trang bị:** Vũ khí, Áo giáp, Dây chuyền/Trang sức, Quả cầu Hộ mệnh.
-- **Bản đồ Thám hiểm 2.5D:** Xây dựng thế giới nhỏ kết nối giữa Làng mạc và Rừng rậm, chuyển cảnh mượt mà vào chế độ thi đấu khi chạm trán quái vật.
-- **Chuẩn hóa Đồ họa Quái vật:** Vẽ và tích hợp Spritesheet chuyển động mượt mà cho Thiết Vệ, Xạ Thủ và Phù Thủy Hỗ Trợ.
-
-### 🚀 Milestone 3: Bắt Sinh vật & Điều khiển Đội hình 4 Thành viên
-- Thiết bị ném bóng thu phục Capsule khi lượng máu mục tiêu xuống dưới $30\%$.
-- Cơ chế quản lý túi đồ và luân chuyển điều khiển 4 nhân vật trong cùng trận đấu.
-
-### 🌟 Milestone 4: Máy chủ Đa người chơi MMO & Lưu trữ Dữ liệu
-- Tích hợp cơ sở dữ liệu (Database) lưu trữ tài khoản, bảng xếp hạng và kho đồ cá nhân.
-- Hệ thống phòng chơi phân nhánh nhiều bản đồ đồng thời (Room Instancing).
-
----
-
-### 📋 BẢNG PHÂN CÔNG NHIỆM VỤ ĐỘI NGŨ (TEAM MATRIX)
-
-| Vị trí (Role) | Chuyên trách kỹ thuật | Ưu tiên công việc ngay lúc này |
+| Hiệu ứng | Nguồn | Tác dụng |
 | :--- | :--- | :--- |
-| **Frontend 3D Engineer** | Three.js, Shaders, Canvas UI | • Xây dựng giao diện Hòm đồ (Inventory) 4 slot trang bị.<br>• Tích hợp camera chuyển cảnh mượt giữa Map khám phá và Đấu trường. |
-| **Backend Engineer** | Node.js, WebSockets, Logic game | • Xây dựng cấu trúc dữ liệu Trang bị và hàm cộng chỉ số vào 14 Stat.<br>• Nâng cấp hệ thống Room để hỗ trợ nhiều phòng đấu cùng lúc. |
-| **Game Designer (GD)** | Cân bằng chỉ số, Thiết kế nội dung | • Thiết kế thông số bảng đồ rơi (Drop Table) và bảng chỉ số Trang bị.<br>• Viết kịch bản bộ kỹ năng cho lớp nhân vật thứ hai (Pháp Sư / Đấu Sĩ). |
-| **2D / Pixel Animator** | Spritesheet, UI Assets, VFX | • Cung cấp bộ cử động cho Quái Thiết Vệ và Xạ Thủ.<br>• Vẽ bộ Icon kỹ năng và Icon trang bị theo định dạng Pixel Art sắc nét. |
+| **Ấn** | Phóng Bùa | 7s, −15% P.DEF; Đột Kích lướt qua mọi quái có Ấn |
+| **Tàng Hình** | Tàng Hình | 5s, không thể bị chọn, +20% P.ATK, +10% tốc đánh |
+| **Sư Tử Gầm** (taunted) | Sư Tử Gầm | 4s, buộc đánh Rok, −10% P.DEF / M.DEF |
+| **Bị hất văng** (knocked) | Đẩy Khiên | 0.45s đang bay, không hành động |
+| **Choáng** | Đẩy Khiên | Đứng im, không đánh, bị ngắt niệm (sao xoay trên đầu) |
+| **Dựng Khiên** (guard) | Dựng Khiên | 5s, miễn toàn bộ sát thương, đứng thủ |
+| **Khiên Hộ Đội** (guard_aura) | Dựng Khiên | 5s, +20% P.DEF / M.DEF cho cả đội |
+| **Thành Trì** (fortress) | (dự phòng) | Giảm sát thương nhận theo % |
+
+Bảng chỉ số trong trận tô **xanh** khi được buff, **đỏ** khi bị giảm, kèm thẻ hiệu ứng và thời gian còn lại.
 
 ---
-*Tài liệu được lưu trữ và cập nhật liên tục tại kho mã nguồn dự án: `DOCUMENTATION.md`.*
+
+## 7. ĐỒ HOẠ: NHÂN VẬT 2D GHÉP MẢNH
+
+Mọi nhân vật được vẽ theo kiểu **2D nhìn nghiêng, ghép mảnh (cutout) + gắn xương bằng code** — giống các game anime 2D. Đổi skin / hiệu ứng sau này chỉ cần thay hình.
+
+### 7.1 Quy trình tranh → nhân vật
+1. **Thiết kế** (`art/<tên>/`): 1 ảnh nhân vật hoàn chỉnh (mẫu) + bảng mảnh rời (đầu, tóc, thân, tay trên/dưới, bàn tay nhiều kiểu, chân, vũ khí) + bảng biểu cảm mắt.
+2. **Đóng gói atlas:** `python tools/build_atlas.py art/<tên>/atlas_spec.json` → `src/assets/sprites/<tên>_atlas.png` + `src/characters/cutout/<tên>Atlas.json` (tự tách mảnh, xoá nền, vá lỗ).
+3. **Lắp ráp (rig):** `src/characters/cutout/<tên>Rig.js` — khai báo từng mảnh theo **toạ độ ảnh gốc**: điểm khớp (pivot), vị trí, lớp (z), độ tối tay/chân phía xa, các "da" thay thế (bàn tay nắm/xoè, biểu cảm mắt). Hỗ trợ nới ngang `sx` khi mảnh vẽ gầy hơn ảnh mẫu.
+4. **Động tác (clips):** `src/characters/cutout/<tên>Clips.js` — mỗi động tác là chuỗi **tư thế** (góc từng khớp) dựng bằng `poseClip.js`.
+5. **Đăng ký:** `src/characters/registry.js` (classId → rig, clips, chiều cao, hiệu ứng riêng, bảng hành động).
+
+### 7.2 Quy ước tư thế (`poseClip.js`)
+- Góc khớp tính bằng radian, dương = ngược chiều kim đồng hồ; `hips: [dx, dy]` dịch cả người.
+- **Tự chạm đất:** mỗi tư thế tự dịch hông để bàn chân thấp nhất chạm đất (trừ tư thế `air`).
+- `liftF: 1` — đưa cả tay xa (và đồ nó cầm) lên **trước thân** (khiên của Rok).
+- `dropN: 1` — đưa cả tay gần xuống **sau đầu** khi giơ tay/kiếm qua đầu, để không che mặt.
+- Rok: `blade(pose, hướng)` tự tính góc bàn tay sao cho **lưỡi kiếm** chĩa đúng hướng (0 = ra trước, 1.57 = lên trời); khiên tự giữ thẳng đứng.
+
+### 7.3 Hành động dùng chung
+Lặp: `idle, ready, move, cast, guard, stunned, dead, victoryIdle` · Một lần: `attack, hurt, land, victory` + hành động riêng (`throw, vanish, appear, stealth` của Jessica; `taunt, bash, guardStart` của Rok).
+`CutoutCharacterView` lo: chuyển động mềm, chớp mắt, khăn/áo choàng đung đưa, rơi xuống đầu trận, nhảy/lộn, tàng hình, hiệu ứng trạng thái (sao choáng, hào quang sấm, vòm Aura Thiết Vệ, khiên nhỏ bay quanh...).
+
+### 7.4 Hiệu ứng (VFX) chính — `src/vfx/`
+Số sát thương, vệt chém (thường / chí mạng / sấm tím / thép), sét, hào quang sấm, bùa bay, dấu Ấn, khói, dư ảnh, sóng xung kích, **linh hồn sư tử** (`lionSpirit.js`, vẽ bằng canvas), khiên ánh sáng đẩy, vòm lục giác.
+
+---
+
+## 8. KIẾN TRÚC KỸ THUẬT
+
+```
+Trình duyệt (Three.js)                       Server (Node.js)
+┌───────────────────────────┐   Socket.io   ┌──────────────────────────────┐
+│ HUD / click kỹ năng        │ ───lệnh────▶ │ Phòng đấu, vòng lặp 50ms      │
+│ Hiển thị nhân vật + VFX    │ ◀──trạng thái │ Đồng hồ trận (theo tốc độ)    │
+│ Camera ngang ôm 2 phe      │ ◀──sự kiện── │ Tính sát thương, hiệu ứng, AI │
+└───────────────────────────┘               └──────────────────────────────┘
+```
+
+- Server gửi `stateUpdate` 20 lần/giây (vị trí, máu, MP, hiệu ứng, đồng hồ trận) và sự kiện `autoAttack`, `skillExecuted`, `castStart`, `squadResized`...
+- Client nội suy vị trí, phát động tác đúng **khoảnh khắc trúng đòn (hitTime)**, mọi hẹn giờ dùng `gameTimeout()` để khớp tốc độ trận.
+
+### 8.1 Cấu trúc mã nguồn
+```
+server.js                 Server: CLASS_DEFS (chỉ số + kỹ năng), phòng đấu, vòng lặp, sát thương
+index.html                Khung HTML + HUD
+src/
+  main.js                 Khởi động client + vòng lặp render
+  config.js               Hằng số, đồng hồ trận (gameNow / gameTimeout)
+  state.js                Trạng thái client dùng chung
+  core/                   scene, camera rig (ngang / chéo, zoom, rung), cảnh quan
+  net/socket.js           Kết nối & lệnh gửi server
+  characters/
+    CharacterView.js          lớp cơ sở (vị trí, máu, hướng mặt, đồng bộ server)
+    CutoutCharacterView.js    nhân vật 2D ghép mảnh + hiệu ứng trạng thái
+    registry.js               classId -> cách vẽ + bảng hành động
+    cutout/                   rig, clips, atlas của từng nhân vật + poseClip.js; creatureRig.js (quái)
+  combat/                 dựng trận, xử lý sự kiện chiến đấu -> động tác + VFX
+  vfx/                    hiệu ứng (vfx.js, lionSpirit.js)
+  ui/                     HUD, overlay, input (nút, kéo thả & phóng to bảng test)
+  render/toon.js          vật liệu toon cho cảnh
+  assets/sprites/         atlas nhân vật
+art/                      tranh gốc + atlas_spec.json (không đóng gói vào game)
+tools/                    build_atlas.py, slice_parts.py, trang xem thử (preview-cutout / preview-scene / fx-lion)
+```
+
+### 8.2 Công cụ xem thử (chạy `npm run dev`)
+- `/tools/preview-cutout.html?rig=../src/characters/cutout/rokRig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
+- `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
+- `/tools/fx-lion.html` — xem hình linh hồn sư tử.
+
+---
+
+## 9. CHẾ ĐỘ ĐÁNH THỬ (TEST MODE)
+
+Bật bằng `TEST_MODE = true` trong `server.js` (mặc định). Đội mình: Jessica + Rok; phe địch: Tanker, Xạ Thủ, Hỗ Trợ.
+
+**⚙️ Công cụ Test** (trái): Bơm đầy Mana · Dùng skill miễn phí · Bất tử phe mình · **Nhân vật ra trận** — mỗi nhân vật 1 nút ON/OFF (luôn giữ ít nhất 1 người).
+**👹 Tool Phe Địch** (phải): Triệu hồi 3 quái · Triệu hồi cọc gỗ · **Quái Bất Tử** · Thêm / bớt cọc (tối đa 8, cách nhau 3 đơn vị).
+Mọi bảng **kéo thả được**, bấm tiêu đề để thu gọn, nút **−/+** (🔍−/🔍+ ở bảng chỉ số) để phóng to/thu nhỏ 0.5–1.5× (nhớ theo trình duyệt).
+
+| Phím | Tác dụng |
+| :--- | :--- |
+| Click thẻ kỹ năng | Ra lệnh kỹ năng |
+| Lăn chuột | Zoom camera |
+| T | Đổi tốc độ trận |
+| V | Đổi góc camera ngang ↔ chéo |
+| I | Ẩn / hiện bảng chỉ số |
+| P / Esc | Tạm dừng |
+
+---
+
+## 10. QUY TRÌNH THÊM NHÂN VẬT MỚI
+
+1. **Server** (`server.js` → `CLASS_DEFS`): thêm classId với chỉ số, 3 kỹ năng (`name, orbCost, cooldown, castTime, type, ...`), nội tại; thêm vào `SQUAD_ORDER`. Kiểu kỹ năng mới → xử lý trong `executeSkill()`.
+2. **Tranh** → `art/<tên>/` → `build_atlas.py` → `<tên>Rig.js` + `<tên>Clips.js` (mục 7).
+3. **Đăng ký** trong `registry.js`: chiều cao, clips, bảng `anims` (tên hành động → clip + hitTime).
+4. **Diễn xuất kỹ năng** trong `combat/events.js` (`onSkillExecuted` → hàm riêng gọi `playAction` + VFX).
+5. **HUD:** tên nhân vật và kỹ năng tự lấy từ `CLASS_DEFS`; nút bật/tắt trong Công cụ Test tự xuất hiện.
+6. Kiểm tra bằng các trang xem thử (mục 8.2) rồi vào trận thử.
+
+---
+
+## 11. LỘ TRÌNH
+
+| Giai đoạn | Nội dung | Trạng thái |
+| :--- | :--- | :--- |
+| **1. Lõi chiến đấu** | Server tick 50ms, sát thương 7 bước, Orb, hàng đợi kỹ năng, AUTO, tốc độ trận x1/x1.5/x2 | ✅ Xong |
+| **2. Nhân vật cơ bản** | Hệ 2D ghép mảnh; Jessica (Sát Thủ); Rok (Chiến Binh); công cụ đánh thử | 🔄 Đang hoàn thiện động tác & hiệu ứng |
+| **3. Mở rộng đội hình** | Thêm class (Pháp Sư, Xạ Thủ, Hỗ Trợ...), đội 4 người, xếp đội hình tránh chồng nhau, quái 5–6 con có tranh riêng | ⏳ Tiếp theo |
+| **4. Hệ thống ngoài trận** | Skin, trang bị, nâng cấp nhân vật, bản đồ thế giới (góc camera chéo) | ⏳ |
+| **5. Trực tuyến** | Tài khoản, lưu dữ liệu, PvP | ⏳ |
