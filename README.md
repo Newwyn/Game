@@ -30,7 +30,7 @@ npm start          # build rồi chạy thật -> http://localhost:3000
 | Thao tác | Tác dụng |
 | :--- | :--- |
 | **Click thẻ kỹ năng** | Ra lệnh kỹ năng cho nhân vật (click lại để huỷ) |
-| **AUTO MODE** | Tự dùng kỹ năng khi đủ Orb |
+| **AUTO MODE** | AI tự chọn kỹ năng theo tình huống (combo, cứu đồng đội, để dành Orb) |
 | **⏩ / T** | Tốc độ trận x1.0 / x1.5 / x2.0 |
 | **Lăn chuột** | Zoom camera |
 | **V** | Đổi góc camera ngang ↔ chéo |
@@ -41,10 +41,12 @@ npm start          # build rồi chạy thật -> http://localhost:3000
 
 ## ⚔️ Nhân vật hiện có
 
-| Nhân vật | Class | Kỹ năng |
+| Nhân vật | Class · Tộc | Kỹ năng |
 | :--- | :--- | :--- |
-| 🥷 **Jessica (Lôi Ám)** | Sát Thủ | Phóng Bùa (lộn ngược + gắn Ấn) · Đột Kích (lướt chém chuỗi) · Tàng Hình (hào quang sấm tím) |
-| 🛡️ **Rok (Thiết Hộ)** | Chiến Binh | Sư Tử Gầm (khiêu khích, −10% thủ) · Đẩy Khiên (hất văng + choáng) · Dựng Khiên (Aura Thiết Vệ, cả đội +20% thủ) |
+| 🥷 **Jessica (Lôi Ám)** | Sát Thủ · Human | Phóng Bùa (lộn ngược + gắn Ấn) · Đột Kích (lướt chém chuỗi) · Tàng Hình (hào quang sấm tím) |
+| 🛡️ **Rok (Thiết Hộ)** | Chiến Binh · Dragon | Sư Tử Gầm (sát thương diện rộng, khiêu khích, −10% thủ) · Đẩy Khiên (sát thương đơn, hất văng + choáng) · Dựng Khiên (Thần Hộ Vệ, 600 máu khiên nổ lan, cả đội +20% thủ) |
+| 🏹 **Lyra (Phong Tiễn)** | Cung Thủ · Elf | Tiễn Gió Chớp (chắc chí mạng, hạ gục hồi chiêu) · Thần Phong Giáng Thế (Vệ Thần Gió bắn phụ, bay) · Thần Tiễn Phá Thiên (gồng 2s, sát thương cực lớn) |
+| ✨ **Seraphine (Thánh Quang)** | Tu Sĩ · Human | Thánh Quang Trị Liệu (hồi máu + giải choáng) · Khiên Ánh Sáng · Thánh Niệm (bay lên niệm 10s, buff cả đội, hồi máu / khiên cả đội) |
 
 Chi tiết chỉ số, công thức sát thương, quy trình làm nhân vật: **[DOCUMENTATION.md](./DOCUMENTATION.md)** · bản Word: **[Legend_of_Capsules_Game_Design_Document.docx](./Legend_of_Capsules_Game_Design_Document.docx)**
 
@@ -52,8 +54,8 @@ Chi tiết chỉ số, công thức sát thương, quy trình làm nhân vật: 
 
 ## 🧪 Chế độ đánh thử
 
-- **⚙️ Công cụ Test:** bơm mana, dùng skill miễn phí, bất tử, **bật/tắt từng nhân vật ra trận**.
-- **👹 Tool Phe Địch:** triệu hồi quái / cọc gỗ, thêm bớt cọc, **quái bất tử**.
+- **🛠️ Tool Phe Mình:** đầy mana, skill miễn phí, bất tử · mốc nhanh cả đội · từng nhân vật: ON/OFF ra trận, level 1–60, bậc Thường / S / SS / SSS (áp ngay), thiên phú, nút Đột phá (luồng thật).
+- **👹 Tool Phe Quái:** triệu hồi quái / cọc gỗ, thêm bớt cọc, **quái bất tử**.
 - Bảng kéo thả được, thu gọn được, phóng to / thu nhỏ bằng nút −/+.
 
 ---

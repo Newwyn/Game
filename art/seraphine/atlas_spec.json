@@ -1,0 +1,209 @@
+{
+ "out": "src/assets/sprites/sera_atlas.png",
+ "meta": "src/characters/cutout/seraAtlas.json",
+ "width": 2048,
+ "sheets": {
+  "body": {
+   "file": "art/seraphine/02-body-parts.png",
+   "scale": 1.0
+  },
+  "props": {
+   "file": "art/seraphine/03-props-hands.png",
+   "scale": 1.0
+  }
+ },
+ "parts": {
+  "hairFront": {
+   "sheet": "body",
+   "comps": [
+    1
+   ]
+  },
+  "hairBack": {
+   "sheet": "body",
+   "comps": [
+    2
+   ]
+  },
+  "head": {
+   "sheet": "body",
+   "comps": [
+    3
+   ]
+  },
+  "torso": {
+   "sheet": "body",
+   "comps": [
+    4
+   ]
+  },
+  "skirt": {
+   "sheet": "body",
+   "comps": [
+    5
+   ]
+  },
+  "sash": {
+   "sheet": "body",
+   "comps": [
+    6
+   ]
+  },
+  "capelet": {
+   "sheet": "body",
+   "comps": [
+    8
+   ]
+  },
+  "armN": {
+   "sheet": "body",
+   "comps": [
+    7
+   ]
+  },
+  "foreN": {
+   "sheet": "body",
+   "comps": [
+    9
+   ],
+   "erase": [
+    [
+     956,
+     522
+    ]
+   ]
+  },
+  "armF": {
+   "sheet": "body",
+   "comps": [
+    10
+   ]
+  },
+  "foreF": {
+   "sheet": "body",
+   "comps": [
+    11
+   ],
+   "erase": [
+    [
+     1322,
+     522
+    ]
+   ]
+  },
+  "thighN": {
+   "sheet": "body",
+   "comps": [
+    12
+   ]
+  },
+  "shinN": {
+   "sheet": "body",
+   "comps": [
+    13
+   ],
+   "erase": [
+    [
+     606,
+     772
+    ]
+   ]
+  },
+  "thighF": {
+   "sheet": "body",
+   "comps": [
+    14
+   ]
+  },
+  "shinF": {
+   "sheet": "body",
+   "comps": [
+    15
+   ],
+   "erase": [
+    [
+     1106,
+     772
+    ]
+   ]
+  },
+  "staff": {
+   "sheet": "props",
+   "comps": [
+    1,
+    2
+   ]
+  },
+  "handGrip": {
+   "sheet": "props",
+   "comps": [
+    3
+   ]
+  },
+  "handCast": {
+   "sheet": "props",
+   "comps": [
+    4
+   ]
+  },
+  "handRelax": {
+   "sheet": "props",
+   "comps": [
+    5
+   ]
+  },
+  "handPray": {
+   "sheet": "props",
+   "comps": [
+    6
+   ]
+  },
+  "handFist": {
+   "sheet": "props",
+   "comps": [
+    7
+   ]
+  },
+  "eyeOpen": {
+   "sheet": "props",
+   "comps": [
+    8,
+    14
+   ]
+  },
+  "eyeBlink": {
+   "sheet": "props",
+   "comps": [
+    9,
+    15
+   ]
+  },
+  "eyeAngry": {
+   "sheet": "props",
+   "comps": [
+    10
+   ]
+  },
+  "eyeDetermined": {
+   "sheet": "props",
+   "comps": [
+    11,
+    16
+   ]
+  },
+  "eyePain": {
+   "sheet": "props",
+   "comps": [
+    12,
+    17
+   ]
+  },
+  "eyeHappy": {
+   "sheet": "props",
+   "comps": [
+    13,
+    18
+   ]
+  }
+ }
+}

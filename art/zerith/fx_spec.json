@@ -1,0 +1,304 @@
+{
+ "out": "src/assets/sprites/zerith_fx.png",
+ "meta": "src/vfx/zerithFx.json",
+ "width": 2048,
+ "sheets": {
+  "a": {
+   "file": "art/zerith/fx-a.png",
+   "scale": 0.5
+  },
+  "b": {
+   "file": "art/zerith/fx-b.png",
+   "scale": 0.5
+  },
+  "g": {
+   "file": "art/zerith/05-guardian.png",
+   "scale": 0.55
+  }
+ },
+ "parts": {
+  "dashTrail": {
+   "sheet": "a",
+   "box": [
+    10,
+    15,
+    660,
+    165
+   ]
+  },
+  "dashHit0": {
+   "sheet": "a",
+   "box": [
+    665,
+    25,
+    915,
+    155
+   ]
+  },
+  "dashHit1": {
+   "sheet": "a",
+   "box": [
+    920,
+    20,
+    1230,
+    165
+   ]
+  },
+  "dashHit2": {
+   "sheet": "a",
+   "box": [
+    1230,
+    20,
+    1520,
+    165
+   ]
+  },
+  "deathMark": {
+   "sheet": "a",
+   "box": [
+    125,
+    190,
+    385,
+    525
+   ]
+  },
+  "bigScythe": {
+   "sheet": "a",
+   "box": [
+    505,
+    160,
+    895,
+    600
+   ]
+  },
+  "souls": {
+   "sheet": "a",
+   "box": [
+    940,
+    215,
+    1495,
+    510
+   ]
+  },
+  "up0": {
+   "sheet": "a",
+   "box": [
+    25,
+    640,
+    365,
+    775
+   ]
+  },
+  "up1": {
+   "sheet": "a",
+   "box": [
+    390,
+    620,
+    775,
+    775
+   ]
+  },
+  "up2": {
+   "sheet": "a",
+   "box": [
+    785,
+    540,
+    1135,
+    785
+   ]
+  },
+  "up3": {
+   "sheet": "a",
+   "box": [
+    1160,
+    560,
+    1500,
+    785
+   ]
+  },
+  "slam0": {
+   "sheet": "a",
+   "box": [
+    30,
+    785,
+    355,
+    1000
+   ]
+  },
+  "slam1": {
+   "sheet": "a",
+   "box": [
+    380,
+    795,
+    730,
+    990
+   ]
+  },
+  "slam2": {
+   "sheet": "a",
+   "box": [
+    755,
+    805,
+    1135,
+    990
+   ]
+  },
+  "slam3": {
+   "sheet": "a",
+   "box": [
+    1140,
+    820,
+    1515,
+    1000
+   ]
+  },
+  "aura0": {
+   "sheet": "b",
+   "box": [
+    20,
+    5,
+    515,
+    235
+   ]
+  },
+  "aura1": {
+   "sheet": "b",
+   "box": [
+    530,
+    5,
+    1010,
+    235
+   ]
+  },
+  "aura2": {
+   "sheet": "b",
+   "box": [
+    1030,
+    5,
+    1520,
+    235
+   ]
+  },
+  "summonCircle": {
+   "sheet": "b",
+   "box": [
+    15,
+    250,
+    585,
+    440
+   ]
+  },
+  "wingL": {
+   "sheet": "b",
+   "box": [
+    590,
+    240,
+    895,
+    420
+   ]
+  },
+  "wingR": {
+   "sheet": "b",
+   "box": [
+    910,
+    240,
+    1225,
+    420
+   ]
+  },
+  "cleave": {
+   "sheet": "b",
+   "box": [
+    1215,
+    270,
+    1530,
+    430
+   ]
+  },
+  "exec0": {
+   "sheet": "b",
+   "box": [
+    60,
+    450,
+    470,
+    710
+   ]
+  },
+  "exec1": {
+   "sheet": "b",
+   "box": [
+    520,
+    440,
+    1010,
+    710
+   ]
+  },
+  "exec2": {
+   "sheet": "b",
+   "box": [
+    1070,
+    445,
+    1490,
+    710
+   ]
+  },
+  "shatter": {
+   "sheet": "b",
+   "box": [
+    60,
+    720,
+    760,
+    1010
+   ]
+  },
+  "hourglass": {
+   "sheet": "b",
+   "box": [
+    840,
+    714,
+    1380,
+    1015
+   ]
+  },
+  "gIdle": {
+   "sheet": "g",
+   "box": [
+    28,
+    112,
+    442,
+    699
+   ],
+   "largest": true
+  },
+  "gWind": {
+   "sheet": "g",
+   "box": [
+    472,
+    40,
+    965,
+    695
+   ],
+   "largest": true
+  },
+  "gSwing": {
+   "sheet": "g",
+   "box": [
+    996,
+    224,
+    1728,
+    677
+   ],
+   "largest": true
+  },
+  "gExec": {
+   "sheet": "g",
+   "box": [
+    1691,
+    180,
+    2119,
+    699
+   ],
+   "largest": true
+  }
+ }
+}

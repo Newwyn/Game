@@ -4,9 +4,11 @@
 import { scene, camera, clearDynamicObjects } from '../core/scene.js';
 import { cameraRig } from '../core/cameraRig.js';
 import { game, myId, forEachView } from '../state.js';
+import { gameNow } from '../config.js';
 
 import { createCharacterView } from '../characters/registry.js';
 import { clearVfx, spawnDashStreak, spawnLandingDust } from '../vfx/vfx.js';
+import { makeRokTether } from '../vfx/linkFx.js';
 
 
 function createSquadViews(playerId, squad) {
@@ -108,6 +110,12 @@ function updateCamera() {
     const mine = aliveViews(me);
     if (mine.length === 0) return;
     const avgZ = mine.reduce((s, v) => s + v.position.z, 0) / mine.length;
+    // Có Thần Hộ Vệ (Dựng Khiên) đang hiện -> nâng khung hình để thấy trọn vị thần trên đầu Rok
+    const now = gameNow();
+    const all = Object.values(game.views).flat();
+    // Brakk nhảy vọt cao (Bá Vương Quật / Chấn Địa): nâng + lùi camera để thấy trọn cú nhảy
+    const bigJump = all.some(v => (v._bigJumpUntil ?? 0) > now);
+    cameraRig.setLift(bigJump ? 3.6 : all.some(v => v.member.alive && v.member.statusEffects?.some(e => e.type === 'guard' && e.endTime > now)) ? 1.5 : 0, bigJump ? 7 : 3);
 
     if (cameraRig.getMode() === 'explore') {
         const x = mine.reduce((s, v) => s + v.position.x, 0) / mine.length;
@@ -130,6 +138,29 @@ function updateCamera() {
 /** Mỗi frame render */
 export function updateViews(dt) {
     forEachView(view => view.update(dt, camera));
+    updateTethers(dt);
     updateCamera();
+}
+
+// Dây liên kết của Rok (thiên phú Ý Chí Thép): vẽ khi server báo linkIdx, mờ dần khi đứt
+const tethers = new Map();   // view của Rok -> tether
+function updateTethers(dt) {
+    const seen = new Set();
+    forEachView((v) => {
+        const m = v.member;
+        if (!(m?.linkIdx >= 0)) return;
+        const pid = Object.keys(game.views).find(id => game.views[id].includes(v));
+        const other = game.views[pid]?.[m.linkIdx];
+        if (!other) return;
+        let tt = tethers.get(v);
+        const on = !m.linkBroken && m.alive && other.member?.alive;
+        if (!tt && !on) return;
+        if (!tt) { tt = makeRokTether(); scene.add(tt.group); tethers.set(v, tt); }
+        seen.add(v);
+        const ya = (v._lift ?? 0) + 0.9, yb = (other._lift ?? 0) + (other._hover ?? 0) + 0.9;
+        const k = tt.update(dt, v.position, other.position, ya, yb, on);
+        if (!on && k < 0.03) { tt.dispose(); tethers.delete(v); tt.dead = true; }
+    });
+    for (const [v, tt] of tethers) if (!seen.has(v)) { tt.dispose(); tethers.delete(v); }
 }
 

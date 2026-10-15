@@ -120,7 +120,7 @@ while (i < lines.length) {
 const cover = [
     new Paragraph({ spacing: { before: 3000 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'LEGEND OF CAPSULES', bold: true, size: 56, color: ACCENT, font: FONT })] }),
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: 'Tài liệu thiết kế & kỹ thuật (Game Design Document)', size: 30, font: FONT })] }),
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [new TextRun({ text: 'Phiên bản 3.0 — 13/10/2026', size: 22, color: '666666', font: FONT })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600 }, children: [new TextRun({ text: 'Phiên bản 3.5 — 14/10/2026', size: 22, color: '666666', font: FONT })] }),
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'github.com/Newwyn/Game', size: 22, color: '666666', font: FONT })] }),
     new Paragraph({ children: [new PageBreak()] }),
 ];
@@ -151,7 +151,7 @@ const doc = new Document({
     sections: [{
         properties: { page: { size: { width: PAGE_W, height: 16838 }, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN } } },
         footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-            new TextRun({ text: 'Legend of Capsules — GDD v3.0 · Trang ', size: 16, color: '888888', font: FONT }),
+            new TextRun({ text: 'Legend of Capsules — GDD v3.5 · Trang ', size: 16, color: '888888', font: FONT }),
             new TextRun({ children: [PageNumber.CURRENT], size: 16, color: '888888', font: FONT }),
         ] })] }) },
         children: [...cover, ...children],

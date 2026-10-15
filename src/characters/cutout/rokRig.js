@@ -34,7 +34,7 @@ function borrow(name, skin) {
 }
 
 // ---------- Tỉ lệ ----------
-const LEG = 0.74, ARM = 0.7, HAND = 0.6, SHIELD = 0.52, SWORD = 0.78;
+const LEG = 0.74, ARM = 0.7, HAND = 0.6, HAND_N = 0.68, SHIELD = 0.52, SWORD = 0.92; // kiếm dài
 // Ảnh mẫu: thân & tay chân Rok to ngang, chắc nịch hơn bảng mảnh rời -> nới ngang các mảnh giáp
 const WIDE = 1.16;
 const HEAD = 1.0; // đầu to kiểu chibi giống ảnh mẫu (đầu ~1/3 chiều cao, như Jessica)
@@ -81,20 +81,25 @@ add('eye', {
 // Tay XA  (F): cầm KHIÊN — clip bật liftF để khiên nằm TRƯỚC thân nhưng SAU tay cầm kiếm
 const SHOULDER_N = at('torso', [995, 195]), SHOULDER_F = at('torso', [1055, 185]);
 add('armN', { ...art('armN', [705, 468], { scale: ARM, sx: WIDE }), pos: SHOULDER_N, parent: 'torso', z: 25 });
-add('foreN', { ...art('foreN', [935, 478], { scale: ARM, sx: WIDE }), pos: at('armN', [702, 625]), parent: 'armN', z: 26 });
+// Cẳng tay nằm DƯỚI bắp tay: nắp khuỷu tròn của bắp tay che đầu cẳng tay -> khớp khuỷu liền, không bị 2 nắp chồng nhau
+add('foreN', { ...art('foreN', [933, 470], { scale: ARM, sx: WIDE }), pos: at('armN', [688, 636]), parent: 'armN', z: 24.6 });
 add('handN', {
-    pos: at('foreN', [948, 640]), parent: 'foreN', z: 28, skin: 'fist',
+    // Bàn tay nằm DƯỚI cẳng tay: phần ống cổ găng của bàn tay bị cổ tay giáp che -> chỉ thấy nắm tay chui ra từ ống tay
+    // (trước đây 2 ống cổ tay nối tiếp nhau nhìn như cẳng tay dài thượt + bàn tay gãy rời)
+    pos: at('foreN', [948, 640]), parent: 'foreN', z: 24.3, skin: 'fist',
     skins: {
-        fist: art('handFist2', [700, 190], { angle: -90, scale: HAND }),
-        open: art('handOpen2', [960, 190], { angle: -90, scale: HAND }),
+        // găng THÉP cùng bộ với giáp tay (găng da nâu trước đây lệch tông, nhìn như bàn tay nhỏ thòng xuống)
+        fist: art('handFist', [178, 185], { angle: -90, scale: HAND_N }),
+        open: art('handOpen', [445, 182], { angle: -90, scale: HAND_N }),
     },
 });
 borrow('handN', 'fist');
-// Kiếm: chuôi trong nắm tay gần, lưỡi chĩa ra trước (vuông góc cẳng tay); vẽ dưới bàn tay
-add('sword', { ...art('sword', [700, 790], { scale: SWORD, angle: -90 }), pos: at('handN', [775, 190]), parent: 'handN', z: 27 });
+// Kiếm: chuôi xuyên qua giữa nắm tay (giữa mu bàn tay và các ngón), lưỡi vuông góc cẳng tay khi cổ tay thẳng.
+// Khớp 'sword' xoay được trong nắm tay -> chém nghiêng lưỡi mà không phải bẻ gập cổ tay.
+add('sword', { ...art('sword', [700, 790], { scale: SWORD, angle: -90 }), pos: at('handN', [222, 188]), parent: 'handN', z: 24.15 });
 
 add('armF', { ...art('armF', [1178, 478], { scale: ARM, sx: WIDE }), pos: SHOULDER_F, parent: 'torso', z: 2, shade: FAR });
-add('foreF', { ...art('foreF', [1400, 485], { scale: ARM, sx: WIDE }), pos: at('armF', [1180, 640]), parent: 'armF', z: 3, shade: FAR });
+add('foreF', { ...art('foreF', [1405, 478], { scale: ARM, sx: WIDE }), pos: at('armF', [1178, 636]), parent: 'armF', z: 1.6, shade: FAR });
 add('handF', {
     pos: at('foreF', [1438, 645]), parent: 'foreF', z: 4, shade: FAR, skin: 'fist',
     skins: {

@@ -27,12 +27,24 @@
    "sheet": "body",
    "comps": [
     2
+   ],
+   "whiteHoles": true,
+   "matte": [
+    240,
+    190,
+    110
    ]
   },
   "hairBack": {
    "sheet": "body",
    "comps": [
     3
+   ],
+   "whiteHoles": true,
+   "matte": [
+    240,
+    190,
+    110
    ]
   },
   "braidA": {

@@ -1,0 +1,194 @@
+{
+ "out": "src/assets/sprites/lyra_atlas.png",
+ "meta": "src/characters/cutout/lyraAtlas.json",
+ "width": 2048,
+ "sheets": {
+  "body": {
+   "file": "art/lyra/02-body-parts.png",
+   "scale": 1.0
+  },
+  "props": {
+   "file": "art/lyra/03-props-hands.png",
+   "scale": 1.0
+  }
+ },
+ "parts": {
+  "hairFront": {
+   "sheet": "body",
+   "comps": [
+    1
+   ],
+   "whiteHoles": true,
+   "matte": [
+    238,
+    178,
+    92
+   ]
+  },
+  "hairBack": {
+   "sheet": "body",
+   "comps": [
+    2
+   ],
+   "whiteHoles": true,
+   "matte": [
+    238,
+    178,
+    92
+   ]
+  },
+  "head": {
+   "sheet": "body",
+   "comps": [
+    3
+   ],
+   "whiteHoles": false
+  },
+  "torso": {
+   "sheet": "body",
+   "comps": [
+    4
+   ]
+  },
+  "belt": {
+   "sheet": "body",
+   "comps": [
+    5
+   ]
+  },
+  "cape": {
+   "sheet": "body",
+   "comps": [
+    6
+   ]
+  },
+  "quiver": {
+   "sheet": "body",
+   "comps": [
+    7
+   ]
+  },
+  "armN": {
+   "sheet": "body",
+   "comps": [
+    8
+   ]
+  },
+  "foreN": {
+   "sheet": "body",
+   "comps": [
+    9
+   ]
+  },
+  "armF": {
+   "sheet": "body",
+   "comps": [
+    10
+   ]
+  },
+  "foreF": {
+   "sheet": "body",
+   "comps": [
+    11
+   ]
+  },
+  "thighN": {
+   "sheet": "body",
+   "comps": [
+    12
+   ]
+  },
+  "shinN": {
+   "sheet": "body",
+   "comps": [
+    13
+   ]
+  },
+  "thighF": {
+   "sheet": "body",
+   "comps": [
+    14
+   ]
+  },
+  "shinF": {
+   "sheet": "body",
+   "comps": [
+    15
+   ]
+  },
+  "bow": {
+   "sheet": "props",
+   "comps": [
+    1
+   ]
+  },
+  "fistBow": {
+   "sheet": "props",
+   "comps": [
+    2
+   ]
+  },
+  "handPinch": {
+   "sheet": "props",
+   "comps": [
+    3
+   ]
+  },
+  "handOpen": {
+   "sheet": "props",
+   "comps": [
+    4
+   ]
+  },
+  "handFist": {
+   "sheet": "props",
+   "comps": [
+    5
+   ]
+  },
+  "arrow": {
+   "sheet": "props",
+   "comps": [
+    6
+   ]
+  },
+  "eyeOpen": {
+   "sheet": "props",
+   "comps": [
+    7
+   ]
+  },
+  "eyeBlink": {
+   "sheet": "props",
+   "comps": [
+    8,
+    13
+   ]
+  },
+  "eyeAngry": {
+   "sheet": "props",
+   "comps": [
+    9
+   ]
+  },
+  "eyeDetermined": {
+   "sheet": "props",
+   "comps": [
+    10
+   ]
+  },
+  "eyePain": {
+   "sheet": "props",
+   "comps": [
+    11
+   ]
+  },
+  "eyeHappy": {
+   "sheet": "props",
+   "comps": [
+    12,
+    14
+   ]
+  }
+ }
+}

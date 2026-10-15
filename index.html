@@ -23,6 +23,7 @@
         <button id="btn-auto" data-action="toggleAuto">AUTO MODE: OFF</button>
         <button id="btn-pause" data-action="togglePause">⏸ PAUSE</button>
         <button id="btn-speed" data-action="cycleSpeed" title="Tốc độ trận (phím T)">⏩ x1.0</button>
+        <button id="btn-menu" data-action="backToMenu" title="Về màn hình chọn chế độ">🏠 Menu</button>
     </div>
 
     <!-- Countdown Overlay -->
@@ -39,6 +40,9 @@
                 <button data-action="togglePause">Tiếp tục</button>
                 <button data-action="requestReset" class="danger-btn">Chơi lại trận này</button>
             </div>
+            <div class="pause-settings">
+                <button id="btn-shake" data-action="toggleShake">📳 Rung màn hình: BẬT</button>
+            </div>
         </div>
     </div>
 
@@ -48,27 +52,45 @@
     <!-- Stat Panels -->
     <div id="left-stats" class="stat-container left-side"></div>
 
-    <!-- Debug Controls (Left side, under stats) -->
-    <div id="debug-controls" style="position: absolute; left: 20px; top: 400px; z-index: 50; display: flex; gap: 8px; flex-direction: column; width: 240px; background: rgba(15, 23, 42, 0.85); padding: 12px; border-radius: 12px; border: 2px solid #5b21b6; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
-        <h3 style="font-size: 14px; margin-bottom: 5px; color: #a78bfa; text-align: center; text-transform: uppercase; letter-spacing: 1px;">⚙️ Công cụ Test</h3>
-        <button id="btn-debug-fill-mana" class="debug-btn" data-action="fillMana">💎 Bơm Đầy Mana</button>
-        <button id="btn-debug-no-mana" class="debug-btn toggle" data-action="toggleNoMana">✨ Dùng Skill Miễn Phí: OFF</button>
-        <button id="btn-debug-god-mode" class="debug-btn toggle" data-action="toggleGodMode">🛡️ Bất Tử (Bỏ Qua Sát Thương): OFF</button>
-        <div id="member-toggles" class="member-toggles"></div>
+    <!-- 🛠️ Tool Phe Mình: chung (mana / skill miễn phí / bất tử) + từng nhân vật (bật tắt, level, bậc, thiên phú) -->
+    <div id="progress-tool" class="tool-panel ally">
+        <h3>🛠️ Tool Phe Mình</h3>
+        <div class="pt-section">Chung</div>
+        <div class="tp-grid3">
+            <button id="btn-debug-fill-mana" class="tp-chip" data-action="fillMana">💎 Đầy Mana</button>
+            <button id="btn-debug-no-mana" class="tp-chip toggle" data-action="toggleNoMana">✨ Skill miễn phí</button>
+            <button id="btn-debug-god-mode" class="tp-chip toggle" data-action="toggleGodMode">🛡️ Bất tử</button>
+        </div>
+        <div id="progress-tool-body"><div class="pt-msg">Đang tải…</div></div>
     </div>
 
     <div id="right-stats" class="stat-container right-side"></div>
     
-    <!-- Enemy Debug Tool (Right side, under stats) -->
-    <div id="enemy-debug-controls" style="position: absolute; right: 20px; top: 150px; z-index: 50; display: flex; gap: 8px; flex-direction: column; width: 240px; background: rgba(69, 10, 10, 0.85); padding: 12px; border-radius: 12px; border: 2px solid #ef4444; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
-        <h3 style="font-size: 14px; margin-bottom: 5px; color: #fca5a5; text-align: center; text-transform: uppercase; letter-spacing: 1px;">👹 Tool Phe Địch</h3>
-        <button class="debug-btn" data-action="spawnEnemy" data-arg="spawnStandard">👹 Triệu Hồi 3 Quái</button>
-        <button class="debug-btn" data-action="spawnEnemy" data-arg="spawnDummy">🪵 Triệu Hồi Cọc (Dummy)</button>
-        <button id="btn-enemy-god" class="debug-btn toggle" data-action="toggleEnemyGod">🛡️ Quái Bất Tử: OFF</button>
-        <div style="display:flex; gap:6px;">
-            <button class="debug-btn" style="flex:1" data-action="spawnEnemy" data-arg="removeDummy">➖ Bớt Cọc</button>
-            <button class="debug-btn" style="flex:1" data-action="spawnEnemy" data-arg="addDummy">➕ Thêm Cọc</button>
+    <div id="enemy-debug-controls" class="tool-panel enemy">
+        <h3>👹 Tool Phe Quái</h3>
+        <div class="pt-section">Triệu hồi</div>
+        <div class="tp-grid2">
+            <button class="tp-chip" data-action="spawnEnemy" data-arg="spawnStandard">👹 3 Quái</button>
+            <button class="tp-chip" data-action="spawnEnemy" data-arg="spawnDummy">🪵 Cọc gỗ</button>
+            <button class="tp-chip" data-action="spawnEnemy" data-arg="removeDummy">➖ Bớt cọc</button>
+            <button class="tp-chip" data-action="spawnEnemy" data-arg="addDummy">➕ Thêm cọc</button>
         </div>
+        <div class="pt-section">Cấp quái <span class="pt-cnt" id="monster-level-label">Lv1</span></div>
+        <div class="ml-row">
+            <button class="tp-chip" data-action="monsterLevel" data-arg="-10">−10</button>
+            <button class="tp-chip" data-action="monsterLevel" data-arg="-1">−1</button>
+            <b id="monster-level-big">1</b>
+            <button class="tp-chip" data-action="monsterLevel" data-arg="+1">+1</button>
+            <button class="tp-chip" data-action="monsterLevel" data-arg="+10">+10</button>
+        </div>
+        <div class="ml-presets">
+            <button class="pt-seg" style="--c:#94a3b8" data-action="monsterLevel" data-arg="=1">Lv1</button>
+            <button class="pt-seg" style="--c:#60a5fa" data-action="monsterLevel" data-arg="=20">Lv20</button>
+            <button class="pt-seg" style="--c:#c084fc" data-action="monsterLevel" data-arg="=40">Lv40</button>
+            <button class="pt-seg" style="--c:#fbbf24" data-action="monsterLevel" data-arg="=60">Lv60</button>
+        </div>
+        <div class="pt-section">Trạng thái</div>
+        <button id="btn-enemy-god" class="tp-chip toggle wide" data-action="toggleEnemyGod">🛡️ Quái bất tử</button>
     </div>
 
     <!-- Hướng dẫn điều khiển -->

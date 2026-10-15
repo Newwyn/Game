@@ -24,7 +24,9 @@ export function enterBattleUI(data) {
     const badge = document.querySelector('.top-label');
     if (badge) {
         const hasNPC = Object.values(data.players).some(p => p.isNPC);
-        badge.textContent = hasNPC ? '🛡️ TEST MODE / NPC' : '⚔️ PVP BATTLE';
+        badge.textContent = data.mode === 'duel_monster' ? '⚔️ ĐẤU · VỚI QUÁI'
+            : data.mode === 'duel_hero' ? '⚔️ ĐẤU · 1P vs 2P'
+            : hasNPC ? '🧪 TEST MODE' : '⚔️ PVP BATTLE';
     }
 }
 
@@ -73,6 +75,20 @@ function onBattleEnd(data) {
     const isWin = data.winnerId === myId();
     const resultEl = $('battle-result');
     resultEl.style.display = 'flex';
+    if (data.draw) {
+        // cả 2 bên cùng gục trong cùng 1 nhịp -> HOÀ
+        const t = resultEl.querySelector('.result-text');
+        if (t) { t.textContent = '🤝 HOÀ!'; t.style.color = '#e2e8f0'; }
+        const sub = $('result-subtext');
+        if (sub) sub.textContent = 'Cả hai đội cùng gục ngã trong cùng một khoảnh khắc.';
+        const retry = $('btn-retry');
+        if (retry) {
+            retry.innerHTML = '<span>🔄</span> Đấu Lại';
+            retry.style.background = 'linear-gradient(135deg, #64748b, #475569)';
+            retry.style.boxShadow = '0 8px 25px rgba(100, 116, 139, 0.6)';
+        }
+        return;
+    }
 
     const textEl = resultEl.querySelector('.result-text');
     if (textEl) {

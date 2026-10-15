@@ -342,3 +342,221 @@ body {
 .member-toggles { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(167,139,250,0.4); }
 .member-toggles .mt-title { font-size: 11px; color: #c4b5fd; text-align: center; }
 .member-toggles .debug-btn.off { opacity: 0.55; filter: grayscale(0.7); }
+
+/* ---------- 🛠️ Bảng tool test (phe mình / phe quái) ---------- */
+.tool-panel {
+    position: absolute; top: 90px; z-index: 51; width: 340px; max-height: calc(100vh - 260px); overflow-y: auto;
+    display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px;
+    background: rgba(8, 20, 30, 0.93); border: 2px solid var(--tp); border-radius: 12px;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.55); color: #e2e8f0; font-family: 'Outfit', sans-serif; font-size: 12px;
+    scrollbar-width: thin;
+}
+.tool-panel.ally { --tp: #14b8a6; --tp-soft: rgba(20,184,166,.18); --tp-text: #5eead4; left: 280px; }
+.tool-panel.enemy { --tp: #ef4444; --tp-soft: rgba(239,68,68,.18); --tp-text: #fca5a5; right: 20px; top: 140px; width: 250px; background: rgba(30, 8, 10, 0.93); }
+.tool-panel h3 { font-size: 14px; color: var(--tp-text); text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 2px; }
+.pt-section { color: var(--tp-text); opacity: .75; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; border-bottom: 1px solid rgba(148,163,184,.18); padding-bottom: 2px; }
+.tp-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.tp-grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.tp-chip {
+    background: var(--tp-soft); border: 1.5px solid var(--tp); color: #f1f5f9; border-radius: 8px;
+    padding: 6px 4px; font: 700 11.5px 'Outfit', sans-serif; cursor: pointer; text-align: center; line-height: 1.25;
+}
+.tp-chip:hover { filter: brightness(1.3); }
+.tp-chip.wide { width: 100%; }
+.tp-chip .tp-state { display: block; font-size: 10px; opacity: .8; }
+.tp-chip.wide .tp-state { display: inline; }
+.tp-chip.toggle.active { background: var(--tp); color: #0b1220; box-shadow: 0 0 10px var(--tp); }
+.pt-switch { border: 1.5px solid #64748b; background: #1e293b; color: #94a3b8; border-radius: 999px; font: 800 10px 'Outfit', sans-serif; padding: 2px 7px; cursor: pointer; }
+.pt-switch.on { border-color: #22c55e; background: rgba(34,197,94,.2); color: #86efac; }
+.pt-hero.off { opacity: .5; }
+.pt-lvmini { color: #e2e8f0; font-weight: 800; font-size: 11px; margin-left: auto; }
+.pt-talents { display: flex; flex-direction: column; gap: 2px; background: rgba(2,6,23,.45); border-radius: 7px; padding: 5px 7px; }
+.pt-talents small { color: #94a3b8; }
+.pt-tn { color: #fde68a; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.pt-real { border-top: 1px dashed #1f3b45; padding-top: 6px; }
+.pt-real .pt-check { flex: 1; }
+#progress-tool-body { display: flex; flex-direction: column; gap: 8px; }
+.pt-all { display: flex; flex-direction: column; gap: 4px; }
+.pt-all > span { color: #99f6e4; font-weight: 700; }
+.pt-hero { background: rgba(15, 23, 42, 0.75); border: 1px solid #1f3b45; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.pt-hero-top { display: flex; align-items: center; gap: 6px; user-select: none; }
+.pt-name { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-fold { cursor: pointer; }
+.pt-name b { font-size: 14px; }
+.pt-sub { color: #94a3b8; font-size: 11px; }
+.pt-skill { color: #fde68a; font-weight: 700; font-size: 11px; margin-left: 6px; }
+.pt-fold { color: #64748b; }
+.pt-rank { border: 1.5px solid; border-radius: 6px; padding: 0 6px; font-weight: 900; font-size: 11px; letter-spacing: .5px; }
+.pt-row { display: flex; gap: 4px; align-items: center; }
+.pt-btn {
+    background: rgba(20, 184, 166, 0.18); border: 1.5px solid #14b8a6; color: #ccfbf1; border-radius: 7px;
+    padding: 4px 8px; font: 700 12px 'Outfit', sans-serif; cursor: pointer; min-width: 38px;
+}
+.pt-btn:hover { background: rgba(20, 184, 166, 0.4); }
+.pt-btn.wide { flex: 1; }
+.pt-btn.gold { border-color: #fbbf24; color: #fde68a; background: rgba(251, 191, 36, 0.15); }
+.pt-btn.gold:hover { background: rgba(251, 191, 36, 0.35); }
+.pt-lv { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+.pt-lv b { font-size: 20px; color: #fff; min-width: 26px; text-align: center; }
+.pt-lv small { color: #94a3b8; }
+.pt-slider { width: 100%; accent-color: #14b8a6; cursor: pointer; }
+.pt-segs { display: flex; gap: 4px; }
+.pt-seg {
+    flex: 1; padding: 4px 0; border-radius: 7px; border: 1.5px solid var(--c); color: var(--c);
+    background: rgba(15, 23, 42, 0.6); font: 800 11px 'Outfit', sans-serif; cursor: pointer;
+}
+.pt-seg:hover { background: rgba(255,255,255,0.08); }
+.pt-seg.on { background: var(--c); color: #0f172a; box-shadow: 0 0 8px var(--c); }
+.pt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; color: #94a3b8; }
+.pt-stats b { color: #e2e8f0; }
+.pt-stats .pt-uniq { grid-column: 1 / -1; color: #fde68a; }
+.pt-stats .pt-uniq b { color: #fef3c7; }
+.pt-exp { position: relative; height: 14px; background: #0f172a; border-radius: 7px; overflow: hidden; border: 1px solid #1f3b45; }
+.pt-exp > div { height: 100%; background: linear-gradient(90deg, #0d9488, #5eead4); }
+.pt-exp > span { position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 13px; color: #f0fdfa; }
+.pt-check { font-size: 11px; }
+.pt-ok { color: #4ade80; }
+.pt-miss { color: #fca5a5; }
+.pt-bag { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; background: rgba(15,23,42,.6); border-radius: 8px; padding: 6px 8px; }
+.pt-bag-title { width: 100%; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.pt-msg { text-align: center; padding: 5px; border-radius: 7px; background: rgba(15,23,42,.7); }
+.pt-msg.ok { color: #4ade80; border: 1px solid #166534; }
+.pt-msg.bad { color: #fca5a5; border: 1px solid #7f1d1d; }
+.pt-talents .locked { opacity: .5; }
+.pt-lock { color: #94a3b8; font-size: 10px; }
+.pt-tlv { color: #4ade80; font-size: 10px; font-weight: 800; }
+.pt-kill { background: none; border: 1px solid #475569; border-radius: 6px; cursor: pointer; font-size: 11px; padding: 0 4px; opacity: .7; }
+.pt-kill:hover { opacity: 1; border-color: #ef4444; }
+
+/* ---------- ⚔️ Chọn đội hình trước trận ---------- */
+#squad-select {
+    display: none; position: fixed; inset: 0; z-index: 120; align-items: center; justify-content: center;
+    background: rgba(8, 12, 24, 0.82); backdrop-filter: blur(8px); font-family: 'Outfit', sans-serif; color: #e2e8f0;
+}
+body.selecting-squad #combat-hud, body.selecting-squad #controls-hint { opacity: .25; pointer-events: none; }
+.ss-box {
+    background: rgba(15, 23, 42, 0.96); border: 1px solid rgba(148, 163, 184, .25); border-radius: 18px;
+    padding: 22px 26px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.6); max-width: min(1180px, 96vw);
+}
+.ss-box h2 { margin: 0; text-align: center; letter-spacing: 3px; font-size: 24px; color: #fde68a; }
+.ss-sub { margin: 4px 0 16px; text-align: center; color: #94a3b8; font-size: 13px; }
+.ss-grid { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 14px; }
+.ss-card {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+    background: linear-gradient(180deg, rgba(30,41,59,.9), rgba(15,23,42,.95)); color: #e2e8f0;
+    border: 2px solid rgba(148,163,184,.25); border-radius: 14px; padding: 10px 10px 12px; font-family: inherit;
+    transition: transform .15s, border-color .15s, box-shadow .15s, opacity .15s;
+}
+.ss-card:hover { transform: translateY(-3px); border-color: rgba(253,230,138,.6); }
+.ss-card.on { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,.35), 0 8px 24px rgba(251,191,36,.25); }
+.ss-card.full { opacity: .45; }
+.ss-key { position: absolute; top: 8px; left: 10px; font-size: 11px; color: #64748b; font-weight: 700; }
+.ss-check { position: absolute; top: 7px; right: 9px; background: #fbbf24; color: #0f172a; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 1px 8px; }
+.ss-art { height: 190px; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-radius: 10px;
+    background: radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--cc) 55%, transparent), transparent 70%); }
+.ss-art img { max-height: 185px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+.ss-card:not(.on) .ss-art img { filter: grayscale(.55) brightness(.8) drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+.ss-emoji { font-size: 64px; }
+.ss-name { font-weight: 800; font-size: 16px; margin-top: 4px; }
+.ss-title { font-size: 12px; color: #fcd34d; }
+.ss-tags { display: flex; gap: 6px; font-size: 11px; }
+.ss-tags span { background: rgba(148,163,184,.15); border-radius: 999px; padding: 1px 8px; }
+.ss-lv { font-size: 12px; color: #cbd5e1; }
+.ss-stats { display: flex; gap: 10px; font-size: 12px; color: #94a3b8; }
+.ss-foot { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.ss-count { flex: 1; font-size: 14px; color: #94a3b8; }
+.ss-count b { color: #fde68a; font-size: 18px; }
+.ss-quick { background: transparent; border: 1.5px solid rgba(148,163,184,.4); color: #cbd5e1; border-radius: 10px; padding: 9px 14px; font-family: inherit; cursor: pointer; }
+.ss-go { background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff; font-weight: 800; font-size: 15px;
+    border-radius: 10px; padding: 11px 22px; cursor: pointer; font-family: inherit; box-shadow: 0 6px 18px rgba(245,158,11,.45); }
+.ss-go:disabled { background: #475569; box-shadow: none; cursor: not-allowed; opacity: .7; }
+.ss-err { margin-top: 10px; text-align: center; color: #fca5a5; font-size: 13px; }
+@media (max-width: 760px) { .ss-grid { grid-template-columns: repeat(2, 1fr); } .ss-art { height: 140px; } .ss-art img { max-height: 135px; } }
+/* Tool phe mình: đội hình trong trận (thêm / bớt nhân vật) */
+.pt-cnt { float: right; color: #fde68a; letter-spacing: 0; }
+.pt-rosters { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.pt-roster {
+    display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 5px 8px; border-radius: 8px;
+    border: 1.5px dashed rgba(148,163,184,.4); background: transparent; color: #94a3b8; font-family: inherit; font-size: 12px; cursor: pointer;
+}
+.pt-roster span { font-weight: 800; }
+.pt-roster.on { border-style: solid; border-color: var(--tp); background: var(--tp-soft); color: #f1f5f9; }
+.pt-roster.on span { color: var(--tp-text); }
+
+/* ---------- 🏠 Chọn chế độ (Test / Đấu) ---------- */
+#mode-menu {
+    display: none; position: fixed; inset: 0; z-index: 130; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 40%, rgba(30, 41, 80, .85), rgba(5, 8, 18, .95)); backdrop-filter: blur(8px);
+    font-family: 'Outfit', sans-serif; color: #e2e8f0;
+}
+.mm-box { text-align: center; padding: 10px 20px; }
+.mm-box h1 { margin: 0; font-size: 40px; letter-spacing: 6px; color: #fde68a; text-shadow: 0 0 24px rgba(251,191,36,.5); }
+.mm-box p { margin: 6px 0 26px; color: #94a3b8; }
+.mm-row { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+.mm-card {
+    width: 270px; padding: 26px 22px; border-radius: 18px; cursor: pointer; font-family: inherit; color: #e2e8f0;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, rgba(30,41,59,.95), rgba(15,23,42,.98)); border: 2px solid rgba(148,163,184,.3);
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.mm-card:hover { transform: translateY(-4px); }
+.mm-card.test:hover { border-color: #14b8a6; box-shadow: 0 10px 30px rgba(20,184,166,.3); }
+.mm-card.duel:hover { border-color: #f59e0b; box-shadow: 0 10px 30px rgba(245,158,11,.35); }
+.mm-icon { font-size: 52px; }
+.mm-card b { font-size: 22px; }
+.mm-card small { color: #94a3b8; font-size: 13px; line-height: 1.4; }
+.mm-back { margin-top: 22px; background: transparent; border: 1.5px solid rgba(148,163,184,.4); color: #cbd5e1; border-radius: 10px; padding: 9px 18px; font-family: inherit; cursor: pointer; }
+
+/* Chọn đội 1P vs 2P */
+.ss-dual { display: flex; align-items: stretch; gap: 14px; }
+.ss-side { flex: 1; border-radius: 14px; padding: 10px; }
+.ss-side.p1 { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.35); }
+.ss-side.p2 { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35); }
+.ss-side-h { font-weight: 800; margin-bottom: 8px; }
+.ss-side-h span { color: #94a3b8; font-weight: 400; font-size: 12px; }
+.ss-vs { align-self: center; font-size: 28px; font-weight: 900; color: #fde68a; }
+.ss-grid.compact { gap: 8px; }
+.ss-grid.compact .ss-art { height: 110px; }
+.ss-grid.compact .ss-art img { max-height: 106px; }
+.ss-grid.compact .ss-name { font-size: 13px; }
+.ss-box.dual { max-width: min(1240px, 98vw); }
+
+/* Chế độ ĐẤU: không có tool test */
+body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: none !important; }
+#btn-menu {
+    background: rgba(0,0,0,0.7); border: 2px solid #94a3b8; border-radius: 8px; color: #cbd5e1; padding: 10px 16px;
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 900; cursor: pointer;
+}
+/* Tool phe quái: cấp quái */
+.ml-row { display: flex; align-items: center; gap: 4px; }
+.ml-row .tp-chip { flex: 1; padding: 5px 0; }
+.ml-row b { min-width: 34px; text-align: center; font-size: 18px; color: #fca5a5; }
+.ml-presets { display: flex; gap: 4px; margin-top: 4px; }
+
+/* ---------- Icon hiệu ứng (vòng quét = thời gian còn lại) ---------- */
+.st-icons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.st-ic {
+    position: relative; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; line-height: 1; cursor: help; overflow: hidden;
+    background: radial-gradient(circle, rgba(15,23,42,.85) 55%, color-mix(in srgb, var(--c) 35%, transparent) 100%);
+    box-shadow: 0 0 0 2px var(--c), 0 0 6px color-mix(in srgb, var(--c) 60%, transparent);
+}
+.st-ic.bad { box-shadow: 0 0 0 2px #ef4444, 0 0 6px rgba(239,68,68,.7); }
+/* phần thời gian đã trôi qua tối dần theo chiều kim đồng hồ */
+.st-ic::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(rgba(0,0,0,.62) calc(var(--p) * 1turn), transparent 0);
+}
+#st-tip {
+    display: none; position: fixed; z-index: 300; max-width: 260px; pointer-events: none;
+    background: rgba(8, 12, 24, .96); border: 1px solid rgba(148,163,184,.35); border-radius: 8px;
+    padding: 7px 10px; font: 12px/1.45 'Outfit', sans-serif; color: #e2e8f0; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+}
+.pause-settings { margin-top: 14px; display: flex; justify-content: center; }
+#btn-shake { background: rgba(30,41,59,.9); border: 1.5px solid #60a5fa; color: #bfdbfe; border-radius: 10px; padding: 9px 16px; font-family: 'Outfit', sans-serif; font-weight: 700; cursor: pointer; }
+#btn-shake.off { border-color: #64748b; color: #94a3b8; }
+
+/* Zerith: Lưỡi Hái Xuyên Hồn lần 2 miễn phí (Đêm Tử Thần) — viền tím nhấp nháy */
+.skill-btn.free.ready { border-color: #c084fc; box-shadow: 0 0 10px #a855f7, inset 0 0 8px rgba(168, 85, 247, 0.5); animation: free-pulse 0.8s ease-in-out infinite alternate; }
+.skill-btn.free .cost { color: #e9d5ff; font-weight: 700; }
+@keyframes free-pulse { from { box-shadow: 0 0 6px #a855f7; } to { box-shadow: 0 0 16px #c084fc, inset 0 0 10px rgba(192, 132, 252, 0.6); } }

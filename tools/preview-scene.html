@@ -13,6 +13,8 @@ import { buildEnvironment } from '../src/core/environment.js';
 import { cameraRig } from '../src/core/cameraRig.js';
 import { updateVfx, spawnDashStreak, spawnLandingDust, spawnProjectile, spawnSlashVfx } from '../src/vfx/vfx.js';
 import { createCharacterView } from '../src/characters/registry.js';
+import * as vfxAll from '../src/vfx/vfx.js';
+window.vfx = vfxAll; // console: vfx.spawnGuardBurst(views[0].position)
 
 const q = new URLSearchParams(location.search);
 mountRenderer(document.getElementById('c'));

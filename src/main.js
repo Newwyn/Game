@@ -20,8 +20,11 @@ import { updateViews } from './combat/battleScene.js';
 import { updateVfx } from './vfx/vfx.js';
 import { updateHUD } from './ui/hud.js';
 import { registerOverlayEvents, enterBattleUI, showWaiting } from './ui/overlays.js';
-import { setupInput, applyPreferredSpeed, updateSpeedButton, renderMemberToggles } from './ui/input.js';
+import { setupInput, applyPreferredSpeed, updateSpeedButton, renderMemberToggles, resetDebugToggles } from './ui/input.js';
 import { socket } from './net/socket.js';
+import { setupProgressTool } from './ui/progressTool.js';
+import { setupSquadSelect } from './ui/squadSelect.js';
+import { setupModeMenu } from './ui/modeMenu.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
@@ -31,11 +34,28 @@ registerOverlayEvents();
 registerCombatEvents({
     onWaiting: (data) => showWaiting(data.message),
     onBattleStart: (data) => {
+        // Chế độ: ĐẤU -> ẩn mọi tool test (CSS body.mode-duel)
+        const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero';
+        document.body.classList.toggle('mode-duel', duel);
+        if (duel) resetDebugToggles();
         enterBattleUI(data); updateHUD(data.players); applyPreferredSpeed();
         renderMemberToggles(data.classDefs, data.players?.[myId()]?.disabledClasses);
     },
     onSpeed: (speed) => updateSpeedButton(speed),
     onState: (players) => updateHUD(players),
+});
+
+// 📈 Tool Nhân Vật (level / bậc / tộc)
+setupProgressTool();
+// ⚔️ Chọn đội hình trước trận (1-4 nhân vật)
+setupSquadSelect();
+// 🏠 Chọn chế độ (Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
+setupModeMenu();
+// Tool phe quái: cấp quái hiện tại
+socket.on('monsterLevel', (d) => {
+    const a = document.getElementById('monster-level-label'), b = document.getElementById('monster-level-big');
+    if (a) a.textContent = `Lv${d.level}`;
+    if (b) b.textContent = d.level;
 });
 
 // Server xác nhận danh sách nhân vật bị tắt (sau khi bấm nút bật/tắt)

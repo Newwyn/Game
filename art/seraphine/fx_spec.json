@@ -1,0 +1,10 @@
+{
+ "out": "src/assets/sprites/sera_fx.png",
+ "meta": "src/vfx/seraFx.json",
+ "width": 1024,
+ "sheets": { "fx": {"file": "art/seraphine/04-guardian-angels.png", "scale": 0.5} },
+ "parts": {
+  "guardian": {"sheet": "fx", "comps": [1]}, "angelFly": {"sheet": "fx", "comps": [2]},
+  "angelHold": {"sheet": "fx", "comps": [3]}, "angelGive": {"sheet": "fx", "comps": [4]}
+ }
+}

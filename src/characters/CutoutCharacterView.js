@@ -21,10 +21,13 @@
 import * as THREE from 'three';
 import { CharacterView } from './CharacterView.js';
 import { GROUND_Y, gameNow } from '../config.js';
+import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
+import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
+import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
-    getHexDomeTexture, getMiniShieldTexture, spawnRisingSparkles,
+    getHexDomeTexture, getMiniShieldTexture, getWindRibbonTexture, getBoltTexture, getHolyBubbleTexture, getWingTexture, seraSprite, spawnRisingSparkles, getGuardianTexture, getWindSpiritTexture,
 } from '../vfx/vfx.js';
 
 const FADE = 0.08;
@@ -32,6 +35,7 @@ const HIT_FLASH_SECONDS = 0.07;
 const LOCOMOTION_CLIP = { idle: 'idle', ready: 'ready', stunned: 'stunned', guarding: 'guard', dead: 'dead', move: 'move', cast: 'cast', fall: 'fall', victory: 'victoryIdle' };
 const STILL_SPEED = 0.6; // server báo 'moving' nhưng thực tế đứng yên (VD lúc đếm ngược) -> đứng thủ thế
 const TAU = Math.PI * 2;
+const GIANT_SCALE = 1.25;   // Brakk dạng Khổng Lồ: cả người to thêm 25% (mảnh khổng lồ vốn đã bè hơn)
 const Z_STEP = 0.02; // khoảng cách theo trục z giữa các lớp mảnh (dùng depth test để xếp lớp)
 
 const texCache = new Map();
@@ -178,9 +182,15 @@ export class CutoutCharacterView extends CharacterView {
         this.texture = loadTexture(rig.image);
         const { root, parts, materials, skins } = buildCutout(rig, this.texture, unitsPerPx);
         this.flip.add(root);
+        // Nhuộm màu tạm (VD Lyra dùng tạm hình Jessica cho tới khi có tranh riêng)
+        if (visual.tint != null) {
+            const tint = new THREE.Color(visual.tint);
+            for (const m of materials) { m.color.multiply(tint); m.userData.baseColor = m.color.clone(); }
+        }
         this.parts = parts;
         this.materials = materials;
         this.skins = skins;
+        this._giantParts = Object.keys(skins).filter(k => skins[k].giant);   // Brakk: mảnh có dạng khổng lồ
         this.cutoutRoot = root;
         this.squashOnDeath = false;
 
@@ -197,6 +207,17 @@ export class CutoutCharacterView extends CharacterView {
             joint.add(mesh, off);
             this.skins[prop.name] = { on: mesh, off };
             setSkin(this.skins, prop.name, 'off');
+        }
+        // Dây cung vẽ bằng code (Xạ Thủ): 'pull' là "da" giả để skinKeys bật/tắt trạng thái kéo dây
+        if (rig.bowString) {
+            const on = new THREE.Object3D(), off = new THREE.Object3D();
+            root.add(on, off);
+            this.skins.pull = { on, off };
+            setSkin(this.skins, 'pull', 'off');
+            const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]);
+            this._string = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xf1f5f9, transparent: true, opacity: 0.9, fog: false }));
+            this._string.frustumCulled = false;
+            root.add(this._string);
         }
         // Đẩy cả nhân vật ra trước vòng tầm đánh / bóng một chút
         root.position.z = 0.05;
@@ -242,6 +263,14 @@ export class CutoutCharacterView extends CharacterView {
             this._boltTimer = 0;
             this._flameTimer = 0;
             this._bigBoltTimer = 0.4;
+        }
+
+        // Phù Thủy lửa: quả cầu lửa lơ lửng trên lòng bàn tay (chỉ hiện khi bàn tay đang ngửa)
+        if (visual.palmFire && parts[visual.palmFire.joint]) {
+            this.palmFire = makePalmFire();
+            const [px, py] = visual.palmFire.offset;
+            this.palmFire.group.position.set(px * unitsPerPx, -py * unitsPerPx, 0.3);
+            parts[visual.palmFire.joint].add(this.palmFire.group);
         }
 
         this.mixer = new THREE.AnimationMixer(root);
@@ -318,13 +347,14 @@ export class CutoutCharacterView extends CharacterView {
     /** Đang diễn động tác không được ngắt (động tác "nhẹ" như trúng đòn thì không tính) */
     get isBusy() { return !!this._intro || (!!this._oneShot && !this._oneShot.soft); }
 
-    playAction(name, { onHit, onComplete, soft = false } = {}) {
+    /** hold = lặp động tác cho tới khi có động tác khác (VD gồng Thần Tiễn) */
+    playAction(name, { onHit, onComplete, soft = false, hold = false } = {}) {
         const cfg = this.def.anims?.[name];
         const action = this.actions[cfg?.clip ?? name];
         if (!action) return super.playAction(name, { onHit, onComplete });
         this._interruptOneShot();
-        this._fadeTo(action, false);
-        this._oneShot = { action, hitTime: cfg?.hitTime ?? 0, onHit, onComplete, hitFired: !onHit, soft };
+        this._fadeTo(action, hold);
+        this._oneShot = { action, hitTime: cfg?.hitTime ?? 0, onHit, onComplete, hitFired: !onHit, soft, hold };
         return true;
     }
 
@@ -421,6 +451,9 @@ export class CutoutCharacterView extends CharacterView {
         const { name, time } = this._activeClip();
         for (const [t, part, skin] of this.def.skinKeys?.[name] ?? []) if (t <= time) want[part] = skin;
         if (this.def.blink && want.eye === 'open' && this._blink.left > 0) want.eye = 'blink';
+        // Brakk — Thần Lực Khổng Lồ: mọi mảnh có da 'giant' đổi sang dạng khổng lồ (cùng bộ xương / động tác)
+        // (hết khổng lồ: trả mọi mảnh về 'normal' — bàn tay / mắt theo da của động tác)
+        for (const part of this._giantParts ?? []) want[part] = this._giantOn ? 'giant' : (want[part] ?? 'normal');
         for (const [part, skin] of Object.entries(want)) setSkin(this.skins, part, skin);
     }
 
@@ -561,41 +594,51 @@ export class CutoutCharacterView extends CharacterView {
         // đang bay vì bị Đẩy Khiên thì chưa hiện sao choáng (đáp đất mới choáng)
         const stunned = alive && effs.some(e => e.type === 'stun' && e.endTime > now) && !effs.some(e => e.type === 'knocked' && e.endTime > now);
         const fort = alive && effs.some(e => e.type === 'fortress' && e.endTime > now);
-        // Dựng Khiên: khiên ánh sáng lớn trước mặt
-        const guard = alive && effs.some(e => e.type === 'guard' && e.endTime > now);
-        if (guard && !this._guardShield) {
-            const g = new THREE.Group();
-            const mk = (w, h, color, op) => {
-                const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
-                    new THREE.MeshBasicMaterial({ map: getLightShieldTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, color, opacity: op }));
-                g.add(m); return m;
-            };
-            this._gsGlow = mk(2.6, 3.9, 0xffb347, 0.5);
-            this._gsCore = mk(2.0, 3.3, 0xfff1c2, 0.9);
-            this._gsCore.position.z = 0.02;
-            g.position.set(1.25, GROUND_Y + this.height * 0.5, 0.75);
-            g.rotation.y = -0.55; // nghiêng như tấm khiên dựng trước người
-            this.flip.add(g);
-            this._guardShield = g;
-            this._guardPulse = 1;
-        }
-        if (this._guardShield) {
-            this._guardPulse = Math.max(0, (this._guardPulse ?? 0) - dt * 3);
-            const k = this._guardK = (this._guardK ?? 0) + ((guard ? 1 : 0) - (this._guardK ?? 0)) * Math.min(1, dt * 10);
-            this._guardShield.visible = k > 0.02;
-            if (this._guardShield.visible) {
-                const pulse = 0.85 + 0.15 * Math.sin(this._time * 6) + 0.6 * this._guardPulse;
-                this._gsCore.material.opacity = 0.85 * k * Math.min(1.4, pulse);
-                this._gsGlow.material.opacity = 0.5 * k * pulse;
-                const s = (0.6 + 0.4 * k) * (1 + 0.08 * this._guardPulse);
-                this._guardShield.scale.set(s, s, 1);
-                this._gsCore.material.map.offset.y = 0;
-            }
-        }
+        // Dựng Khiên: Thần Hộ Vệ trên đầu + vòm lục giác (độ sáng theo máu khiên còn lại)
+        const guardEf = alive ? effs.find(e => e.type === 'guard' && e.endTime > now) : null;
+        const guard = !!guardEf;
+        this._guardPulse = Math.max(0, (this._guardPulse ?? 0) - dt * 3);
+        this._guardFrac = guardEf?.maxHp ? Math.max(0, guardEf.hp / guardEf.maxHp) : 1;
         this._updateIronGuard(dt, guard);
+        // Thần Phong Giáng Thế (Lyra): bay lơ lửng + Vệ Thần Gió bên cạnh; gồng Thần Tiễn -> Vệ Thần cùng kéo căng cung
+        const wind = alive && effs.some(e => e.type === 'windspirit' && e.endTime > now);
+        const charging = alive && this.member.state === 'casting' && this.classDef?.skills?.[this.member.castingSkillId]?.type === 'charged_shot';
+        // Thánh Niệm (Tu Sĩ): bay lên niệm + Hộ vệ ánh sáng sau lưng
+        const praying = alive && effs.some(e => e.type === 'praying' && e.endTime > now);
+        // Đêm Tử Thần (Zerith): bay lơ lửng + Hộ Vệ Thần Chết sau lưng + hào quang tím
+        const night = alive && effs.some(e => e.type === 'reaper_form' && e.endTime > now);
+        this._updateWindSpirit(dt, wind || praying || night, charging);
+        this._updateReaperNight(dt, night);
+        this._updateReaperGhost(dt);
+        // Brakk: dạng Khổng Lồ (to dần + hào quang rồng lửa, 5s đầu có vương miện miễn khống chế) + vòm khiên vảy rồng
+        if (this._giantParts.length) {
+            const giantEf = alive ? effs.find(e => e.type === 'giant_form' && e.endTime > now) : null;
+            this._updateGiant(dt, giantEf, now);
+            this._updateBrakkShield(dt, alive ? effs.find(e => e.type === 'brakk_shield' && e.endTime > now && e.hp > 0) : null);
+        }
+        // Ấn Tử (thiên phú Phán Quyết Tử Thần của Zerith) trên đầu mục tiêu
+        this._updateDeathMark(dt, alive && effs.some(e => e.type === 'death_mark' && e.endTime > now));
+        this._updatePrayGuardian(dt, praying);
+        // Phù Thủy lửa: cầu lửa trên tay + Hộ Vệ Thần Lửa (Hỏa Thần Giáng Lâm)
+        if (this.palmFire) {
+            const show = alive && this.skins.handF?.palm?.visible !== false;
+            this.palmFire.group.visible = show;
+            if (show) this.palmFire.update(dt);
+            const ward = alive && effs.some(e => e.type === 'fire_ward' && e.endTime > now && e.hp > 0);   // Giáp Lửa (thiên phú 2)
+            this._updateFireGuardian(dt, alive && effs.some(e => e.type === 'fire_god' && e.endTime > now), ward);
+        }
+        this._updatePrayLoop(praying);
+        // Khiên Ánh Sáng (bong bóng; đang niệm thì mọc cánh) + hào quang Thánh Niệm của đồng đội
+        const holy = alive ? effs.find(e => e.type === 'holy_shield' && e.endTime > now && e.hp > 0) : null;
+        this._updateHolyShield(dt, holy);
+        this._updateBlessAura(dt, alive && effs.some(e => e.type === 'pray_blessing' && e.endTime > now));
         // Đồng đội được Dựng Khiên của Chiến Binh bảo hộ (+20% thủ): 3 khiên nhỏ bay vòng quanh người
         const aura = alive && !guard && effs.some(e => e.type === 'guard_aura' && e.endTime > now);
         this._updateOrbitShields(dt, aura);
+        // Gió dẫn đường (Thần Phong Giáng Thế của Lyra, +chính xác): vệt gió ngọc bay vòng quanh người
+        this._updateWindAura(dt, alive && effs.some(e => e.type === 'wind_blessing' && e.endTime > now));
+        // Sấm phù trợ (Tàng Hình của Jessica, +né tránh): tia sét tím nháy quanh người
+        this._updateThunderAura(dt, alive && effs.some(e => e.type === 'thunder_blessing' && e.endTime > now));
         if (stunned && !this._stars) {
             this._stars = new THREE.Group();
             const tex = getStarTexture();
@@ -642,7 +685,7 @@ export class CutoutCharacterView extends CharacterView {
         if (on && !this._ironDome) {
             const g = new THREE.Group();
             const domeMat = new THREE.MeshBasicMaterial({ map: getHexDomeTexture(), transparent: true, depthWrite: false,
-                blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, color: 0xffd78a, opacity: 0 });
+                blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, color: 0xd9a33a, opacity: 0 });
             const dome = new THREE.Mesh(new THREE.SphereGeometry(1.85, 40, 16, 0, TAU, 0, Math.PI / 2), domeMat);
             dome.scale.set(1, 1.35, 0.75);
             g.add(dome);
@@ -652,15 +695,32 @@ export class CutoutCharacterView extends CharacterView {
             g.add(ring);
             g.position.y = GROUND_Y;
             this.root.add(g);
-            this._ironDome = { group: g, dome, ring, k: 0, spark: 0 };
+            // THẦN HỘ VỆ: linh ảnh vị thần cầm khiên lớn hiện phía trên-sau Rok (lớp thường + lớp cộng sáng)
+            const deity = new THREE.Group();
+            const mkD = (additive) => new THREE.Mesh(new THREE.PlaneGeometry(3.0, 4.5), new THREE.MeshBasicMaterial({
+                map: getGuardianTexture(), transparent: true, depthWrite: false, fog: false, opacity: 0,
+                blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, color: additive ? 0xffd27a : 0xffffff }));
+            const dBase = mkD(false), dGlow = mkD(true);
+            dGlow.scale.setScalar(1.04); dGlow.position.z = 0.01;
+            deity.add(dBase, dGlow);
+            deity.position.set(-0.15, GROUND_Y + this.height + 0.35, -0.6);
+            this.stand.add(deity);
+            this._ironDome = { group: g, dome, ring, deity, dBase, dGlow, k: 0, spark: 0 };
         }
         const D = this._ironDome;
         if (!D) return;
-        D.k += ((on ? 1 : 0) - D.k) * Math.min(1, dt * 8);
-        D.group.visible = D.k > 0.02;
+        D.k += ((on ? 1 : 0) - D.k) * Math.min(1, dt * (on ? 5 : 9));
+        D.group.visible = D.deity.visible = D.k > 0.02;
         if (!D.group.visible) return;
         const pulse = this._guardPulse ?? 0;
-        D.dome.material.opacity = (0.55 + 0.15 * Math.sin(this._time * 3) + 0.6 * pulse) * D.k;
+        const frac = 0.35 + 0.65 * (this._guardFrac ?? 1); // khiên càng mất máu càng mờ
+        D.dome.material.opacity = (0.42 + 0.12 * Math.sin(this._time * 3) + 0.2 * pulse) * D.k * frac;
+        // thần hộ vệ: bay lên từ người Rok, lơ lửng nhẹ, loé sáng khi khiên đỡ đòn / phát nổ
+        const rise = 1 - Math.pow(1 - D.k, 2);
+        D.deity.position.y = GROUND_Y + this.height * (0.6 + 0.4 * rise) + 1.35 + Math.sin(this._time * 2) * 0.06;
+        D.deity.scale.setScalar(0.7 + 0.3 * rise + 0.05 * pulse);
+        D.dBase.material.opacity = 0.88 * D.k;
+        D.dGlow.material.opacity = (0.14 + 0.06 * Math.sin(this._time * 4) + 0.25 * pulse) * D.k;
         D.dome.material.map.offset.x = (this._time * 0.05) % 1;
         const grow = 0.75 + 0.25 * D.k;
         D.group.scale.set(grow * (1 + 0.04 * pulse), grow * (1 + 0.04 * pulse), grow);
@@ -670,6 +730,278 @@ export class CutoutCharacterView extends CharacterView {
             D.spark -= dt;
             if (D.spark <= 0) { D.spark = 0.35; spawnRisingSparkles(this.root.position, { count: 4, color: 0xffd36b, radius: 1.3 }); }
         }
+    }
+
+    _updateWindSpirit(dt, on, charging) {
+        this._hover = (this._hover ?? 0) + ((on ? 0.75 : 0) - (this._hover ?? 0)) * Math.min(1, dt * 7); // bay lên ~0.5s (khớp lock của server)
+        on = on && this.member.statusEffects?.some(e => e.type === 'windspirit' && e.endTime > gameNow()); // Vệ Thần Gió chỉ khi có windspirit
+        if (on && !this._wind) {
+            const g = new THREE.Group();
+            const mk = (drawn, additive) => new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3.3), new THREE.MeshBasicMaterial({
+                map: getWindSpiritTexture(drawn), transparent: true, depthWrite: false, fog: false, opacity: 0,
+                blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending }));
+            const relaxed = mk(false, true), drawn = mk(true, true);
+            g.add(relaxed, drawn);
+            g.position.set(-0.9, GROUND_Y + this.height * 0.75, -0.35); // sau lưng, cao hơn Lyra một chút
+            this.flip.add(g);
+            // xoáy gió dưới chân (đang bay)
+            const ring = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: getHexDomeTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, color: 0x5eead4, opacity: 0 }));
+            ring.rotation.x = -Math.PI / 2; ring.position.y = GROUND_Y + 0.05;
+            this.root.add(ring);
+            this._wind = { g, relaxed, drawn, ring, k: 0, c: 0 };
+        }
+        const W = this._wind;
+        if (!W) return;
+        W.k += ((on ? 1 : 0) - W.k) * Math.min(1, dt * 5);
+        W.c += ((charging ? 1 : 0) - W.c) * Math.min(1, dt * 4);
+        W.g.visible = W.ring.visible = W.k > 0.02;
+        if (!W.g.visible) return;
+        W.g.position.y = GROUND_Y + this.height * 0.75 + (this._hover ?? 0) + Math.sin(this._time * 2.2) * 0.08;
+        W.g.scale.setScalar(0.8 + 0.2 * W.k + 0.08 * W.c);
+        W.relaxed.material.opacity = 0.8 * W.k * (1 - W.c);
+        W.drawn.material.opacity = 0.9 * W.k * W.c;
+        W.ring.material.opacity = 0.5 * W.k;
+        W.ring.rotation.z += dt * 2.5;
+    }
+
+    /** Niệm: giữ động tác 'pray' suốt lúc niệm (sau mỗi lần hồi máu / khiên thì quay lại niệm); hết niệm thì thả */
+    _updatePrayLoop(praying) {
+        if (!this.actions.pray) return;
+        const s = this._oneShot;
+        if (praying) {
+            if (!s && !this._intro) this.playAction('pray', { hold: true });
+        } else if (s?.hold && s.action === this.actions.pray) {
+            this._interruptOneShot();
+        }
+    }
+
+    /** Hộ vệ ánh sáng: tu sĩ thiên thần trong suốt chắp tay niệm sau lưng + cột sáng mờ */
+    _updatePrayGuardian(dt, on) {
+        if (on && !this._prayG) {
+            const g = new THREE.Group();
+            const body = seraSprite('guardian', this.height * 1.25, { opacity: 0 });
+            g.add(body);
+            g.position.set(-1.05, GROUND_Y + this.height * 0.62, -0.4);
+            this.flip.add(g);
+            const ring = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.MeshBasicMaterial({ map: getFortressTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, color: 0xfacc15, opacity: 0 }));
+            ring.rotation.x = -Math.PI / 2; ring.position.y = GROUND_Y + 0.05;
+            this.root.add(ring);
+            this._prayG = { g, body, ring, k: 0 };
+        }
+        const P = this._prayG;
+        if (!P) return;
+        P.k += ((on ? 1 : 0) - P.k) * Math.min(1, dt * 4);
+        P.g.visible = P.ring.visible = P.k > 0.02;
+        if (!P.g.visible) return;
+        P.g.position.y = GROUND_Y + this.height * 0.62 + (this._hover ?? 0) + Math.sin(this._time * 1.6) * 0.1;
+        P.body.material.opacity = 0.62 * P.k * (0.85 + 0.15 * Math.sin(this._time * 3));
+        P.ring.material.opacity = 0.55 * P.k;
+        P.ring.rotation.z += dt * 1.2;
+    }
+
+    /** Khiên Ánh Sáng: bong bóng vàng bao quanh người; khiên lúc niệm có thêm đôi cánh. Mờ dần theo máu khiên còn lại */
+    _updateHolyShield(dt, ef) {
+        if (ef && !this._holy) {
+            const g = new THREE.Group();
+            const bubble = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.9), new THREE.MeshBasicMaterial({ map: getHolyBubbleTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: 0 }));
+            bubble.userData.sharedTexture = true;
+            const wingMat = () => new THREE.MeshBasicMaterial({ map: getWingTexture(), transparent: true, depthWrite: false, fog: false, opacity: 0, side: THREE.DoubleSide });
+            const wl = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), wingMat());
+            const wr = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), wingMat());
+            wl.userData.sharedTexture = wr.userData.sharedTexture = true;
+            wl.scale.x = -1;
+            g.add(wl, wr, bubble);
+            this.root.add(g);
+            this._holy = { g, bubble, wl, wr, k: 0, w: 0 };
+        }
+        const H = this._holy;
+        if (!H) return;
+        H.k += ((ef ? 1 : 0) - H.k) * Math.min(1, dt * 6);
+        H.w += ((ef?.winged ? 1 : 0) - H.w) * Math.min(1, dt * 5);
+        H.g.visible = H.k > 0.02;
+        if (!H.g.visible) return;
+        const frac = ef?.maxHp ? Math.max(0.25, ef.hp / ef.maxHp) : 0.5;
+        const lift = this._hover ?? 0;
+        H.g.position.set(0, GROUND_Y + this.height * 0.48 + lift, 0.45);
+        H.bubble.material.opacity = H.k * (0.55 + 0.35 * frac) * (0.9 + 0.1 * Math.sin(this._time * 4));
+        const flap = Math.sin(this._time * 5) * 0.18;
+        H.wl.position.set(-0.75, 0.35, -0.6); H.wr.position.set(0.75, 0.35, -0.6);
+        H.wl.rotation.z = 0.25 + flap; H.wr.rotation.z = -0.25 - flap;
+        H.wl.material.opacity = H.wr.material.opacity = H.k * H.w * 0.95;
+        const sc = 0.6 + 0.4 * H.w;
+        H.wl.scale.set(-sc, sc, 1); H.wr.scale.set(sc, sc, 1);
+    }
+
+    /** Hào quang Thánh Niệm (đồng đội được Tu Sĩ buff sát thương): vòng sáng vàng dưới chân + đốm sáng bay lên */
+    _updateBlessAura(dt, on) {
+        if (on && !this._bless) {
+            const ring = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.9), new THREE.MeshBasicMaterial({ map: getFortressTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, color: 0xfde047, opacity: 0 }));
+            ring.rotation.x = -Math.PI / 2; ring.position.y = GROUND_Y + 0.06;
+            this.root.add(ring);
+            this._bless = { ring, k: 0, t: 0 };
+        }
+        const B = this._bless;
+        if (!B) return;
+        B.k += ((on ? 1 : 0) - B.k) * Math.min(1, dt * 5);
+        B.ring.visible = B.k > 0.02;
+        if (!B.ring.visible) return;
+        B.ring.material.opacity = 0.6 * B.k * (0.8 + 0.2 * Math.sin(this._time * 5));
+        B.ring.rotation.z -= dt * 1.5;
+        if (on && (B.t -= dt) <= 0) { B.t = 0.6; spawnRisingSparkles(this.position, { count: 3, color: 0xfde68a, radius: 0.6 }); }
+    }
+
+    /** Dây cung: nối 2 chốt cung; đang kéo ('pull' on) -> gấp về điểm kẹp của tay gần + mũi tên đặt trên dây */
+    _updateBowString() {
+        const bs = this.def.rig.bowString;
+        if (!bs || !this._string) return;
+        const u = this.unitsPerPx, root = this.cutoutRoot;
+        root.updateMatrixWorld(true);
+        const toRoot = (joint, [x, y]) => root.worldToLocal(this.parts[joint].localToWorld(new THREE.Vector3(x * u, -y * u, 0)));
+        const a = toRoot(bs.joint, bs.tips[0]), b = toRoot(bs.joint, bs.tips[1]);
+        const pulling = this.skins.pull?.on.visible;
+        const grip = toRoot(bs.joint, [0, 0]);
+        let mid = a.clone().lerp(b, 0.5);
+        if (pulling) mid = toRoot(bs.pullJoint, bs.pull);
+        const z = grip.z + 0.03;
+        const pos = this._string.geometry.attributes.position;
+        pos.setXYZ(0, a.x, a.y, z); pos.setXYZ(1, mid.x, mid.y, z); pos.setXYZ(2, b.x, b.y, z);
+        pos.needsUpdate = true;
+        const arrow = this.parts[bs.arrow];
+        if (arrow) {
+            arrow.visible = !!pulling;
+            if (pulling) {
+                arrow.position.set(mid.x, mid.y, 0);
+                arrow.rotation.set(0, 0, Math.atan2(grip.y - mid.y, grip.x - mid.x));
+            }
+        }
+    }
+
+    /** Vị trí thế giới của Vệ Thần Gió (để bắn tên ra), null nếu không có */
+    /** Hộ Vệ Thần Lửa: hiện khi có Hỏa Thần, bay sau lưng Ignar */
+    _updateFireGuardian(dt, on, ward = false) {
+        if (on && !this.fireGuardian) {
+            this.fireGuardian = makeFireGuardian();
+            this.root.add(this.fireGuardian.group);
+            this.fireGuardian.roar();
+        }
+        // Khiên Lửa riêng của Ignar (+M.DEF, kháng khống chế): khi Hỏa Thần giáng lâm hoặc Giáp Lửa (thiên phú 2)
+        const shield = on || ward;
+        if (shield && !this.fireShield) { this.fireShield = makeFireShield(); this.root.add(this.fireShield.group); }
+        if (this.fireShield && !shield) { this.fireShield.dispose(); this.fireShield = null; }
+        if (this.fireShield) { this.fireShield.update(dt); this.fireShield.group.position.y = GROUND_Y + 0.4 + (this._lift ?? 0); }
+        if (!this.fireGuardian) return;
+        if (!on) { this.fireGuardian.dispose(); this.fireGuardian = null; return; }
+        this.fireGuardian.update(dt, { x: 0, z: 0 }, this.facingLeft);
+        this.fireGuardian.group.position.y += (this._lift ?? 0);
+    }
+
+    /** Đêm Tử Thần: Hộ Vệ Thần Chết bay sau lưng Zerith + hào quang dưới chân */
+    _updateGiant(dt, ef, now) {
+        const on = !!ef;
+        this._giantK = (this._giantK ?? 0) + ((on ? 1 : 0) - (this._giantK ?? 0)) * Math.min(1, dt * 6);
+        this._giantOn = on || this._giantK > 0.5;   // đổi da ở giữa lúc phình to / teo lại
+        const sc = 1 + (GIANT_SCALE - 1) * this._giantK;
+        this.stand.scale.set(sc, sc, sc);
+        if (Math.abs(sc - (this._giantSc ?? 1)) > 0.005) { this._giantSc = sc; this.setBarHeight(GROUND_Y + this.height * sc + 0.35); }
+        if (on && !this._giantAura) {
+            this._giantAura = makeGiantAura();
+            this.root.add(this._giantAura.group);
+            this._immuneCrown = makeImmuneCrown();
+            this.root.add(this._immuneCrown.mesh);
+        }
+        if (!this._giantAura) return;
+        if (!on && this._giantK < 0.03) {
+            this._giantAura.dispose(); this._giantAura = null;
+            this._immuneCrown.dispose(); this._immuneCrown = null;
+            this._giantOn = false;
+            return;
+        }
+        this._giantAura.update(dt, this._giantK, sc);
+        this._giantAura.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+        const immune = on && now < (ef.immuneUntil ?? 0);
+        this._crownK = (this._crownK ?? 0) + ((immune ? 1 : 0) - (this._crownK ?? 0)) * Math.min(1, dt * 6);
+        this._immuneCrown.update(dt, this._crownK);
+        this._immuneCrown.mesh.position.set(0, GROUND_Y + this.height * sc + 0.75 + (this._lift ?? 0), 0.5);
+    }
+
+    _updateBrakkShield(dt, ef) {
+        if (ef && !this._brakkBubble) {
+            this._brakkBubble = makeBrakkBubble(this.height * 1.1);
+            this.root.add(this._brakkBubble.group);
+            this._bubbleK = 0;
+        }
+        if (!this._brakkBubble) return;
+        this._bubbleK += ((ef ? 1 : 0) - this._bubbleK) * Math.min(1, dt * 8);
+        if (!ef && this._bubbleK < 0.03) { this._brakkBubble.dispose(); this._brakkBubble = null; return; }
+        const frac = ef?.maxHp ? Math.max(0, ef.hp / ef.maxHp) : 0;
+        this._brakkBubble.update(dt, this._bubbleK, frac, this._giantSc ?? 1);
+        this._brakkBubble.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+    }
+
+    _updateReaperNight(dt, on) {
+        if (on && !this.reaperGuardian) {
+            this.reaperGuardian = makeReaperGuardian();
+            this.root.add(this.reaperGuardian.group);
+            this._reaperAura = makeReaperAura();
+            this.root.add(this._reaperAura.group);
+            this._reaperK = 0;
+        }
+        if (!this.reaperGuardian) return;
+        this._reaperK += ((on ? 1 : 0) - this._reaperK) * Math.min(1, dt * 5);
+        if (!on && this._reaperK < 0.03) {
+            this.reaperGuardian.dispose(); this.reaperGuardian = null;
+            this._reaperAura.dispose(); this._reaperAura = null;
+            return;
+        }
+        const back = this.facingLeft ? 1 : -1;
+        this.reaperGuardian.update(dt, this.facingLeft, { alpha: this._reaperK });
+        this.reaperGuardian.group.position.set(back * 1.35, GROUND_Y + 0.15 + (this._hover ?? 0) + (this._lift ?? 0), -0.4);
+        this._reaperAura.update(dt, this._reaperK);
+        this._reaperAura.group.position.set(0, GROUND_Y, 0);
+    }
+
+    /** Linh Hồn Báo Thù: Zerith đã gục, linh hồn Thần Chết (mờ, tím nhạt) bay tới chém địch */
+    _updateReaperGhost(dt) {
+        const until = this.member.ghostUntil ?? 0;
+        const on = until > gameNow();   // còn cả khi Zerith đã được hồi sinh (đánh chung)
+        if (on && !this.reaperGhost) {
+            this.reaperGhost = makeReaperGuardian({ height: 3.0, ghost: true });
+            this.root.add(this.reaperGhost.group);
+            this._ghostK = 0;
+            this._ghostX = 0; this._ghostZ = 0;
+        }
+        if (!this.reaperGhost) return;
+        this._ghostK += ((on ? 1 : 0) - this._ghostK) * Math.min(1, dt * 4);
+        if (!on && this._ghostK < 0.03) { this.reaperGhost.dispose(); this.reaperGhost = null; return; }
+        const tx = (this.member.ghostX ?? this.root.position.x) - this.root.position.x;
+        const tz = (this.member.ghostZ ?? this.root.position.z) - this.root.position.z;
+        const prevX = this._ghostX;
+        this._ghostX += (tx - this._ghostX) * Math.min(1, dt * 7);
+        this._ghostZ += (tz - this._ghostZ) * Math.min(1, dt * 7);
+        if (Math.abs(this._ghostX - prevX) > 0.002) this._ghostFaceLeft = this._ghostX < prevX;
+        this.reaperGhost.update(dt, this._ghostFaceLeft ?? this.facingLeft, { alpha: this._ghostK });
+        this.reaperGhost.group.position.set(this._ghostX, GROUND_Y + 0.4, this._ghostZ - 0.2);
+    }
+
+    /** Ấn Tử lơ lửng trên đầu */
+    _updateDeathMark(dt, on) {
+        if (on && !this._deathMark) {
+            this._deathMark = makeDeathMarkIcon();
+            this.root.add(this._deathMark.group);
+        }
+        if (!this._deathMark) return;
+        if (!on) { this._deathMark.dispose(); this._deathMark = null; return; }
+        this._deathMark.update(dt);
+        this._deathMark.group.position.set(0, GROUND_Y + this.height + 0.55 + (this._lift ?? 0) + (this._hover ?? 0), 0.5);
+    }
+
+    windSpiritPos() {
+        if (!this._wind?.g.visible) return null;
+        const v = new THREE.Vector3(); this._wind.g.getWorldPosition(v); v.x += (this.facingLeft ? -1 : 1) * 0.8; return v;
     }
 
     /** 3 khiên nhỏ phát sáng bay vòng quanh người (đồng đội đang được Rok bảo hộ) */
@@ -704,6 +1036,88 @@ export class CutoutCharacterView extends CharacterView {
         O.halo.material.opacity = 0.45 * O.k;
         O.halo.rotation.z += dt * 0.8;
     }
+
+    /** Vệt gió đặc trưng của Gió dẫn đường: 3 dải gió lưỡi liềm xoáy quanh người ở 3 độ cao + quầng gió dưới chân */
+    _updateWindAura(dt, on) {
+        if (on && !this._windAura) {
+            const g = new THREE.Group();
+            for (let i = 0; i < 3; i++) {
+                const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: getWindRibbonTexture(), transparent: true, depthWrite: false,
+                    fog: false, opacity: 0, blending: THREE.AdditiveBlending }));
+                sp.scale.set(1.5, 0.56, 1);
+                g.add(sp);
+            }
+            const ring = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshBasicMaterial({ map: getWindRibbonTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: 0 }));
+            ring.rotation.x = -Math.PI / 2; ring.position.y = GROUND_Y + 0.05;
+            this.root.add(ring, g);
+            this._windAura = { group: g, ring, k: 0 };
+        }
+        const W = this._windAura;
+        if (!W) return;
+        W.k += ((on ? 1 : 0) - W.k) * Math.min(1, dt * 5);
+        W.group.visible = W.ring.visible = W.k > 0.02;
+        if (!W.group.visible) return;
+        const h = this.height, lift = this._hover ?? 0;
+        W.group.children.forEach((sp, i) => {
+            const a = this._time * (3.2 + i * 0.5) + (i / 3) * TAU;
+            const r = 0.85 + 0.1 * i;
+            const y = GROUND_Y + lift + h * (0.2 + i * 0.28) + Math.sin(this._time * 2 + i) * 0.08;
+            sp.position.set(Math.cos(a) * r, y, Math.sin(a) * r * 0.55 + 0.05);
+            // dải gió nghiêng theo hướng xoáy; phía sau người mờ hơn
+            sp.material.rotation = Math.cos(a) * 0.5;
+            sp.material.opacity = W.k * (0.55 + 0.4 * (0.5 + 0.5 * Math.sin(a)));
+            const sc = 1 + 0.15 * Math.sin(this._time * 6 + i);
+            sp.scale.set(1.5 * sc * (0.7 + 0.3 * Math.abs(Math.sin(a))), 0.56 * sc, 1);
+        });
+        W.ring.position.y = GROUND_Y + 0.05 + lift * 0;
+        W.ring.rotation.z -= dt * 3;
+        W.ring.material.opacity = 0.5 * W.k;
+    }
+
+    /** Sấm phù trợ: 4 tia sét nhỏ nháy ngẫu nhiên quanh người (đổi chỗ / hình mỗi ~0.09s) + quầng tím dưới chân */
+    _updateThunderAura(dt, on) {
+        if (on && !this._thunder) {
+            const g = new THREE.Group();
+            for (let i = 0; i < 4; i++) {
+                const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: getBoltTexture(i % 3), transparent: true, depthWrite: false,
+                    fog: false, opacity: 0, blending: THREE.AdditiveBlending }));
+                sp.scale.set(0.32, 0.8, 1);
+                g.add(sp);
+            }
+            const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: getFortressTexture(),
+                transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, opacity: 0, color: 0xb07cff }));
+            glow.rotation.x = -Math.PI / 2; glow.position.y = GROUND_Y + 0.04;
+            this.root.add(glow, g);
+            this._thunder = { group: g, glow, k: 0, t: 0 };
+        }
+        const S = this._thunder;
+        if (!S) return;
+        S.k += ((on ? 1 : 0) - S.k) * Math.min(1, dt * 6);
+        S.group.visible = S.glow.visible = S.k > 0.02;
+        if (!S.group.visible) return;
+        S.t -= dt;
+        const h = this.height, lift = this._hover ?? 0;
+        if (S.t <= 0) {
+            S.t = 0.07 + Math.random() * 0.06;
+            S.group.children.forEach((sp, i) => {
+                const show = Math.random() < 0.7;
+                const a = Math.random() * TAU;
+                sp.material.map = getBoltTexture(Math.floor(Math.random() * 3));
+                sp.position.set(Math.cos(a) * (0.55 + Math.random() * 0.35), GROUND_Y + lift + h * (0.15 + Math.random() * 0.7), Math.sin(a) * 0.35 + 0.1);
+                sp.material.rotation = (Math.random() - 0.5) * 1.2;
+                const s = 0.7 + Math.random() * 0.6;
+                sp.scale.set(0.32 * s, 0.8 * s, 1);
+                sp.userData.on = show;
+            });
+        }
+        S.group.children.forEach(sp => { sp.material.opacity = sp.userData.on ? S.k * (0.7 + 0.3 * Math.random()) : 0; });
+        S.glow.material.opacity = S.k * (0.3 + 0.15 * Math.sin(this._time * 20));
+        S.glow.rotation.z += dt * 2;
+    }
+
+    /** Khiên Dựng Khiên phát nổ: thần hộ vệ + vòm loé sáng mạnh */
+    onGuardBurst() { this._guardPulse = 1.6; }
 
     /** Đòn đánh bị khiên ánh sáng đỡ: khiên bùng sáng một nhịp */
     onGuardHit() { this._guardPulse = 1; }
@@ -787,9 +1201,10 @@ export class CutoutCharacterView extends CharacterView {
      * Nhảy tới vị trí mới theo đường vòng cung (VD nhảy lùi khi Phóng Bùa).
      * Giữ nguyên hướng mặt; trong lúc nhảy bỏ qua vị trí server.
      */
-    leapTo(x, z, { duration = 0.55, height = 1.1, flip = 0, flipFrom = 0.12, flipTo = 0.62 } = {}) {
+    leapTo(x, z, { duration = 0.55, height = 1.1, flip = 0, flipFrom = 0.12, flipTo = 0.62, path = null, apex = 0.5 } = {}) {
         // flip: số vòng lộn (dương = lộn ngửa ra sau), xoay trong khoảng [flipFrom, flipTo] của cú nhảy
-        this._leap = { from: this.basePos.clone(), to: new THREE.Vector3(x, 0, z), t: 0, duration, height, flip, flipFrom, flipTo };
+        // path: (p 0..1) => {x, z, lift} — tự vẽ đường bay (VD bị Brakk túm nhấc qua đầu rồi quật xuống)
+        this._leap = { from: this.basePos.clone(), to: new THREE.Vector3(x, 0, z), t: 0, duration, height, flip, flipFrom, flipTo, path, apex };
         this.posLocked = true;
     }
 
@@ -798,10 +1213,19 @@ export class CutoutCharacterView extends CharacterView {
         L.t += dt;
         const p = Math.min(1, L.t / L.duration);
         const e = 1 - (1 - p) * (1 - p); // chậm dần khi tới gần chỗ đáp
-        this.basePos.lerpVectors(L.from, L.to, e);
+        if (L.path) {
+            const r = L.path(p);
+            this.basePos.set(r.x, 0, r.z);
+            this._lift = r.lift ?? 0;
+        } else {
+            this.basePos.lerpVectors(L.from, L.to, e);
+            // apex > 0.5: bay lên chậm, rơi xuống NHANH dần (cú đập có lực); 0.5 = parabol đều
+            if (L.apex === 0.5) this._lift = L.height * 4 * p * (1 - p);
+            else if (p < L.apex) { const q = p / L.apex; this._lift = L.height * (1 - (1 - q) * (1 - q)); }
+            else { const q = (p - L.apex) / (1 - L.apex); this._lift = L.height * (1 - q * q); }
+        }
         this.root.position.x = this.basePos.x;
         this.root.position.z = this.basePos.z;
-        this._lift = L.height * 4 * p * (1 - p);
         if (L.flip && this.parts.hips) {
             const f = THREE.MathUtils.clamp((p - L.flipFrom) / (L.flipTo - L.flipFrom), 0, 1);
             const ef = f * f * (3 - 2 * f); // nhanh ở giữa vòng lộn
@@ -830,12 +1254,13 @@ export class CutoutCharacterView extends CharacterView {
 
         if (this._intro) this._updateIntro(dt);
         else if (this._leap) this._updateLeap(dt);
-        this.stand.position.y = GROUND_Y + this._lift;
-        const shadowScale = 1 - Math.min(0.7, this._lift / 10);
+        this.stand.position.y = GROUND_Y + this._lift + (this._hover ?? 0);
+        const shadowScale = 1 - Math.min(0.7, (this._lift + (this._hover ?? 0)) / 10);
         this.shadow.scale.setScalar(shadowScale);
 
         this._updateLocomotion(dt);
         this.mixer.update(dt);
+        this._updateBowString();
         const s = this._oneShot;
         if (s && !s.hitFired && s.action.time >= s.hitTime) this._fireHit();
         if (s?.finished && this._oneShot === s) this._finishOneShot();
@@ -865,7 +1290,7 @@ export class CutoutCharacterView extends CharacterView {
 
         if (this._flashTime > 0) {
             this._flashTime -= dt;
-            if (this._flashTime <= 0) for (const m of this.materials) m.color.setScalar(m.userData.baseShade);
+            if (this._flashTime <= 0) for (const m of this.materials) { if (m.userData.baseColor) m.color.copy(m.userData.baseColor); else m.color.setScalar(m.userData.baseShade); }
         }
     }
 

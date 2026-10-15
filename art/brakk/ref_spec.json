@@ -1,0 +1,600 @@
+{
+ "ref": "art/brakk/01-character.png",
+ "out": "src/assets/sprites/brakk_atlas.png",
+ "meta": "src/characters/cutout/brakkAtlas.json",
+ "debug": "/tmp/claude-0/rk/bk/cut_debug.png",
+ "width": 2048,
+ "order": [],
+ "pieces": {},
+ "extra": {
+  "head": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    25,
+    10,
+    560,
+    425
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "torso": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    590,
+    25,
+    972,
+    550
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "tail": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    985,
+    170,
+    1458,
+    405
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "armN": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    40,
+    440,
+    310,
+    722
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "armF": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    920,
+    440,
+    1125,
+    722
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "foreN": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    378,
+    445,
+    672,
+    735
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "poly": [
+    [
+     370,
+     440
+    ],
+    [
+     670,
+     440
+    ],
+    [
+     670,
+     520
+    ],
+    [
+     370,
+     700
+    ]
+   ]
+  },
+  "foreF": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    1175,
+    455,
+    1458,
+    742
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "poly": [
+    [
+     1148,
+     450
+    ],
+    [
+     1463,
+     450
+    ],
+    [
+     1463,
+     513
+    ],
+    [
+     1148,
+     738
+    ]
+   ]
+  },
+  "thighN": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    55,
+    735,
+    282,
+    1035
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "thighF": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    428,
+    735,
+    652,
+    1035
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "shinN": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    748,
+    722,
+    1012,
+    1025
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "shinF": {
+   "sheet": "art/brakk/02-body-parts.png",
+   "box": [
+    1133,
+    722,
+    1418,
+    1025
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "hClaw": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    10,
+    135,
+    445,
+    465
+   ],
+   "scale": 0.6,
+   "largest": true
+  },
+  "hFist": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    445,
+    240,
+    735,
+    450
+   ],
+   "scale": 0.6,
+   "largest": true
+  },
+  "hRelax": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    765,
+    175,
+    1085,
+    495
+   ],
+   "scale": 0.6,
+   "largest": true
+  },
+  "hPalm": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    1105,
+    80,
+    1430,
+    470
+   ],
+   "scale": 0.6,
+   "largest": true
+  },
+  "hThumb": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    1450,
+    110,
+    1755,
+    445
+   ],
+   "scale": 0.6,
+   "largest": true
+  },
+  "eyeOpen": {
+   "blank": true
+  },
+  "eyeBlink": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    320,
+    610,
+    555,
+    805
+   ],
+   "scale": 0.26,
+   "largest": true
+  },
+  "eyeAngry": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    625,
+    610,
+    855,
+    805
+   ],
+   "scale": 0.26,
+   "largest": true
+  },
+  "eyeDetermined": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    920,
+    605,
+    1150,
+    805
+   ],
+   "scale": 0.26,
+   "largest": true
+  },
+  "eyePain": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    1200,
+    605,
+    1450,
+    805
+   ],
+   "scale": 0.26,
+   "largest": true
+  },
+  "eyeRoar": {
+   "sheet": "art/brakk/03-hands-eyes.png",
+   "box": [
+    1510,
+    590,
+    1750,
+    805
+   ],
+   "scale": 0.26,
+   "largest": true
+  },
+  "gHead": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    15,
+    15,
+    565,
+    432
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "gTorso": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    560,
+    8,
+    1012,
+    568
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "gTail": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    5,
+    688,
+    790,
+    998
+   ],
+   "scale": 0.8,
+   "largest": true
+  },
+  "gArmN": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1278,
+    18,
+    1512,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     18,
+     285
+    ],
+    "disks": [
+     [
+      1405,
+      285,
+      85
+     ]
+    ]
+   }
+  },
+  "gForeN": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1278,
+    18,
+    1512,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     285,
+     368
+    ],
+    "disks": [
+     [
+      1405,
+      285,
+      85
+     ],
+     [
+      1410,
+      368,
+      62
+     ]
+    ]
+   }
+  },
+  "gHandN": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1278,
+    18,
+    1512,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     368,
+     592
+    ],
+    "disks": [
+     [
+      1410,
+      368,
+      62
+     ]
+    ]
+   },
+   "poly": [
+    [
+     1335,
+     300
+    ],
+    [
+     1512,
+     300
+    ],
+    [
+     1512,
+     600
+    ],
+    [
+     1335,
+     600
+    ]
+   ]
+  },
+  "gArmF": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1030,
+    18,
+    1262,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     18,
+     262
+    ],
+    "disks": [
+     [
+      1100,
+      262,
+      85
+     ]
+    ]
+   }
+  },
+  "gForeF": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1030,
+    18,
+    1262,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     262,
+     365
+    ],
+    "disks": [
+     [
+      1100,
+      262,
+      85
+     ],
+     [
+      1120,
+      365,
+      62
+     ]
+    ]
+   }
+  },
+  "gHandF": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1030,
+    18,
+    1262,
+    592
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     365,
+     592
+    ],
+    "disks": [
+     [
+      1120,
+      365,
+      62
+     ]
+    ]
+   },
+   "poly": [
+    [
+     1030,
+     300
+    ],
+    [
+     1215,
+     300
+    ],
+    [
+     1215,
+     600
+    ],
+    [
+     1030,
+     600
+    ]
+   ]
+  },
+  "gThighN": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    798,
+    560,
+    1062,
+    975
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     560,
+     716
+    ],
+    "disks": [
+     [
+      942,
+      716,
+      80
+     ]
+    ]
+   }
+  },
+  "gShinN": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    798,
+    560,
+    1062,
+    975
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     716,
+     975
+    ],
+    "disks": [
+     [
+      942,
+      716,
+      80
+     ]
+    ]
+   }
+  },
+  "gThighF": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1072,
+    565,
+    1352,
+    975
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     565,
+     721
+    ],
+    "disks": [
+     [
+      1241,
+      721,
+      80
+     ]
+    ]
+   }
+  },
+  "gShinF": {
+   "sheet": "art/brakk/04b-giant-parts.png",
+   "box": [
+    1072,
+    565,
+    1352,
+    975
+   ],
+   "scale": 0.8,
+   "largest": true,
+   "keep": {
+    "band": [
+     721,
+     975
+    ],
+    "disks": [
+     [
+      1241,
+      721,
+      80
+     ]
+    ]
+   }
+  }
+ }
+}

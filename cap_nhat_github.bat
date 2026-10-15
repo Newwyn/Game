@@ -34,12 +34,24 @@ for %%D in (
 
 echo.
 echo [2/4] Kiem tra thay doi...
+REM dist/ la ket qua build (da nam trong .gitignore) -> go khoi GitHub, van giu tren may
+git rm -r -q --cached dist >nul 2>&1
 git add -A
 git status --short
 
 echo.
-echo [3/4] Tao commit...
-git commit -m "Rok (Thiet Ho) hoan thien + tai lieu v3.0" -m "- Rok: sua ty le than, tay chan, kiem to hon; don bo doc ve qua dau khong che mat" -m "- Ky nang Rok: Su Tu Gam (linh hon su tu, -10%% thu), Day Khien (hat vang + choang 1s), Dung Khien (Aura Thiet Ve, ca doi +20%% thu)" -m "- Danh thu: bat/tat tung nhan vat, quai bat tu, phong to/thu nho bang, chi click de dung ky nang" -m "- Tai lieu: viet lai DOCUMENTATION.md, README, file Word GDD; xoa file 3D/sprite cu" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+echo [3/4] Tao commit (khong can go gi)...
+REM Mo ta lay tu mo_ta_cap_nhat.txt (Claude ghi san moi lan sua game; chi tiet trong NHAT_KY_CAP_NHAT.md).
+REM Khong co file do -> mo ta mac dinh theo ngay gio.
+if exist "mo_ta_cap_nhat.txt" (
+  git reset -q -- mo_ta_cap_nhat.txt >nul 2>&1
+  git commit -q -F "mo_ta_cap_nhat.txt"
+  if not errorlevel 1 del /q "mo_ta_cap_nhat.txt"
+) else (
+  git commit -q -m "Cap nhat %date% %time%" -m "Chi tiet: xem NHAT_KY_CAP_NHAT.md" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+)
+git log -1 --pretty=format:"   Commit: %%s"
+echo.
 
 echo.
 echo [4/4] Day len GitHub...

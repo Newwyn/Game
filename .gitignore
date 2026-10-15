@@ -10,3 +10,6 @@ yarn-error.log*
 dist/
 __pycache__/
 *.pyc
+
+# tiến trình người chơi (level / bậc / vật phẩm) — dữ liệu chạy thử, không đưa lên git
+data/

@@ -97,7 +97,38 @@ def main():
                 solid = alpha > 100
                 keep = ndimage.binary_dilation(ndimage.binary_opening(solid, iterations=4), iterations=1)
                 alpha[zone & ~keep] = 0
-        im = Image.fromarray(np.dstack([rgb[y0:y1, x0:x1], alpha]), "RGBA")
+        sub_rgb = rgb[y0:y1, x0:x1].copy()
+        if p.get("whiteHoles"):
+            # khe trắng giữa các lọn tóc (nền bị bao kín) -> trong suốt
+            r = sub_rgb.astype(int)
+            wh = (r.min(-1) >= 236) & ((r.max(-1) - r.min(-1)) <= 16) & (alpha > 0)
+            lab, n = ndimage.label(wh)
+            if n:
+                sz = ndimage.sum(wh, lab, range(1, n + 1))
+                big = np.isin(lab, np.nonzero(sz >= p.get("whiteHoleMin", 12))[0] + 1)
+                # đốm sáng bóng trên tóc (xung quanh là màu tóc sáng) -> giữ; khe hở (viền tóc đậm bao quanh) -> xoá
+                ring_ok = []
+                for ci in np.nonzero(big_ids := (sz >= p.get("whiteHoleMin", 12)))[0] + 1:
+                    comp = lab == ci
+                    ring = ndimage.binary_dilation(comp, iterations=3) & ~comp
+                    if r[ring][:, 2].mean() < p.get("whiteHoleRing", 170):
+                        ring_ok.append(ci)
+                big = np.isin(lab, ring_ok)
+                alpha[ndimage.binary_dilation(big, iterations=1)] = 0
+        if p.get("matte"):
+            # mép sát nền: tính lại alpha theo màu chuẩn của mảnh, gỡ phần trắng của nền -> hết viền trắng
+            F = np.array(p["matte"], np.float32)
+            dist = ndimage.distance_transform_edt(alpha > 0)
+            near = (dist <= p.get("matteBand", 6)) & (alpha > 0)
+            o = 255.0 - sub_rgb.astype(np.float32)
+            d = 255.0 - F
+            est = np.clip((o * d).sum(-1) / (d * d).sum(), 0, 1)
+            est = np.clip((est - 0.12) / 0.6, 0, 1)
+            alpha[near] = np.minimum(alpha[near], est[near] * 255).astype(np.uint8)
+            C = (sub_rgb.astype(np.float32) - (1 - est[..., None]) * 255) / np.maximum(est[..., None], 0.05)
+            C = np.clip(np.where(est[..., None] > 0.25, C, F), 0, 255)
+            sub_rgb[near] = C[near].astype(np.uint8)
+        im = Image.fromarray(np.dstack([sub_rgb, alpha]), "RGBA")
         if scale != 1.0:
             im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.LANCZOS)
         crops.append((name, im, [int(x0), int(y0)], scale))

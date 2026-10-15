@@ -6,6 +6,8 @@
 // Kỹ năng:  Khiêu Khích -> taunt   Đập Khiên -> bash   Thành Trì -> fortress (niệm ~1s, clip lặp 'cast')
 import { buildPoseClip } from './poseClip.js';
 
+const TUCK = 0.75;
+const WRIST_MAX = 0.45; // cổ tay gập tối đa ~25°
 const SHIELD_KEEP = (p, tilt = 0) => tilt - ((p.torso ?? 0) + (p.armF ?? 0) + (p.foreF ?? 0) + (p.handF ?? 0));
 
 // Thế thủ: khiên trước ngực, kiếm chĩa ra trước dưới mép khiên (như ảnh mẫu)
@@ -70,9 +72,9 @@ const TAUNT_BANG = pose({ liftF: 1, hips: [0.01, -0.02], torso: -0.15, head: 0.1
 // K2 Đập Khiên: thủ thế -> lao tới, đẩy thẳng khiên ra trước
 const BASH_PREP = pose({ hips: [-0.03, -0.05], torso: 0.05, armF: -0.1, foreF: 1.9, armN: 0.3, foreN: 0.8,
     thighN: 0.8, shinN: -1.1, thighF: 0.2, shinF: -1.0 });
-const BASH_HIT = pose({ hips: [0.06, -0.06], torso: -0.45, head: 0.35, armF: 1.45, foreF: 0.15, armN: -0.7, foreN: 0.5, handN: 2.4,
+const BASH_HIT = pose({ noTuck: true, hips: [0.06, -0.06], torso: -0.45, head: 0.35, armF: 1.45, foreF: 0.15, armN: -0.7, foreN: 0.5, handN: 2.4,
     thighN: 1.1, shinN: -0.6, thighF: -0.8, shinF: -0.3 }, 0);
-const BASH_FOLLOW = pose({ ...BASH_HIT, hips: [0.05, -0.05], torso: -0.38, armF: 1.3, foreF: 0.3 });
+const BASH_FOLLOW = pose({ ...BASH_HIT, noTuck: true, hips: [0.05, -0.05], torso: -0.38, armF: 1.3, foreF: 0.3 });
 
 // K3 Thành Trì (niệm): quỳ một gối, cắm khiên xuống đất trước mặt, kiếm giơ cao
 const FORT = pose({ hips: [0, -0.16], torso: -0.15, head: 0.1, armF: 0.9, foreF: 0.5, handF: 0,
@@ -103,7 +105,19 @@ const DEAD = pose({ air: true, torso: 0.2, head: 0.4, armF: 0.6, foreF: 0.4, arm
     thighN: 0.35, shinN: -0.5, thighF: -0.1, shinF: -0.2 });
 
 export function rokClips(parts, height) {
-    const c = (name, times, poses) => buildPoseClip(name, times, poses, parts, height);
+    // liftPart 'foreF': chỉ cẳng tay + khiên lên trước thân, bắp tay xa vẫn sau thân (không lòi ra như cánh tay thứ 3)
+    // TUCK: kéo khuỷu tay xa ra sau (bắp tay khuất sau thân) + gập cẳng tay thêm đúng chừng ấy -> hướng khiên giữ nguyên
+    // nhưng KHIÊN ÁP SÁT NGỰC như ảnh mẫu, che luôn cẳng tay (không còn "ống tay" chìa ra giữa người và khiên).
+    // Tư thế cần đẩy khiên ra xa (Đẩy Khiên) ghi noTuck: true.
+    const tuck = (p) => (p.noTuck ? p : { ...p, armF: (p.armF ?? 0) - TUCK, foreF: (p.foreF ?? 0) + TUCK });
+    // CỔ TAY THẲNG: phần lớn góc xoay của bàn tay chuyển sang khớp kiếm (xoay kiếm trong nắm tay).
+    // Hướng lưỡi kiếm giữ nguyên, nhưng nắm tay không còn bị bẻ gập/thòng xuống nhìn như "cổ tay gãy".
+    const wrist = (p) => {
+        const h = p.handN ?? 0;
+        const w = Math.max(-WRIST_MAX, Math.min(WRIST_MAX, h * 0.3));
+        return { ...p, handN: w, sword: (p.sword ?? 0) + h - w };
+    };
+    const c = (name, times, poses) => buildPoseClip(name, times, poses.map(p => wrist(tuck(p))), parts, height, { liftPart: 'foreF' });
     return [
         c('idle', [0, 0.9, 1.8], [IDLE, IDLE_IN, IDLE]),
         c('ready', [0, 0.8, 1.6], [READY, READY_IN, READY]),

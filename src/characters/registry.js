@@ -17,12 +17,37 @@ import {
     SECONDARY as ASSASSIN2_SECONDARY, LOCOMOTION as ASSASSIN2_LOCOMOTION,
 } from './cutout/assassin2Clips.js';
 import { creatureVisual } from './cutout/creatureRig.js';
-import { ROK_RIG } from './cutout/rokRig.js';
+import { ROK2_RIG as ROK_RIG } from './cutout/rok2Rig.js'; // bản 2: bộ tranh vẽ riêng cho gắn xương
 import {
     rokClips, SKIN_KEYS as ROK_SKINS, DEFAULT_SKINS as ROK_DEFAULT_SKINS,
     SECONDARY as ROK_SECONDARY, LOCOMOTION as ROK_LOCOMOTION,
 } from './cutout/rokClips.js';
 import { makeTalismanMesh } from '../vfx/vfx.js';
+import { LYRA_RIG } from './cutout/lyraRig.js';
+import { SERA_RIG } from './cutout/seraRig.js';
+import { IGNAR_RIG, PALM_FIRE } from './cutout/ignarRig.js';
+import {
+    ignarClips, SKIN_KEYS as IGNAR_SKINS, DEFAULT_SKINS as IGNAR_DEFAULT_SKINS,
+    SECONDARY as IGNAR_SECONDARY, LOCOMOTION as IGNAR_LOCOMOTION,
+} from './cutout/ignarClips.js';
+import {
+    seraClips, SKIN_KEYS as SERA_SKINS, DEFAULT_SKINS as SERA_DEFAULT_SKINS,
+    SECONDARY as SERA_SECONDARY, LOCOMOTION as SERA_LOCOMOTION,
+} from './cutout/seraClips.js';
+import { ZERITH_RIG } from './cutout/zerithRig.js';
+import {
+    zerithClips, SKIN_KEYS as ZERITH_SKINS, DEFAULT_SKINS as ZERITH_DEFAULT_SKINS,
+    SECONDARY as ZERITH_SECONDARY, LOCOMOTION as ZERITH_LOCOMOTION,
+} from './cutout/zerithClips.js';
+import { BRAKK_RIG } from './cutout/brakkRig.js';
+import {
+    brakkClips, SKIN_KEYS as BRAKK_SKINS, DEFAULT_SKINS as BRAKK_DEFAULT_SKINS,
+    SECONDARY as BRAKK_SECONDARY, LOCOMOTION as BRAKK_LOCOMOTION,
+} from './cutout/brakkClips.js';
+import {
+    lyraClips, SKIN_KEYS as LYRA_SKINS, DEFAULT_SKINS as LYRA_DEFAULT_SKINS,
+    SECONDARY as LYRA_SECONDARY, LOCOMOTION as LYRA_LOCOMOTION,
+} from './cutout/lyraClips.js';
 
 const ASSASSIN = {
     rig: ASSASSIN2_RIG,
@@ -71,10 +96,130 @@ const ROK = {
     },
 };
 
+// Lyra (Phong Tiễn) — Xạ Thủ. Tay xa cầm cung, tay gần kéo dây (dây cung + mũi tên vẽ bằng code: rig.bowString)
+const ARCHER = {
+    rig: LYRA_RIG,
+    clips: lyraClips,
+    height: 2.9,
+    shadowSize: 1.4,
+    skinKeys: LYRA_SKINS,
+    defaultSkins: LYRA_DEFAULT_SKINS,
+    secondary: LYRA_SECONDARY,
+    locomotion: LYRA_LOCOMOTION,
+    blink: true,
+    ghostTint: 0x99f6e4,
+    circleTint: 0x5eead4,
+    anims: {
+        attack:   { clip: 'attack',   hitTime: 0.2 },   // kéo căng -> nhả tên
+        snipe:    { clip: 'snipe',    hitTime: 0.42 },  // bật nhảy lộn, bắn giữa không trung
+        windCall: { clip: 'windCall', hitTime: 0.38 },  // giơ cung gọi Vệ Thần Gió
+        cast:     { clip: 'cast' },                     // gồng Thần Tiễn (lặp)
+        release:  { clip: 'release',  hitTime: 0.16 },  // nhả Thần Tiễn
+    },
+};
+
+// Seraphine (Thánh Quang) — Tu Sĩ. Tay xa cầm gậy phép, tay gần niệm phép / chắp tay cầu nguyện
+const PRIEST = {
+    rig: SERA_RIG,
+    clips: seraClips,
+    height: 2.9,
+    shadowSize: 1.4,
+    skinKeys: SERA_SKINS,
+    defaultSkins: SERA_DEFAULT_SKINS,
+    secondary: SERA_SECONDARY,
+    locomotion: SERA_LOCOMOTION,
+    blink: true,
+    ghostTint: 0xfde68a,
+    circleTint: 0xfacc15,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.22 },  // giơ gậy -> phóng cầu sáng
+        heal:   { clip: 'heal',   hitTime: 0.3 },
+        shield: { clip: 'shield', hitTime: 0.28 },
+        raise:  { clip: 'raise',  hitTime: 0.45 },  // giơ gậy cao -> vào niệm
+        pray:   { clip: 'pray' },                    // niệm (giữ lặp)
+    },
+};
+
+// Ignar (Hỏa Ngục) — Phù Thủy lửa. Tay xa ngửa giữ quả cầu lửa (hiệu ứng), ném / chưởng lửa
+const MAGE = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.9,
+    shadowSize: 1.4,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: true,
+    ghostTint: 0xff7a1a,
+    circleTint: 0xff5a00,
+    palmFire: { joint: 'handF', offset: [PALM_FIRE[0], PALM_FIRE[1] - 70] },
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.25 },  // ném cầu lửa
+        summon: { clip: 'summon', hitTime: 0.35 },  // Thiên Hỏa Cầu
+        bolt:   { clip: 'bolt',   hitTime: 0.25 },  // Cột Lửa
+        charge: { clip: 'charge' },                  // gồng Hỏa Thần (giữ)
+        palm:   { clip: 'palm',   hitTime: 0.2 },   // Hỏa Chưởng
+        volley: { clip: 'volley', hitTime: 0.3 },   // nhảy chưởng toàn thể
+    },
+};
+
+// Zerith (U Minh) — Sát Thủ phép, lưỡi hái. Tay gần cầm liềm, tay xa thả lỏng / xoè phép / chỉ tay (Ấn Tử)
+const REAPER = {
+    rig: ZERITH_RIG,
+    clips: zerithClips,
+    height: 2.9,
+    shadowSize: 1.4,
+    skinKeys: ZERITH_SKINS,
+    defaultSkins: ZERITH_DEFAULT_SKINS,
+    secondary: ZERITH_SECONDARY,
+    locomotion: ZERITH_LOCOMOTION,
+    blink: true,
+    ghostTint: 0xc084fc,     // dư ảnh tím
+    circleTint: 0xa855f7,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.22 },   // vung liềm ra sau -> bổ xuống
+        dash:   { clip: 'dash' },                     // lướt (giữ tư thế)
+        charge: { clip: 'charge' },                   // gồng (giữ)
+        reap:   { clip: 'reap',   hitTime: 0.15 },   // chém hất lên trời
+        slam:   { clip: 'slam',   hitTime: 0.2 },    // bổ xuống (Đêm Tử Thần)
+        summon: { clip: 'summon', hitTime: 0.2 },    // gọi Thần Chết
+        mark:   { clip: 'mark',   hitTime: 0.15 },   // chỉ tay gắn Ấn Tử
+    },
+};
+
+// Brakk (Cuồng Đấu) — Chiến Binh đô vật, tộc Dragon. Thần Lực Khổng Lồ: view tự đổi cả bộ mảnh sang dạng khổng lồ
+const BRAKK = {
+    rig: BRAKK_RIG,
+    clips: brakkClips,
+    height: 2.9,
+    shadowSize: 1.7,
+    skinKeys: BRAKK_SKINS,
+    defaultSkins: BRAKK_DEFAULT_SKINS,
+    secondary: BRAKK_SECONDARY,
+    locomotion: BRAKK_LOCOMOTION,
+    blink: true,
+    ghostTint: 0xff7a1a,
+    circleTint: 0xff5a1a,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.2 },    // đấm
+        uplift: { clip: 'uplift', hitTime: 0.2 },    // móc ngược hất tung (Khổng Lồ)
+        grab:   { clip: 'grab',   hitTime: 0.85 },   // túm -> nhảy vọt -> quật (Bá Vương Quật)
+        charge: { clip: 'charge' },                  // niệm Chấn Địa (giữ)
+        stomp:  { clip: 'stomp',  hitTime: 0.6 },    // bật cao -> dậm đất
+        roar:   { clip: 'roar',   hitTime: 0.3 },    // hoá khổng lồ
+    },
+};
+
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
     warrior: () => ROK,
+    archer: () => ARCHER,
+    priest: () => PRIEST,
+    mage: () => MAGE,
+    reaper: () => REAPER,
+    wrestler: () => BRAKK,
     monster_tank: (m) => creatureVisual('monster_tank', m.color),
     monster_archer: (m) => creatureVisual('monster_archer', m.color),
     monster_supporter: (m) => creatureVisual('monster_supporter', m.color),

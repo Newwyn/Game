@@ -4,6 +4,7 @@
 //   'combat'  : góc NGANG (nhìn từ bên hông, hơi chúc xuống) — khung hình ôm cả hai phe để dễ theo dõi trận
 //   'explore' : góc CHÉO ~48° kiểu Tree of Savior — dành cho bản đồ thế giới khi đi lại (sau này)
 // Đổi chế độ: cameraRig.setMode('combat' | 'explore') — camera chuyển mượt, không giật.
+import { settings } from './settings.js';
 import * as THREE from 'three';
 import { camera, renderer, scene } from './scene.js';
 
@@ -24,6 +25,8 @@ let targetDist = CAMERA_MODES.combat.minDist;
 let dist = targetDist;
 let pitch = THREE.MathUtils.degToRad(CAMERA_MODES.combat.pitchDeg);
 let zoom = 1, zoomTarget = 1;
+// Nâng khung hình (VD: Thần Hộ Vệ hiện trên đầu Rok) — cộng vào độ cao điểm nhìn + lùi xa thêm chút
+let lift = 0, liftTarget = 0, liftRate = 3;
 const shake = { intensity: 0, until: 0 };
 // Zoom mở màn: camera bắt đầu xa rồi lướt vào (hệ số nhân khoảng cách)
 const intro = { from: 1, t: 1, duration: 1 };
@@ -32,12 +35,13 @@ let introFactor = 1;
 function cfg() { return CAMERA_MODES[mode]; }
 
 function placeCamera() {
+    const d = dist * zoom * introFactor * (1 + lift * 0.1);
     camera.position.set(
         focus.x,
-        focus.y + Math.sin(pitch) * dist * zoom * introFactor,
-        focus.z + Math.cos(pitch) * dist * zoom * introFactor,
+        focus.y + lift + Math.sin(pitch) * d,
+        focus.z + Math.cos(pitch) * d,
     );
-    camera.lookAt(focus);
+    camera.lookAt(focus.x, focus.y + lift, focus.z);
 }
 
 /** Khoảng cách cần lùi để khung hình rộng `width` (theo trục x) vừa màn hình */
@@ -87,12 +91,16 @@ export const cameraRig = {
         placeCamera();
     },
 
+    /** Nâng khung hình lên `h` đơn vị (0 = bình thường), chuyển mượt */
+    setLift(h, rate = 3) { liftTarget = h; liftRate = rate; },   // rate: tốc độ đuổi theo (lớn = nhanh)
+
     zoomBy(factor) {
         zoomTarget = THREE.MathUtils.clamp(zoomTarget * factor, ZOOM_MIN, ZOOM_MAX);
     },
 
     /** Rung màn hình dạng offset: không làm lệch vị trí camera thật */
     shake(intensity = 0.2, durationMs = 200) {
+        if (!settings.shake) return;   // tắt rung màn hình (Tạm dừng -> Cài đặt)
         shake.intensity = Math.max(shake.intensity, intensity);
         shake.until = Math.max(shake.until, performance.now() + durationMs);
     },
@@ -114,6 +122,7 @@ export const cameraRig = {
         dist += (targetDist - dist) * kFollow;
         pitch += (THREE.MathUtils.degToRad(c.pitchDeg) - pitch) * kBlend;
         zoom += (zoomTarget - zoom) * (1 - Math.exp(-10 * dt));
+        lift += (liftTarget - lift) * (1 - Math.exp(-liftRate * dt));
         if (intro.t < 1) {
             intro.t = Math.min(1, intro.t + dt / intro.duration);
             const e = 1 - Math.pow(1 - intro.t, 3); // chậm dần khi tới gần

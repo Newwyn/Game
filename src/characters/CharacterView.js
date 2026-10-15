@@ -58,6 +58,12 @@ export class CharacterView {
         this.castBar.position.y = 3.2;
         this.castBar.visible = false;
         this.root.add(this.castBar);
+        // Thanh MÁU KHIÊN (Dựng Khiên của Chiến Binh) nằm ngay trên thanh máu
+        this.shieldBar = createBarSprite('#fcd34d');
+        this.shieldBar.scale.set(1.5, 0.12, 1);
+        this.shieldBar.position.y = 3.17;
+        this.shieldBar.visible = false;
+        this.root.add(this.shieldBar);
 
         // Vòng tầm đánh dưới chân
         const ring = new THREE.Mesh(
@@ -137,16 +143,21 @@ export class CharacterView {
             else if (member.state === 'moving') this.setLocomotion('move');
             else if (member.state === 'casting') this.setLocomotion('cast');
             else if (member.state === 'attacking') this.setLocomotion('ready');
-            else if (member.state === 'stunned') this.setLocomotion('stunned');
+            else if (member.state === 'stunned' || member.state === 'judged') this.setLocomotion('stunned');   // judged: bị Thần Chết nhấc lên
             else if (member.state === 'guarding') this.setLocomotion('guarding'); // đứng thủ thế giữa các đòn
             else this.setLocomotion('idle');
         }
 
         // Thanh máu
-        updateBarSprite(this.hpBar, member.maxHp > 0 ? member.hp / member.maxHp : 0);
+        const nowM = gameNow();
+        const mark = member.statusEffects?.find(ef => ef.type === 'death_mark' && ef.endTime > nowM);   // Ấn Tử: vạch ngưỡng tử
+        updateBarSprite(this.hpBar, member.maxHp > 0 ? member.hp / member.maxHp : 0, mark?.execute ?? 0);
 
         // Thanh vận chiêu
         const now = gameNow();
+        const shield = member.alive && member.statusEffects?.find(ef => (ef.type === 'guard' || ef.type === 'holy_shield' || ef.type === 'brakk_shield' || ef.type === 'fire_ward') && ef.endTime > now && ef.maxHp && ef.hp > 0);
+        this.shieldBar.visible = !!shield;
+        if (shield) updateBarSprite(this.shieldBar, shield.hp / shield.maxHp);
         const castDef = this.classDef.skills?.[member.castingSkillId];
         if (member.alive && member.state === 'casting' && member.castEndTime > now && castDef?.castTime > 0) {
             this.castBar.visible = true;
@@ -171,6 +182,7 @@ export class CharacterView {
     /** Đặt độ cao thanh máu / thanh vận chiêu theo chiều cao nhân vật */
     setBarHeight(y) {
         this.hpBar.position.y = y;
+        if (this.shieldBar) this.shieldBar.position.y = y + 0.17;
         this.castBar.position.y = y + 0.2;
     }
 

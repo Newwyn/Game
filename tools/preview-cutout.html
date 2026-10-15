@@ -9,7 +9,7 @@ import { buildCutout, setSkin } from '../src/characters/CutoutCharacterView.js';
 const q = new URLSearchParams(location.search);
 const W = 1400, H = 700;
 const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
-const s = new THREE.Scene(); s.background = new THREE.Color(0x6d8f55);
+const s = new THREE.Scene(); s.background = new THREE.Color(q.get('bg') ? '#' + q.get('bg') : 0x6d8f55);   // bg=000000 / ffffff: chụp chân dung (tách nền)
 const cam = new THREE.PerspectiveCamera(30 / Number(q.get('zoom') || 1), W / H, 0.1, 100); const cy = Number(q.get('cy') || 1.4); cam.position.set(0, cy + 0.1, 9); cam.lookAt(0, cy, 0);
 
 let rig, tex, mod;
@@ -27,7 +27,8 @@ const posesQ = q.get('pose') ? [].concat(JSON.parse(q.get('pose'))) : [];
 const n = Math.max(times.length, posesQ.length, 1);
 Array.from({ length: n }, (_, i) => times[i] ?? times[0]).forEach((t, i) => {
   const height = 2.9;
-  const { root, parts, materials, skins } = buildCutout(rig, tex, height / rig.heightPx);
+  const { root, parts, materials, skins } = buildCutout(rig, tex, height / rig.heightPx); window.__parts = parts;
+  if (q.get('hide')) q.get('hide').split(',').forEach(k => { if (parts[k]) parts[k].visible = false; });   // hide=arrow: ẩn mảnh
   if (q.get('skin')) q.get('skin').split(',').forEach(kv => { const [k, v] = kv.split(':'); setSkin(skins, k, v); });
   materials.forEach(m => { m.alphaToCoverage = false; m.transparent = true; m.alphaTest = 0.1; });
   root.position.x = (i - (n - 1) / 2) * Number(q.get('gap') || 2.4);
@@ -43,6 +44,7 @@ Array.from({ length: n }, (_, i) => times[i] ?? times[0]).forEach((t, i) => {
     Object.entries(want).forEach(([k, v]) => setSkin(skins, k, v));
   }
   if (q.get('skin')) q.get('skin').split(',').forEach(kv => { const [k, v] = kv.split(':'); setSkin(skins, k, v); });
+  if (q.get('giant')) Object.keys(rig.parts).forEach(k => { if (rig.parts[k].skins?.giant) setSkin(skins, k, 'giant'); });   // giant=1: dạng khổng lồ (Brakk)
   if (posesQ[i]) for (const [k, v] of Object.entries(posesQ[i])) { const j = parts[k]; if (!j) continue; if (Array.isArray(v)) { j.position.x += v[0] * height; j.position.y += v[1] * height; } else j.rotation.z = v; }
   if (q.get('debug')) Object.values(parts).forEach(p => { const d = new THREE.Mesh(new THREE.CircleGeometry(0.03, 8), new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false })); d.renderOrder = 99; p.add(d); });
 });

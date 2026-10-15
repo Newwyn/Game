@@ -3,8 +3,12 @@
 // ============================================================
 // Mọi hiệu ứng được cập nhật trong updateVfx(dt) mỗi frame — không dùng setInterval.
 import * as THREE from 'three';
+import seraFxUrl from '../assets/sprites/sera_fx.png';
+import seraFxMeta from './seraFx.json';
 import { scene } from '../core/scene.js';
 import { drawLionHead } from './lionSpirit.js';
+import { drawGuardian } from './guardianSpirit.js';
+import { drawWindSpirit } from './windSpirit.js';
 
 let damageNumbers = [];
 let effects = [];
@@ -37,8 +41,12 @@ const DMG_STYLE = {
     heal:   { color: '#22c55e', text: v => `+${v}` },
     crit:   { color: '#fb923c', text: v => `-${v}` },
     block:  { color: '#94a3b8', text: v => (v > 0 ? `BLOCK -${v}` : 'BLOCK') },
+    absorb: { color: '#fcd34d', text: v => `◆ ${v}` },   // sát thương bị khiên (Dựng Khiên) hứng
+    shield: { color: '#fef08a', text: v => `◇ +${v}` },  // nhận khiên ánh sáng (Tu Sĩ)
     miss:   { color: '#f8fafc', text: () => 'MISS' },
     normal: { color: '#ef4444', text: v => `-${v}` },
+    magic:  { color: '#60a5fa', text: v => `-${v}` },   // sát thương PHÉP (xanh dương); vật lý = đỏ
+    hpcost: { color: '#f97316', text: v => `♥ -${v}` }, // tự trừ máu để dùng chiêu (Brakk)
 };
 
 export function spawnDamageNumber(pos, value, type = 'normal') {
@@ -56,7 +64,7 @@ export function spawnDamageNumber(pos, value, type = 'normal') {
     });
 
     if (isCrit) sprite.scale.set(3.0, 1.5, 1);
-    else if (type === 'miss' || type === 'block') sprite.scale.set(2.0, 1.0, 1);
+    else if (type === 'miss' || type === 'block' || type === 'absorb' || type === 'shield' || type === 'hpcost') sprite.scale.set(2.0, 1.0, 1);
     else sprite.scale.set(1.8, 0.9, 1);
 
     sprite.position.set(pos.x + (Math.random() - 0.5) * 0.5, pos.y + 3, pos.z + 0.5);
@@ -451,6 +459,45 @@ export function getMiniShieldTexture() {
         ctx.beginPath(); ctx.arc(0, -4, 10, 0, Math.PI * 2); ctx.fill();
     });
 }
+/** Dải gió hình lưỡi liềm mảnh (vệt gió bay vòng quanh đồng đội được Gió dẫn đường) */
+export function getWindRibbonTexture() {
+    return TEX.windRibbon ??= canvasTexture(256, 96, (ctx, w, h) => {
+        ctx.translate(w / 2, h * 0.95);
+        for (let pass = 0; pass < 3; pass++) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(94,234,212,1)'; ctx.shadowBlur = pass === 0 ? 14 : 4;
+            ctx.beginPath();
+            const R = 118 - pass * 10, r = R - (pass === 0 ? 20 : 12 - pass * 3);
+            ctx.arc(0, 40, R, Math.PI * 1.12, Math.PI * 1.88);
+            ctx.arc(14, 46, r, Math.PI * 1.83, Math.PI * 1.17, true);
+            ctx.closePath();
+            const g = ctx.createLinearGradient(-R, 0, R, 0);
+            const col = ['rgba(94,234,212,', 'rgba(204,251,241,', 'rgba(255,255,255,'][pass];
+            g.addColorStop(0, col + '0)'); g.addColorStop(0.6, col + (pass === 2 ? '0.9)' : '0.7)')); g.addColorStop(1, col + '0.1)');
+            ctx.fillStyle = g; ctx.fill();
+            ctx.restore();
+        }
+    });
+}
+/** Tia sét nhỏ zig-zag tím trắng (đồng đội được Tàng Hình của Jessica phù trợ). 3 dạng để nháy luân phiên */
+export function getBoltTexture(variant = 0) {
+    return TEX['bolt' + variant] ??= canvasTexture(64, 160, (ctx, w, h) => {
+        let seed = 7 + variant * 13;
+        const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+        const pts = [[w / 2, 6]];
+        for (let i = 1; i <= 6; i++) pts.push([w / 2 + (rnd() - 0.5) * 34, 6 + i * (h - 12) / 6]);
+        const path = () => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); };
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(176,124,255,1)'; ctx.shadowBlur = 14;
+        path(); ctx.strokeStyle = 'rgba(176,124,255,0.9)'; ctx.lineWidth = 9; ctx.stroke();
+        ctx.shadowBlur = 4;
+        path(); ctx.strokeStyle = '#f5edff'; ctx.lineWidth = 3; ctx.stroke();
+        // nhánh phụ
+        const [bx, by] = pts[3];
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + (variant % 2 ? 16 : -16), by + 22); ctx.lineTo(bx + (variant % 2 ? 10 : -12), by + 38);
+        ctx.strokeStyle = 'rgba(220,200,255,0.85)'; ctx.lineWidth = 2; ctx.stroke();
+    });
+}
 /** Lưới lục giác vàng cho vòm Aura Thiết Vệ */
 export function getHexDomeTexture() {
     if (TEX.hexDome) return TEX.hexDome;
@@ -469,6 +516,296 @@ export function getHexDomeTexture() {
     });
     t.wrapS = THREE.RepeatWrapping;
     return (TEX.hexDome = t);
+}
+
+export function getGuardianTexture() { return TEX.guardian ??= canvasTexture(512, 768, (ctx) => drawGuardian(ctx, 512, 768)); }
+
+/** Mảnh lục giác vàng (vụn khiên) */
+function hexShardTexture() {
+    return TEX.hexShard ??= canvasTexture(64, 64, (ctx) => {
+        ctx.translate(32, 32);
+        ctx.shadowColor = 'rgba(255,190,60,1)'; ctx.shadowBlur = 10;
+        const g = ctx.createRadialGradient(-6, -6, 2, 0, 0, 26);
+        g.addColorStop(0, 'rgba(255,255,240,1)'); g.addColorStop(1, 'rgba(255,200,80,0.85)');
+        ctx.fillStyle = g; ctx.strokeStyle = 'rgba(255,245,200,1)'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * 22, Math.sin(a) * 22); }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+    });
+}
+function spawnHexShards(c, { count = 12, speed = 3, life = 0.6, size = 0.32 } = {}) {
+    for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+        const v = speed * (0.6 + Math.random() * 0.6);
+        const m = fxPlane(hexShardTexture(), size, size, { opacity: 1 });
+        const spin = (Math.random() - 0.5) * 12;
+        addAnim(m, life, (p, fx) => {
+            const e = easeOut(p);
+            fx.mesh.position.set(c.x + Math.cos(a) * v * e, c.y + Math.sin(a) * v * e * 0.8 - p * p * 0.8, c.z + 0.1);
+            fx.mesh.rotation.z = spin * p;
+            const sc = 1 - p * 0.5; fx.mesh.scale.set(sc, sc, 1);
+            fx.mesh.material.opacity = 1 - p;
+        });
+    }
+}
+
+/**
+ * KHIÊN PHÁT NỔ (Dựng Khiên mất mỗi 100 máu khiên): chớp vàng lớn, khiên ánh sáng bung ra,
+ * cột sáng, vụn lục giác bắn tung + sóng vàng lan trên đất tới bán kính nổ.
+ */
+export function spawnGuardBurst(pos, { radius = 4.5 } = {}) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + 1.0, z: (pos.z ?? 0) + 0.7 };
+    // chớp + khiên ánh sáng bung ra đặt SAU lưng Rok (người vẫn rõ), vụn khiên bay phía trước
+    const back = (pos.z ?? 0) - 0.4;
+    const flash = fxPlane(glowTexture(), 1, 1, { color: 0xffb63a });
+    flash.position.set(c.x, c.y, back);
+    addAnim(flash, 0.3, (p, fx) => { const s = 1 + easeOut(p) * 3.4; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 0.6 * (1 - p); });
+    const sh = fxPlane(shieldBurstTexture(), 1.6, 2.1, { color: 0xfff0c0 });
+    sh.position.set(c.x, c.y + 0.2, back + 0.02);
+    addAnim(sh, 0.45, (p, fx) => { const s = 1.0 + easeOut(p) * 1.8; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = (1 - p) * 0.8; });
+    const pillar = fxPlane(sparkTexture(), 0.9, 6, { color: 0xfff1c2 });
+    pillar.position.set(c.x, 2.4, c.z - 0.05);
+    addAnim(pillar, 0.5, (p, fx) => { fx.mesh.scale.set(1 + p * 1.5, 0.6 + easeOut(p) * 0.6, 1); fx.mesh.material.opacity = 0.35 * (1 - p); });
+    spawnHexShards(c, { count: 14, speed: radius * 0.75 });
+    spawnShockwave(pos, { color: 0xffc94a, radius, life: 0.5 });
+    spawnRisingSparkles(pos, { count: 6, color: 0xffd36b, radius: 1.8 });
+}
+
+/** KHIÊN VỠ (hết máu khiên): vụn lục giác văng mạnh + chớp trắng */
+export function spawnShieldShatter(pos) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + 1.2, z: (pos.z ?? 0) + 0.7 };
+    spawnHexShards(c, { count: 22, speed: 3.6, life: 0.85, size: 0.4 });
+    const flash = fxPlane(glowTexture(), 1, 1, { color: 0xffc04a });
+    flash.position.set(c.x, c.y, (pos.z ?? 0) - 0.4); // sau lưng Rok
+    addAnim(flash, 0.3, (p, fx) => { const s = 1 + easeOut(p) * 3; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 0.6 * (1 - p); });
+}
+
+/** Trúng sóng gầm: chớp cam + vòng âm nhỏ trên người quái */
+export function spawnRoarHit(pos) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + CHEST_Y, z: (pos.z ?? 0) + 0.5 };
+    const ring = fxPlane(ringTexture(), 1, 1, { color: 0xffa94d });
+    ring.position.set(c.x, c.y, c.z);
+    addAnim(ring, 0.35, (p, fx) => { const s = 0.6 + easeOut(p) * 2.2; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 1 - p; });
+    spawnHitSpark(pos, { count: 8, color: 0xffc46b, size: 1.1 });
+}
+
+// ---------- Xạ Thủ (Lyra) ----------
+/** Cây cung tạm (vẽ bằng code) cầm trên tay — dùng cho Lyra cho tới khi có tranh riêng */
+export function makeBowMesh(height = 1.3) {
+    const tex = TEX.bow ??= canvasTexture(128, 384, (ctx) => {
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(40, 14); ctx.lineTo(40, 370); ctx.stroke();               // dây cung
+        const g = ctx.createLinearGradient(0, 0, 0, 384);
+        g.addColorStop(0, '#5eead4'); g.addColorStop(0.5, '#0f766e'); g.addColorStop(1, '#5eead4');
+        ctx.strokeStyle = g; ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.moveTo(40, 14); ctx.quadraticCurveTo(150, 192, 40, 370); ctx.stroke(); // thân cung
+        ctx.strokeStyle = '#facc15'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(92, 170); ctx.lineTo(92, 214); ctx.stroke();               // chuôi
+        ctx.fillStyle = '#ccfbf1';
+        for (const y of [20, 364]) { ctx.beginPath(); ctx.ellipse(44, y, 8, 16, 0, 0, Math.PI * 2); ctx.fill(); }
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(height / 3, height),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide, fog: false }));
+    m.userData.sharedTexture = true;
+    return m;
+}
+export function getWindSpiritTexture(drawn = false) {
+    const key = drawn ? 'windSpiritDrawn' : 'windSpirit';
+    return TEX[key] ??= canvasTexture(512, 768, (ctx) => drawWindSpirit(ctx, 512, 768, drawn ? 1 : 0.15));
+}
+/** Mũi tên (nằm ngang, mũi hướng phải) */
+function arrowTexture() {
+    return TEX.arrow ??= canvasTexture(256, 48, (ctx) => {
+        ctx.strokeStyle = '#7c5a32'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(34, 24); ctx.lineTo(214, 24); ctx.stroke();
+        ctx.fillStyle = '#e8f6f4'; ctx.strokeStyle = '#5b7f7a'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(250, 24); ctx.lineTo(206, 10); ctx.lineTo(214, 24); ctx.lineTo(206, 38); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#5eead4';
+        for (const sy of [-1, 1]) { ctx.beginPath(); ctx.moveTo(10, 24 + sy * 16); ctx.lineTo(56, 24); ctx.lineTo(30, 24 + sy * 2); ctx.closePath(); ctx.fill(); }
+    });
+}
+/** Vệt gió dài (đuôi mũi tên) */
+function windStreakTexture() {
+    return TEX.windStreak ??= canvasTexture(256, 32, (ctx) => {
+        const g = ctx.createLinearGradient(0, 0, 256, 0);
+        g.addColorStop(0, 'rgba(94,234,212,0)'); g.addColorStop(0.75, 'rgba(160,255,235,0.8)'); g.addColorStop(1, 'rgba(255,255,255,1)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(0, 16); ctx.quadraticCurveTo(128, 2, 256, 12); ctx.lineTo(256, 20); ctx.quadraticCurveTo(128, 30, 0, 16); ctx.fill();
+    });
+}
+/**
+ * Mũi tên bay từ `from` tới `to` (toạ độ thế giới, y = độ cao), kèm vệt gió; gọi onHit khi tới.
+ * size: độ to; wind: có vệt gió + vòng gió; glow: màu quầng.
+ */
+export function spawnArrow(from, to, { duration = 0.22, size = 1, wind = true, color = 0x5eead4, onHit } = {}) {
+    const ang = Math.atan2(to.y - from.y, to.x - from.x);
+    const g = new THREE.Group();
+    const arrow = fxPlane(arrowTexture(), 1.1 * size, 0.2 * size, { additive: false });
+    g.add(arrow);
+    if (wind) {
+        const tail = fxPlane(windStreakTexture(), 2.2 * size, 0.32 * size, { color });
+        tail.position.x = -1.1 * size;
+        g.add(tail);
+        const glow = fxPlane(glowTexture(), 0.9 * size, 0.6 * size, { color });
+        glow.position.x = 0.4 * size;
+        g.add(glow);
+    }
+    g.rotation.z = ang;
+    const z = (from.z ?? 0) + 0.5;
+    let hit = false;
+    addAnim(g, duration, (p, fx) => {
+        fx.mesh.position.set(from.x + (to.x - from.x) * p, from.y + (to.y - from.y) * p, z);
+        if (p >= 1 && !hit) { hit = true; onHit?.(); }
+    });
+}
+/**
+ * Mũi tên bay VÒNG CUNG (Thần Tiễn Phá Thiên): đường cong bậc 2 từ dây cung vồng lên `arc` đơn vị rồi cắm xuống mục tiêu,
+ * thân tên luôn xoay theo hướng bay, kéo vệt gió phía sau.
+ */
+export function spawnArcArrow(from, to, { duration = 0.45, arc = 3, size = 1.4, color = 0x5eead4, onHit } = {}) {
+    const g = new THREE.Group();
+    const arrow = fxPlane(arrowTexture(), 1.1 * size, 0.2 * size, { additive: false });
+    const tail = fxPlane(windStreakTexture(), 2.4 * size, 0.34 * size, { color });
+    tail.position.x = -1.2 * size;
+    const glow = fxPlane(glowTexture(), 0.9 * size, 0.6 * size, { color });
+    glow.position.x = 0.4 * size;
+    g.add(tail, glow, arrow);
+    const z = (from.z ?? 0) + 0.5, z2 = (to.z ?? 0) + 0.5;
+    // điểm kiểm soát: giữa đường, nhấc cao `arc`
+    const cx = (from.x + to.x) / 2, cy = Math.max(from.y, to.y) + arc;
+    const at = (t) => {
+        const u = 1 - t;
+        return { x: u * u * from.x + 2 * u * t * cx + t * t * to.x, y: u * u * from.y + 2 * u * t * cy + t * t * to.y };
+    };
+    let hit = false;
+    addAnim(g, duration, (p, fx) => {
+        const t = p;   // tốc độ đều theo tham số
+        const a = at(t), b = at(Math.min(1, t + 0.02)), c = t >= 0.98 ? at(t - 0.02) : null;
+        const ang = c ? Math.atan2(a.y - c.y, a.x - c.x) : Math.atan2(b.y - a.y, b.x - a.x);
+        fx.mesh.position.set(a.x, a.y, z + (z2 - z) * t);
+        fx.mesh.rotation.z = ang;
+        tail.material.opacity = Math.min(1, p * 4);
+        if (p >= 1 && !hit) { hit = true; onHit?.(); }
+    });
+}
+/**
+ * Mũi tên TÊN LỬA (Thần Tiễn Phá Thiên):
+ *   1) hiện ra ở `slot` sau lưng (xếp hình vòng cung), mũi chĩa ra ngoài theo góc `ang`, lơ lửng `hold` giây
+ *   2) phóng đi: vọt tiếp ra ngoài rồi bẻ lái đuổi theo mục tiêu (đường cong bậc 3, `getTo()` đọc vị trí mới nhất),
+ *      thân tên xoay theo hướng bay, xả vệt gió + đốm khói như tên lửa; chạm thì gọi onHit.
+ */
+export function spawnMissileArrow(slot, ang, getTo, { hold = 0.3, flight = 0.55, size = 1.3, color = 0x5eead4, z = 0, onHit } = {}) {
+    const g = new THREE.Group();
+    const arrow = fxPlane(arrowTexture(), 1.1 * size, 0.2 * size, { additive: false });
+    const tail = fxPlane(windStreakTexture(), 2.2 * size, 0.34 * size, { color });
+    tail.position.x = -1.1 * size;
+    const glow = fxPlane(glowTexture(), 1.0 * size, 0.7 * size, { color });
+    glow.position.x = 0.35 * size;
+    g.add(tail, glow, arrow);
+    const zz = z + 0.5;
+    const out = { x: Math.cos(ang), y: Math.sin(ang) };
+    let from = null, p1, p2, to, hit = false, puffT = 0;
+    const bez = (t) => {
+        const u = 1 - t;
+        return {
+            x: u * u * u * from.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * to.x,
+            y: u * u * u * from.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * to.y,
+        };
+    };
+    const total = hold + flight;
+    addAnim(g, total, (p, fx, dt = 0) => {
+        const time = p * total;
+        if (time < hold) {
+            // hiện ra + lơ lửng, rung nhẹ như đang nạp
+            const k = Math.min(1, time / 0.12);
+            g.scale.set(k, k, 1);
+            const bob = Math.sin(time * 30) * 0.03;
+            fx.mesh.position.set(slot.x + out.x * bob, slot.y + out.y * bob, zz);
+            fx.mesh.rotation.z = ang;
+            tail.material.opacity = 0.25;
+            glow.material.opacity = 0.6 + 0.4 * Math.sin(time * 40);
+            return;
+        }
+        if (!from) {
+            from = { x: slot.x, y: slot.y };
+            to = getTo();
+            // vọt ra ngoài theo hướng chĩa, rồi lao xuống / ngang vào mục tiêu từ phía trên
+            p1 = { x: from.x + out.x * 3.2, y: from.y + out.y * 3.2 };
+            p2 = { x: to.x - Math.sign(to.x - from.x || 1) * 2.5, y: to.y + 3.5 };
+            tail.material.opacity = 1;
+        }
+        const live = getTo();                     // bám theo mục tiêu đang di chuyển
+        to.x += (live.x - to.x) * 0.25; to.y += (live.y - to.y) * 0.25;
+        const t = (time - hold) / flight;
+        const e = t * t * (3 - 2 * t) * 0.35 + t * 0.65; // tăng tốc nhẹ
+        const a = bez(e), b = bez(Math.min(1, e + 0.02)), c = bez(Math.max(0, e - 0.02));
+        const dir = e >= 0.98 ? Math.atan2(a.y - c.y, a.x - c.x) : Math.atan2(b.y - a.y, b.x - a.x);
+        fx.mesh.position.set(a.x, a.y, zz);
+        fx.mesh.rotation.z = dir;
+        // khói / gió phụt sau đuôi
+        puffT += dt;
+        if (puffT > 0.025) {
+            puffT = 0;
+            const puff = fxPlane(glowTexture(), 0.45 * size, 0.45 * size, { color });
+            puff.position.set(a.x - Math.cos(dir) * 0.6 * size, a.y - Math.sin(dir) * 0.6 * size, zz - 0.01);
+            addAnim(puff, 0.3, (q, f2) => { const sc = 1 + q * 1.4; f2.mesh.scale.set(sc, sc, 1); f2.mesh.material.opacity = 0.55 * (1 - q); });
+        }
+        if (p >= 1 && !hit) { hit = true; onHit?.(); }
+    });
+}
+/** Trúng tên gió: chớp + vòng gió xoáy */
+export function spawnWindHit(pos, { size = 1, color = 0x5eead4 } = {}) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + CHEST_Y, z: (pos.z ?? 0) + 0.55 };
+    const ring = fxPlane(ringTexture(), 1, 1, { color });
+    ring.position.set(c.x, c.y, c.z);
+    addAnim(ring, 0.28, (p, fx) => { const s = 0.4 + easeOut(p) * 1.8 * size; fx.mesh.scale.set(s, s * 0.6, 1); fx.mesh.material.opacity = 1 - p; });
+    spawnHitSpark(pos, { count: 6, color: 0xb6fff0, size: 0.9 * size });
+}
+/** Mũi tên gió XUYÊN (nội tại Phong Tiễn): luồng gió dài quét ngang qua cả hàng quái */
+export function spawnPierceWind(from, dir, length = 14, { color = 0x5eead4, scale = 1 } = {}) {
+    const y = from.y, z = (from.z ?? 0) + 0.55;
+    const beam = fxPlane(windStreakTexture(), 3.2 * scale, 0.7 * scale, { color });
+    beam.scale.x = dir;
+    const head = fxPlane(arrowTexture(), 1.3 * scale, 0.26 * scale, { additive: false });
+    head.scale.x = dir;
+    const g = new THREE.Group(); g.add(beam, head);
+    beam.position.x = -1.6 * scale * dir; head.position.x = 0.2 * dir;
+    addAnim(g, 0.32, (p, fx) => {
+        fx.mesh.position.set(from.x + dir * length * p, y, z);
+        beam.material.opacity = p > 0.8 ? (1 - p) * 5 : 1;
+    });
+}
+/** Gồng Thần Tiễn: gió hút vào quanh người + quầng ngọc lớn dần (giữ `seconds`) */
+export function spawnChargeWind(pos, seconds = 2, { y = 1.1 } = {}) {
+    const c = { x: pos.x, y, z: (pos.z ?? 0) + 0.6 };
+    const glow = fxPlane(glowTexture(), 1, 1, { color: 0x5eead4 });
+    glow.position.set(c.x, c.y, c.z);
+    addAnim(glow, seconds, (p, fx) => { const s = 0.6 + p * 2.4 + 0.15 * Math.sin(p * 40); fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 0.35 + 0.5 * p; });
+    for (let i = 0; i < 18; i++) {
+        const delay = Math.random() * (seconds - 0.4);
+        const a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 1.2;
+        const st = fxPlane(windStreakTexture(), 1.0, 0.16, { color: 0xb6fff0, opacity: 0 });
+        addAnim(st, delay + 0.4, (p, fx) => {
+            const t = Math.max(0, (p * (delay + 0.4) - delay) / 0.4);
+            const rr = r * (1 - easeOut(t));
+            fx.mesh.position.set(c.x + Math.cos(a) * rr, c.y + Math.sin(a) * rr * 0.8, c.z);
+            fx.mesh.rotation.z = a + Math.PI;
+            fx.mesh.material.opacity = t <= 0 ? 0 : 1 - t * 0.6;
+        });
+    }
+}
+/** Thần Tiễn nổ: cột sáng + vòng gió + vụn sáng */
+export function spawnBigArrowBlast(pos, { radius = 3 } = {}) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + CHEST_Y, z: (pos.z ?? 0) + 0.6 };
+    const flash = fxPlane(glowTexture(), 1, 1, { color: 0x99fff0 });
+    flash.position.set(c.x, c.y, c.z);
+    addAnim(flash, 0.4, (p, fx) => { const s = 1 + easeOut(p) * 4.5; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 0.9 * (1 - p); });
+    const pillar = fxPlane(sparkTexture(), 1.2, 7, { color: 0xcffff6 });
+    pillar.position.set(c.x, 2.6, c.z - 0.05);
+    addAnim(pillar, 0.55, (p, fx) => { fx.mesh.scale.set(1 + p * 2, 0.5 + easeOut(p) * 0.7, 1); fx.mesh.material.opacity = 0.8 * (1 - p); });
+    spawnShockwave(pos, { color: 0x5eead4, radius, life: 0.5 });
+    spawnHitSpark(pos, { count: 14, color: 0xb6fff0, size: 1.6 });
 }
 
 /** Dấu "!" đỏ bật lên trên đầu quái bị khiêu khích */
@@ -810,17 +1147,18 @@ export function makeTalismanMesh(height = 0.62) {
 }
 
 /** Khói bùng quanh người rồi tan (tàng hình / biến mất) */
-export function spawnSmokeBurst(pos, count = 12, radius = 0.8) {
+/** hue/sat/light: màu khói (mặc định tím than của Jessica; Lyra dùng khói gió trắng ngọc) */
+export function spawnSmokeBurst(pos, count = 12, radius = 0.8, { hue = 0.74, sat = 0.35, light = 0.22, height = 1.8 } = {}) {
     for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
             map: getPuffTexture(), transparent: true, depthWrite: false, opacity: 0.75,
-            color: new THREE.Color().setHSL(0.74, 0.35, 0.22 + Math.random() * 0.14),
+            color: new THREE.Color().setHSL(hue, sat, light + Math.random() * 0.14),
         }));
         sprite.userData.sharedTexture = true;
         const s = 0.45 + Math.random() * 0.35;
         sprite.scale.set(s, s, 1);
-        const h = Math.random() * 1.8;
+        const h = Math.random() * height;
         sprite.position.set(pos.x + Math.cos(a) * radius * 0.4, -0.35 + h, (pos.z ?? 0) + 0.3 + Math.sin(a) * 0.25);
         scene.add(sprite);
         effects.push({
@@ -1033,3 +1371,136 @@ export function clearVfx() {
     seals.forEach(s => { disposeObject(s.group); disposeObject(s.floor); });
     damageNumbers = []; effects = []; seals = [];
 }
+
+// ============================================================
+// TU SĨ (Seraphine): cầu sáng, hồi máu, khiên ánh sáng, thiên thần nhỏ, hộ vệ ánh sáng, hồi sinh
+// ============================================================
+let seraFxBase = null;
+/** Texture 1 mảnh trong sera_fx (guardian / angelFly / angelHold / angelGive) + tỉ lệ khung (w/h) */
+export function getSeraFxTexture(name) {
+    TEX.seraFx ??= {};
+    if (TEX.seraFx[name]) return TEX.seraFx[name];
+    seraFxBase ??= new THREE.TextureLoader().load(seraFxUrl, t => { t.colorSpace = THREE.SRGBColorSpace; });
+    seraFxBase.colorSpace = THREE.SRGBColorSpace;
+    const [W, H] = seraFxMeta.atlasSize;
+    const [x, y, w, h] = seraFxMeta.parts[name].rect;
+    const t = seraFxBase.clone();
+    t.repeat.set(w / W, h / H);
+    t.offset.set(x / W, 1 - (y + h) / H);
+    t.needsUpdate = true;
+    return (TEX.seraFx[name] = { texture: t, aspect: w / h });
+}
+function seraSprite(name, height, { opacity = 1, additive = false } = {}) {
+    const { texture, aspect } = getSeraFxTexture(name);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(height * aspect, height), new THREE.MeshBasicMaterial({
+        map: texture, transparent: true, depthWrite: false, fog: false, opacity,
+        blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide }));
+    m.userData.sharedTexture = true;
+    return m;
+}
+export { seraSprite };
+
+/** Bong bóng khiên ánh sáng (vòng sáng + viền vàng) */
+export function getHolyBubbleTexture() {
+    return TEX.holyBubble ??= canvasTexture(256, 256, (ctx) => {
+        const g = ctx.createRadialGradient(128, 128, 60, 128, 128, 124);
+        g.addColorStop(0, 'rgba(255,250,220,0)');
+        g.addColorStop(0.72, 'rgba(255,244,200,0.12)');
+        g.addColorStop(0.9, 'rgba(255,224,140,0.55)');
+        g.addColorStop(0.97, 'rgba(255,255,255,0.95)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(128, 128, 126, 0, Math.PI * 2); ctx.fill();
+        // vệt phản chiếu
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.arc(128, 128, 100, Math.PI * 1.1, Math.PI * 1.35); ctx.stroke();
+    });
+}
+/** Đôi cánh lông vũ trắng viền vàng (khiên cánh khi Tu Sĩ niệm). Vẽ 1 bên, bên kia lật */
+export function getWingTexture() {
+    return TEX.wing ??= canvasTexture(256, 256, (ctx) => {
+        ctx.translate(30, 150);
+        for (let i = 0; i < 7; i++) {
+            const a = -1.25 + i * 0.22, len = 150 - i * 12;
+            ctx.save(); ctx.rotate(a);
+            const g = ctx.createLinearGradient(0, 0, len, 0);
+            g.addColorStop(0, 'rgba(255,240,200,0.95)'); g.addColorStop(1, 'rgba(255,255,255,0.9)');
+            ctx.fillStyle = g; ctx.strokeStyle = 'rgba(214,170,70,0.95)'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.ellipse(len * 0.5, 0, len * 0.5, 13 - i * 0.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowColor = 'rgba(255,220,120,1)'; ctx.shadowBlur = 18;
+        ctx.fillStyle = 'rgba(255,236,170,0.9)'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    });
+}
+
+/** Cầu ánh sáng (đánh thường của Tu Sĩ) */
+export function spawnLightOrb(from, to, { duration = 0.25, onHit } = {}) {
+    const g = new THREE.Group();
+    const core = fxPlane(glowTexture(), 0.75, 0.75, { color: 0xfff3c4 });
+    const halo = fxPlane(glowTexture(), 1.5, 1.5, { color: 0xfacc15, opacity: 0.6 });
+    const tail = fxPlane(windStreakTexture(), 1.8, 0.45, { color: 0xfde68a });
+    tail.position.x = -0.9;
+    g.add(tail, halo, core);
+    g.rotation.z = Math.atan2(to.y - from.y, to.x - from.x);
+    const z = (from.z ?? 0) + 0.55;
+    let hit = false;
+    addAnim(g, duration, (p, fx) => {
+        fx.mesh.position.set(from.x + (to.x - from.x) * p, from.y + (to.y - from.y) * p + Math.sin(p * Math.PI) * 0.4, z);
+        halo.scale.setScalar(1 + 0.2 * Math.sin(p * 30));
+        if (p >= 1 && !hit) { hit = true; onHit?.(); }
+    });
+}
+/** Trúng cầu sáng: loé vàng nhỏ */
+export function spawnLightBurst(pos, { size = 1 } = {}) {
+    const c = { x: pos.x, y: (pos.y ?? 0) + CHEST_Y, z: (pos.z ?? 0) + 0.6 };
+    const f = fxPlane(glowTexture(), 1, 1, { color: 0xfff1b8 });
+    f.position.set(c.x, c.y, c.z);
+    addAnim(f, 0.3, (p, fx) => { const s = (0.6 + easeOut(p) * 1.8) * size; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 1 - p; });
+    spawnHitSpark(pos, { count: 6, color: 0xfde68a, size: 0.8 * size });
+}
+/** Hồi máu: cột sáng vàng rọi xuống + vòng sáng dưới chân + đốm sáng bay lên */
+export function spawnHealLight(pos, { big = false } = {}) {
+    const h = big ? 5 : 4;
+    const pillar = fxPlane(sparkTexture(), big ? 1.6 : 1.2, h, { color: 0xfff1c1 });
+    pillar.position.set(pos.x, GROUND_Y_FX + h / 2, (pos.z ?? 0) + 0.4);
+    addAnim(pillar, 0.7, (p, fx) => { fx.mesh.scale.x = 1 - p * 0.6; fx.mesh.material.opacity = p < 0.2 ? p * 5 : (1 - p) * 1.25; });
+    const ring = fxPlane(ringTexture(), 1, 1, { color: 0xfacc15 });
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(pos.x, GROUND_Y_FX + 0.05, pos.z ?? 0);
+    addAnim(ring, 0.6, (p, fx) => { const s = 0.5 + easeOut(p) * (big ? 3.2 : 2.4); fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 1 - p; });
+    spawnRisingSparkles(pos, { count: big ? 16 : 10, color: 0xfde68a, radius: 0.7 });
+}
+const GROUND_Y_FX = -0.5;
+/** Thiên thần nhỏ bay từ `from` tới `getTo()` (đuổi theo), mang quả cầu sáng; tới nơi gọi onArrive rồi tan */
+export function spawnAngel(from, getTo, { duration = 0.45, size = 1.1, onArrive } = {}) {
+    const g = new THREE.Group();
+    const glow = fxPlane(glowTexture(), 1.2 * size, 1.2 * size, { color: 0xfde68a, opacity: 0.6 });
+    const body = seraSprite('angelFly', size);
+    g.add(glow, body);
+    const z = (from.z ?? 0) + 0.8;
+    let arrived = false;
+    const life = duration + 0.25;
+    addAnim(g, life, (p, fx) => {
+        const t = Math.min(1, (p * life) / duration);
+        const to = getTo();
+        const e = t * t * (3 - 2 * t);
+        const x = from.x + (to.x - from.x) * e, y = from.y + (to.y - from.y) * e + Math.sin(t * Math.PI) * 1.2 + Math.sin(p * 25) * 0.05;
+        fx.mesh.position.set(x, y, z);
+        body.scale.x = to.x >= from.x ? 1 : -1;
+        const fade = t >= 1 ? 1 - ((p * life - duration) / 0.25) : Math.min(1, p * 8);
+        body.material.opacity = Math.max(0, fade);
+        glow.material.opacity = 0.6 * Math.max(0, fade);
+        if (t >= 1 && !arrived) { arrived = true; onArrive?.(); }
+    });
+}
+/** Hồi sinh: cột sáng lớn + sóng vàng + lông vũ / đốm sáng */
+export function spawnReviveLight(pos) {
+    spawnHealLight(pos, { big: true });
+    spawnShockwave(pos, { color: 0xfde68a, radius: 3, life: 0.6 });
+    const flash = fxPlane(glowTexture(), 1, 1, { color: 0xffffff });
+    flash.position.set(pos.x, (pos.y ?? 0) + CHEST_Y, (pos.z ?? 0) + 0.6);
+    addAnim(flash, 0.5, (p, fx) => { const s = 1 + easeOut(p) * 4; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 1 - p; });
+}
+
+// Dùng chung cho các module hiệu ứng riêng (vfx/fireFx.js...)
+export { addAnim, fxPlane, glowTexture, sparkTexture, ringTexture, easeOut, CHEST_Y };

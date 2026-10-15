@@ -1,0 +1,41 @@
+{
+ "out": "src/assets/sprites/ignar_fx.png",
+ "meta": "src/vfx/ignarFx.json",
+ "width": 2048,
+ "sheets": {
+  "a": {"file": "art/ignar/fx-a.png", "scale": 0.5},
+  "b": {"file": "art/ignar/fx-b.png", "scale": 0.5},
+  "c": {"file": "art/ignar/fx-c.png", "scale": 0.5},
+  "g": {"file": "art/ignar/05-guardian.png", "scale": 0.55}
+ },
+ "parts": {
+  "fireIdle": {"sheet": "a", "box": [41,169,265,432]},
+  "fireBall": {"sheet": "a", "box": [293,214,702,405]},
+  "fireSwirl": {"sheet": "a", "box": [731,134,1311,467]},
+  "meteor": {"sheet": "a", "box": [1378,0,1744,588]},
+  "boom0": {"sheet": "a", "box": [27,594,340,824]},
+  "boom1": {"sheet": "a", "box": [340,496,821,843]},
+  "boom2": {"sheet": "a", "box": [834,556,1278,841]},
+  "boom3": {"sheet": "a", "box": [1280,613,1754,843]},
+  "bolt": {"sheet": "b", "box": [25,70,358,349]},
+  "pillarCircle": {"sheet": "b", "box": [399,117,923,360]},
+  "scorch": {"sheet": "b", "box": [941,169,1307,358]},
+  "breakIcon": {"sheet": "b", "box": [1324,127,1515,350]},
+  "pillar0": {"sheet": "b", "box": [17,390,265,930]},
+  "pillar1": {"sheet": "b", "box": [268,390,524,930]},
+  "pillar2": {"sheet": "b", "box": [526,390,781,930]},
+  "pillar3": {"sheet": "b", "box": [782,390,1046,930]},
+  "pillar4": {"sheet": "b", "box": [1046,390,1286,930]},
+  "pillar5": {"sheet": "b", "box": [1287,390,1520,930]},
+  "summonCircle": {"sheet": "c", "box": [20,30,915,350]},
+  "aura0": {"sheet": "c", "box": [30,355,335,690]},
+  "aura1": {"sheet": "c", "box": [345,355,645,690]},
+  "aura2": {"sheet": "c", "box": [650,355,955,690]},
+  "wings": {"sheet": "c", "box": [925,95,1533,706]},
+  "palmFlash": {"sheet": "c", "box": [19,706,750,998]},
+  "stars": {"sheet": "c", "box": [792,773,985,940]},
+  "gIdle": {"sheet": "g", "box": [5,7,470,880]},
+  "gThrow": {"sheet": "g", "box": [470,40,1195,870]},
+  "gRoar": {"sheet": "g", "box": [1190,7,1774,887]}
+ }
+}

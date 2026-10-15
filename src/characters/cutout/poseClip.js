@@ -20,7 +20,8 @@ export const LIFT_Z = 0.38;
 //        qua đầu để cánh tay không che mặt. Rig nào cần thì khai báo rig.dropNZ (độ lùi z).
 export const DROP_Z = 0.285; // tay xa (z 1-3) -> 0.40-0.44: trên thân/đầu/khăn (<= 0.36), dưới tay gần (>= 0.44)
 
-export function buildPoseClip(name, times, poses, parts, height) {
+export function buildPoseClip(name, times, poses, parts, height, { liftPart = 'armF' } = {}) {
+    // liftPart: khớp được nâng lớp khi liftF=1 (mặc định cả tay xa 'armF'; Rok dùng 'foreF' để bắp tay xa vẫn nằm SAU thân)
     const tracks = [];
     const keys = Object.keys(poses[0]).filter(k => !SPECIAL.has(k));
     for (const key of keys) {
@@ -41,12 +42,12 @@ export function buildPoseClip(name, times, poses, parts, height) {
         });
         tracks.push(new THREE.VectorKeyframeTrack('hips.position', times, values));
     }
-    if (parts.armF && poses[0].liftF !== undefined) {
-        const p0 = parts.armF.position;
+    if (parts[liftPart] && poses[0].liftF !== undefined) {
+        const p0 = parts[liftPart].position;
         const values = [];
         poses.forEach(p => values.push(p0.x, p0.y, p0.z + (p.liftF ? LIFT_Z : 0)));
         // Đổi lớp tức thì (không trượt dần qua các lớp ở giữa)
-        tracks.push(new THREE.VectorKeyframeTrack('armF.position', times, values, THREE.InterpolateDiscrete));
+        tracks.push(new THREE.VectorKeyframeTrack(`${liftPart}.position`, times, values, THREE.InterpolateDiscrete));
     }
     if (parts.armN && poses.some(p => p.dropN)) {
         const p0 = parts.armN.position;

@@ -1,0 +1,326 @@
+{
+ "out": "src/assets/sprites/brakk_fx.png",
+ "meta": "src/vfx/brakkFx.json",
+ "width": 2048,
+ "sheets": {
+  "a": {
+   "file": "art/brakk/fx-a.png",
+   "scale": 0.5
+  },
+  "b": {
+   "file": "art/brakk/fx-b.png",
+   "scale": 0.5
+  },
+  "c": {
+   "file": "art/brakk/fx-c.png",
+   "scale": 0.5
+  }
+ },
+ "parts": {
+  "dust0": {
+   "sheet": "a",
+   "box": [
+    20,
+    110,
+    380,
+    300
+   ]
+  },
+  "dust1": {
+   "sheet": "a",
+   "box": [
+    370,
+    100,
+    730,
+    300
+   ]
+  },
+  "burst0": {
+   "sheet": "a",
+   "box": [
+    740,
+    70,
+    1050,
+    300
+   ]
+  },
+  "burst1": {
+   "sheet": "a",
+   "box": [
+    1060,
+    10,
+    1520,
+    320
+   ]
+  },
+  "crater": {
+   "sheet": "a",
+   "box": [
+    10,
+    415,
+    400,
+    612
+   ]
+  },
+  "ring": {
+   "sheet": "a",
+   "box": [
+    400,
+    400,
+    872,
+    616
+   ]
+  },
+  "spike0": {
+   "sheet": "a",
+   "box": [
+    880,
+    385,
+    1050,
+    632
+   ]
+  },
+  "spike1": {
+   "sheet": "a",
+   "box": [
+    1050,
+    355,
+    1272,
+    642
+   ]
+  },
+  "spike2": {
+   "sheet": "a",
+   "box": [
+    1275,
+    325,
+    1530,
+    642
+   ]
+  },
+  "bubble": {
+   "sheet": "a",
+   "box": [
+    15,
+    625,
+    585,
+    985
+   ]
+  },
+  "shieldIcon": {
+   "sheet": "a",
+   "box": [
+    598,
+    725,
+    772,
+    922
+   ]
+  },
+  "dustBurst0": {
+   "sheet": "a",
+   "box": [
+    788,
+    705,
+    1072,
+    955
+   ]
+  },
+  "dustBurst1": {
+   "sheet": "a",
+   "box": [
+    1088,
+    695,
+    1532,
+    995
+   ]
+  },
+  "aura0": {
+   "sheet": "b",
+   "box": [
+    15,
+    15,
+    322,
+    305
+   ]
+  },
+  "aura1": {
+   "sheet": "b",
+   "box": [
+    335,
+    15,
+    645,
+    305
+   ]
+  },
+  "aura2": {
+   "sheet": "b",
+   "box": [
+    655,
+    5,
+    965,
+    312
+   ]
+  },
+  "transform": {
+   "sheet": "b",
+   "box": [
+    978,
+    15,
+    1532,
+    325
+   ]
+  },
+  "uppercut": {
+   "sheet": "b",
+   "box": [
+    15,
+    315,
+    385,
+    672
+   ]
+  },
+  "pillar": {
+   "sheet": "b",
+   "box": [
+    398,
+    345,
+    735,
+    672
+   ]
+  },
+  "dragonRise": {
+   "sheet": "b",
+   "box": [
+    738,
+    335,
+    1072,
+    672
+   ]
+  },
+  "flameBurst": {
+   "sheet": "b",
+   "box": [
+    1078,
+    345,
+    1532,
+    672
+   ]
+  },
+  "heal": {
+   "sheet": "b",
+   "box": [
+    15,
+    695,
+    365,
+    995
+   ]
+  },
+  "dragonRing": {
+   "sheet": "b",
+   "box": [
+    375,
+    705,
+    895,
+    945
+   ]
+  },
+  "orb": {
+   "sheet": "b",
+   "box": [
+    898,
+    705,
+    1145,
+    995
+   ]
+  },
+  "crown": {
+   "sheet": "b",
+   "box": [
+    1195,
+    725,
+    1525,
+    965
+   ]
+  },
+  "cryArc0": {
+   "sheet": "c",
+   "box": [
+    95,
+    70,
+    390,
+    260
+   ],
+   "largest": false
+  },
+  "cryArc1": {
+   "sheet": "c",
+   "box": [
+    555,
+    35,
+    940,
+    295
+   ],
+   "largest": false
+  },
+  "cryArc2": {
+   "sheet": "c",
+   "box": [
+    1000,
+    10,
+    1495,
+    315
+   ],
+   "largest": false
+  },
+  "cryDragon": {
+   "sheet": "c",
+   "box": [
+    25,
+    305,
+    645,
+    665
+   ],
+   "largest": false
+  },
+  "cryBurst": {
+   "sheet": "c",
+   "box": [
+    665,
+    340,
+    1065,
+    645
+   ],
+   "largest": false
+  },
+  "cryIcon": {
+   "sheet": "c",
+   "box": [
+    1110,
+    335,
+    1455,
+    670
+   ],
+   "largest": true
+  },
+  "cryRing": {
+   "sheet": "c",
+   "box": [
+    35,
+    675,
+    825,
+    1005
+   ],
+   "largest": false
+  },
+  "crySeal": {
+   "sheet": "c",
+   "box": [
+    830,
+    670,
+    1510,
+    1000
+   ],
+   "largest": true
+  }
+ }
+}

@@ -3,12 +3,14 @@
 // ============================================================
 // Thay cho onclick="..." trong HTML: mọi nút khai báo data-action / data-skill
 // và được xử lý tập trung ở đây.
+import { settings, setSetting } from '../core/settings.js';
 import { net } from '../net/socket.js';
 import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
 import { cameraRig } from '../core/cameraRig.js';
 import { GAME_SPEEDS, timeState } from '../config.js';
 import { toggleStatPanel, setAllStatPanels } from './hud.js';
+import { setDisabledHeroes } from './progressTool.js';
 
 // Tốc độ trận người chơi chọn (nhớ theo trình duyệt), gửi lên server mỗi khi vào trận
 const SPEED_KEY = 'loc.gameSpeed';
@@ -26,6 +28,10 @@ export function applyPreferredSpeed() {
     updateSpeedButton(preferredSpeed);
 }
 
+export function updateShakeButton() {
+    const b = document.getElementById('btn-shake');
+    if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
+}
 const debugState = { noMana: false, godMode: false, auto: false };
 
 function queueSkill(memberIndex, skillIndex) {
@@ -38,11 +44,18 @@ function requestReset() {
     net.requestReset();
 }
 
+/** Vào chế độ ĐẤU: server đã tắt mọi tool -> trả các nút bật/tắt test về OFF */
+export function resetDebugToggles() {
+    debugState.noMana = false; debugState.godMode = false; debugState.enemyGod = false;
+    setToggleLabel('btn-debug-no-mana', false, '✨ Skill miễn phí');
+    setToggleLabel('btn-debug-god-mode', false, '🛡️ Bất tử');
+    setToggleLabel('btn-enemy-god', false, '🛡️ Quái bất tử');
+}
 function setToggleLabel(id, on, label) {
     const btn = document.getElementById(id);
     if (!btn) return;
     btn.classList.toggle('active', on);
-    btn.innerHTML = `${label}: ${on ? 'ON' : 'OFF'}`;
+    btn.innerHTML = `${label} <b class="tp-state">${on ? 'ON' : 'OFF'}</b>`;
 }
 
 const ACTIONS = {
@@ -59,19 +72,23 @@ const ACTIONS = {
     fillMana: () => net.debugAction('fillMana'),
     toggleNoMana: () => {
         debugState.noMana = !debugState.noMana;
-        setToggleLabel('btn-debug-no-mana', debugState.noMana, '✨ Dùng Skill Miễn Phí');
+        setToggleLabel('btn-debug-no-mana', debugState.noMana, '✨ Skill miễn phí');
         net.debugAction('noMana', debugState.noMana);
     },
     toggleGodMode: () => {
         debugState.godMode = !debugState.godMode;
-        setToggleLabel('btn-debug-god-mode', debugState.godMode, '🛡️ Bất Tử (Bỏ Qua Sát Thương)');
+        setToggleLabel('btn-debug-god-mode', debugState.godMode, '🛡️ Bất tử');
         net.debugAction('godMode', debugState.godMode);
     },
     spawnEnemy: (arg) => net.debugEnemyAction(arg),
     toggleMember: (classId) => net.debugAction('toggleMember', classId),
+    debugKill: (classId) => net.debugAction('kill', classId),
+    monsterLevel: (arg) => net.debugEnemyAction('monsterLevel', undefined, arg),
+    backToMenu: () => net.backToMenu(),
+    toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
     toggleEnemyGod: () => {
         debugState.enemyGod = !debugState.enemyGod;
-        setToggleLabel('btn-enemy-god', debugState.enemyGod, '🛡️ Quái Bất Tử');
+        setToggleLabel('btn-enemy-god', debugState.enemyGod, '🛡️ Quái bất tử');
         net.debugEnemyAction('godMode', debugState.enemyGod);
     },
 };
@@ -108,7 +125,7 @@ function makeDraggable(el) {
     let lastX = 0, lastY = 0;
     el.style.cursor = 'grab';
     el.addEventListener('mousedown', (e) => {
-        if (e.target.closest('button')) return; // bấm nút thì không kéo
+        if (e.target.closest('button, input, .pt-hero-top')) return; // bấm nút / kéo thanh trượt thì không kéo bảng
         e.preventDefault();
         lastX = e.clientX; lastY = e.clientY;
         el.style.cursor = 'grabbing';
@@ -137,6 +154,7 @@ function makeDraggable(el) {
 let memberDefs = null;
 export function renderMemberToggles(classDefs, disabled = []) {
     if (classDefs) memberDefs = classDefs;
+    setDisabledHeroes(disabled); // nút ON/OFF nằm trong thẻ nhân vật của Tool Phe Mình
     const box = document.getElementById('member-toggles');
     if (!box || !memberDefs) return;
     const off = new Set(disabled);
@@ -171,6 +189,7 @@ function changePanelScale(id, step) {
 }
 
 export function setupInput() {
+    updateShakeButton();
     document.addEventListener('click', onClick);
     window.addEventListener('keydown', onKeyDown);
     // Lăn chuột để zoom camera
@@ -190,19 +209,19 @@ export function setupInput() {
         });
     }
     // Phóng to / thu nhỏ từng bảng (nhớ theo trình duyệt)
-    for (const id of ['debug-controls', 'enemy-debug-controls', 'left-stats', 'right-stats']) applyPanelScale(id);
+    for (const id of ['enemy-debug-controls', 'progress-tool', 'left-stats', 'right-stats']) applyPanelScale(id);
     document.addEventListener('pointerdown', (e) => {
         const b = e.target.closest('[data-ui-scale]');
         if (!b) return;
         e.preventDefault(); e.stopPropagation();
         changePanelScale(b.dataset.uiScale, Number(b.dataset.step));
     }, true);
-    for (const id of ['debug-controls', 'enemy-debug-controls']) {
+    for (const id of ['enemy-debug-controls', 'progress-tool']) {
         const h3 = document.getElementById(id)?.querySelector('h3');
         if (h3) h3.insertAdjacentHTML('beforeend', scaleButtonsHTML(id));
     }
     // Bảng công cụ test: bấm tiêu đề để thu gọn / mở
-    for (const id of ['debug-controls', 'enemy-debug-controls']) {
+    for (const id of ['enemy-debug-controls', 'progress-tool']) {
         const panel = document.getElementById(id);
         const title = panel?.querySelector('h3');
         if (!title) continue;
@@ -217,7 +236,7 @@ export function setupInput() {
             if (el) el.style.visibility = el.style.visibility === 'hidden' ? '' : 'hidden';
         }
     });
-    ['debug-controls', 'enemy-debug-controls', 'left-stats', 'right-stats'].forEach(id => {
+    ['enemy-debug-controls', 'progress-tool', 'left-stats', 'right-stats'].forEach(id => {
         const el = document.getElementById(id);
         if (el) makeDraggable(el);
     });
