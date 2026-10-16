@@ -44,6 +44,11 @@ import {
     brakkClips, SKIN_KEYS as BRAKK_SKINS, DEFAULT_SKINS as BRAKK_DEFAULT_SKINS,
     SECONDARY as BRAKK_SECONDARY, LOCOMOTION as BRAKK_LOCOMOTION,
 } from './cutout/brakkClips.js';
+import { NERISSA_RIG } from './cutout/nerissaRig.js';
+import {
+    nerissaClips, SKIN_KEYS as NERISSA_SKINS, DEFAULT_SKINS as NERISSA_DEFAULT_SKINS,
+    SECONDARY as NERISSA_SECONDARY, LOCOMOTION as NERISSA_LOCOMOTION,
+} from './cutout/nerissaClips.js';
 import {
     lyraClips, SKIN_KEYS as LYRA_SKINS, DEFAULT_SKINS as LYRA_DEFAULT_SKINS,
     SECONDARY as LYRA_SECONDARY, LOCOMOTION as LYRA_LOCOMOTION,
@@ -211,6 +216,26 @@ const BRAKK = {
     },
 };
 
+// Nerissa (Thủy Vũ) — Tu Sĩ nước, vũ công dải lụa, tộc Elf. Khi múa: view chạy clip 'dance' + tổ hợp điệu (1, 12, 123...)
+const DANCER = {
+    rig: NERISSA_RIG,
+    clips: nerissaClips,
+    height: 2.9,
+    shadowSize: 1.3,
+    skinKeys: NERISSA_SKINS,
+    defaultSkins: NERISSA_DEFAULT_SKINS,
+    secondary: NERISSA_SECONDARY,
+    locomotion: NERISSA_LOCOMOTION,
+    blink: true,
+    ghostTint: 0x5eead4,
+    circleTint: 0x38bdf8,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.24 },   // vung lụa bắn giọt nước
+        spin:   { clip: 'spin',   hitTime: 0.3 },    // xoay người vào điệu múa
+        cast:   { clip: 'cast',   hitTime: 0.3 },
+    },
+};
+
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
@@ -220,6 +245,7 @@ export const CHARACTER_VISUALS = {
     mage: () => MAGE,
     reaper: () => REAPER,
     wrestler: () => BRAKK,
+    dancer: () => DANCER,
     monster_tank: (m) => creatureVisual('monster_tank', m.color),
     monster_archer: (m) => creatureVisual('monster_archer', m.color),
     monster_supporter: (m) => creatureVisual('monster_supporter', m.color),

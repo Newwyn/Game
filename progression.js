@@ -36,7 +36,8 @@ function growthUnits(level) {
 const SKILL_SCALE = { dmg: [1, 1.2, 1.45, 1.75], buff: [1, 1.1, 1.2, 1.3] };
 const SKILL_DMG_KEYS = ['multiplier', 'spiritMultiplier', 'splashMultiplier', 'burstMultiplier', 'shieldHp', 'heal', 'prayHeal',
     'tickMultiplier', 'burnMultiplier', 'palmMultiplier', 'volleyMultiplier', 'guardianMultiplier',
-    'slamMultiplier', 'cleaveMultiplier', 'aoeMultiplier', 'fallMultiplier', 'upliftMultiplier'];
+    'slamMultiplier', 'cleaveMultiplier', 'aoeMultiplier', 'fallMultiplier', 'upliftMultiplier',
+    'rollMultiplier', 'trailMultiplier', 'counterMultiplier'];
 const SKILL_BUFF_KEYS = ['atkSpeedUp', 'atkUp', 'critUp', 'critDmgUp', 'teamAccUp', 'teamDodgeUp', 'teamDef', 'defDown', 'mAtkUp', 'mDefUp', 'burstHeal', 'shieldPct'];
 
 function scaleSkills(skills, rank) {
@@ -45,6 +46,8 @@ function scaleSkills(skills, rank) {
         const out = { ...sk, level: r + 1 };
         for (const k of SKILL_DMG_KEYS) if (typeof sk[k] === 'number') out[k] = Math.round(sk[k] * SKILL_SCALE.dmg[r] * 1000) / 1000;
         for (const k of SKILL_BUFF_KEYS) if (typeof sk[k] === 'number') out[k] = Math.round(sk[k] * SKILL_SCALE.buff[r] * 1000) / 1000;
+        // byRank: số liệu ghi riêng theo từng bậc (VD Sóng Triều +400/600/800/1000 MP/giây) — thay cho hệ số chung
+        for (const [k, arr] of Object.entries(sk.byRank ?? {})) out[k] = arr[Math.min(r, arr.length - 1)];
         return out;
     });
 }

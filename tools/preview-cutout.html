@@ -45,6 +45,12 @@ Array.from({ length: n }, (_, i) => times[i] ?? times[0]).forEach((t, i) => {
   }
   if (q.get('skin')) q.get('skin').split(',').forEach(kv => { const [k, v] = kv.split(':'); setSkin(skins, k, v); });
   if (q.get('giant')) Object.keys(rig.parts).forEach(k => { if (rig.parts[k].skins?.giant) setSkin(skins, k, 'giant'); });   // giant=1: dạng khổng lồ (Brakk)
+  // lò xo (tóc / vạt áo / dải lụa): ảnh tĩnh -> đặt ở thế cân bằng (rủ theo trọng lực)
+  if (mod.SECONDARY && q.get('settle') !== '0') for (const [k, c] of Object.entries(mod.SECONDARY)) {
+    const j = parts[k]; if (!j) continue;
+    let pa = 0; for (let o = j.parent; o && o.name !== 'cutout_root' && o.parent; o = o.parent) pa += o.rotation.z;
+    j.rotation.z = Math.max(c.limit?.[0] ?? -9, Math.min(c.limit?.[1] ?? 9, -(c.gravity ?? 0.7) * Math.atan2(Math.sin(pa), Math.cos(pa))));
+  }
   if (posesQ[i]) for (const [k, v] of Object.entries(posesQ[i])) { const j = parts[k]; if (!j) continue; if (Array.isArray(v)) { j.position.x += v[0] * height; j.position.y += v[1] * height; } else j.rotation.z = v; }
   if (q.get('debug')) Object.values(parts).forEach(p => { const d = new THREE.Mesh(new THREE.CircleGeometry(0.03, 8), new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false })); d.renderOrder = 99; p.add(d); });
 });

@@ -21,6 +21,9 @@ function ensureCdOverlay(btn) {
     return el;
 }
 
+/** Nhãn giá kỹ năng: Lưu Thủy (Nerissa) không tốn Orb lúc bấm nhưng cần ≥1 Orb và đốt dần */
+const costLabel = (sk) => sk.orbCost ? `${sk.orbCost} orb` : sk.minOrbs ? `≥${sk.minOrbs} orb` : 'Miễn phí';
+
 /** Tên nhân vật + tên kỹ năng trên thẻ (chỉ vẽ lại khi đổi nhân vật). Kỹ năng dùng bằng CLICK CHUỘT, không phím tắt. */
 function fillCardInfo(card, member, def, i) {
     if (card.dataset.classId === member.classId) return;
@@ -36,8 +39,8 @@ function fillCardInfo(card, member, def, i) {
         const ic = btn.querySelector('.skill-icon');
         if (ic) ic.textContent = sk.name;
         const cost = btn.querySelector('.cost');
-        if (cost) cost.textContent = sk.orbCost ? `${sk.orbCost} orb` : 'Miễn phí';
-        btn.title = `${sk.name} — ${sk.orbCost} orb, hồi ${(sk.cooldown / 1000).toFixed(0)}s (click để ra lệnh)`;
+        if (cost) cost.textContent = costLabel(sk);
+        btn.title = `${sk.name} — ${costLabel(sk)}${sk.minOrbs ? ' (đốt dần tới khi hết)' : ''}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'}${sk.active ? ' sau khi múa xong' : ''} (click để ra lệnh)`;
     });
 }
 
@@ -73,17 +76,24 @@ function updateMemberCard(member, i, now) {
         const cost = free ? 0 : def.skills[s].orbCost;
         const costEl = btn.querySelector('.cost');
         const hpc = def.skills[s].hpCost ? ` +${Math.round(def.skills[s].hpCost * 100)}%♥` : '';   // Brakk: tốn thêm % máu
-        const costTxt = free ? 'MIỄN PHÍ' : def.skills[s].orbCost ? `${def.skills[s].orbCost} orb${hpc}` : 'Miễn phí';
+        const costTxt = free ? 'MIỄN PHÍ' : def.skills[s].orbCost ? `${def.skills[s].orbCost} orb${hpc}` : costLabel(def.skills[s]);
         if (costEl && costEl.textContent !== costTxt) costEl.textContent = costTxt;
         btn.classList.toggle('free', !!free);
         const queueIdx = member.queuedSkills.indexOf(s);
         const isQueued = queueIdx !== -1;
 
+        // Kỹ năng ĐANG CHẠY (VD điệu múa của Nerissa): vòng sáng chạy quanh nút + vạch thời gian còn lại ở đáy nút
+        const act = activeOf(member, def, s, now);
+        if (act) {
+            btn.style.setProperty('--act-p', act.p.toFixed(3));
+            btn.style.setProperty('--act-c', act.combo ? '#fde68a' : (def.skills[s].activeColor ?? '#5eead4'));
+        }
+
         // Đếm ngược hồi chiêu
         const cd = ensureCdOverlay(btn);
         // Hồi chiêu chỉ bắt đầu chạy khi diễn xong động tác (server cộng thêm thời gian diễn) -> trong lúc diễn / niệm giữ nguyên số đầy
         const cdMs = Math.min(member.skillCooldowns[s] - now, def.skills[s].cooldown);
-        const remainingCd = Math.max(0, cdMs / 1000 / timeState.scale); // giây thật
+        const remainingCd = act ? 0 : Math.max(0, cdMs / 1000 / timeState.scale); // giây thật (đang chạy: hồi chiêu chưa tính)
         if (remainingCd > 0) {
             cd.style.display = 'flex';
             cd.textContent = remainingCd.toFixed(1) + 's';
@@ -102,13 +112,31 @@ function updateMemberCard(member, i, now) {
         if (!member.alive) {
             cls += ' disabled';
         } else {
-            const isReady = member.mp >= cost * ORB_COST && now > member.skillCooldowns[s];
+            const need = Math.max(cost, free ? 0 : (def.skills[s].minOrbs ?? 0));
+            const isReady = !act && member.mp >= need * ORB_COST && now > member.skillCooldowns[s];
             if (isReady) cls += ' ready';
             if (isQueued) cls += ' queued';
-            if (!isReady && !isQueued) cls += ' disabled';
+            if (act) cls += ' active' + (act.combo ? ' combo' : '');
+            else if (!isReady && !isQueued) cls += ' disabled';
         }
         btn.className = cls;
     }
+}
+
+/**
+ * Kỹ năng s có đang chạy không (skill.active = loại hiệu ứng trên người). Trả { p: phần còn lại 0..1, combo } hoặc null.
+ * Không có thời lượng (Lưu Thủy: múa tới khi hết Orb) -> p = lượng MP còn lại. combo: mọi kỹ năng "active" đang cùng chạy (vòng vàng).
+ */
+function activeOf(member, def, s, now) {
+    const sk = def.skills[s];
+    if (!sk?.active || !member.alive) return null;
+    const on = (type) => member.statusEffects?.find(e => e.type === type && e.endTime > now);
+    const ef = on(sk.active);
+    if (!ef) return null;
+    const p = ef.duration > 0 ? (ef.endTime - now) / ef.duration : (member.maxMp > 0 ? member.mp / member.maxMp : 0);
+    const actives = def.skills.filter(k => k.active);
+    const combo = actives.length >= 3 && actives.every(k => on(k.active));
+    return { p: Math.max(0, Math.min(1, p)), combo };
 }
 
 // ------------------------------------------------------------
@@ -172,9 +200,24 @@ function effectInfo(ef, m) {
             ? ['🛡', '#fdba74', 'Khiên Vảy Rồng', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🛡', '#fdba74', 'Khiên Vảy Rồng', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} · cộng dồn Chấn Địa + Khí Thế Đấu Trường`];
         case 'grabbed': return ['✊', '#f97316', 'Bị túm', 'Bị Brakk nhấc bổng — sắp bị quật xuống đất', true];
+        case 'lone_dragon': return ['🐲', '#ef4444', 'Độc Long', `Chỉ còn 1 mình Brakk trên sân: sát thương ×${(1 + (ef.value ?? 1)).toFixed(0)}`];
+        // ---- Nerissa (Thủy Vũ) ----
+        case 'dance_tide': return ['🌊', '#38bdf8', 'Vũ Khúc Sóng Triều', 'Đang múa: cả đội tăng tốc hồi MP'];
+        case 'dance_flow': return ['💧', '#5eead4', 'Lưu Thủy Hồi Xuân', 'Đang múa: mỗi 0,5s đốt 0,5 Orb hồi máu cả đội — múa tới khi hết Orb'];
+        case 'dance_god': return ['🪷', '#fde68a', 'Thủy Thần Vũ', 'Đang múa: cả đội +máu tối đa, +hồi máu nhận, +ATK, kháng khống chế'];
+        case 'tide_mana': return ['🔹', '#38bdf8', 'Sóng Triều', `Hồi thêm ${Math.round(ef.manaPerSec ?? 0)} MP mỗi giây (${((ef.manaPerSec ?? 0) / ORB_COST).toFixed(1)} Orb/giây)`];
+        case 'water_god': return ['🪷', '#fde68a', 'Phước Thủy Thần', `+máu tối đa · +${pc(ef.healUp)}% hồi máu nhận · +${pc(ef.atkUp)}% ATK · −${pc(ef.ccResist)}% khống chế`];
+        case 'water_shield': return ef.dormant
+            ? ['🫧', '#7dd3fc', 'Giáp Nước', 'Đang có khiên khác dày hơn hứng đòn']
+            : ['🫧', '#7dd3fc', 'Giáp Nước', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} · tự hồi khi Nerissa còn múa Sóng Triều + Lưu Thủy`];
+        case 'note_break': return ['🎵', '#a78bfa', 'Nốt Nhạc Vỡ Giáp', `−${pc(ef.value)}% M.DEF`, true];
+        case 'note_amp': return ['🎶', '#5eead4', 'Nốt Nhạc Cổ Vũ', `+${pc(ef.value)}% sát thương phép`];
+        case 'tide_haste': return ['💨', '#38bdf8', 'Nhịp Triều', `+${pc(ef.value)}% tốc đánh (Nerissa múa Sóng Triều + Thủy Thần)`];
+        case 'tide_slow': return ['🐌', '#64748b', 'Nước Cuốn', `−${pc(ef.value)}% tốc đánh (Nerissa múa Sóng Triều + Thủy Thần)`, true];
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }
+const AURA_EFFECTS = new Set(['water_shield', 'tide_haste', 'tide_slow', 'lone_dragon']);
 // Thời lượng gốc của hiệu ứng không có `duration`: ghi lại lúc mới thấy (theo nhân vật + loại)
 const effStart = new Map();
 function statusTags(member, now, key = '') {
@@ -190,7 +233,9 @@ function statusTags(member, now, key = '') {
         const frac = Math.max(0, Math.min(1, 1 - left / total));       // phần đã trôi qua
         const secs = (Math.min(left, ef.duration ?? Infinity) / 1000 / timeState.scale).toFixed(1);
         const [icon, color, name, desc, bad] = effectInfo(ef, member);
-        const tip = `<b style="color:${color}">${icon} ${name}</b>${desc ? `<br>${desc}` : ''}<br><span style="color:#94a3b8">Còn ${secs}s</span>`;
+        // duy trì (không có hạn / được làm mới liên tục khi tổ hợp điệu múa còn chạy) -> không ghi số giây
+        const keep = left > 1e8 || AURA_EFFECTS.has(ef.type);
+        const tip = `<b style="color:${color}">${icon} ${name}</b>${desc ? `<br>${desc}` : ''}<br><span style="color:#94a3b8">${keep ? 'Duy trì' : `Còn ${secs}s`}</span>`;
         return `<span class="st-ic${bad ? ' bad' : ''}" style="--c:${color};--p:${frac.toFixed(3)}" data-tip="${tip.replace(/"/g, '&quot;')}">${icon}</span>`;
     });
     return `<div class="st-icons">${icons.join('')}</div>`;

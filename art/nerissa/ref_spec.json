@@ -1,0 +1,502 @@
+{
+ "ref": "art/nerissa/01-character.png",
+ "out": "src/assets/sprites/nerissa_atlas.png",
+ "meta": "src/characters/cutout/nerissaAtlas.json",
+ "width": 2048,
+ "order": [],
+ "pieces": {},
+ "extra": {
+  "head": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    10,
+    20,
+    290,
+    340
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "hairBack": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    185,
+    8,
+    685,
+    560
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "torso": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    668,
+    30,
+    1025,
+    545
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     668,
+     30
+    ],
+    [
+     1025,
+     30
+    ],
+    [
+     1025,
+     512
+    ],
+    [
+     925,
+     512
+    ],
+    [
+     925,
+     545
+    ],
+    [
+     668,
+     545
+    ]
+   ]
+  },
+  "armN": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    1018,
+    103,
+    1114,
+    362
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "armF": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    1141,
+    104,
+    1249,
+    363
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "foreN": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    1293,
+    159,
+    1402,
+    438
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "keep": {
+    "band": [
+     150,
+     373
+    ],
+    "disks": [
+     [
+      1339,
+      404,
+      13
+     ]
+    ]
+   }
+  },
+  "foreF": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    1400,
+    158,
+    1513,
+    435
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "keep": {
+    "band": [
+     150,
+     377
+    ],
+    "disks": [
+     [
+      1457,
+      403,
+      13
+     ]
+    ]
+   }
+  },
+  "thighN": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    35,
+    517,
+    169,
+    889
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "thighF": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    195,
+    521,
+    336,
+    892
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "shinN": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    403,
+    562,
+    590,
+    986
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "shinF": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    595,
+    568,
+    817,
+    996
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "panelN": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    778,
+    522,
+    1103,
+    1024
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "panelF": {
+   "sheet": "art/nerissa/02-body-parts.png",
+   "box": [
+    1053,
+    519,
+    1444,
+    1024
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "hRelax": {
+   "sheet": "art/nerissa/03-hands-eyes.png",
+   "box": [
+    18,
+    228,
+    373,
+    437
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     158,
+     228
+    ],
+    [
+     373,
+     228
+    ],
+    [
+     373,
+     437
+    ],
+    [
+     158,
+     437
+    ]
+   ]
+  },
+  "hDance": {
+   "sheet": "art/nerissa/03-hands-eyes.png",
+   "box": [
+    383,
+    235,
+    800,
+    414
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     503,
+     235
+    ],
+    [
+     800,
+     235
+    ],
+    [
+     800,
+     414
+    ],
+    [
+     503,
+     414
+    ]
+   ]
+  },
+  "hGrip": {
+   "sheet": "art/nerissa/03-hands-eyes.png",
+   "box": [
+    809,
+    225,
+    1119,
+    467
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     933,
+     225
+    ],
+    [
+     1119,
+     225
+    ],
+    [
+     1119,
+     467
+    ],
+    [
+     933,
+     467
+    ]
+   ]
+  },
+  "hPalm": {
+   "sheet": "art/nerissa/03-hands-eyes.png",
+   "box": [
+    1128,
+    102,
+    1405,
+    431
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     1248,
+     102
+    ],
+    [
+     1405,
+     102
+    ],
+    [
+     1405,
+     431
+    ],
+    [
+     1248,
+     431
+    ]
+   ]
+  },
+  "hPoint": {
+   "sheet": "art/nerissa/03-hands-eyes.png",
+   "box": [
+    1421,
+    261,
+    1761,
+    433
+   ],
+   "scale": 1.0,
+   "largest": true,
+   "poly": [
+    [
+     1543,
+     261
+    ],
+    [
+     1761,
+     261
+    ],
+    [
+     1761,
+     433
+    ],
+    [
+     1543,
+     433
+    ]
+   ]
+  },
+  "eyeOpen": {
+   "blank": true
+  },
+  "eye_blink": {
+   "sheet": "art/nerissa/gen/eye-blink.png",
+   "box": [
+    0,
+    0,
+    44,
+    41
+   ],
+   "scale": 1.0
+  },
+  "eye_happy": {
+   "sheet": "art/nerissa/gen/eye-happy.png",
+   "box": [
+    0,
+    0,
+    43,
+    42
+   ],
+   "scale": 1.0
+  },
+  "eye_determined": {
+   "sheet": "art/nerissa/gen/eye-determined.png",
+   "box": [
+    0,
+    0,
+    43,
+    39
+   ],
+   "scale": 1.0
+  },
+  "eye_pain": {
+   "sheet": "art/nerissa/gen/eye-pain.png",
+   "box": [
+    0,
+    0,
+    42,
+    40
+   ],
+   "scale": 1.0
+  },
+  "eye_sing": {
+   "sheet": "art/nerissa/gen/eye-sing.png",
+   "box": [
+    0,
+    0,
+    43,
+    42
+   ],
+   "scale": 1.0
+  },
+  "rib0": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    13,
+    93,
+    757,
+    203
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib1": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    781,
+    93,
+    1525,
+    203
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib2": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    13,
+    283,
+    757,
+    393
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib3": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    781,
+    283,
+    1525,
+    393
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib4": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    13,
+    475,
+    757,
+    585
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib5": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    781,
+    475,
+    1525,
+    585
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib6": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    13,
+    666,
+    757,
+    777
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "rib7": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    781,
+    666,
+    1525,
+    777
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "ribEnd": {
+   "sheet": "art/nerissa/04-ribbon.png",
+   "box": [
+    13,
+    849,
+    926,
+    1004
+   ],
+   "scale": 0.5,
+   "largest": true
+  }
+ }
+}

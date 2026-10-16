@@ -31,6 +31,10 @@ import {
     spawnBrakkLeapDust, spawnBrakkSlam, spawnStompWave, spawnFallImpact, spawnPunchHit, spawnUppercut, spawnGiantTransform,
     spawnBrakkShieldPop, spawnBloodSurge, spawnBrakkHeal, spawnBattleCry, spawnCryIcon,
 } from '../vfx/brakkFx.js';
+import {
+    spawnWaterBolt, spawnSplash, spawnDanceStart, spawnHealRain, spawnNote, spawnNoteMark,
+    spawnCleanseChains, spawnOrbDrain, spawnWaterShieldPop, spawnOrbGift,
+} from '../vfx/nerissaFx.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
 
@@ -153,6 +157,21 @@ function onAutoAttack(data) {
             if (data.dodged) return;
             spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant });
             cameraRig.shake(giant ? 0.12 : 0.07, 80);
+        };
+        if (attackerView.isBusy) { fire(); return; }
+        attackerView.playAction('attack', { onHit: fire });
+        return;
+    }
+
+    // Nerissa: vung dải lụa bắn giọt nước (sát thương phép), số hiện khi giọt nước chạm
+    if (attacker.squad?.[data.attackerIndex]?.classId === 'dancer') {
+        const fire = () => {
+            const target = getView(data.targetId, data.targetIndex);
+            if (!target) return;
+            spawnWaterBolt(ribbonPoint(attackerView), chestOf(target, 1.0), { duration: 0.2, onHit: () => {
+                showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
+                if (!data.dodged) spawnSplash(target.position, { size: data.isCrit ? 1.4 : 1.0 });
+            } });
         };
         if (attackerView.isBusy) { fire(); return; }
         attackerView.playAction('attack', { onHit: fire });
@@ -305,6 +324,18 @@ function onSkillExecuted(data) {
                 cameraRig.shake(0.3, 300);
             } });
             break;
+        case 'dance_tide':
+        case 'dance_flow':
+        case 'dance_god': {
+            // Nerissa vào điệu múa: xoay người -> vòng sóng lụa + ấn dưới chân (múa tiếp do trạng thái 'dancing')
+            const dance = { dance_tide: 1, dance_flow: 2, dance_god: 3 }[data.type];
+            const go = () => {
+                spawnDanceStart(caster.position, dance, caster.facingLeft ? -1 : 1);
+                if (dance === 3) cameraRig.shake(0.12, 180);
+            };
+            if (!caster.playAction('spin', { onHit: go })) go();
+            break;
+        }
         case 'pray':
             caster.playAction('raise', { onHit: () => {
                 spawnHealLight(caster.position, { big: true });
@@ -583,6 +614,73 @@ function archerRelease(caster, data, opponentId) {
 function palmPoint(v) {
     if (v.palmFire) { const p = new THREE.Vector3(); v.palmFire.group.getWorldPosition(p); return { x: p.x, y: p.y, z: p.z }; }
     return { x: v.position.x + (v.facingLeft ? -0.8 : 0.8), y: 1.5 + (v._lift ?? 0), z: v.position.z };
+}
+
+/** Bàn tay cầm lụa của Nerissa (chỗ giọt nước bắn ra) */
+function ribbonPoint(v) {
+    const h = v.parts?.handN;
+    if (h) { const p = new THREE.Vector3(); h.getWorldPosition(p); return { x: p.x + (v.facingLeft ? -0.35 : 0.35), y: p.y, z: p.z + 0.2 }; }
+    return { x: v.position.x + (v.facingLeft ? -0.7 : 0.7), y: 1.4 + (v._lift ?? 0), z: v.position.z };
+}
+
+/** Thủy Vũ (Nerissa): hồi máu Lưu Thủy · nốt nhạc · giáp nước · hút Orb · tặng Orb · Triều Dâng · dừng múa */
+function onWaterFx(d) {
+    const caster = getView(d.casterId, d.casterIdx);
+    const team = (id, fn) => (game.roomData?.players?.[id]?.squad ?? []).forEach((m, i) => { const v = getView(id, i); if (v && m.alive) fn(v, i); });
+    switch (d.kind) {
+        case 'flowHeal':
+            // Lưu Thủy: mưa nước hồi máu trên từng đồng đội
+            d.heals.forEach(h => {
+                const v = getView(d.casterId, h.targetIndex);
+                if (!v) return;
+                if (h.heal > 0) spawnDamageNumber(v.position, h.heal, 'heal');
+                spawnHealRain(v.position);
+            });
+            break;
+        case 'notes': {
+            // Cả 3 điệu: nốt nhạc bay tới từng đối thủ (sát thương + giảm thủ phép) và từng đồng đội (tăng sát thương phép, giải khống chế)
+            if (!caster) break;
+            const from = { x: caster.position.x, y: 0, z: caster.position.z };
+            d.effects.forEach((e, k) => {
+                const t = getView(d.targetId, e.targetIndex);
+                if (!t) return;
+                spawnNote(from, () => t.position, { kind: k, onHit: () => {
+                    showHit(t, e, { fx: false });
+                    if (!e.isMiss) spawnNoteMark(t.position, false);
+                } });
+            });
+            (d.allies ?? []).forEach(a => {
+                const t = getView(d.casterId, a.targetIndex);
+                if (!t || t === caster) { if (t && a.cleansed) spawnCleanseChains(t.position); return; }
+                spawnNote(from, () => t.position, { ally: true, onHit: () => {
+                    spawnNoteMark(t.position, true);
+                    if (a.cleansed) spawnCleanseChains(t.position);
+                } });
+            });
+            break;
+        }
+        case 'shield': {
+            const v = getView(d.casterId, d.targetIndex);
+            if (v) { spawnWaterShieldPop(v.position, { height: v.height ?? 2.9 }); spawnDamageNumber(v.position, d.shield, 'shield'); }
+            break;
+        }
+        case 'drain': {
+            // Hòa Âm 2+3: Orb bị hút khỏi đối thủ
+            const t = getView(d.targetId, d.targetIndex);
+            if (t) spawnOrbDrain(t.position);
+            break;
+        }
+        case 'gift':
+        case 'surge':
+            // Hòa Âm 1+2+3 / Triều Dâng: cả đội +Orb
+            team(d.casterId, v => spawnOrbGift(v.position));
+            if (caster) spawnRisingGlyph(caster.position, '◆', '#bae6fd', '#0284c7');
+            break;
+        case 'danceEnd':
+            // dừng 1 điệu: nước bắn nhẹ (bị ngắt: bắn mạnh hơn)
+            if (caster) spawnSplash(caster.position, { size: d.reason === 'stun' || d.reason === 'dead' ? 1.6 : 1.0 });
+            break;
+    }
 }
 
 /** Nổ lửa diện rộng (Thiên Hỏa Cầu chạm đất / mỗi nhịp Cột Lửa): hình nổ + số sát thương */
@@ -932,6 +1030,15 @@ function onBrakkFx(d) {
                 spawnBrakkHeal(v.position, { orb: true });
                 if (h.heal > 0) spawnDamageNumber(v.position, h.heal, 'heal');
             }, 150 + k * 80));
+            break;
+        case 'lone':
+            // Độc Long: đồng đội gục hết -> Brakk gầm lên, máu rồng bốc cháy, sát thương ×2
+            if (!caster) break;
+            caster.playAction('roar', { onHit: () => {
+                spawnBloodSurge(caster.position);
+                spawnRisingGlyph(caster.position, '×2', '#fecaca', '#b91c1c');
+                cameraRig.shake(0.22, 260);
+            } });
             break;
         case 'rallyShield':
             if (caster) { spawnBrakkShieldPop(caster.position, { height: 3.2 * (caster._giantSc ?? 1) }); spawnDamageNumber(caster.position, d.shield, 'shield'); }
@@ -1315,6 +1422,7 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('brakkFx', onBrakkFx);
     socket.on('rokFx', onRokFx);
     socket.on('fireWard', onFireWard);
+    socket.on('waterFx', onWaterFx);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
     socket.on('castStart', (data) => {
@@ -1364,4 +1472,4 @@ export function registerCombatEvents(hooks = {}) {
 }
 
 /** Dùng cho công cụ xem thử hiệu ứng (tools/fx-brakk.html) — gọi thẳng hàm xử lý sự kiện với dữ liệu giả */
-export const __fxTest = { onSkillExecuted, onAutoAttack, onBrakkFx, onReaperFx, onRokFx, onFireWard };
+export const __fxTest = { onSkillExecuted, onAutoAttack, onBrakkFx, onReaperFx, onRokFx, onFireWard, onWaterFx };

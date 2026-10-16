@@ -1,0 +1,67 @@
+{
+ "blink": {
+  "file": "art/nerissa/gen/eye-blink.png",
+  "pivot": [
+   26,
+   27
+  ],
+  "box": [
+   0,
+   0,
+   44,
+   41
+  ]
+ },
+ "happy": {
+  "file": "art/nerissa/gen/eye-happy.png",
+  "pivot": [
+   26,
+   28
+  ],
+  "box": [
+   0,
+   0,
+   43,
+   42
+  ]
+ },
+ "determined": {
+  "file": "art/nerissa/gen/eye-determined.png",
+  "pivot": [
+   26,
+   28
+  ],
+  "box": [
+   0,
+   0,
+   43,
+   39
+  ]
+ },
+ "pain": {
+  "file": "art/nerissa/gen/eye-pain.png",
+  "pivot": [
+   26,
+   27
+  ],
+  "box": [
+   0,
+   0,
+   42,
+   40
+  ]
+ },
+ "sing": {
+  "file": "art/nerissa/gen/eye-sing.png",
+  "pivot": [
+   26,
+   28
+  ],
+  "box": [
+   0,
+   0,
+   43,
+   42
+  ]
+ }
+}

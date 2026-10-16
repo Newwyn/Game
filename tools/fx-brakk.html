@@ -1,6 +1,6 @@
 <!doctype html><html><body style="margin:0;background:#3c5a30">
 <!-- Xem thử kỹ năng / hiệu ứng Brakk theo từng mốc thời gian (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả):
-     npm run dev rồi mở /tools/fx-brakk.html?s=grab   (s = grab | stomp | giant | uplift | ggrab | gstomp | blood | shout | end | judge | judges | quake)
+     npm run dev rồi mở /tools/fx-brakk.html?s=grab   (s = grab | stomp | giant | uplift | ggrab | gstomp | blood | shout | end | judge | judges | quake | lone)
      window.stepTo(giây) để tua -->
 <script>
   // Đồng hồ ảo: setTimeout + performance.now chạy theo stepTo() để chụp đúng khoảnh khắc
@@ -71,6 +71,10 @@ if (S === 'end') at(0.05, () => {});
 if (S === 'judge' || S === 'judges') {
   at(0.1, () => __fxTest.onReaperFx({ kind: 'judgeStart', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: 0, lift: 1100, fall: 500 }));
   at(1.2, () => __fxTest.onReaperFx({ kind: 'judgeSlash', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: 0, shielded: S === 'judges', killed: S === 'judge', damage: 640 }));
+}
+if (S === 'lone') {   // Độc Long: chỉ còn 1 mình Brakk -> gầm lên, sát thương ×2
+  at(0.1, () => __fxTest.onBrakkFx({ kind: 'lone', casterId: 'me', casterIdx: 0, value: 1 }));
+  at(0.4, () => brakk.statusEffects.push({ type: 'lone_dragon', value: 1, endTime: 1e9 }));
 }
 if (S === 'quake') at(0.1, () => __fxTest.onRokFx({ kind: 'quake', casterId: 'me', casterIdx: 0, x: 3, z: 0, radius: 3 }));
 ev.sort((a, b) => a[0] - b[0]);

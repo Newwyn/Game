@@ -1,0 +1,188 @@
+{
+ "out": "src/assets/sprites/nerissa_fx.png",
+ "meta": "src/vfx/nerissaFx.json",
+ "width": 2048,
+ "sheets": {
+  "a": {
+   "file": "art/nerissa/fx-a.png",
+   "scale": 0.5
+  },
+  "b": {
+   "file": "art/nerissa/fx-b.png",
+   "scale": 0.5
+  }
+ },
+ "parts": {
+  "drop": {
+   "sheet": "a",
+   "box": [
+    10,
+    150,
+    260,
+    225
+   ]
+  },
+  "splash": {
+   "sheet": "a",
+   "box": [
+    295,
+    80,
+    535,
+    270
+   ]
+  },
+  "ring0": {
+   "sheet": "a",
+   "box": [
+    590,
+    95,
+    785,
+    280
+   ]
+  },
+  "ring1": {
+   "sheet": "a",
+   "box": [
+    835,
+    65,
+    1130,
+    310
+   ]
+  },
+  "ring2": {
+   "sheet": "a",
+   "box": [
+    1165,
+    20,
+    1525,
+    330
+   ]
+  },
+  "manaRise": {
+   "sheet": "a",
+   "box": [
+    105,
+    345,
+    385,
+    685
+   ]
+  },
+  "healRain": {
+   "sheet": "a",
+   "box": [
+    565,
+    350,
+    925,
+    685
+   ]
+  },
+  "bubble": {
+   "sheet": "a",
+   "box": [
+    1095,
+    365,
+    1410,
+    685
+   ]
+  },
+  "tideRing": {
+   "sheet": "a",
+   "box": [
+    35,
+    720,
+    765,
+    985
+   ]
+  },
+  "lotus": {
+   "sheet": "a",
+   "box": [
+    780,
+    710,
+    1515,
+    1000
+   ]
+  },
+  "note0": {
+   "sheet": "b",
+   "box": [
+    110,
+    15,
+    355,
+    285
+   ]
+  },
+  "note1": {
+   "sheet": "b",
+   "box": [
+    590,
+    20,
+    930,
+    295
+   ]
+  },
+  "note2": {
+   "sheet": "b",
+   "box": [
+    1090,
+    0,
+    1460,
+    300
+   ]
+  },
+  "goddess": {
+   "sheet": "b",
+   "box": [
+    35,
+    295,
+    480,
+    650
+   ]
+  },
+  "mdefDown": {
+   "sheet": "b",
+   "box": [
+    560,
+    330,
+    960,
+    650
+   ]
+  },
+  "matkUp": {
+   "sheet": "b",
+   "box": [
+    1080,
+    330,
+    1490,
+    650
+   ]
+  },
+  "drain": {
+   "sheet": "b",
+   "box": [
+    45,
+    660,
+    450,
+    1015
+   ]
+  },
+  "cleanse": {
+   "sheet": "b",
+   "box": [
+    535,
+    660,
+    970,
+    1000
+   ]
+  },
+  "heart": {
+   "sheet": "b",
+   "box": [
+    1075,
+    675,
+    1500,
+    1000
+   ]
+  }
+ }
+}

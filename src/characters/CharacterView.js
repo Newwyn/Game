@@ -145,6 +145,7 @@ export class CharacterView {
             else if (member.state === 'attacking') this.setLocomotion('ready');
             else if (member.state === 'stunned' || member.state === 'judged') this.setLocomotion('stunned');   // judged: bị Thần Chết nhấc lên
             else if (member.state === 'guarding') this.setLocomotion('guarding'); // đứng thủ thế giữa các đòn
+            else if (member.state === 'dancing') this.setLocomotion('dance' + (member.danceKey || '1'));   // Thủy Vũ: điệu theo tổ hợp 1/12/123...
             else this.setLocomotion('idle');
         }
 
@@ -155,7 +156,7 @@ export class CharacterView {
 
         // Thanh vận chiêu
         const now = gameNow();
-        const shield = member.alive && member.statusEffects?.find(ef => (ef.type === 'guard' || ef.type === 'holy_shield' || ef.type === 'brakk_shield' || ef.type === 'fire_ward') && ef.endTime > now && ef.maxHp && ef.hp > 0);
+        const shield = member.alive && member.statusEffects?.find(ef => (ef.type === 'guard' || ef.type === 'holy_shield' || ef.type === 'brakk_shield' || ef.type === 'fire_ward' || ef.type === 'water_shield') && ef.endTime > now && ef.maxHp && ef.hp > 0);
         this.shieldBar.visible = !!shield;
         if (shield) updateBarSprite(this.shieldBar, shield.hp / shield.maxHp);
         const castDef = this.classDef.skills?.[member.castingSkillId];

@@ -1,0 +1,112 @@
+<!doctype html><html><body style="margin:0;background:#2f4a5a">
+<!-- Xem thử kỹ năng / hiệu ứng Nerissa (Thủy Vũ) theo từng mốc thời gian (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả):
+     npm run dev rồi mở /tools/fx-nerissa.html?s=auto
+     s = auto | d1 | d2 | d3 | d12 | d123 | notes | shield | flow | drain | gift | end
+     window.stepTo(giây) để tua -->
+<script>
+  // Đồng hồ ảo: setTimeout + performance.now chạy theo stepTo() để chụp đúng khoảnh khắc
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  const __pn = performance.now.bind(performance); performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+import { __fxTest } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'auto';
+document.body.appendChild(renderer.domElement);
+renderer.setSize(900, 500); camera.aspect = 900 / 500; camera.updateProjectionMatrix();
+camera.position.set(1.5, 3.2, 13); camera.lookAt(1.5, 1.6, 0);
+if (q.get('zoom')) { camera.position.set(-1.5, 2.2, 7.5); camera.lookAt(-1.5, 1.7, 0); }
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0, danceKey: '' });
+const ner = mk('dancer', -1.5, 'left');
+const allies = [ner, mk('warrior', -4, 'left', -1.2), mk('mage', -5, 'left', 1.2)];
+const foes = [mk('monster_tank', 3.5, 'right'), mk('monster_archer', 6, 'right', -1), mk('monster_supporter', 5, 'right', 1.2)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+const nSkills = [{ type: 'dance_tide', orbCost: 2, active: 'dance_tide' }, { type: 'dance_flow', orbCost: 0, minOrbs: 1, active: 'dance_flow' }, { type: 'dance_god', orbCost: 4, active: 'dance_god' }];
+game.classDefs = { dancer: { skills: nSkills }, warrior: { skills: [] }, mage: { skills: [] }, monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
+const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
+vF.forEach(v => { v.facingLeft = true; });
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+const vN = vA[0];
+const ev = [];
+const at = (t, fn) => ev.push([t, fn]);
+const hits = (list) => list.map((e) => ({ targetIndex: e[0], damage: e[1], isCrit: false, isBlock: false, isMiss: false, ...e[2] }));
+const BIG = 1e9;
+const dance = (key) => {           // trạng thái múa: hiệu ứng + clip múa tổ hợp
+  ner.danceKey = key; ner.state = 'dancing';
+  const types = { 1: 'dance_tide', 2: 'dance_flow', 3: 'dance_god' };
+  ner.statusEffects = ner.statusEffects.filter(e => !e.type.startsWith('dance_'));
+  [...key].forEach(k => ner.statusEffects.push({ type: types[k], endTime: BIG, duration: 0 }));
+  vN.setLocomotion('dance' + key);
+};
+const startSkill = (idx, key) => __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: idx, type: nSkills[idx].type, danceKey: key, effects: [{ targetIndex: 0, ally: true }] });
+
+if (S === 'auto') {
+  at(0.1, () => __fxTest.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 212, isCrit: false }));
+  at(1.1, () => __fxTest.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 430, isCrit: true }));
+}
+if (S === 'd1' || S === 'd2' || S === 'd3') {
+  const k = S[1];
+  at(0.1, () => { startSkill(+k - 1, k); dance(k); });
+  if (k === '1') at(0.2, () => allies.forEach(a => a.statusEffects.push({ type: 'tide_mana', endTime: BIG, manaPerSec: 400 })));
+  if (k === '3') at(0.3, () => ner.statusEffects.push({ type: 'dance_god', endTime: BIG, duration: 10000 }));
+}
+if (S === 'd12' || S === 'shield') {
+  at(0.0, () => dance('1'));
+  at(0.3, () => { startSkill(1, '12'); dance('12'); });
+  at(0.7, () => allies.forEach((a, i) => {
+    a.statusEffects.push({ type: 'water_shield', hp: 80, maxHp: 100, endTime: BIG });
+    __fxTest.onWaterFx({ kind: 'shield', casterId: 'me', casterIdx: 0, targetIndex: i, shield: 105 });
+  }));
+}
+if (S === 'd123' || S === 'notes') {
+  at(0.0, () => dance('12'));
+  at(0.2, () => { startSkill(2, '123'); dance('123'); });
+  at(0.8, () => __fxTest.onWaterFx({ kind: 'gift', casterId: 'me', casterIdx: 0, orbs: 1 }));
+  at(1.2, () => __fxTest.onWaterFx({ kind: 'notes', casterId: 'me', casterIdx: 0, targetId: 'op',
+    effects: hits([[0, 96], [1, 88], [2, 0, { isMiss: true }]]), allies: [{ targetIndex: 0 }, { targetIndex: 1, cleansed: 'stun' }, { targetIndex: 2 }] }));
+}
+if (S === 'flow') {
+  at(0.0, () => dance('2'));
+  at(0.2, () => __fxTest.onWaterFx({ kind: 'flowHeal', casterId: 'me', casterIdx: 0, heals: [{ targetIndex: 0, heal: 70 }, { targetIndex: 1, heal: 95 }, { targetIndex: 2, heal: 64 }] }));
+}
+if (S === 'drain') {
+  at(0.0, () => dance('23'));
+  at(0.2, () => [0, 1, 2].forEach(i => __fxTest.onWaterFx({ kind: 'drain', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: i })));
+}
+if (S === 'gift') at(0.1, () => __fxTest.onWaterFx({ kind: 'surge', casterId: 'me', casterIdx: 0, orbs: 1 }));
+if (S === 'end') {
+  at(0.0, () => dance('1'));
+  at(0.5, () => { ner.statusEffects = []; ner.danceKey = ''; ner.state = 'idle'; vN.setLocomotion('idle');
+    __fxTest.onWaterFx({ kind: 'danceEnd', casterId: 'me', casterIdx: 0, dance: 1, reason: 'stun', danceKey: '' }); });
+}
+ev.sort((a, b) => a[0] - b[0]);
+let t = 0;
+window.stepTo = (target) => {
+  while (t < target) {
+    const dt = Math.min(1 / 60, target - t);
+    while (ev.length && ev[0][0] <= t) ev.shift()[1]();
+    t += dt; window.__vt = t; window.__runTimers();
+    updateVfx(dt);
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
+  }
+  renderer.render(scene, camera);
+  return t;
+};
+window.stepTo(0.02); window.__ready = true;
+</script></body></html>

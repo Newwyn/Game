@@ -24,6 +24,7 @@ import { GROUND_Y, gameNow } from '../config.js';
 import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
+import { makeWaterBubble, makeGoddessAura, makeNoteHalo, spawnManaRise } from '../vfx/nerissaFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -324,7 +325,7 @@ export class CutoutCharacterView extends CharacterView {
     }
 
     _clipFor(state) {
-        let name = LOCOMOTION_CLIP[state] ?? 'idle';
+        let name = LOCOMOTION_CLIP[state] ?? (state?.startsWith('dance') && this.actions[state] ? state : 'idle');
         // Di chuyển: chậm thì chạy (khớp bước chân theo tốc độ), nhanh thì lướt kiểu ninja
         const loco = this.def.locomotion;
         if (state === 'move' && this._speed < STILL_SPEED) name = this.actions.ready ? 'ready' : 'idle';
@@ -615,7 +616,10 @@ export class CutoutCharacterView extends CharacterView {
             const giantEf = alive ? effs.find(e => e.type === 'giant_form' && e.endTime > now) : null;
             this._updateGiant(dt, giantEf, now);
             this._updateBrakkShield(dt, alive ? effs.find(e => e.type === 'brakk_shield' && e.endTime > now && e.hp > 0) : null);
+            this._updateLoneDragon(dt, alive && effs.some(e => e.type === 'lone_dragon' && e.endTime > now));
         }
+        // Thủy Vũ (Nerissa): giáp nước (bong bóng) · hào quang Thủy Thần · nốt nhạc bay vòng · MP bay lên khi được Sóng Triều
+        this._updateWaterFx(dt, alive ? effs : [], now);
         // Ấn Tử (thiên phú Phán Quyết Tử Thần của Zerith) trên đầu mục tiêu
         this._updateDeathMark(dt, alive && effs.some(e => e.type === 'death_mark' && e.endTime > now));
         this._updatePrayGuardian(dt, praying);
@@ -928,6 +932,17 @@ export class CutoutCharacterView extends CharacterView {
         this._immuneCrown.mesh.position.set(0, GROUND_Y + this.height * sc + 0.75 + (this._lift ?? 0), 0.5);
     }
 
+    /** Độc Long (Brakk chỉ còn 1 mình): hào quang rồng lửa (nhạt hơn lúc Khổng Lồ; đang Khổng Lồ thì dùng luôn hào quang đó) */
+    _updateLoneDragon(dt, on) {
+        const show = on && !this._giantAura;
+        if (show && !this._loneAura) { this._loneAura = makeGiantAura(); this._loneK = 0; this.root.add(this._loneAura.group); }
+        if (!this._loneAura) return;
+        this._loneK += ((show ? 1 : 0) - this._loneK) * Math.min(1, dt * 5);
+        if (!show && this._loneK < 0.03) { this._loneAura.dispose(); this._loneAura = null; return; }
+        this._loneAura.update(dt, this._loneK * 0.7, this._giantSc ?? 1);
+        this._loneAura.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+    }
+
     _updateBrakkShield(dt, ef) {
         if (ef && !this._brakkBubble) {
             this._brakkBubble = makeBrakkBubble(this.height * 1.1);
@@ -940,6 +955,36 @@ export class CutoutCharacterView extends CharacterView {
         const frac = ef?.maxHp ? Math.max(0, ef.hp / ef.maxHp) : 0;
         this._brakkBubble.update(dt, this._bubbleK, frac, this._giantSc ?? 1);
         this._brakkBubble.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+    }
+
+    /** Thủy Vũ: mọi hiệu ứng bám người — tạo khi cần, mờ dần rồi bỏ khi hết */
+    _updateWaterFx(dt, effs, now) {
+        const fade = (key, on, make, rate = 8) => {
+            let o = this[key];
+            if (on && !o) { o = this[key] = make(); o.k = 0; this.root.add(o.group); }
+            if (!o) return null;
+            o.k += ((on ? 1 : 0) - o.k) * Math.min(1, dt * rate);
+            if (!on && o.k < 0.03) { o.dispose(); this[key] = null; return null; }
+            o.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+            return o;
+        };
+        // giáp nước (Hòa Âm 1+2): bong bóng, sáng theo máu giáp còn lại
+        const ws = effs.find(e => e.type === 'water_shield' && e.endTime > now && e.hp > 0);
+        const bubble = fade('_waterBubble', !!ws, () => makeWaterBubble(this.height));
+        bubble?.update(dt, bubble.k, ws?.maxHp ? Math.max(0, ws.hp / ws.maxHp) : 0);
+        // Thủy Thần Vũ: hào quang nữ thần sau lưng + hoa sen xoay dưới chân (chỉ trên người Nerissa)
+        const god = effs.some(e => e.type === 'dance_god' && e.endTime > now);
+        const aura = fade('_goddessAura', god, makeGoddessAura, 5);
+        if (aura) { aura.group.scale.x = this.facingLeft ? -1 : 1; aura.update(dt, aura.k); }
+        // cả 3 điệu: nốt nhạc bay vòng quanh người
+        const all3 = effs.length > 0 && this.member?.danceKey === '123';
+        const halo = fade('_noteHalo', all3, makeNoteHalo, 5);
+        halo?.update(dt, halo.k);
+        // Sóng Triều: MP bay lên từng nhịp
+        if (effs.some(e => e.type === 'tide_mana' && e.endTime > now)) {
+            this._manaTick = (this._manaTick ?? Math.random()) - dt;
+            if (this._manaTick <= 0) { this._manaTick = 1.6; spawnManaRise(this.position, { size: 1.1, opacity: 0.55 }); }
+        } else this._manaTick = null;
     }
 
     _updateReaperNight(dt, on) {
