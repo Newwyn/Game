@@ -1,0 +1,67 @@
+{
+ "blink": {
+  "file": "art/elarion/gen/eye-blink.png",
+  "pivot": [
+   42,
+   33
+  ],
+  "box": [
+   0,
+   0,
+   74,
+   59
+  ]
+ },
+ "determined": {
+  "file": "art/elarion/gen/eye-determined.png",
+  "pivot": [
+   42,
+   33
+  ],
+  "box": [
+   0,
+   0,
+   75,
+   59
+  ]
+ },
+ "happy": {
+  "file": "art/elarion/gen/eye-happy.png",
+  "pivot": [
+   42,
+   33
+  ],
+  "box": [
+   0,
+   0,
+   75,
+   59
+  ]
+ },
+ "pain": {
+  "file": "art/elarion/gen/eye-pain.png",
+  "pivot": [
+   42,
+   33
+  ],
+  "box": [
+   0,
+   0,
+   75,
+   61
+  ]
+ },
+ "cast": {
+  "file": "art/elarion/gen/eye-cast.png",
+  "pivot": [
+   42,
+   33
+  ],
+  "box": [
+   0,
+   0,
+   75,
+   59
+  ]
+ }
+}

@@ -3,8 +3,10 @@ Gom hiệu ứng (VFX) từ các tấm hình thành 1 atlas nền trong suốt.
 Chạy:  python tools/build_fx_atlas.py art/ignar/fx_spec.json
 Spec: { "out": "...png", "meta": "...json", "width": 2048,
         "sheets": { tên: {"file": "...", "scale": 0.5} },          // tấm PNG nền trong suốt, hoặc nền ĐEN (tự tách nền)
-        "parts":  { tên: {"sheet": "...", "box": [x0,y0,x1,y1], "scale"?: s, "largest"?: true} } }
+        "parts":  { tên: {"sheet": "...", "box": [x0,y0,x1,y1], "scale"?: s, "largest"?: true, "core"?: ngưỡng} } }
 Nền đen -> alpha = độ sáng lớn nhất của pixel, màu được "gỡ đen" (lửa giữ độ rực, không bị viền đen).
+"core": vật THẬT có màu tối (đá, mây đen, khối băng...): phần ruột (sáng hơn ngưỡng, lấp kín lỗ) giữ ĐẶC với màu gốc,
+        chỉ quầng sáng bên ngoài mới trong suốt dần — đá / mây không bị "trong veo" như ánh sáng.
 """
 import json
 import sys
@@ -35,14 +37,30 @@ def load(path):
     return a.astype(np.uint8)
 
 
+def core_matte(raw, sub, thr):
+    """raw: ảnh gốc nền đen (RGB) cùng hộp; sub: RGBA đã tách nền -> ruột đặc màu gốc, viền mềm"""
+    br = raw.max(-1)
+    core = ndimage.binary_fill_holes(br > thr)
+    core = ndimage.binary_opening(core, iterations=2)
+    soft = ndimage.gaussian_filter(core.astype(np.float32), 1.5)
+    soft = np.clip(soft * 1.4, 0, 1)
+    out = sub.astype(np.float32)
+    out[..., :3] = out[..., :3] * (1 - soft[..., None]) + raw.astype(np.float32) * soft[..., None]
+    out[..., 3] = np.maximum(out[..., 3], soft * 255)
+    return out.astype(np.uint8)
+
+
 def main():
     spec = json.load(open(sys.argv[1]))
     sheets = {k: (load(v["file"]), v.get("scale", 1.0)) for k, v in spec["sheets"].items()}
+    raws = {k: np.asarray(Image.open(v["file"]).convert("RGB")) for k, v in spec["sheets"].items()}
     crops = []
     for name, p in spec["parts"].items():
         arr, sc = sheets[p["sheet"]]
         x0, y0, x1, y1 = p["box"]
         sub = arr[y0:y1, x0:x1].copy()
+        if p.get("core"):
+            sub = core_matte(raws[p["sheet"]][y0:y1, x0:x1], sub, p["core"])
         if p.get("largest"):   # chỉ giữ khối liền lớn nhất (bỏ mẩu hình bên cạnh lọt vào hộp)
             lab, n = ndimage.label(ndimage.binary_dilation(sub[..., 3] > 20, iterations=3))
             if n > 1:

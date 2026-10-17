@@ -49,6 +49,15 @@ import {
     nerissaClips, SKIN_KEYS as NERISSA_SKINS, DEFAULT_SKINS as NERISSA_DEFAULT_SKINS,
     SECONDARY as NERISSA_SECONDARY, LOCOMOTION as NERISSA_LOCOMOTION,
 } from './cutout/nerissaClips.js';
+import { ELARION_RIG } from './cutout/elarionRig.js';
+import {
+    elarionClips, SKIN_KEYS as ELARION_SKINS, DEFAULT_SKINS as ELARION_DEFAULT_SKINS,
+    SECONDARY as ELARION_SECONDARY, LOCOMOTION as ELARION_LOCOMOTION, FLOAT as ELARION_FLOAT,
+} from './cutout/elarionClips.js';
+import { GOLEM_RIG } from './cutout/golemRig.js';
+import {
+    golemClips, LOCOMOTION as GOLEM_LOCOMOTION,
+} from './cutout/golemClips.js';
 import {
     lyraClips, SKIN_KEYS as LYRA_SKINS, DEFAULT_SKINS as LYRA_DEFAULT_SKINS,
     SECONDARY as LYRA_SECONDARY, LOCOMOTION as LYRA_LOCOMOTION,
@@ -236,6 +245,48 @@ const DANCER = {
     },
 };
 
+// Elarion (Tam Nguyên) — Pháp Sư Nguyên Tố tộc Elf. Sách Nguyên Tố lơ lửng trước người (mở ra khi đọc / tung phép)
+const ELEMENTALIST = {
+    rig: ELARION_RIG,
+    clips: elarionClips,
+    height: 2.9,
+    shadowSize: 1.4,
+    skinKeys: ELARION_SKINS,
+    defaultSkins: ELARION_DEFAULT_SKINS,
+    secondary: ELARION_SECONDARY,
+    locomotion: ELARION_LOCOMOTION,
+    floatParts: ELARION_FLOAT,
+    blink: true,
+    ghostTint: 0xc4b5fd,
+    circleTint: 0xa78bfa,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.22 },   // đẩy chưởng -> tia nguyên tố
+        book:   { clip: 'book',   hitTime: 0.2 },    // đọc Sách Nguyên Tố
+        spell:  { clip: 'spell',  hitTime: 0.38 },   // tung phép
+        storm:  { clip: 'storm',  hitTime: 0.3 },    // Bão Nguyên Tố
+        cast:   { clip: 'cast' },
+    },
+};
+
+// Golem Nguyên Tố — triệu hồi của Elarion: NGUYÊN TRANH (1 hình liền), cử động cả thân; nắm đấm lửa / sét, hơi băng là hiệu ứng phủ lên
+const ELEM_GOLEM = {
+    rig: GOLEM_RIG,
+    clips: golemClips,
+    height: 4.7,
+    shadowSize: 3.6,
+    locomotion: GOLEM_LOCOMOTION,
+    circleTint: 0xb784ff,
+    anims: {
+        attack:  { clip: 'attack',  hitTime: 0.3 },   // chồm tới nện
+        charge:  { clip: 'charge' },                  // gồng (rung, giữ)
+        dash:    { clip: 'dash' },                    // lao đấm
+        inhale:  { clip: 'inhale' },                  // hít khí lạnh (giữ)
+        breath:  { clip: 'breath' },                  // phun bão tuyết (giữ)
+        aura:    { clip: 'aura',    hitTime: 0.4 },   // ngửa đón sét -> nện xuống
+        summon:  { clip: 'summon' },
+    },
+};
+
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
@@ -246,6 +297,8 @@ export const CHARACTER_VISUALS = {
     reaper: () => REAPER,
     wrestler: () => BRAKK,
     dancer: () => DANCER,
+    elementalist: () => ELEMENTALIST,
+    elem_golem: () => ELEM_GOLEM,
     monster_tank: (m) => creatureVisual('monster_tank', m.color),
     monster_archer: (m) => creatureVisual('monster_archer', m.color),
     monster_supporter: (m) => creatureVisual('monster_supporter', m.color),

@@ -4,7 +4,7 @@
 // Vẽ bằng code: chuỗi đốm sáng dọc một đường cong võng nhẹ (ngang ngực 2 người), các đốm chạy từ Rok sang người được nối.
 // Tạm thời — khi có tranh hiệu ứng riêng sẽ thay.
 import * as THREE from 'three';
-import { glowTexture } from './vfx.js';
+import { glowTexture, addAnim, fxPlane } from './vfx.js';
 
 const N = 18;
 export function makeRokTether() {
@@ -39,4 +39,17 @@ export function makeRokTether() {
         },
         dispose() { g.parent?.remove(g); dots.concat(ends).forEach(d => d.material.dispose()); },
     };
+}
+
+/** Kiên Cường: đòn đánh vào người được nối dây -> 1 khối sáng chạy dọc dây về Rok (from, to: view) */
+export function spawnLinkPulse(from, to) {
+    const m = fxPlane(glowTexture(), 0.9, 0.9, { color: 0xffd36b });
+    const yA = (from._lift ?? 0) + (from._hover ?? 0) + 0.9, yB = (to._lift ?? 0) + 0.9;   // cùng độ cao với dây (battleScene)
+    addAnim(m, 0.28, (p, fx) => {
+        const a = from.position, b = to.position;
+        const len = Math.hypot(b.x - a.x, (b.z ?? 0) - (a.z ?? 0));
+        fx.mesh.position.set(a.x + (b.x - a.x) * p, yA + (yB - yA) * p - Math.sin(p * Math.PI) * Math.min(0.9, len * 0.06), (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * p + 0.4);
+        fx.mesh.scale.setScalar(1 + 0.4 * Math.sin(p * Math.PI));
+        fx.mesh.material.opacity = p > 0.8 ? (1 - p) / 0.2 : 1;
+    });
 }

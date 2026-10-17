@@ -18,7 +18,7 @@ import { timeState } from './config.js';
 import { registerCombatEvents } from './combat/events.js';
 import { updateViews } from './combat/battleScene.js';
 import { updateVfx } from './vfx/vfx.js';
-import { updateHUD } from './ui/hud.js';
+import { updateHUD, resetMemberAuto } from './ui/hud.js';
 import { registerOverlayEvents, enterBattleUI, showWaiting } from './ui/overlays.js';
 import { setupInput, applyPreferredSpeed, updateSpeedButton, renderMemberToggles, resetDebugToggles } from './ui/input.js';
 import { socket } from './net/socket.js';
@@ -34,6 +34,7 @@ registerOverlayEvents();
 registerCombatEvents({
     onWaiting: (data) => showWaiting(data.message),
     onBattleStart: (data) => {
+        resetMemberAuto();   // AUTO từng tướng: gửi lại lựa chọn đã nhớ cho trận mới
         // Chế độ: ĐẤU -> ẩn mọi tool test (CSS body.mode-duel)
         const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero';
         document.body.classList.toggle('mode-duel', duel);

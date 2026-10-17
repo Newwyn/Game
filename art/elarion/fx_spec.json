@@ -1,0 +1,480 @@
+{
+ "out": "src/assets/sprites/elarion_fx.png",
+ "meta": "src/vfx/elarionFx.json",
+ "width": 4096,
+ "sheets": {
+  "fx-a": {
+   "file": "art/elarion/fx-a.png",
+   "scale": 0.8
+  },
+  "fx-b": {
+   "file": "art/elarion/fx-b.png",
+   "scale": 0.8
+  },
+  "fx-c": {
+   "file": "art/elarion/fx-c.png",
+   "scale": 0.8
+  },
+  "fx-d": {
+   "file": "art/elarion/fx-d.png",
+   "scale": 0.8
+  },
+  "fx-e": {
+   "file": "art/elarion/fx-e.png",
+   "scale": 0.8
+  },
+  "props": {
+   "file": "art/elarion/04-book-gems.png",
+   "scale": 0.32
+  }
+ },
+ "parts": {
+  "ringFire": {
+   "sheet": "fx-a",
+   "box": [
+    86,
+    14,
+    449,
+    328
+   ]
+  },
+  "ringIce": {
+   "sheet": "fx-a",
+   "box": [
+    571,
+    11,
+    956,
+    328
+   ]
+  },
+  "ringBolt": {
+   "sheet": "fx-a",
+   "box": [
+    1087,
+    2,
+    1463,
+    333
+   ]
+  },
+  "hoverRing": {
+   "sheet": "fx-a",
+   "box": [
+    78,
+    330,
+    452,
+    618
+   ]
+  },
+  "gemBurst": {
+   "sheet": "fx-a",
+   "box": [
+    600,
+    338,
+    935,
+    615
+   ]
+  },
+  "streak": {
+   "sheet": "fx-a",
+   "box": [
+    1022,
+    408,
+    1490,
+    563
+   ]
+  },
+  "gemFade": {
+   "sheet": "fx-a",
+   "box": [
+    38,
+    667,
+    479,
+    950
+   ]
+  },
+  "bookRune": {
+   "sheet": "fx-a",
+   "box": [
+    575,
+    612,
+    965,
+    960
+   ]
+  },
+  "stormVortex": {
+   "sheet": "fx-a",
+   "box": [
+    1028,
+    599,
+    1504,
+    998
+   ]
+  },
+  "meteorFall": {
+   "sheet": "fx-b",
+   "box": [
+    43,
+    32,
+    514,
+    362
+   ],
+   "core": 70
+  },
+  "rockBall": {
+   "sheet": "fx-b",
+   "box": [
+    597,
+    88,
+    924,
+    371
+   ],
+   "core": 70
+  },
+  "meteorBoom": {
+   "sheet": "fx-b",
+   "box": [
+    977,
+    23,
+    1517,
+    380
+   ],
+   "core": 95
+  },
+  "fireStrip": {
+   "sheet": "fx-b",
+   "box": [
+    20,
+    465,
+    639,
+    622
+   ]
+  },
+  "orbSmall": {
+   "sheet": "fx-b",
+   "box": [
+    711,
+    470,
+    890,
+    641
+   ]
+  },
+  "orbBig": {
+   "sheet": "fx-b",
+   "box": [
+    1081,
+    381,
+    1439,
+    710
+   ],
+   "core": 95
+  },
+  "fireBlast": {
+   "sheet": "fx-b",
+   "box": [
+    26,
+    677,
+    384,
+    969
+   ],
+   "core": 95
+  },
+  "fireBeam": {
+   "sheet": "fx-b",
+   "box": [
+    419,
+    742,
+    1027,
+    924
+   ]
+  },
+  "fireRow": {
+   "sheet": "fx-b",
+   "box": [
+    1038,
+    763,
+    1516,
+    920
+   ]
+  },
+  "iceChunk": {
+   "sheet": "fx-c",
+   "box": [
+    135,
+    23,
+    404,
+    354
+   ],
+   "core": 60
+  },
+  "iceSmash": {
+   "sheet": "fx-c",
+   "box": [
+    551,
+    52,
+    997,
+    346
+   ]
+  },
+  "iceShard": {
+   "sheet": "fx-c",
+   "box": [
+    1069,
+    123,
+    1466,
+    281
+   ]
+  },
+  "iceBeam": {
+   "sheet": "fx-c",
+   "box": [
+    18,
+    411,
+    557,
+    678
+   ]
+  },
+  "iceSpikes": {
+   "sheet": "fx-c",
+   "box": [
+    550,
+    398,
+    1079,
+    642
+   ]
+  },
+  "icePrison": {
+   "sheet": "fx-c",
+   "box": [
+    1153,
+    335,
+    1412,
+    669
+   ]
+  },
+  "iceBreak": {
+   "sheet": "fx-c",
+   "box": [
+    43,
+    621,
+    517,
+    998
+   ]
+  },
+  "frostIcon": {
+   "sheet": "fx-c",
+   "box": [
+    613,
+    685,
+    934,
+    971
+   ]
+  },
+  "wardDome": {
+   "sheet": "fx-c",
+   "box": [
+    1035,
+    687,
+    1502,
+    978
+   ]
+  },
+  "bolt1": {
+   "sheet": "fx-d",
+   "box": [
+    89,
+    53,
+    516,
+    250
+   ]
+  },
+  "bolt2": {
+   "sheet": "fx-d",
+   "box": [
+    569,
+    72,
+    1047,
+    238
+   ]
+  },
+  "zapBurst": {
+   "sheet": "fx-d",
+   "box": [
+    1166,
+    30,
+    1429,
+    282
+   ]
+  },
+  "tornado1": {
+   "sheet": "fx-d",
+   "box": [
+    86,
+    280,
+    488,
+    617
+   ]
+  },
+  "tornado2": {
+   "sheet": "fx-d",
+   "box": [
+    580,
+    283,
+    962,
+    624
+   ]
+  },
+  "rainCloud": {
+   "sheet": "fx-d",
+   "box": [
+    1003,
+    318,
+    1487,
+    644
+   ],
+   "core": 30
+  },
+  "cloudStrike": {
+   "sheet": "fx-d",
+   "box": [
+    157,
+    630,
+    413,
+    975
+   ],
+   "core": 30
+  },
+  "healDrops": {
+   "sheet": "fx-d",
+   "box": [
+    652,
+    660,
+    894,
+    954
+   ]
+  },
+  "zapSmall": {
+   "sheet": "fx-d",
+   "box": [
+    1182,
+    751,
+    1361,
+    909
+   ]
+  },
+  "summonPillar": {
+   "sheet": "fx-e",
+   "box": [
+    94,
+    26,
+    458,
+    331
+   ]
+  },
+  "landBurst": {
+   "sheet": "fx-e",
+   "box": [
+    559,
+    86,
+    972,
+    323
+   ],
+   "core": 45
+  },
+  "fistTrail": {
+   "sheet": "fx-e",
+   "box": [
+    1040,
+    95,
+    1455,
+    303
+   ],
+   "core": 60
+  },
+  "inhaleSpiral": {
+   "sheet": "fx-e",
+   "box": [
+    77,
+    370,
+    455,
+    641
+   ]
+  },
+  "blizzard": {
+   "sheet": "fx-e",
+   "box": [
+    566,
+    374,
+    997,
+    641
+   ]
+  },
+  "fistStrike": {
+   "sheet": "fx-e",
+   "box": [
+    1123,
+    317,
+    1420,
+    650
+   ],
+   "core": 50
+  },
+  "palmDouble": {
+   "sheet": "fx-e",
+   "box": [
+    45,
+    683,
+    504,
+    926
+   ]
+  },
+  "hasteRing": {
+   "sheet": "fx-e",
+   "box": [
+    584,
+    662,
+    970,
+    943
+   ]
+  },
+  "crumble": {
+   "sheet": "fx-e",
+   "box": [
+    1053,
+    674,
+    1476,
+    952
+   ],
+   "core": 35
+  },
+  "gemF": {
+   "sheet": "props",
+   "box": [
+    325,
+    530,
+    555,
+    979
+   ],
+   "scale": 0.32
+  },
+  "gemI": {
+   "sheet": "props",
+   "box": [
+    653,
+    531,
+    882,
+    979
+   ],
+   "scale": 0.32
+  },
+  "gemB": {
+   "sheet": "props",
+   "box": [
+    982,
+    531,
+    1211,
+    979
+   ],
+   "scale": 0.32
+  }
+ }
+}

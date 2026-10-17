@@ -47,6 +47,7 @@ const DMG_STYLE = {
     normal: { color: '#ef4444', text: v => `-${v}` },
     magic:  { color: '#60a5fa', text: v => `-${v}` },   // sát thương PHÉP (xanh dương); vật lý = đỏ
     hpcost: { color: '#f97316', text: v => `♥ -${v}` }, // tự trừ máu để dùng chiêu (Brakk)
+    share:  { color: '#fbbf24', text: v => `◈ -${v}` },  // Rok gánh sát thương thay người được nối dây
 };
 
 export function spawnDamageNumber(pos, value, type = 'normal') {
@@ -64,7 +65,7 @@ export function spawnDamageNumber(pos, value, type = 'normal') {
     });
 
     if (isCrit) sprite.scale.set(3.0, 1.5, 1);
-    else if (type === 'miss' || type === 'block' || type === 'absorb' || type === 'shield' || type === 'hpcost') sprite.scale.set(2.0, 1.0, 1);
+    else if (type === 'miss' || type === 'block' || type === 'absorb' || type === 'shield' || type === 'hpcost' || type === 'share') sprite.scale.set(2.0, 1.0, 1);
     else sprite.scale.set(1.8, 0.9, 1);
 
     sprite.position.set(pos.x + (Math.random() - 0.5) * 0.5, pos.y + 3, pos.z + 0.5);

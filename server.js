@@ -103,9 +103,10 @@ const CLASS_DEFS = {
               desc: 'Vào trận nối dây với đồng đội ATK cao nhất. Rok & người được nối: máu dưới 30% -> +{value‰} chặn đòn, kèm 5s hồi 3% máu mỗi giây (hồi 10s). Còn dây: thiên phú 1 & 2 của Rok ×2. 1 trong 2 chết -> đứt dây' },
             // Thiên phú 2 — Kiên Cường: nhận đủ 10 đòn -> bật 10s (giảm sát thương nhận & thời gian bị choáng), hết thì hồi 15s.
             //   Người được nối dây cũng có (tự đếm đòn của mình)
+            //   GÁNH ĐÒN: còn dây -> người được nối chỉ nhận 50% sát thương, Rok gánh 50% còn lại (khiên của Rok hứng trước)
             { name: 'Kiên Cường', type: 'tenacity_trigger', hits: 10, duration: 10000, cooldown: 15000, talent: 2, stat: 'tenacity',
-              levels: { value: [150, 250] },
-              desc: 'Rok & người được nối dây: nhận đủ 10 đòn -> bật 10s: giảm {value‰} sát thương nhận & thời gian bị khống chế. Hết thì hồi 15s' },
+              share: 0.5, levels: { value: [150, 250] },
+              desc: 'Rok & người được nối dây: nhận đủ 10 đòn -> bật 10s: giảm {value‰} sát thương nhận & thời gian bị khống chế. Hết thì hồi 15s. Còn dây: người được nối chỉ nhận 50% sát thương, Rok gánh phần còn lại' },
         ]
     },
     // Lyra (Phong Tiễn) — class XẠ THỦ: bắn xa hàng sau, sát thương VẬT LÝ đều tay, mỏng máu
@@ -192,18 +193,18 @@ const CLASS_DEFS = {
         crit: 150, critDmg: 500, acc: 1000, dodge: 80, pen: 100, block: 0, lifesteal: 0,
         threat: 100,
         mpAtk: 200, mpSec: 120,
-        atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01,
+        atkSpeed: 1100, range: 'ranged', atkRange: 15, moveSpeed: 0.01,
         autoHitFrame: 2,
         autoImpact: 480, // ms: ném (0.25s) + cầu lửa bay (0.23s)
         skills: [
             // Thiên Hỏa Cầu: giơ tay gọi quả cầu lửa lớn trên trời -> rơi xuống chỗ quái ĐÔNG nhất, nổ diện rộng
             //   chạm đất ×2.0 (bán kính 5.5) -> để lại BIỂN LỬA cháy thêm 3 lần ×0.3 (mỗi 0.6s)
-            { name: 'Thiên Hỏa Cầu', orbCost: 1, cooldown: 7000, castTime: 1000, godCast: 0, godTwinChance: 0.8, type: 'sky_fireball', castRange: 16, multiplier: 2.0, radius: 5.5,
+            { name: 'Thiên Hỏa Cầu', orbCost: 1, cooldown: 7000, castTime: 1000, godCast: 0, godTwinChance: 0.8, type: 'sky_fireball', castRange: 18, multiplier: 2.0, radius: 5.5,
               burnTicks: 3, burnMultiplier: 0.3, burnGap: 600, impact: 950, lock: 750 },
             // Cột Lửa Phá Ma: bắn cục lửa xuống đất -> cột lửa bùng 7 lần (mỗi 0.4s, ×0.45 diện rộng),
             //   mỗi lần trúng -5% M.DEF (tối đa 5 lần = -25%), giữ 10s
             //   Ignar chưởng xuống đất (0.25s) -> vòng phép hiện ở chỗ quái 1s -> cột lửa bùng (bán kính 5)
-            { name: 'Cột Lửa Phá Ma', orbCost: 2, cooldown: 14000, castTime: 1000, godCast: 0, godCircleTime: 400, godDmgUp: 0.25, type: 'fire_pillar', castRange: 16, hits: 7, tickMultiplier: 0.45,
+            { name: 'Cột Lửa Phá Ma', orbCost: 2, cooldown: 14000, castTime: 1000, godCast: 0, godCircleTime: 400, godDmgUp: 0.25, type: 'fire_pillar', castRange: 18, hits: 7, tickMultiplier: 0.45,
               radius: 5, tickGap: 400, mDefDown: 0.05, maxStacks: 5, breakDuration: 10000, circleTime: 1000, impact: 1250, lock: 650 },
             // Hỏa Thần Giáng Lâm (GỒNG 1.5s): Hộ Vệ Thần Lửa chiến đấu cùng 15s, +25% M.ATK.
             //   Đánh thường -> Hỏa Chưởng diện rộng; cứ 3 đòn nhảy lên chưởng TẤT CẢ quái (choáng 0.5s, hồi chiêu KN1 & KN2 -1s)
@@ -265,7 +266,7 @@ const CLASS_DEFS = {
             //   nhấc mục tiêu lên không trung (không bị đánh / chọn / dính hiệu ứng) -> chém: có khiên -> vỡ khiên rơi xuống, không khiên -> chết.
             //   Xong thì mất Ấn Tử, chờ lượt gắn sau. Phán quyết: nhấc 1.1s, chém, rơi 0.5s
             { name: 'Phán Quyết Tử Thần', type: 'death_judgement', talent: 1, every: 15000, duration: 15000, range: 9, liftTime: 1100, fallTime: 500,
-              levels: { value: [0.05, 0.07, 0.10], healCut: [0.05, 0.075, 0.10] },
+              levels: { value: [0.05, 0.07, 0.10], healCut: [0.20, 0.275, 0.35] },
               desc: 'Vào giao tranh và mỗi 15s gắn Ấn Tử lên TẤT CẢ đối thủ: −{healCut%} hồi máu nhận được · Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên · máu chạm NGƯỠNG TỬ {value%} -> Thần Chết nhấc lên không trung phán quyết: có khiên thì vỡ khiên rơi xuống, không khiên thì chết' },
             // Thiên phú 2 — Linh Hồn Báo Thù: lần đầu gục ngã -> hóa linh hồn Thần Chết chiến đấu tiếp 7s (1 lần mỗi trận)
             { name: 'Linh Hồn Báo Thù', type: 'reaper_avenger', talent: 2, duration: 7000, every: 900, multiplier: 1.2, splash: 0.5, splashRadius: 2.5,
@@ -303,6 +304,7 @@ const CLASS_DEFS = {
             { name: 'Thủy Thần Vũ', orbCost: 4, cooldown: 12000, castTime: 0, type: 'dance_god', duration: 10000,
               hpUp: 0.2, healUp: 0.3, atkUp: 0.2, selfCc: 1.0, teamCc: 0.5,
               noteEvery: 1000, noteMultiplier: 0.4, noteMdefDown: 0.15, noteAmp: 0.1, noteTime: 3000, noteCleanse: 0.5,
+              teamOrbs: 2,   // vừa vào điệu: cả đội (kể cả Nerissa) +2 Orb ngay
               castRange: 99, impact: 400, lock: 450, active: 'dance_god' },
         ],
         passives: [
@@ -322,57 +324,79 @@ const CLASS_DEFS = {
     // Elarion (Tam Nguyên) — class PHÙ THỦY, tộc Elf, pháp sư nguyên tố kiểu Invoker.
     //   NGỌC NGUYÊN TỐ (Hỏa / Băng / Lôi) lơ lửng quanh pháp sư: cứ 3s rơi 1 viên ngẫu nhiên (1 hệ không rơi quá 2 lần liền),
     //   tối đa 5 viên, mỗi viên sống 8 giây GIỜ THẬT. Bấm vào ngọc -> vào 3 ô ngọc (viên thứ 4 đẩy viên cũ nhất ra).
-    //   KN1 Sách Nguyên Tố: đọc 3 viên đang giữ -> tạo phép tương ứng vào nút KN2 (MẤT 3 viên). KN2: phép vừa ghép.
-    //   KN3 Bão Nguyên Tố: ngọc trên sân bổ sung ngay cho đủ 7 viên, trong 7s cứ bớt là tung thêm cho đủ 7; Sách hồi 1s.
+    //   KN1 Sách Nguyên Tố (1 Orb, không hồi chiêu): đọc 3 viên đang giữ -> tạo phép tương ứng vào nút KN2 (MẤT 3 viên). KN2: phép vừa ghép.
+    //   KN3 Bão Nguyên Tố: ngọc trên sân bổ sung ngay cho đủ 7 viên, trong 7s cứ bớt là tung thêm cho đủ 7.
     elementalist: {
         name: 'Elarion', title: 'Tam Nguyên', className: 'Phù Thủy', emoji: '🔮', color: '#7c3aed', dmgType: 'magic',
         classGroup: 'mage', race: 'elf',
-        maxHp: 1000, maxMp: 5000, pAtk: 0, mAtk: 215, pDef: 40, mDef: 75,
+        maxHp: 1000, maxMp: 5000, pAtk: 0, mAtk: 240, pDef: 40, mDef: 75,
         crit: 100, critDmg: 500, acc: 1000, dodge: 80, pen: 0, block: 0, lifesteal: 0,
         threat: 100,
         mpAtk: 200, mpSec: 150,
-        atkSpeed: 1050, range: 'ranged', atkRange: 11, moveSpeed: 0.01,
+        atkSpeed: 1050, range: 'ranged', atkRange: 14, moveSpeed: 0.01,
         autoHitFrame: 2,
         autoImpact: 380, // ms: vung tay 0.22s + tia nguyên tố bay 0.16s
         gemEvery: 3000, gemLife: 8000, gemMax: 5, gemHold: 3, gemMaxRun: 2,
         skills: [
-            { name: 'Sách Nguyên Tố', orbCost: 0, cooldown: 2000, stormCooldown: 1000, castTime: 0, type: 'elem_book', castRange: 99, impact: 200, lock: 300 },
-            // nút KN2: phép đang giữ (thay bằng phép trong `spells` mỗi lần ghép) — chưa ghép thì trống
+            // Sách Nguyên Tố: tốn 1 Orb, KHÔNG hồi chiêu — đọc 3 viên đang giữ -> phép vào nút KN2
+            { name: 'Sách Nguyên Tố', orbCost: 1, cooldown: 0, castTime: 0, type: 'elem_book', castRange: 99, impact: 200, lock: 300 },
+            // nút KN2: phép đang giữ (thay bằng phép trong `spells` mỗi lần ghép) — chưa ghép hoặc vừa dùng xong thì trống
             { name: 'Chưa có phép', orbCost: 0, cooldown: 0, castTime: 0, type: 'elem_spell', spell: null, castRange: 99, impact: 0, lock: 0 },
-            { name: 'Bão Nguyên Tố', orbCost: 3, cooldown: 30000, castTime: 0, type: 'elem_storm', duration: 7000, fill: 7, castRange: 99,
+            // Bão Nguyên Tố: dùng xong +2 Orb ngay (thực tốn 1 Orb), hồi 10s
+            { name: 'Bão Nguyên Tố', orbCost: 3, cooldown: 10000, castTime: 0, type: 'elem_storm', duration: 7000, fill: 7, orbGain: 2, castRange: 99,
               impact: 300, lock: 450, active: 'elem_storm' },
         ],
         // 10 phép: ghép 3 viên (không cần đúng thứ tự). recipe: f = Hỏa, i = Băng, b = Lôi
         spells: {
-            meteor: { name: 'Thiên Thạch', recipe: 'fff', orbCost: 3, cooldown: 14000, multiplier: 2.2, radius: 4, impact: 800, lock: 600,
-                rollLen: 15, rollTime: 1000, rollWidth: 1.6, rollMultiplier: 0.6, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.3, trailTime: 2200 },
-            frost: { name: 'Băng Phong', recipe: 'iii', orbCost: 2, cooldown: 12000, multiplier: 0.8, slow: 0.2, slowTime: 3000, impact: 400, lock: 600,
+            // Thiên Thạch: rơi vào chỗ đông đối thủ (chạm đất LUÔN CHÍ MẠNG) -> LĂN CHẬM thẳng về phía địch (tầm lướt Zerith) -> vệt lửa 2 lần.
+            //   (ý đồ ẩn) Lốc Xoáy đẩy đối thủ va vào thiên thạch đang lăn -> thêm sát thương va chạm
+            meteor: { name: 'Thiên Thạch', recipe: 'fff', orbCost: 3, cooldown: 14000, multiplier: 2.8, radius: 4, impact: 800, lock: 600,
+                rollLen: 15, rollTime: 3000, rollWidth: 1.6, rollMultiplier: 0.8, crashMultiplier: 1.2, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.4, trailTime: 3500 },
+            // Băng Phong: khối băng thành hình trên đầu địch 1,5s -> rơi: cả đội địch ×1.1 (băng) + −20% tốc đánh 3s;
+            //   vỡ ra 5 khối nhỏ văng xuống (×0.35, hiệu ứng tính chung) · mỗi đối thủ có cơ hội bị đóng băng theo bậc
+            frost: { name: 'Băng Phong', recipe: 'iii', orbCost: 3, cooldown: 12000, multiplier: 1.1, shards: 5, shardMultiplier: 0.35, shardRadius: 1.6,
+                form: 1500, fall: 300, slow: 0.2, slowTime: 3000, impact: 400, lock: 600,
                 freezeChance: 0.2, freezeTime: 1000, byRank: { freezeChance: [0.2, 0.25, 0.3, 0.4], freezeTime: [1000, 1300, 1600, 2000] } },
-            chain: { name: 'Lôi Xích', recipe: 'bbb', orbCost: 2, cooldown: 10000, multiplier: 1.2, bounces: 5, bounceRange: 9, bounceGap: 120,
-                mDefDown: 0.1, debuffTime: 5000, byRank: { mDefDown: [0.10, 0.12, 0.13, 0.15] }, impact: 300, lock: 500 },
+            // Lôi Xích: nảy qua tối đa 5 đối thủ, sau đó mỗi lần 50% nảy tiếp (được trúng lại), −M.DEF 5s (không cộng dồn)
+            chain: { name: 'Lôi Xích', recipe: 'bbb', orbCost: 2, cooldown: 13000, multiplier: 1.5, bounces: 5, extraChance: 0.5, extraMax: 10,
+                bounceRange: 9, bounceGap: 120, mDefDown: 0.1, debuffTime: 5000, byRank: { mDefDown: [0.10, 0.12, 0.13, 0.15] }, impact: 300, lock: 500 },
             golem: { name: 'Nguyên Tố Hợp Nhất', recipe: 'fib', orbCost: 5, cooldown: 25000, duration: 20000, impact: 600, lock: 900,
-                hpMult: 3.5, atkMult: 0.8, pDefMult: 6, mDefMult: 2.3 },
+                hpMult: 4.67, atkMult: 1.1, pDefMult: 6, mDefMult: 2.3 },   // máu = 4,67× máu Elarion · ATK = 1,1× M.ATK Elarion
+            // Giáp Băng Sét: khiên 25% máu cho Elarion + đồng đội yếu máu nhất 6s; ai đánh trúng người có giáp bị sét giật + choáng
             ward: { name: 'Giáp Băng Sét', recipe: 'iib', orbCost: 2, cooldown: 15000, duration: 6000, shieldPct: 0.25, impact: 300, lock: 500,
-                counterMultiplier: 0.3, counterStun: 500, counterEvery: 1000 },
-            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 0.8, length: 12, width: 1.8, travel: 900,
+                counterMultiplier: 0.4, counterStun: 500, counterEvery: 1000 },
+            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 1.1, length: 12, width: 1.8, travel: 900,
                 push: 4, knockTime: 450, impact: 300, lock: 500 },
-            steam: { name: 'Hơi Nước Bỏng', recipe: 'ffi', orbCost: 2, cooldown: 14000, radius: 4, duration: 4000, tickGap: 500,
-                tickMultiplier: 0.25, missUp: 0.3, impact: 400, lock: 500 },
-            firebolt: { name: 'Hỏa Lôi Cầu', recipe: 'ffb', orbCost: 2, cooldown: 12000, multiplier: 1.6, radius: 3, stun: 1000, flight: 450,
-                impact: 250, lock: 500 },
-            avalanche: { name: 'Tuyết Lở', recipe: 'iif', orbCost: 2, cooldown: 14000, multiplier: 1.2, radius: 3.5, knockup: 1000, impact: 550, lock: 600 },
-            haste: { name: 'Tốc Lôi', recipe: 'bbf', orbCost: 2, cooldown: 18000, atkSpeedUp: 0.3, duration: 5000, impact: 300, lock: 500 },
+            // Hơi Nước Bỏng: niệm 2s -> mây mưa giông 7s (Elarion đứng thi triển: không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác thì ngắt)
+            //   mưa: phe ta hồi máu mỗi giây (đầy máu thì hồi MP) · sét: mỗi giây đánh 1 đối thủ ngẫu nhiên, choáng 0,5s
+            steam: { name: 'Hơi Nước Bỏng', recipe: 'ffi', orbCost: 3, cooldown: 14000, castTime: 2000, duration: 7000, every: 1000,
+                heal: 0.3, healPct: 0.015, manaPerSec: 200, strikeMultiplier: 0.7, strikeStun: 500, impact: 0, lock: 0 },
+            // Hỏa Lôi Cầu: quả cầu hiện ở 1 điểm cố định phía trước Elarion (cách 12 ô ~ hàng trước địch), to dần 2s rồi nổ TẠI CHỖ:
+            //   đối thủ đứng trong vùng nổ: sát thương + choáng 0,5s + mất 1 Orb
+            firebolt: { name: 'Hỏa Lôi Cầu', recipe: 'ffb', orbCost: 2, cooldown: 12000, multiplier: 2.0, radius: 3.5, stun: 500, grow: 2000, orbBurn: 1,
+                distance: 12, teamOrbs: 1, selfOrbs: 2, impact: 300, lock: 500 },   // nổ: cả đội +1 Orb, riêng Elarion +2
+            // Băng Hoại Hỏa Thiên (SolarBeam kiểu Kamehameha): dồn lực 0,7s -> đứng yên chưởng tia băng-hỏa 10s thẳng tới CUỐI BẢN ĐỒ
+            //   (ngắm hướng có nhiều đối thủ nhất, lệch tối đa ~26°; người đang bay không dính). Mỗi giây, mọi đối thủ trong tia:
+            //   Băng ×iceMultiplier (không tăng) + 1 tầng Hàn Khí + giảm tốc đánh · Hỏa ×fireMultiplier, mỗi giây +1 tầng (+3% sát thương lửa);
+            //   đủ 5 tầng: tia lửa to ra (tia rộng hơn), sát thương lửa thêm +30%. Bị choáng / dùng kỹ năng khác thì ngắt
+            beams: { name: 'Băng Hoại Hỏa Thiên', recipe: 'iif', orbCost: 3, cooldown: 14000, duration: 10000, every: 1000,
+                iceMultiplier: 0.3, fireMultiplier: 0.42, fireRamp: 0.03, fireMax: 5, maxBonus: 0.3,
+                slow: 0.15, slowTime: 1500, width: 1.6, widthMax: 2.3, maxAngle: 0.45, impact: 700, lock: 700 },
+            // Tốc Lôi: riêng Elarion 10s — mỗi đòn đánh thường chưởng 2 lần, +25% tốc đánh;
+            //   cứ 5 đòn -> cả đội (kể cả Elarion) +5% tốc đánh 10s (cộng dồn tối đa 5 lần)
+            haste: { name: 'Tốc Lôi', recipe: 'bbf', orbCost: 2, cooldown: 13000, duration: 10000, atkSpeedUp: 0.25, every: 5,
+                teamUp: 0.05, teamTime: 10000, teamMax: 5, orbRegen: 2, impact: 300, lock: 500 },
         },
         passives: [
             // Thiên phú 1 — Cộng Hưởng Nguyên Tố: nhặt ngọc -> hệ đó +1 tầng (tối đa 3), 5s, nhặt cùng hệ thì làm mới
             //   Hỏa: +ATK · Băng: hồi % máu mỗi giây · Lôi: +tốc đánh
             { name: 'Cộng Hưởng Nguyên Tố', type: 'elem_attune', talent: 1, maxStacks: 3, duration: 5000,
-              levels: { fire: [0.04, 0.05, 0.06], ice: [0.003, 0.004, 0.005], bolt: [0.04, 0.05, 0.06] },
-              desc: 'Nhặt ngọc: mỗi tầng Hỏa +{fire%} ATK · Băng hồi {ice%} máu/giây · Lôi +{bolt%} tốc đánh (tối đa 3 tầng mỗi hệ, 5s, nhặt cùng hệ thì làm mới)' },
-            // Thiên phú 2 — Thiên Tài Nguyên Tố: dùng phép / Bão Nguyên Tố -> 40% Sách hồi ngay + phép kế tiếp giảm 1 Orb (hồi 7s)
-            { name: 'Thiên Tài Nguyên Tố', type: 'elem_genius', talent: 2, cooldown: 7000, discount: 1,
-              levels: { value: [0.40, 0.50] },
-              desc: 'Dùng phép hoặc Bão Nguyên Tố: {value%} Sách Nguyên Tố hồi chiêu ngay và phép kế tiếp giảm 1 Orb. Hồi 7s' },
+              levels: { fire: [0.04, 0.05, 0.06], ice: [0.003, 0.004, 0.005], bolt: [0.04, 0.05, 0.06], orb: [0.10, 0.15, 0.20] },
+              desc: 'Nhặt ngọc: mỗi tầng Hỏa +{fire%} ATK · Băng hồi {ice%} máu/giây · Lôi +{bolt%} tốc đánh & +{orb%} tốc độ hồi Orb (tối đa 3 tầng mỗi hệ, 5s, nhặt cùng hệ thì làm mới)' },
+            // Thiên phú 2 — Thiên Tài Nguyên Tố: mỗi lần ghép phép bằng Sách -> 40% (cấp tối đa 70%) phép kế tiếp giảm 1 Orb
+            { name: 'Thiên Tài Nguyên Tố', type: 'elem_genius', talent: 2, discount: 1,
+              levels: { value: [0.40, 0.70] },
+              desc: 'Mỗi lần ghép phép bằng Sách Nguyên Tố: {value%} phép kế tiếp giảm 1 Orb' },
         ]
     },
     // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 20s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
@@ -386,12 +410,15 @@ const CLASS_DEFS = {
         atkSpeed: 1400, range: 'melee', atkRange: 2.8, moveSpeed: 0.01,
         autoHitFrame: 2, autoImpact: 300,
         skills: [
-            { name: 'Nộ Lửa', orbCost: 0, cooldown: 10000, castTime: 1000, type: 'golem_fist', castRange: 99, dashLen: 8, dashTime: 1200,
-              width: 1.8, multiplier: 1.4, knockup: 1000, mDefDown: 0.1, debuffTime: 5000, impact: 0, lock: 1300 },
-            { name: 'Bão Tuyết', orbCost: 0, cooldown: 10000, castTime: 3000, type: 'golem_blizzard', castRange: 99, ticks: 6, tickGap: 1000,
-              tickMultiplier: 0.35, stackTime: 5000, stackSlow: 0.02, freezeAt: 4, freezeTime: 1500, impact: 200, lock: 700 },
-            { name: 'Hào Quang Sét', orbCost: 0, cooldown: 10000, castTime: 3000, type: 'golem_aura', castRange: 99, duration: 5000, radius: 4,
-              every: 1000, multiplier: 0.3, stun: 500, impact: 300, lock: 600 },
+            // Nộ Lửa: lùi về phía đồng minh -> niệm 1s -> lướt chậm 8 ô đấm lửa: ×1.8 + hất tung 1s, cả đội địch −10% M.DEF 5s
+            { name: 'Nộ Lửa', orbCost: 0, cooldown: 10000, castTime: 0, type: 'golem_fist', castRange: 99, backLen: 3, backTime: 500, channel: 1000,
+              dashLen: 8, dashTime: 1200, width: 1.8, multiplier: 1.8, knockup: 1000, mDefDown: 0.1, debuffTime: 5000, impact: 0, lock: 2800 },
+            // Bão Tuyết: niệm 2s hút khí lạnh -> đứng phun bão tuyết 6s: mỗi giây ×0.5 mọi đối thủ + 1 tầng Hàn Khí
+            { name: 'Bão Tuyết', orbCost: 0, cooldown: 10000, castTime: 2000, type: 'golem_blizzard', castRange: 99, ticks: 6, tickGap: 1000,
+              tickMultiplier: 0.5, impact: 300, lock: 6300 },
+            // Hào Quang Sét: niệm 1s -> sét đánh vào tay: +25% tốc đánh 5s, mỗi đòn đánh giật TOÀN BỘ đối thủ (50% choáng 0,5s)
+            { name: 'Hào Quang Sét', orbCost: 0, cooldown: 10000, castTime: 1000, type: 'golem_aura', castRange: 99, duration: 5000,
+              atkSpeedUp: 0.25, multiplier: 0.45, stunChance: 0.5, stun: 500, impact: 300, lock: 600 },
         ],
         passives: []
     },
@@ -475,9 +502,8 @@ const CLASS_DEFS = {
 };
 
 // We will use 1 Assassins if TEST_MODE is active
-// Elarion ('elementalist') ĐANG LÀM: phần server xong, chưa có hình / giao diện -> tạm chưa cho vào đội hình.
-// Làm xong client + hình thì thêm 'elementalist' vào cuối danh sách này.
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer'];
+// Elarion ('elementalist'): đang dùng HÌNH TẠM (chờ tranh — art/elarion/PROMPTS.md)
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist'];
 
 // ============================================================
 // GAME STATE
@@ -521,7 +547,7 @@ function applyProgress(member, hero) {
     member.skills = P.scaleSkills(def.skills ?? [], hero.rank);
     // Elarion: 10 phép (nhân theo bậc như kỹ năng) — phép đang ghép được chép vào nút KN2
     if (def.spells) member.spells = Object.fromEntries(Object.entries(def.spells).map(([k, sp]) =>
-        [k, { ...P.scaleSkills([sp], hero.rank)[0], key: k, type: 'elem_spell', spell: k, castTime: 0, castRange: 99 }]));
+        [k, { ...P.scaleSkills([sp], hero.rank)[0], key: k, type: 'elem_spell', spell: k, castTime: sp.castTime ?? 0, castRange: 99 }]));
     // Thiên phú: chỉ những cái đã mở (Lv20 / Lv40), số liệu theo cấp; chỉ số riêng (Kiên Cường / Sát Ý / Ưng Nhãn) lấy từ thiên phú
     member.passives = P.resolveTalents(def.passives ?? [], hero.level, hero.rank);
     member.talentLevels = P.talentLevels(hero.level, hero.rank);
@@ -773,9 +799,11 @@ function getEffectiveStats(member, now) {
         if (ef.type === 'attune_fire') { const k = 1 + (ef.per ?? 0) * (ef.stacks ?? 0); stats.pAtk = Math.floor(stats.pAtk * k); stats.mAtk = Math.floor(stats.mAtk * k); }
         if (ef.type === 'attune_bolt') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.per ?? 0) * (ef.stacks ?? 0)));
         if (ef.type === 'chain_break' || ef.type === 'golem_break') stats.mDef = Math.floor(stats.mDef * (1 - (ef.value ?? 0)));
-        if (ef.type === 'frost_slow') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.value ?? 0)));
+        if (ef.type === 'frost_slow' || ef.type === 'beam_slow') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.value ?? 0)));
         if (ef.type === 'frost_stack') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.per ?? 0) * (ef.stacks ?? 0)));
-        if (ef.type === 'storm_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.value ?? 0)));
+        if (ef.type === 'storm_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.value ?? 0) * (ef.stacks ?? 1)));   // Tốc Lôi: cả đội (cộng dồn)
+        if (ef.type === 'storm_self' || ef.type === 'golem_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.value ?? 0)));
+        if (ef.type === 'chill') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.per ?? 0) * (ef.stacks ?? 0)));   // Hàn Khí
         if (ef.type === 'tide_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.value ?? 0)));   // Hòa Âm 1+3: phe ta nhanh hơn
         if (ef.type === 'tide_slow') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.value ?? 0)));    // Hòa Âm 1+3: phe địch chậm lại
         if (ef.type === 'fire_ward' && ef.hp > 0) {
@@ -1028,7 +1056,15 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Kiên Cường (Chiến Binh): giảm sát thương nhận
     if (tgtEff.tenacity) damage *= 1 - Math.min(tgtEff.tenacityCap ?? P.STAT_CAPS.tenacity.cap, tgtEff.tenacity) / 1000;
 
-    const finalDamage = Math.max(1, Math.floor(damage * (1 - mitigation)));
+    let finalDamage = Math.max(1, Math.floor(damage * (1 - mitigation)));
+    // Kiên Cường (Rok, thiên phú 2): người được Rok nối dây chỉ nhận phần còn lại — Rok gánh `share` sát thương thay
+    let shared = 0;
+    const guard = linkGuardOf(target);
+    if (guard && finalDamage > 1) {
+        shared = Math.floor(finalDamage * guard.share);
+        finalDamage -= shared;
+        later(opts.delay ?? 0, () => shareToRok(guard.rok, shared, target));
+    }
 
     // KHIÊN: chỉ 1 khiên hứng sát thương (khiên nhiều máu hơn / khiên đặc trưng như Dựng Khiên của Chiến Binh).
     // Khiên yếu hơn chỉ còn hiệu ứng buff (dormant), không hứng sát thương.
@@ -1041,10 +1077,10 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
         shield.hp -= absorbed;
         if (shield.type === 'guard') shield.absorbed += absorbed;
         const rest = finalDamage - absorbed;
-        return { damage: rest, absorbed, isMiss: false, isBlock: rest === 0 || isBlock, isCrit, isMagic: isMagical, guarded: shield.type === 'guard' };
+        return { damage: rest, absorbed, isMiss: false, isBlock: rest === 0 || isBlock, isCrit, isMagic: isMagical, guarded: shield.type === 'guard', shared };
     }
 
-    return { damage: finalDamage, isMiss: false, isBlock, isCrit, isMagic: isMagical };
+    return { damage: finalDamage, isMiss: false, isBlock, isCrit, isMagic: isMagical, shared };
 }
 
 /** Đặc tính tộc của nhân vật (null với quái) */
@@ -1264,6 +1300,13 @@ io.on('connection', (socket) => {
         if (rooms[roomId] && rooms[roomId].players[socket.id]) {
             rooms[roomId].players[socket.id].autoMode = data.autoMode;
         }
+    });
+    // Tự động riêng 1 tướng (nút AUTO trên thẻ): AUTO MODE cả đội đang tắt vẫn để tướng này tự dùng kỹ năng
+    socket.on('toggleMemberAuto', (data = {}) => {
+        const team = rooms[socket.roomId]?.players[socket.id];
+        const m = team?.squad[data.memberIndex | 0];
+        if (!m || m.summon) return;
+        m.autoOn = !!data.value;
     });
 
     socket.on('queueSkill', (data) => {
@@ -1612,8 +1655,10 @@ function startBattleLoop(roomId) {
             const opponentData = room.players[opponentId];
 
             // 1. AUTO MODE: AI chiến thuật chọn KỸ NĂNG PHÙ HỢP TÌNH HUỐNG (mỗi lần 1 kỹ năng, xét lại mỗi 0.3s)
-            if (playerData.autoMode && opponentData) {
+            //    Tự động cả đội (nút AUTO MODE) hoặc từng tướng (nút AUTO trên thẻ — member.autoOn)
+            if (opponentData) {
                 playerData.squad.forEach((member, idx) => {
+                    if (!(playerData.autoMode || member.autoOn)) return;
                     if (!member.alive || member.queuedSkills.length > 0 || member.state === 'casting') return;
                     if (now < (member.actionUntil ?? 0)) return; // đang diễn chiêu: chờ diễn xong (buff / hiệu ứng mới có) rồi mới tính tiếp
                     if (now < (member.aiNext ?? 0)) return;
@@ -1654,7 +1699,7 @@ function startBattleLoop(roomId) {
                 // Mana Regen over time (Passive)
                 // Triều Dâng (Nerissa): tự hồi MP nhanh hơn · Vũ Khúc Sóng Triều: cả đội cộng thêm MP mỗi giây
                 const surge = talentOf(member, 'tide_surge');
-                let mpGain = member.mpSec * (1 + (surge?.value ?? 0));
+                let mpGain = member.mpSec * (1 + (surge?.value ?? 0)) * orbRegenMult(member, now);
                 for (const ef of member.statusEffects) if (ef.type === 'tide_mana' && ef.endTime > now) mpGain += ef.manaPerSec;
                 member.mp = Math.min(member.maxMp, member.mp + (mpGain / 20) * ts); // mpSec mỗi 1000ms, tick 50ms
                 // Ân Điển: đang Thánh Niệm -> hồi thêm MP
@@ -1693,6 +1738,8 @@ function startBattleLoop(roomId) {
                     }
                     if (isPraying(member, now)) endPray(playerData.squad, memberIndex, roomId, playerId, 'stun'); // bị choáng -> ngắt niệm
                     if (isDancing(member, now)) endDances(roomId, playerId, memberIndex, opponentId, now, 'stun');   // Nerissa: dừng mọi điệu múa
+                    if (rainOf(member, now)) endRain(room, playerId, memberIndex, 'stun');   // Elarion: ngắt mưa giông
+                    if (beamOf(member, now)) endBeam(room, playerId, memberIndex, 'stun');   // Elarion: ngắt SolarBeam
                     member.state = 'stunned';
                     member.castingSkillId = null;
                     return;
@@ -1715,7 +1762,7 @@ function startBattleLoop(roomId) {
                 // ĐANG MÚA (Nerissa): không đánh thường; lượn qua lại; vẫn dùng được các điệu múa khác (không cần tầm)
                 if (isDancing(member, now)) {
                     const i = member.queuedSkills.find(k => DANCE_TYPES.has(skillsOf(member)[k]?.type));
-                    if (i != null) {
+                    if (i != null && foeInReach(member, skillsOf(member)[i]?.type, opponentData?.squad, now)) {
                         const sd = skillsOf(member)[i];
                         const cost = skillCostOf(member, i, now);
                         const need = Math.max(cost, (sd.minOrbs ?? 0) * ORB_COST);
@@ -1731,6 +1778,24 @@ function startBattleLoop(roomId) {
                     return;
                 }
                 if (member.state === 'dancing') member.state = 'idle';
+
+                // ĐANG THI TRIỂN MƯA GIÔNG (Elarion): đứng yên, không đánh / chạy; dùng kỹ năng khác thì ngắt
+                if (rainOf(member, now)) {
+                    const wants = member.queuedSkills.some(k => skillUsable(member, k) && (playerData.debugNoMana ||
+                        (member.mp >= skillCostOf(member, k, now) && now >= member.skillCooldowns[k])));
+                    if (wants) endRain(room, playerId, memberIndex, 'skill');
+                    else { member.state = 'channeling'; return; }
+                }
+                if (member.state === 'channeling') member.state = 'idle';
+
+                // ĐANG CHƯỞNG SOLARBEAM (Elarion — Băng Hoại Hỏa Thiên): đứng yên, không đánh / chạy; dùng kỹ năng khác thì ngắt
+                if (beamOf(member, now)) {
+                    const wants = member.queuedSkills.some(k => skillUsable(member, k) && (playerData.debugNoMana ||
+                        (member.mp >= skillCostOf(member, k, now) && now >= member.skillCooldowns[k])));
+                    if (wants) endBeam(room, playerId, memberIndex, 'skill');
+                    else { member.state = 'beaming'; return; }
+                }
+                if (member.state === 'beaming') member.state = 'idle';
 
                 // THÁNH NIỆM (Tu Sĩ): bay lên đứng niệm — không chạy / đánh thường; chỉ dùng được Kỹ năng 1 & 2 (không cần tầm)
                 if (isPraying(member, now)) {
@@ -1800,12 +1865,14 @@ function startBattleLoop(roomId) {
                 // If not casting, check if we should start casting a queued skill
                 if (member.queuedSkills.length > 0) {
                     // kỹ năng đầu hàng đợi DÙNG ĐƯỢC (Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép)
-                    const skillIdxToCast = member.queuedSkills.find(k => skillUsable(member, k)) ?? member.queuedSkills[0];
+                    // điệu múa / Tàng Hình: phải có đối thủ trong tầm (foeInReach) — chưa gặp thì lệnh nằm chờ, vẫn tiến lên
+                    const canUse = (k) => skillUsable(member, k) && foeInReach(member, skillsOf(member)[k]?.type, opponentData?.squad, now);
+                    const skillIdxToCast = member.queuedSkills.find(canUse) ?? member.queuedSkills[0];
                     const skillDef = skillsOf(member)[skillIdxToCast];
                     const cost = skillCostOf(member, skillIdxToCast, now);
 
                     // If enough mana (or debugNoMana) and off cooldown (or debugNoMana)
-                    const hasEnoughMana = skillUsable(member, skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
+                    const hasEnoughMana = canUse(skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
                         const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm'].includes(skillDef.type);
@@ -1894,7 +1961,7 @@ function startBattleLoop(roomId) {
                             dealDamage(target, dmg, opponentData, def.autoImpact ?? 180, executeHook(member, target)); // lúc nhát chém / mũi tên chạm
                             
                             // Mana from attack
-                            member.mp = Math.min(member.maxMp, member.mp + member.mpAtk);
+                            member.mp = Math.min(member.maxMp, member.mp + member.mpAtk * orbRegenMult(member, now));
                             
                             // Lifesteal (unused for now)
                             if (member.lifesteal > 0) healUnit(member, dmg * member.lifesteal / 1000, now);
@@ -1906,7 +1973,8 @@ function startBattleLoop(roomId) {
                             });
                         }
                         member.lastAttackTime = now;
-                        golemAfterAuto(member, now);   // Golem Nguyên Tố: cứ 2 đòn -> 1 kỹ năng ngẫu nhiên
+                        golemAfterAuto(roomId, playerId, memberIndex, opponentId, now);   // Golem: Hào Quang Sét giật · cứ 2 đòn -> 1 kỹ năng
+                        elemAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);   // Elarion — Tốc Lôi: chưởng 2 lần
                         archerExtraShots(roomId, playerId, memberIndex, opponentId, targetIdx, now);
                         reaperCleave(roomId, playerId, memberIndex, opponentId, targetIdx, now);
                     }
@@ -1928,7 +1996,8 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     if (!def?.skills?.length || member.summon) return -1;   // Golem tự dùng kỹ năng theo đòn đánh
     const orbs = playerData.debugNoMana ? 99 : member.mp / ORB_COST;
     const ready = (i) => (playerData.debugNoMana || member.mp >= Math.max(skillCostOf(member, i, now), (skillsOf(member)[i]?.minOrbs ?? 0) * ORB_COST))
-        && now >= member.skillCooldowns[i] && !danceOn(member, skillsOf(member)[i]?.type, now);
+        && now >= member.skillCooldowns[i] && !danceOn(member, skillsOf(member)[i]?.type, now)
+        && foeInReach(member, skillsOf(member)[i]?.type, opponentData.squad, now);   // múa / Tàng Hình: chỉ khi đã gặp đối thủ
     const cdLeft = (i) => Math.max(0, member.skillCooldowns[i] - now);
     const has = (m, type, minLeft = 0) => m.statusEffects.some(ef => ef.type === type && ef.endTime > now + minLeft);
     const dist = (a, b) => Math.hypot(a.x - b.x, (a.z || 0) - (b.z || 0));
@@ -2024,7 +2093,7 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         const sky = skillsOf(member)[0], pil = skillsOf(member)[1];
         const inSky = targetable.filter(e => dist(e, member) <= sky.castRange);
         const inPil = targetable.filter(e => dist(e, member) <= pil.castRange);
-        if (ready(2) && !god && beingHit === 0 && nearest <= 16) return 2;
+        if (ready(2) && !god && beingHit === 0 && nearest <= 18) return 2;
         if (ready(1) && inPil.length) return 1;
         const broken = inSky.some(e => has(e, 'mdef_break'));
         if (ready(0) && inSky.length && (god || broken || orbs >= 4 || cdLeft(1) > 4000)) return 0;
@@ -2086,13 +2155,15 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         const room = curRoom;
         const oppId = Object.keys(room.players).find(id => room.players[id] === opponentData);
         const pid = Object.keys(room.players).find(id => room.players[id] === playerData);
+        if (rainOf(member, now) || beamOf(member, now)) return -1;   // đang mưa giông / chưởng SolarBeam: để phép chạy hết
         const c = elemContext(room, pid, idx, oppId, now);
         const spellOk = member.spell && ready(1) && skillUsable(member, 1) && elemSpellScore(member.spell, c, now) > 0;
         if (spellOk) return 1;
-        if ((member.held?.length ?? 0) === 3 && ready(0) && skillUsable(member, 0)) {
+        // phép đang giữ vẫn tốt và hết hồi chiêu (chỉ đang chờ đủ Orb) -> giữ lại, không tốn Orb ghép phép khác
+        const holdGood = member.spell && now >= member.skillCooldowns[1] && elemSpellScore(member.spell, c, now) > 0;
+        if (!holdGood && (member.held?.length ?? 0) === 3 && ready(0) && skillUsable(member, 0)) {
             const k = SPELL_BY_RECIPE[recipeOf(member.held)];
-            const holdReady = member.spell && now >= member.skillCooldowns[1];
-            if (k && (k !== member.spell || !holdReady) && elemSpellScore(k, c, now) > 0) return 0;
+            if (k && k !== member.spell && elemSpellScore(k, c, now) > 0) return 0;
         }
         if (ready(2) && c.engaged && (orbs >= 5 || (orbs >= 4 && (member.gems?.length ?? 0) < 2))) return 2;
         return -1;
@@ -2186,7 +2257,8 @@ function skillLock(skillDef, member, opponentData, now) {
     return skillDef.lock ?? 0;
 }
 
-function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
+/** opts.free: dùng MIỄN PHÍ (không tốn Orb / máu, không đổi hồi chiêu) — VD Brakk còn 1 mình tự hoá khổng lồ */
+function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = {}) {
     const room = rooms[roomId];
     const member = room.players[casterId].squad[casterIdx];
     const skillDef = skillsOf(member)[skillIdx];
@@ -2205,8 +2277,8 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
     member.actionUntil = now + lock;
     // đang Thánh Niệm: Kỹ năng 1 & 2 hồi chiêu ngắn (prayCooldown)
     let cdMs = (isPraying(member, now) && skillDef.prayCooldown) ? skillDef.prayCooldown : skillDef.cooldown;
-    if (skillDef.type === 'elem_book' && stormOn(member, now)) cdMs = skillDef.stormCooldown ?? cdMs;   // Bão Nguyên Tố: Sách hồi 1s
-    if (!room.players[casterId].debugNoMana) member.skillCooldowns[skillIdx] = now + lock + cdMs;
+    if (!room.players[casterId].debugNoMana && !opts.free) member.skillCooldowns[skillIdx] = now + lock + cdMs;
+    if (opts.free) extra.free = true;
 
     const isStealth = member.statusEffects.some(ef => ef.type === 'stealth' && now < ef.endTime);
 
@@ -2219,7 +2291,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
     }
 
     // Brakk: kỹ năng tốn thêm MÁU (không bao giờ tự làm chết)
-    if (skillDef.hpCost && !room.players[casterId].debugNoMana) {
+    if (skillDef.hpCost && !room.players[casterId].debugNoMana && !opts.free) {
         const cost = Math.round(member.maxHp * skillDef.hpCost);
         member.hp = Math.max(1, member.hp - cost);
         extra.hpCost = cost;
@@ -2627,22 +2699,32 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
         member.spellCd[skillDef.spell] = now + lock + skillDef.cooldown;
         member.spellDiscount = false;
         castElemSpell(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
+        clearSpell(member);   // dùng xong là mất phép — phải ghép lại bằng Sách
     } else if (skillDef.type === 'elem_storm') {
-        // ---- Elarion: Bão Nguyên Tố — ngọc trên sân đủ 7 viên ngay, 7s cứ bớt là tung thêm; Sách hồi 1s ----
+        // ---- Elarion: Bão Nguyên Tố — ngọc trên sân đủ 7 viên ngay, 7s cứ bớt là tung thêm ----
         member.gems ??= [];
-        putEffect(member, { type: 'elem_storm', endTime: now + skillDef.duration, duration: skillDef.duration, fill: skillDef.fill });
+        putEffect(member, { type: 'elem_storm', endTime: now + skillDef.duration, duration: skillDef.duration, fill: skillDef.fill });   // ngọc luôn đủ 7 viên trong 7s
         const ts = timeScaleOf(room);
         while (member.gems.length < skillDef.fill) if (!spawnGem(member, now, ts, true)) break;
         member.stormNext = now + 120;
-        const book = skillsOf(member)[0];
-        member.skillCooldowns[0] = Math.min(member.skillCooldowns[0], now + (book?.stormCooldown ?? 1000));
         extra.duration = skillDef.duration;
+        // +2 Orb ngay (thực tốn 1 Orb)
+        if (skillDef.orbGain) {
+            if (!room.players[casterId].debugNoMana) member.mp = Math.min(member.maxMp, member.mp + skillDef.orbGain * ORB_COST);
+            extra.orbGain = skillDef.orbGain;
+        }
     } else if (skillDef.type?.startsWith('golem_')) {
         castGolemSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
     } else if (DANCE_TYPES.has(skillDef.type)) {
         // ---- Nerissa: bắt đầu 1 điệu múa (chạy song song với các điệu đang múa) ----
         startDance(roomId, casterId, casterIdx, actualOpponentId, skillIdx, now);
         extra.danceKey = member.danceKey;
+        // Thủy Thần Vũ: cả đội +2 Orb ngay
+        if (skillDef.teamOrbs) {
+            const team = room.players[casterId];
+            team.squad.forEach(a => { if (a.alive && !a.summon && !team.debugNoMana) a.mp = Math.min(a.maxMp, a.mp + skillDef.teamOrbs * ORB_COST); });
+            io.to(roomId).emit('waterFx', { kind: 'gift', casterId, casterIdx, orbs: skillDef.teamOrbs });
+        }
         effects.push({ targetIndex: casterIdx, ally: true });
     } else if (skillDef.type === 'heal' || skillDef.type === 'holy_shield') {
         // ---- Tu Sĩ: hồi máu / khiên. Bình thường 1 người (yếu máu nhất; đầu trận -> nhiều máu nhất), đang niệm -> cả đội ×2 ----
@@ -2777,15 +2859,10 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
         member.skillCooldowns[skillIdx] = now + lock + skillDef.killReset;
         extra.reset = true;
     }
-    // Thiên phú Thiên Tài Nguyên Tố (Elarion): dùng phép / Bão -> có thể hồi Sách ngay + phép kế tiếp giảm Orb
-    if (skillDef.type === 'elem_spell' || skillDef.type === 'elem_storm') {
+    // Thiên phú Thiên Tài Nguyên Tố (Elarion): ghép phép bằng Sách -> có thể giảm 1 Orb cho phép kế tiếp
+    if (skillDef.type === 'elem_book' && extra.spell) {
         const gt = talentOf(member, 'elem_genius');
-        if (gt && now >= (member.geniusReady ?? 0) && Math.random() < gt.value) {
-            member.skillCooldowns[0] = now + lock;
-            member.spellDiscount = true;
-            member.geniusReady = now + gt.cooldown;
-            extra.genius = true;
-        }
+        if (gt && Math.random() < gt.value) { member.spellDiscount = true; extra.genius = true; }
     }
     io.to(roomId).emit('skillExecuted', {
         casterId, casterIdx, skillIdx, type: skillDef.type, dash: skillDef.dash, hp: member.hp, maxHp: member.maxHp, 
@@ -2793,6 +2870,8 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx) {
     });
     // Thiên phú Khí Thế Đấu Trường (Brakk): đếm chiêu của 2 phe
     brakkRallyCount(room, casterId, now);
+    // Elarion: đồng đội dùng 5 kỹ năng / đối thủ dùng 10 kỹ năng -> +1 ngọc ngẫu nhiên
+    elemGemGift(room, casterId, casterIdx, now);
 }
 
 // ============================================================
@@ -3155,7 +3234,7 @@ function skillCostOf(member, idx, now) {
     const sk = skillsOf(member)[idx];
     if (!sk) return Infinity;
     if (sk.type === 'reaper_dash' && member.statusEffects?.some(ef => ef.type === 'reaper_echo' && ef.endTime > now)) return 0;
-    // Thiên Tài Nguyên Tố (Elarion): Sách được hồi bằng thiên phú -> phép kế tiếp giảm 1 Orb
+    // Thiên Tài Nguyên Tố (Elarion): ghép bằng Sách trúng thiên phú -> phép kế tiếp giảm 1 Orb
     if (sk.type === 'elem_spell' && member.spellDiscount) return Math.max(0, sk.orbCost - (talentOf(member, 'elem_genius')?.discount ?? 1)) * ORB_COST;
     return sk.orbCost * ORB_COST;
 }
@@ -3236,6 +3315,11 @@ function killMember(target, squad) {
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged');
     target.wardOn = false;   // Giáp Lửa mất theo
+    // Elarion gục: tắt SolarBeam / mưa giông đang thi triển
+    if (target.statusEffects.some(ef => ef.type === 'elem_beam' || ef.type === 'elem_rain')) {
+        const at = locate(target);
+        if (at && curRoom) { endBeam(curRoom, at.pid, at.idx, 'dead'); endRain(curRoom, at.pid, at.idx, 'dead'); }
+    }
     breakRokLink(target, squad);
     onDancerDeathHooks(target, squad);
     onAllyDeath(target, squad);
@@ -3395,6 +3479,7 @@ function giantForm(m, now) {
 }
 /** Đang miễn mọi khống chế / hiệu ứng bất lợi (5 giây đầu Khổng Lồ) */
 function ccImmune(m, now) {
+    if (m?.summon) return true;   // Golem Nguyên Tố: không dính khống chế / hiệu ứng nào
     const g = giantForm(m, now);
     return !!g && now < (g.immuneUntil ?? 0);
 }
@@ -3428,9 +3513,25 @@ function processBrakk(roomId, casterId, casterIdx, now) {
         if (!ef) { ef = { type: 'lone_dragon', value: blood.loneDmg, endTime: now + 300 }; m.statusEffects.push(ef); }
         ef.endTime = now + 300;
         if (!m.loneOn) { m.loneOn = true; io.to(roomId).emit('brakkFx', { kind: 'lone', casterId, casterIdx, value: blood.loneDmg }); }
+        // Độc Long: vừa còn 1 mình -> tự hoá Khổng Lồ MIỄN PHÍ; đang Khổng Lồ rồi thì làm mới thời gian (1 lần mỗi lần bị bỏ lại 1 mình)
+        if (!m.loneGiantDone && now >= (m.actionUntil ?? 0) && m.state !== 'casting' && !m.statusEffects.some(e => e.type === 'grabbed' && e.endTime > now)) {
+            m.loneGiantDone = true;
+            const gi = skillsOf(m).findIndex(sk => sk.type === 'brakk_giant');
+            const g = giantForm(m, now);
+            if (g) {
+                const sk = skillsOf(m)[gi];
+                g.endTime = now + (sk?.duration ?? g.duration ?? 10000);
+                io.to(roomId).emit('brakkFx', { kind: 'giantRefresh', casterId, casterIdx, duration: sk?.duration ?? 10000 });
+            } else if (gi >= 0) {
+                const oppId = Object.keys(rooms[roomId].players).find(id => id !== casterId);
+                m.queuedSkills = m.queuedSkills.filter(k => k !== gi);
+                executeSkill(roomId, casterId, casterIdx, oppId, gi, { free: true });
+            }
+        }
     } else {
         if (m.loneOn) m.statusEffects = m.statusEffects.filter(e => e.type !== 'lone_dragon');
         m.loneOn = false;
+        m.loneGiantDone = false;
     }
 }
 /**
@@ -3590,6 +3691,34 @@ function rokTalentFor(m, type) {
     return rok ? { t: talentOf(rok, type), mult: 1, rok } : null;
 }
 const ironWillOf = (m) => rokTalentFor(m, 'low_hp_block');
+/** Người được Rok (có thiên phú 2 Kiên Cường) nối dây -> { rok, share }; không thì null */
+function linkGuardOf(m) {
+    const src = rokTalentFor(m, 'tenacity_trigger');
+    if (!src || src.rok === m || !src.rok.alive || !(src.t.share > 0)) return null;
+    return { rok: src.rok, share: src.t.share };
+}
+/** Rok gánh `amount` sát thương thay người được nối dây: khiên của Rok hứng trước, Kiên Cường đang bật thì giảm tiếp */
+function shareToRok(rok, amount, ally) {
+    if (!rok.alive || !(amount > 0) || !curRoom) return;
+    const now = curRoom.clock ?? Date.now();
+    const at = locate(rok);
+    if (!at) return;
+    const team = curRoom.players[at.pid];
+    const st = getEffectiveStats(rok, now).stats;
+    let dmg = amount;
+    if (st.tenacity) dmg *= 1 - Math.min(st.tenacityCap ?? P.STAT_CAPS.tenacity.cap, st.tenacity) / 1000;
+    dmg = Math.max(1, Math.floor(dmg));
+    let absorbed = 0;
+    const shield = activeShield(rok, now);
+    if (shield) {
+        absorbed = Math.min(shield.hp, dmg);
+        shield.hp -= absorbed;
+        if (shield.type === 'guard') shield.absorbed += absorbed;
+        dmg -= absorbed;
+    }
+    if (dmg > 0) dealDamage(rok, dmg, team, 0);
+    io.to(curRoom.id).emit('rokFx', { kind: 'share', casterId: at.pid, casterIdx: at.idx, linkIdx: team.squad.indexOf(ally), damage: dmg, absorbed });
+}
 /** 1 trong 2 người của dây chết -> đứt dây vĩnh viễn trong trận */
 function breakRokLink(target, squad) {
     const ti = squad.indexOf(target);
@@ -3755,6 +3884,25 @@ function processJudged(m, now) {
 // ============================================================
 const DANCE_TYPES = new Set(['dance_tide', 'dance_flow', 'dance_god']);
 const DANCE_NUM = { dance_tide: 1, dance_flow: 2, dance_god: 3 };
+// Kỹ năng tự buff phải GẶP ĐỐI THỦ mới dùng được: các điệu múa (Nerissa), Tàng Hình (Jessica)
+//   -> có đối thủ (còn sống) trong tầm bắn của Lyra quanh người dùng. Chưa gặp: lệnh nằm chờ, nhân vật vẫn tiến lên.
+const NEED_FOE_TYPES = new Set(['dance_tide', 'dance_flow', 'dance_god', 'stealth']);
+const foeReach = () => CLASS_DEFS.archer.atkRange;
+function foeInReach(member, skillType, oppSquad, now) {
+    if (!NEED_FOE_TYPES.has(skillType)) return true;
+    const r = foeReach();
+    return (oppSquad ?? []).some(e => e.alive && !isJudged(e, now) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
+}
+/** Hệ số tốc độ hồi Orb (MP mỗi giây + MP mỗi đòn): Elarion — Tốc Lôi ×2, mỗi tầng Cộng Hưởng Lôi +10/15/20% */
+function orbRegenMult(m, now) {
+    let k = 1;
+    for (const ef of m.statusEffects ?? []) {
+        if (ef.endTime <= now) continue;
+        if (ef.type === 'storm_self' && ef.orbRegen) k *= ef.orbRegen;
+        else if (ef.type === 'attune_bolt' && ef.orb) k *= 1 + ef.orb * (ef.stacks ?? 0);
+    }
+    return k;
+}
 const danceOn = (m, type, now) => DANCE_TYPES.has(type) && !!m.statusEffects?.some(ef => ef.type === type && ef.endTime > now);
 function isDancing(m, now) { return !!m?.statusEffects?.some(ef => DANCE_TYPES.has(ef.type) && ef.endTime > now); }
 /** '1' / '12' / '123'... theo các điệu đang múa */
@@ -3785,7 +3933,7 @@ function startDance(roomId, pid, idx, oppId, skillIdx, now) {
     m.statusEffects.push({ type: sk.type, endTime: end, duration: sk.duration ?? 0, skillIdx, start: now, next: now });
     // hồi chiêu tính từ lúc múa xong -> trong lúc múa khoá nút (endDance đặt lại thời điểm thật)
     if (!team.debugNoMana) m.skillCooldowns[skillIdx] = NEVER;
-    const allies = team.squad.filter(a => a.alive);
+    const allies = team.squad.filter(a => a.alive && !a.summon);   // Golem triệu hồi không nhận buff
     if (sk.type === 'dance_tide') {
         allies.forEach(a => {
             a.statusEffects = a.statusEffects.filter(ef => !(ef.type === 'tide_mana' && ef.src === key));
@@ -3968,15 +4116,11 @@ const ELEM_KEY = { f: 'fire', i: 'ice', b: 'bolt' };
 const recipeOf = (els) => [...els].sort((a, b) => ELEMS.indexOf(a) - ELEMS.indexOf(b)).join('');
 const SPELL_BY_RECIPE = Object.fromEntries(Object.entries(CLASS_DEFS.elementalist.spells).map(([k, sp]) => [recipeOf(sp.recipe.split('')), k]));
 const emitElem = (roomId, data) => io.to(roomId).emit('elemFx', data);
-/** Chỗ ngọc lơ lửng quanh pháp sư (lệch so với pháp sư): vòng trong 5 ô, vòng ngoài 4 ô (Bão Nguyên Tố) */
+/** Chỗ ngọc lơ lửng PHÍA TRÊN pháp sư (lệch so với vị trí pháp sư, tính từ mặt đất): hàng dưới 5 ô, hàng trên 4 ô (Bão Nguyên Tố) */
 const GEM_SLOTS = (() => {
     const out = [];
-    const ring = (r, angles, y0) => angles.forEach(a => {
-        const t = a * Math.PI / 180;
-        out.push({ ox: Math.round(r * Math.cos(t) * 100) / 100, oy: Math.round((y0 + r * 0.8 * Math.sin(t)) * 100) / 100, oz: 0.6 });
-    });
-    ring(2.1, [160, 125, 90, 55, 20], 1.4);
-    ring(3.3, [150, 108, 72, 30], 1.2);
+    [-1.8, -0.9, 0, 0.9, 1.8].forEach(x => out.push({ ox: x, oy: Math.round((3.7 - 0.12 * Math.abs(x)) * 100) / 100, oz: 0.6 }));
+    [-1.35, -0.45, 0.45, 1.35].forEach(x => out.push({ ox: x, oy: Math.round((4.6 - 0.1 * Math.abs(x)) * 100) / 100, oz: 0.6 }));
     return out;
 })();
 const stormOn = (m, now) => m.statusEffects?.find(e => e.type === 'elem_storm' && e.endTime > now) ?? null;
@@ -4001,6 +4145,30 @@ function spawnGem(m, now, ts, storm = false) {
     return g;
 }
 
+/** Ngọc từ kỹ năng: ĐỒNG ĐỘI dùng đủ 5 kỹ năng / ĐỐI THỦ dùng đủ 10 kỹ năng -> +1 ngọc ngẫu nhiên lên khay của Elarion.
+ *  Không tính kỹ năng của chính Elarion và của nhân vật triệu hồi (Golem). Khay đầy (9 ô) thì giữ lượt, có chỗ là ra ngọc */
+const GEM_GIFT = { ally: 5, foe: 10 };
+function elemGemGift(room, casterId, casterIdx, now) {
+    const caster = room.players[casterId]?.squad[casterIdx];
+    if (!caster || caster.summon) return;
+    const ts = timeScaleOf(room);
+    for (const [pid, p] of Object.entries(room.players)) {
+        p.squad.forEach((m, idx) => {
+            if (m.classId !== 'elementalist' || !m.alive || m === caster) return;
+            const side = pid === casterId ? 'ally' : 'foe';
+            const key = side === 'ally' ? 'giftAlly' : 'giftFoe';
+            m[key] = Math.min(GEM_GIFT[side], (m[key] ?? 0) + 1);
+            if (m[key] < GEM_GIFT[side]) return;
+            m.gems ??= [];
+            const g = spawnGem(m, now, ts);
+            if (!g) return;   // khay đầy: giữ lượt
+            m[key] = 0;
+            g.gift = side;
+            emitElem(room.id, { kind: 'gemGift', casterId: pid, casterIdx: idx, gemId: g.id, el: g.el, from: side, sourceId: casterId, sourceIdx: casterIdx });
+        });
+    }
+}
+
 /** Nhặt ngọc: bay vào 3 ô ngọc (viên thứ 4 đẩy viên cũ nhất ra) · thiên phú 1: +1 tầng hệ đó, làm mới 5s */
 function pickGem(room, pid, idx, gemId, now) {
     const m = room.players[pid]?.squad[idx];
@@ -4017,6 +4185,7 @@ function pickGem(room, pid, idx, gemId, now) {
         if (!ef) { ef = { type, stacks: 0 }; m.statusEffects = m.statusEffects.filter(e => e.type !== type); m.statusEffects.push(ef); }
         ef.stacks = Math.min(t.maxStacks, ef.stacks + 1);
         ef.per = t[ELEM_KEY[g.el]];
+        if (g.el === 'b') ef.orb = t.orb ?? 0;   // Lôi: + tốc độ hồi Orb mỗi tầng
         ef.endTime = now + t.duration; ef.duration = t.duration;
     }
     emitElem(room.id, { kind: 'pick', casterId: pid, casterIdx: idx, gemId, el: g.el, held: [...m.held], pushed });
@@ -4032,6 +4201,11 @@ function skillUsable(m, idx) {
     return true;
 }
 
+/** Nút KN2 trở về trống ("Chưa có phép") — phép chỉ dùng được 1 lần, dùng xong phải ghép lại */
+function clearSpell(m) {
+    m.spell = null;
+    m.skills[1] = { ...CLASS_DEFS.elementalist.skills[1] };
+}
 /** Đặt phép `key` vào nút KN2 (giữ hồi chiêu riêng của từng phép) */
 function setSpell(m, key, now) {
     const sp = m.spells?.[key];
@@ -4060,11 +4234,15 @@ function processElementalist(roomId, pid, idx, oppId, now) {
         if (m.gemNext && m.gems.length < def.gemMax) spawnGem(m, now, ts);
         m.gemNext = now + def.gemEvery;
     }
+    // Hơi Nước Bỏng: mưa hồi máu + sét đánh mỗi giây
+    processRain(room, pid, idx, oppId, now);
+    // Băng Hoại Hỏa Thiên: chưởng SolarBeam — sát thương mỗi giây
+    processBeam(room, pid, idx, oppId, now);
     // Cộng Hưởng Băng: hồi % máu mỗi giây theo số tầng
     const ice = m.statusEffects.find(e => e.type === 'attune_ice' && e.endTime > now);
     if (ice && m.hp < m.maxHp) healUnit(m, m.maxHp * (ice.per ?? 0) * ice.stacks / 20 * ts, now);
     // Tự đánh / phe máy: AI tự nhặt ngọc theo công thức hợp tình huống
-    if (team.autoMode && room.players[oppId]) elemAiPick(room, pid, idx, oppId, now);
+    if ((team.autoMode || m.autoOn) && room.players[oppId]) elemAiPick(room, pid, idx, oppId, now);
 }
 
 /** Đóng băng = choáng (đứng im, bị ngắt niệm) + lớp băng phủ người. Trả về thời gian thật sự bị đóng băng */
@@ -4105,6 +4283,31 @@ function wardCounter(attacker, mage, now) {
     });
 }
 
+/** Tầng HÀN KHÍ: mọi sát thương BĂNG (của bất kỳ ai) cộng 1 tầng — mỗi tầng −2% tốc đánh, giữ 5s; đủ 5 tầng -> đóng băng 1,5s.
+ *  Bị giải hiệu ứng (mọi cách) thì mất tầng, đếm lại. Trả về thời gian đóng băng nếu vừa đủ tầng (0 nếu chưa) */
+const CHILL = { per: 0.02, time: 5000, max: 5, freeze: 1500 };
+function addChill(e, now, n = 1) {
+    if (!e?.alive || e.summon) return 0;
+    const cur = e.statusEffects.find(x => x.type === 'chill' && x.endTime > now);
+    const stacks = (cur?.stacks ?? 0) + n;
+    if (stacks >= CHILL.max) {
+        e.statusEffects = e.statusEffects.filter(x => x.type !== 'chill');
+        return applyFreeze(e, CHILL.freeze, now);
+    }
+    putEffect(e, { type: 'chill', stacks, per: CHILL.per, endTime: now + CHILL.time, duration: CHILL.time, debuff: true });
+    return 0;
+}
+/** Đòn băng: sát thương + Hàn Khí (eff.frozen / eff.chill để client vẽ) */
+function iceHit(m, e, i, opp, mult, now, opts = {}) {
+    const eff = hitTarget(m, e, i, opp, mult, now, { aoe: true, ...opts });
+    if (!eff.isMiss) {
+        const fr = addChill(e, now);
+        if (fr) eff.frozen = fr;
+        eff.chill = e.statusEffects.find(x => x.type === 'chill')?.stacks ?? 0;
+    }
+    return eff;
+}
+
 /** Tung phép đang giữ ở nút KN2 */
 function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
     const team = room.players[pid], opp = room.players[oppId];
@@ -4117,25 +4320,30 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
     extra.spell = sp.key;
     switch (sp.key) {
         case 'meteor': {
-            // rơi vào chỗ đông đối thủ nhất -> lăn thẳng về phía địch (tầm lướt của Zerith) -> để lại vệt lửa (2 lần)
+            // rơi vào chỗ đông đối thủ nhất -> lăn CHẬM (tầm lướt Zerith) -> vệt lửa (2 lần)
             const pt = bestCluster(m, opp.squad, 99, sp.radius, now) ?? (target ? { x: target.x, z: target.z || 0 } : null);
             if (!pt) return;
             const x0 = pt.x, z0 = pt.z;
+            // lăn thẳng TỚI (về phía sau đội địch)
             const xEnd = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, x0 + side * sp.rollLen));
             extra.meteor = { x: x0, z: z0, xEnd, fall: sp.impact, rollTime: sp.rollTime, trailTime: sp.trailTime, radius: sp.radius, width: sp.rollWidth };
             later(sp.impact, () => {
                 const t = room.clock;
-                const hits = foesOf(opp, t).filter(o => distXZ(o.e, x0, z0) <= sp.radius).map(o => hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true }));
+                // chạm đất: LUÔN CHÍ MẠNG (lăn / vệt lửa / va chạm thì bình thường)
+                const hits = foesOf(opp, t).filter(o => distXZ(o.e, x0, z0) <= sp.radius).map(o => hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true, forceCrit: true }));
                 emitElem(roomId, { ...base, kind: 'meteorHit', x: x0, z: z0, effects: hits });
             });
-            const rolled = new Set();
-            const steps = 10;
+            // thiên thạch đang lăn: lưu lại để Lốc Xoáy đẩy đối thủ va vào thì tính thêm sát thương
+            const ball = { team: pid, caster: m, x0, z0, xEnd, start: now + sp.impact, end: now + sp.impact + sp.rollTime, width: sp.rollWidth, crash: sp.crashMultiplier, hit: new Set() };
+            (room.meteors ??= []).push(ball);
+            later(sp.impact + sp.rollTime + 50, () => { room.meteors = (room.meteors ?? []).filter(b => b !== ball); });
+            const steps = 20;
             for (let k = 1; k <= steps; k++) later(sp.impact + sp.rollTime * k / steps, () => {
                 const t = room.clock;
                 const a = x0 + (xEnd - x0) * (k - 1) / steps, b = x0 + (xEnd - x0) * k / steps;
                 const lo = Math.min(a, b) - 0.9, hi = Math.max(a, b) + 0.9;
-                const hits = foesOf(opp, t).filter(o => !rolled.has(o.e) && o.e.x >= lo && o.e.x <= hi && Math.abs((o.e.z || 0) - z0) <= sp.rollWidth)
-                    .map(o => { rolled.add(o.e); return hitTarget(m, o.e, o.i, opp, sp.rollMultiplier, t, { aoe: true }); });
+                const hits = foesOf(opp, t).filter(o => !ball.hit.has(o.e) && o.e.x >= lo && o.e.x <= hi && Math.abs((o.e.z || 0) - z0) <= sp.rollWidth)
+                    .map(o => { ball.hit.add(o.e); return hitTarget(m, o.e, o.i, opp, sp.rollMultiplier, t, { aoe: true }); });
                 if (hits.length) emitElem(roomId, { ...base, kind: 'rollHit', effects: hits });
             });
             for (let k = 1; k <= sp.trailTicks; k++) later(sp.impact + sp.rollTime + k * sp.trailGap - 500, () => {
@@ -4148,31 +4356,57 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
             break;
         }
         case 'frost': {
-            // gió băng quét cả đội địch: sát thương + chậm tốc đánh + cơ hội đóng băng
-            later(sp.impact, () => {
+            // khối băng thành hình trên đầu đội địch 1,5s -> rơi xuống: cả đội địch trúng -> vỡ ra 5 khối nhỏ văng xuống
+            const pt = bestCluster(m, opp.squad, 99, 6, now) ?? (target ? { x: target.x, z: target.z || 0 } : null);
+            if (!pt) return;
+            const land = sp.impact + sp.form + sp.fall;
+            const frozenOnce = new Set();   // cơ hội đóng băng: tính 1 lần mỗi đối thủ cho cả chiêu
+            const chill = (e, eff, t) => {
+                if (eff.isMiss) return;
+                putEffect(e, { type: 'frost_slow', endTime: t + sp.slowTime, duration: sp.slowTime, value: sp.slow, debuff: true });
+                if (!frozenOnce.has(e)) {
+                    frozenOnce.add(e);
+                    if (Math.random() < sp.freezeChance) { const fr = applyFreeze(e, sp.freezeTime, t); if (fr) eff.frozen = fr; }
+                }
+            };
+            const shards = [];
+            const foesNow = foesOf(opp, now);
+            for (let k = 0; k < sp.shards; k++) {
+                const o = foesNow.length ? foesNow[Math.floor(Math.random() * foesNow.length)].e : null;
+                const a = Math.random() * Math.PI * 2, r = 1 + Math.random() * 2.5;
+                shards.push(o && Math.random() < 0.7 ? { x: o.x + (Math.random() - 0.5), z: (o.z || 0) + (Math.random() - 0.5) * 0.6 }
+                    : { x: pt.x + Math.cos(a) * r, z: pt.z + Math.sin(a) * r * 0.5 });
+            }
+            extra.frost = { x: pt.x, z: pt.z, form: sp.form, fall: sp.fall, start: sp.impact, shards };
+            later(land, () => {
                 const t = room.clock;
-                const hits = foesOf(opp, t).map(o => {
-                    const eff = hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true });
-                    if (!eff.isMiss) {
-                        putEffect(o.e, { type: 'frost_slow', endTime: t + sp.slowTime, duration: sp.slowTime, value: sp.slow, debuff: true });
-                        if (Math.random() < sp.freezeChance) eff.frozen = applyFreeze(o.e, sp.freezeTime, t);
-                    }
-                    return eff;
-                });
-                emitElem(roomId, { ...base, kind: 'frostHit', effects: hits });
+                const hits = foesOf(opp, t).map(o => { const eff = iceHit(m, o.e, o.i, opp, sp.multiplier, t); chill(o.e, eff, t); return eff; });
+                emitElem(roomId, { ...base, kind: 'frostHit', x: pt.x, z: pt.z, effects: hits });
             });
+            shards.forEach((p, k) => later(land + 350 + k * 70, () => {
+                const t = room.clock;
+                const hits = foesOf(opp, t).filter(o => distXZ(o.e, p.x, p.z) <= sp.shardRadius)
+                    .map(o => { const eff = iceHit(m, o.e, o.i, opp, sp.shardMultiplier, t); chill(o.e, eff, t); return eff; });
+                emitElem(roomId, { ...base, kind: 'shardHit', x: p.x, z: p.z, effects: hits });
+            }));
             break;
         }
         case 'chain': {
-            // sét nảy qua tối đa 5 đối thủ (gần nhau nhất), mỗi người trúng −M.DEF (không cộng dồn)
+            // sét nảy qua tối đa 5 đối thủ (gần nhau nhất); sau đó mỗi lần 50% nảy tiếp sang đối thủ khác (được trúng lại)
             if (!target) return;
             const list = [target];
+            const near = (from, pool) => pool.map(e => ({ e, d: Math.hypot(e.x - from.x, (e.z || 0) - (from.z || 0)) }))
+                .filter(o => o.d <= sp.bounceRange).sort((a, b) => a.d - b.d)[0]?.e;
             while (list.length < sp.bounces) {
-                const last = list[list.length - 1];
-                const next = opp.squad.filter(e => canBeTargeted(e, now) && !list.includes(e))
-                    .map(e => ({ e, d: Math.hypot(e.x - last.x, (e.z || 0) - (last.z || 0)) })).filter(o => o.d <= sp.bounceRange).sort((a, b) => a.d - b.d)[0];
+                const next = near(list[list.length - 1], opp.squad.filter(e => canBeTargeted(e, now) && !list.includes(e)));
                 if (!next) break;
-                list.push(next.e);
+                list.push(next);
+            }
+            for (let extraN = 0; extraN < sp.extraMax && Math.random() < sp.extraChance; extraN++) {
+                const last = list[list.length - 1];
+                const next = near(last, opp.squad.filter(e => canBeTargeted(e, now) && e !== last));
+                if (!next) break;
+                list.push(next);
             }
             list.forEach((e, k) => {
                 const i = opp.squad.indexOf(e);
@@ -4193,17 +4427,21 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
             extra.golem = { x: m.x + side * 2.5, z: m.z || 0 };
             break;
         case 'ward': {
-            // khiên 25% máu cho chính mình 6s; ai đánh trúng mình bị sét giật + choáng (kể cả khi khiên đã vỡ, tới hết 6s)
-            const hp = Math.round(m.maxHp * sp.shieldPct);
+            // khiên 25% máu cho Elarion + đồng đội yếu máu nhất 6s; ai đánh trúng người có giáp bị sét giật + choáng (tới hết 6s)
             const end = now + (sp.lock ?? 0) + sp.duration;
-            m.statusEffects = m.statusEffects.filter(e => e.type !== 'storm_ward');
-            addShield(m, { type: 'storm_ward', hp, maxHp: hp, endTime: end, duration: sp.duration,
-                counter: sp.counterMultiplier, counterStun: sp.counterStun, every: sp.counterEvery, hitAt: {} }, now);
-            extra.shield = hp;
+            const ally = team.squad.filter(a => a.alive && a !== m && !a.summon).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+            extra.shields = [];
+            [m, ally].filter(Boolean).forEach(a => {
+                const hp = Math.round(a.maxHp * sp.shieldPct);
+                a.statusEffects = a.statusEffects.filter(e => e.type !== 'storm_ward');
+                addShield(a, { type: 'storm_ward', hp, maxHp: hp, endTime: end, duration: sp.duration,
+                    counter: sp.counterMultiplier, counterStun: sp.counterStun, every: sp.counterEvery, hitAt: {}, ownerIdx: idx }, now);
+                extra.shields.push({ targetIndex: team.squad.indexOf(a), shield: hp });
+            });
             break;
         }
         case 'tornado': {
-            // lốc xoáy bay thẳng tới: sát thương + đẩy lùi mọi đối thủ trên đường
+            // lốc xoáy bay thẳng tới: sát thương + đẩy lùi mọi đối thủ trên đường (va vào Thiên Thạch đang lăn -> thêm sát thương)
             let ux = side, uz = 0;
             if (target) { const dx = target.x - m.x, dz = (target.z || 0) - (m.z || 0), d = Math.hypot(dx, dz); if (d > 0.1) { ux = dx / d; uz = dz / d; } }
             const x0 = m.x + ux * 0.8, z0 = (m.z || 0) + uz * 0.8;
@@ -4224,73 +4462,84 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
                     putEffect(e, { type: 'knocked', endTime: t + sp.knockTime });
                     e.lastAttackTime = t;
                     emitElem(roomId, { ...base, kind: 'push', targetIndex: i, fromX, fromZ, toX: e.x, toZ: e.z, time: sp.knockTime });
+                    later(sp.knockTime * 0.7, () => meteorCrash(room, e, i, opp, fromX, fromZ));
                 });
                 effects.push(eff);
             });
             break;
         }
         case 'steam': {
-            // mây hơi nước: sát thương mỗi 0,5s, đối thủ trong mây đánh trượt thêm
-            const pt = bestCluster(m, opp.squad, 99, sp.radius, now) ?? (target ? { x: target.x, z: target.z || 0 } : null);
-            if (!pt) return;
-            extra.steam = { x: pt.x, z: pt.z, radius: sp.radius, duration: sp.duration, start: sp.impact };
-            const n = Math.round(sp.duration / sp.tickGap);
-            for (let k = 1; k <= n; k++) later(sp.impact + k * sp.tickGap, () => {
-                const t = room.clock;
-                const hits = foesOf(opp, t).filter(o => distXZ(o.e, pt.x, pt.z) <= sp.radius).map(o => {
-                    putEffect(o.e, { type: 'steam_blind', endTime: t + sp.tickGap + 150, value: sp.missUp, debuff: true });
-                    return hitTarget(m, o.e, o.i, opp, sp.tickMultiplier, t, { aoe: true });
-                });
-                if (hits.length) emitElem(roomId, { ...base, kind: 'steamTick', effects: hits });
-            });
+            // (đã niệm 2s) mây mưa giông 7s: Elarion đứng thi triển — mưa hồi máu phe ta, sét đánh ngẫu nhiên đối thủ
+            const foes = foesOf(opp, now);
+            const allies = team.squad.filter(a => a.alive);
+            const cx = (avg(foes.map(o => o.e.x)) ?? m.x) * 0.5 + avg(allies.map(a => a.x)) * 0.5;
+            putEffect(m, { type: 'elem_rain', endTime: now + sp.duration, duration: sp.duration, next: now + sp.every, every: sp.every,
+                heal: sp.heal, healPct: sp.healPct, manaPerSec: sp.manaPerSec, strike: sp.strikeMultiplier, stun: sp.strikeStun });
+            extra.rain = { x: cx, z: 0, duration: sp.duration };
             break;
         }
         case 'firebolt': {
-            // cầu lửa sét bay tới mục tiêu -> nổ: sát thương + choáng
-            if (!target) return;
-            const ti = opp.squad.indexOf(target);
-            extra.firebolt = { targetIndex: ti, flight: sp.flight };
-            later(sp.impact + sp.flight, () => {
+            // quả cầu hỏa lôi hiện ở điểm cố định phía trước (cách Elarion `distance` ô), to dần 2s rồi nổ tại chỗ
+            const pt = { x: Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, m.x + side * sp.distance)), z: m.z || 0 };
+            extra.firebolt = { x: pt.x, z: pt.z, grow: sp.grow, start: sp.impact, radius: sp.radius };
+            later(sp.impact + sp.grow, () => {
                 const t = room.clock;
-                const cx = target.x, cz = target.z || 0;
-                const hits = foesOf(opp, t).filter(o => distXZ(o.e, cx, cz) <= sp.radius).map(o => {
+                const hits = foesOf(opp, t).filter(o => distXZ(o.e, pt.x, pt.z) <= sp.radius).map(o => {
                     const eff = hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true });
-                    if (!eff.isMiss) applyStun(o.e, sp.stun, t);
+                    if (!eff.isMiss) {
+                        applyStun(o.e, sp.stun, t);
+                        if (!opp.debugNoMana) { const lost = Math.min(o.e.mp, sp.orbBurn * ORB_COST); o.e.mp -= lost; eff.orbLost = lost / ORB_COST; }
+                    }
                     return eff;
                 });
-                emitElem(roomId, { ...base, kind: 'fireboltHit', x: cx, z: cz, radius: sp.radius, effects: hits });
+                emitElem(roomId, { ...base, kind: 'fireboltHit', x: pt.x, z: pt.z, radius: sp.radius, effects: hits });
+                // nổ: cả đội +1 Orb, riêng Elarion +2
+                const gains = [];
+                team.squad.forEach((a, i) => {
+                    if (!a.alive || a.summon) return;
+                    const n = a === m ? (sp.selfOrbs ?? 2) : (sp.teamOrbs ?? 1);
+                    if (!team.debugNoMana) a.mp = Math.min(a.maxMp, a.mp + n * ORB_COST);
+                    gains.push({ i, orbs: n });
+                });
+                emitElem(roomId, { ...base, kind: 'teamOrb', gains });
             });
             break;
         }
-        case 'avalanche': {
-            // tuyết lở đổ xuống hàng trước của địch: sát thương + hất tung
-            const foes = foesOf(opp, now);
-            if (!foes.length) return;
-            const front = foes.reduce((a, b) => ((b.e.x - a.e.x) * side < 0 ? b : a)).e;
-            const cx = front.x, cz = front.z || 0;
-            extra.avalanche = { x: cx, z: cz, radius: sp.radius };
-            later(sp.impact, () => {
-                const t = room.clock;
-                const hits = foesOf(opp, t).filter(o => distXZ(o.e, cx, cz) <= sp.radius).map(o => {
-                    const eff = hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true });
-                    if (!eff.isMiss) knockUp(o.e, sp.knockup);
-                    return eff;
-                });
-                emitElem(roomId, { ...base, kind: 'avalancheHit', x: cx, z: cz, effects: hits });
-            });
+        case 'beams': {
+            // dồn lực (impact) -> đứng yên chưởng SolarBeam băng-hỏa `duration` ms; sát thương mỗi giây do processBeam
+            const aim = beamAim(m, foesOf(opp, now).map(o => o.e), sp, side, now, target);
+            const start = now + sp.impact;
+            putEffect(m, { type: 'elem_beam', start, endTime: start + sp.duration, duration: sp.duration, next: start + sp.every / 2, every: sp.every,
+                ux: aim.ux, uz: aim.uz, tick: 0, ice: sp.iceMultiplier, fire: sp.fireMultiplier, ramp: sp.fireRamp, max: sp.fireMax, maxBonus: sp.maxBonus,
+                slow: sp.slow, slowTime: sp.slowTime, width: sp.width, widthMax: sp.widthMax });
+            extra.beam = { ux: aim.ux, uz: aim.uz, charge: sp.impact, duration: sp.duration, every: sp.every, max: sp.fireMax, len: beamLength(m, aim) };
             break;
         }
         case 'haste': {
-            // cả đội tăng tốc đánh
-            const end = now + (sp.impact ?? 0) + sp.duration;
-            extra.allies = [];
-            team.squad.forEach((a, i) => {
-                if (!a.alive) return;
-                putEffect(a, { type: 'storm_haste', endTime: end, duration: sp.duration, value: sp.atkSpeedUp });
-                extra.allies.push(i);
-            });
+            // riêng Elarion: đánh thường chưởng 2 lần + tốc đánh; cứ 5 đòn -> cả đội +tốc đánh (cộng dồn)
+            putEffect(m, { type: 'storm_self', endTime: now + (sp.impact ?? 0) + sp.duration, duration: sp.duration, value: sp.atkSpeedUp,
+                every: sp.every, teamUp: sp.teamUp, teamTime: sp.teamTime, teamMax: sp.teamMax, autos: 0, orbRegen: sp.orbRegen ?? 2 });   // + hồi Orb ×2
             break;
         }
+    }
+}
+const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+/** Lốc Xoáy đẩy đối thủ va vào Thiên Thạch đang lăn (của phe mình) -> sát thương va chạm (mỗi quả 1 lần / người) */
+function meteorCrash(room, e, i, opp, fromX, fromZ) {
+    const t = room.clock;
+    if (!e.alive) return;
+    for (const b of room.meteors ?? []) {
+        if (t < b.start || t > b.end || b.crashed?.has(e)) continue;
+        if (room.players[b.team] === opp) continue;
+        const p = Math.min(1, (t - b.start) / (b.end - b.start));
+        const bx = b.x0 + (b.xEnd - b.x0) * p;
+        const lo = Math.min(fromX, e.x, bx) , hi = Math.max(fromX, e.x, bx);
+        const crossed = Math.abs(e.x - bx) <= 1.6 || (bx >= Math.min(fromX, e.x) - 1 && bx <= Math.max(fromX, e.x) + 1);
+        if (!crossed || hi - lo > 12 || Math.abs((e.z || 0) - b.z0) > b.width + 0.8) continue;
+        (b.crashed ??= new Set()).add(e);
+        const eff = hitTarget(b.caster, e, i, opp, b.crash, t, { aoe: true });
+        emitElem(room.id, { kind: 'meteorCrash', casterId: b.team, targetId: Object.keys(room.players).find(id => room.players[id] === opp), x: bx, z: b.z0, effects: [eff] });
     }
 }
 
@@ -4335,27 +4584,31 @@ function vanishGolem(room, pid, slot, reason) {
     g.queuedSkills = []; g.castingSkillId = null; g.statusEffects = [];
     emitElem(room.id, { kind: 'golemEnd', casterId: pid, golemIdx: slot, reason });
 }
-/** Mỗi tick (Golem): hết 20s thì tan · Hào Quang Sét: mỗi giây giật đối thủ đứng gần */
+/** Golem KHÔNG nhận buff / debuff nào (kể cả khống chế), trừ Ấn Tử của Zerith (và phán quyết của nó) + hiệu ứng của chính Golem */
+const GOLEM_KEEP = new Set(['death_mark', 'judged', 'golem_haste', 'golem_breath']);
+/** Mỗi tick (Golem): hết 20s thì tan · bỏ mọi hiệu ứng không được nhận */
 function processGolem(roomId, pid, idx, oppId, now) {
     const room = rooms[roomId];
     const g = room.players[pid].squad[idx];
     if (!g.alive) return;
     if (now >= (g.summonEnd ?? Infinity)) return vanishGolem(room, pid, idx, 'time');
-    const aura = g.statusEffects.find(e => e.type === 'golem_aura' && e.endTime > now);
+    if (g.statusEffects.some(e => !GOLEM_KEEP.has(e.type))) g.statusEffects = g.statusEffects.filter(e => GOLEM_KEEP.has(e.type));
+}
+/** Golem sau mỗi đòn đánh thường: Hào Quang Sét -> giật toàn bộ đối thủ · cứ 2 đòn -> 1 kỹ năng ngẫu nhiên đang sẵn sàng */
+function golemAfterAuto(roomId, pid, idx, oppId, now) {
+    const room = rooms[roomId];
+    const g = room.players[pid].squad[idx];
+    if (g.classId !== 'elem_golem') return;
+    const charged = g.statusEffects.find(e => e.type === 'golem_haste' && e.endTime > now);
     const opp = room.players[oppId];
-    if (aura && opp && now >= (aura.next ?? 0)) {
-        aura.next = now + aura.every;
-        const hits = foesOf(opp, now).filter(o => distXZ(o.e, g.x, g.z || 0) <= aura.radius).map(o => {
-            const eff = hitTarget(g, o.e, o.i, opp, aura.multiplier, now, { aoe: true });
-            if (!eff.isMiss) applyStun(o.e, aura.stun, now);
+    if (charged && opp) {
+        const hits = foesOf(opp, now).map(o => {
+            const eff = hitTarget(g, o.e, o.i, opp, charged.multiplier, now, { aoe: true, delay: 250 });
+            if (!eff.isMiss && Math.random() < charged.stunChance) { later(250, () => applyStun(o.e, charged.stun, room.clock)); eff.stunned = true; }
             return eff;
         });
         emitElem(roomId, { kind: 'golemShock', casterId: pid, casterIdx: idx, targetId: oppId, effects: hits });
     }
-}
-/** Golem: cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng */
-function golemAfterAuto(g, now) {
-    if (g.classId !== 'elem_golem') return;
     g.golemAutos = (g.golemAutos ?? 0) + 1;
     if (g.golemAutos < 2 || g.queuedSkills.length) return;
     const ready = skillsOf(g).map((_, i) => i).filter(i => now >= (g.skillCooldowns[i] ?? 0));
@@ -4372,53 +4625,183 @@ function castGolemSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     const cur = opp.squad[g.targetIndex];
     const target = (cur?.alive && canBeTargeted(cur, now)) ? cur : findBestTarget(g, opp.squad, now);
     const base = { casterId: pid, casterIdx: idx, targetId: oppId };
+    const clampX = (x) => Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, x));
+    const clampZ = (z) => Math.max(ARENA_BOUNDS.minZ, Math.min(ARENA_BOUNDS.maxZ, z));
     if (sk.type === 'golem_fist') {
-        // Nộ Lửa: đấm lửa lướt chậm tới — hất tung mọi đối thủ trên đường; cả đội địch −M.DEF
+        // Nộ Lửa: lùi về phía đồng minh -> niệm 1s -> lướt chậm tới đấm lửa: hất tung mọi đối thủ trên đường; cả đội địch −M.DEF
+        const bx = clampX(g.x - side * sk.backLen), bz = g.z || 0;
+        const ax = g.x, az = g.z || 0;
+        for (let k = 1; k <= 5; k++) later(sk.backTime * k / 5, () => { if (g.alive) { g.x = ax + (bx - ax) * k / 5; } });
+        const t0 = sk.backTime + sk.channel;
+        // hướng lướt: tới mục tiêu (tính lúc bắt đầu lướt)
         let ux = side, uz = 0;
-        if (target) { const dx = target.x - g.x, dz = (target.z || 0) - (g.z || 0), d = Math.hypot(dx, dz); if (d > 0.1) { ux = dx / d; uz = dz / d; } }
-        const x0 = g.x, z0 = g.z || 0;
-        const x1 = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, x0 + ux * sk.dashLen));
-        const z1 = Math.max(ARENA_BOUNDS.minZ, Math.min(ARENA_BOUNDS.maxZ, z0 + uz * sk.dashLen));
-        const len = Math.hypot(x1 - x0, z1 - z0) || 1;
-        extra.fist = { fromX: x0, fromZ: z0, toX: x1, toZ: z1, time: sk.dashTime };
-        g.actionUntil = now + sk.dashTime + 150;
-        for (let k = 1; k <= 8; k++) later(sk.dashTime * k / 8, () => { if (g.alive) { g.x = x0 + (x1 - x0) * k / 8; g.z = z0 + (z1 - z0) * k / 8; } });
-        foesOf(opp, now).forEach(({ e, i }) => {
-            const rx = e.x - x0, rz = (e.z || 0) - z0;
-            const along = (rx * (x1 - x0) + rz * (z1 - z0)) / len, perp = Math.abs(-rx * (z1 - z0) + rz * (x1 - x0)) / len;
-            if (along < -0.5 || along > len + 1 || perp > sk.width) return;
-            const delay = Math.max(0, Math.min(len, along)) / len * sk.dashTime;
-            const eff = hitTarget(g, e, i, opp, sk.multiplier, now, { delay, aoe: true });
-            eff.delay = delay;
-            if (!eff.isMiss) later(delay, () => knockUp(e, sk.knockup));
-            effects.push(eff);
-        });
-        foesOf(opp, now).forEach(({ e }) => putEffect(e, { type: 'golem_break', endTime: now + sk.debuffTime, duration: sk.debuffTime, value: sk.mDefDown, debuff: true }));
-    } else if (sk.type === 'golem_blizzard') {
-        // Bão Tuyết: 6 lần trong 6s lên mọi đối thủ; mỗi lần +1 tầng (−tốc đánh); đủ 4 tầng -> đóng băng, giải được thì đếm lại
-        extra.blizzard = { ticks: sk.ticks, gap: sk.tickGap };
-        for (let k = 1; k <= sk.ticks; k++) later(sk.impact + (k - 1) * sk.tickGap, () => {
+        if (target) { const dx = target.x - bx, dz = (target.z || 0) - bz, d = Math.hypot(dx, dz); if (d > 0.1) { ux = dx / d; uz = dz / d; } }
+        const x1 = clampX(bx + ux * sk.dashLen), z1 = clampZ(bz + uz * sk.dashLen);
+        const len = Math.hypot(x1 - bx, z1 - bz) || 1;
+        extra.fist = { backX: bx, backZ: bz, backTime: sk.backTime, channel: sk.channel, fromX: bx, fromZ: bz, toX: x1, toZ: z1, time: sk.dashTime };
+        g.actionUntil = now + t0 + sk.dashTime + 150;
+        for (let k = 1; k <= 8; k++) later(t0 + sk.dashTime * k / 8, () => { if (g.alive) { g.x = bx + (x1 - bx) * k / 8; g.z = bz + (z1 - bz) * k / 8; } });
+        later(t0, () => {
             const t = room.clock;
-            const hits = foesOf(opp, t).map(o => {
-                const eff = hitTarget(g, o.e, o.i, opp, sk.tickMultiplier, t, { aoe: true });
-                if (eff.isMiss) return eff;
-                const st = o.e.statusEffects.find(x => x.type === 'frost_stack' && x.endTime > t);
-                const n = (st?.stacks ?? 0) + 1;
-                if (n >= sk.freezeAt) {
-                    o.e.statusEffects = o.e.statusEffects.filter(x => x.type !== 'frost_stack');
-                    eff.frozen = applyFreeze(o.e, sk.freezeTime, t);
-                } else putEffect(o.e, { type: 'frost_stack', stacks: n, per: sk.stackSlow, endTime: t + sk.stackTime, duration: sk.stackTime, debuff: true });
-                eff.stacks = n >= sk.freezeAt ? 0 : n;
-                return eff;
+            const hits = [];
+            foesOf(opp, t).forEach(({ e, i }) => {
+                const rx = e.x - bx, rz = (e.z || 0) - bz;
+                const along = (rx * (x1 - bx) + rz * (z1 - bz)) / len, perp = Math.abs(-rx * (z1 - bz) + rz * (x1 - bx)) / len;
+                if (along < -0.5 || along > len + 1 || perp > sk.width) return;
+                const delay = Math.max(0, Math.min(len, along)) / len * sk.dashTime;
+                const eff = hitTarget(g, e, i, opp, sk.multiplier, t, { delay, aoe: true });
+                eff.delay = delay;
+                if (!eff.isMiss) later(delay, () => knockUp(e, sk.knockup));
+                hits.push(eff);
             });
+            foesOf(opp, t).forEach(({ e }) => putEffect(e, { type: 'golem_break', endTime: t + sk.debuffTime, duration: sk.debuffTime, value: sk.mDefDown, debuff: true }));
+            emitElem(roomId, { ...base, kind: 'fistDash', fromX: bx, fromZ: bz, toX: x1, toZ: z1, time: sk.dashTime, effects: hits });
+        });
+    } else if (sk.type === 'golem_blizzard') {
+        // Bão Tuyết (đã niệm 2s hút khí lạnh): đứng phun bão tuyết 6s — mỗi giây ×0.35 mọi đối thủ + 1 tầng Hàn Khí
+        putEffect(g, { type: 'golem_breath', endTime: now + sk.impact + sk.ticks * sk.tickGap, duration: sk.ticks * sk.tickGap });
+        extra.blizzard = { ticks: sk.ticks, gap: sk.tickGap, start: sk.impact };
+        for (let k = 1; k <= sk.ticks; k++) later(sk.impact + (k - 1) * sk.tickGap + 300, () => {
+            const t = room.clock;
+            if (!g.alive) return;
+            const hits = foesOf(opp, t).map(o => iceHit(g, o.e, o.i, opp, sk.tickMultiplier, t));
             emitElem(roomId, { ...base, kind: 'blizzardTick', tick: k, effects: hits });
         });
     } else if (sk.type === 'golem_aura') {
-        // Hào Quang Sét: sét giáng xuống Golem -> 5s, mỗi giây giật mọi đối thủ đứng gần (choáng ngắn)
-        putEffect(g, { type: 'golem_aura', endTime: now + sk.impact + sk.duration, duration: sk.duration, radius: sk.radius,
-            every: sk.every, multiplier: sk.multiplier, stun: sk.stun, next: now + sk.impact + 300 });
-        extra.aura = { radius: sk.radius, duration: sk.duration };
+        // Hào Quang Sét (đã niệm 1s): sét đánh vào tay -> +25% tốc đánh 5s, mỗi đòn giật toàn bộ đối thủ
+        putEffect(g, { type: 'golem_haste', endTime: now + sk.impact + sk.duration, duration: sk.duration, value: sk.atkSpeedUp,
+            multiplier: sk.multiplier, stunChance: sk.stunChance, stun: sk.stun });
+        extra.aura = { duration: sk.duration };
     }
+}
+
+/** Elarion — Tốc Lôi: mỗi đòn đánh thường chưởng thêm 1 lần · cứ 5 đòn -> cả đội +tốc đánh (cộng dồn) */
+function elemAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
+    const room = rooms[roomId];
+    const m = room.players[pid].squad[idx];
+    if (m.classId !== 'elementalist') return;
+    const st = m.statusEffects.find(e => e.type === 'storm_self' && e.endTime > now);
+    if (!st) return;
+    const opp = room.players[oppId];
+    const target = opp?.squad[targetIdx];
+    if (target?.alive) {
+        const r = calculateDamage(m, target, 1.0, now);
+        const delay = 160;
+        if (!r.isMiss) dealDamage(target, r.damage, opp, (CLASS_DEFS.elementalist.autoImpact ?? 0) + delay, executeHook(m, target));
+        emitElem(roomId, { kind: 'echoHit', casterId: pid, casterIdx: idx, targetId: oppId, targetIndex: targetIdx,
+            effect: { targetIndex: targetIdx, damage: r.damage, isCrit: r.isCrit, isBlock: r.isBlock, isMiss: r.isMiss, absorbed: r.absorbed || 0, isMagic: r.isMagic, delay } });
+    }
+    st.autos = (st.autos ?? 0) + 1;
+    if (st.autos % st.every) return;
+    const allies = [];
+    room.players[pid].squad.forEach((a, i) => {
+        if (!a.alive || a.summon) return;
+        const cur = a.statusEffects.find(e => e.type === 'storm_haste' && e.endTime > now);
+        putEffect(a, { type: 'storm_haste', stacks: Math.min(st.teamMax, (cur?.stacks ?? 0) + 1), value: st.teamUp, endTime: now + st.teamTime, duration: st.teamTime });
+        allies.push(i);
+    });
+    emitElem(roomId, { kind: 'teamHaste', casterId: pid, casterIdx: idx, allies });
+}
+/** Hơi Nước Bỏng đang thi triển (Elarion đứng yên) */
+const rainOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_rain' && e.endTime > now) ?? null;
+function endRain(room, pid, idx, reason) {
+    const m = room.players[pid]?.squad[idx];
+    if (!m) return;
+    const had = m.statusEffects.some(e => e.type === 'elem_rain');
+    m.statusEffects = m.statusEffects.filter(e => e.type !== 'elem_rain');
+    if (had) emitElem(room.id, { kind: 'rainEnd', casterId: pid, casterIdx: idx, reason });
+}
+/** Mỗi giây lúc mưa giông: phe ta hồi máu (đầy máu thì hồi MP), sét đánh 1 đối thủ ngẫu nhiên + choáng */
+function processRain(room, pid, idx, oppId, now) {
+    const team = room.players[pid], opp = room.players[oppId];
+    const m = team.squad[idx];
+    const rain = rainOf(m, now);
+    if (!rain || now < rain.next) return;
+    rain.next += rain.every;
+    const mAtk = getEffectiveStats(m, now).stats.mAtk;
+    const heals = [];
+    team.squad.forEach((a, i) => {
+        if (!a.alive) return;
+        if (a.hp >= a.maxHp) {
+            if (a.summon || !a.maxMp) return;
+            const mp = team.debugNoMana ? 0 : Math.max(0, Math.min(a.maxMp - a.mp, rain.manaPerSec));
+            a.mp += mp;
+            heals.push({ targetIndex: i, mana: Math.round(mp) });
+        } else heals.push({ targetIndex: i, heal: healUnit(a, mAtk * rain.heal + a.maxHp * rain.healPct, now) });
+    });
+    let strike = null;
+    const foes = opp ? foesOf(opp, now) : [];
+    if (foes.length) {
+        const o = foes[Math.floor(Math.random() * foes.length)];
+        strike = hitTarget(m, o.e, o.i, opp, rain.strike, now, { aoe: true, delay: 150 });
+        if (!strike.isMiss) later(150, () => applyStun(o.e, rain.stun, room.clock));
+    }
+    emitElem(room.id, { kind: 'rainTick', casterId: pid, casterIdx: idx, targetId: oppId, heals, strike });
+}
+
+/** Băng Hoại Hỏa Thiên đang chưởng (Elarion đứng yên — kể cả lúc dồn lực) */
+const beamOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_beam' && e.endTime > now) ?? null;
+/** Đối thủ `e` nằm trong tia chưởng từ (x0, z0) theo hướng (ux, uz), nửa bề rộng `width`, dài `len` */
+function inBeam(e, x0, z0, ux, uz, width, len) {
+    const rx = e.x - x0, rz = (e.z || 0) - z0;
+    const along = rx * ux + rz * uz, perp = Math.abs(-rx * uz + rz * ux);
+    return along >= -0.6 && along <= len + 1 && perp <= width;
+}
+/** Hướng chưởng: lệch tối đa maxAngle so với phía địch, quét trúng nhiều đối thủ đứng dưới đất nhất (ưu tiên mục tiêu hiện tại, ít lệch) */
+function beamAim(m, foes, sp, side, now, target = null) {
+    const ground = foes.filter(e => !isAirborne(e, now));
+    const x0 = m.x, z0 = m.z || 0;
+    const clampA = (a) => Math.max(-sp.maxAngle, Math.min(sp.maxAngle, a));
+    const angs = [0, ...ground.map(e => clampA(Math.atan2((e.z || 0) - z0, Math.max(0.5, (e.x - x0) * side))))];
+    let best = null;
+    for (const a of angs) {
+        const ux = Math.cos(a) * side, uz = Math.sin(a);
+        const count = ground.filter(e => inBeam(e, x0, z0, ux, uz, sp.width, 999)).length;
+        const score = count * 10 + (target && ground.includes(target) && inBeam(target, x0, z0, ux, uz, sp.width, 999) ? 3 : 0) - Math.abs(a);
+        if (!best || score > best.score) best = { ux, uz, count, score };
+    }
+    return best;
+}
+/** Độ dài tia: từ Elarion thẳng tới mép bản đồ (+2 ô ra ngoài) */
+function beamLength(m, { ux, uz }) {
+    const M = 2, x0 = m.x, z0 = m.z || 0;
+    const tx = ux > 0.01 ? (ARENA_BOUNDS.maxX + M - x0) / ux : ux < -0.01 ? (ARENA_BOUNDS.minX - M - x0) / ux : Infinity;
+    const tz = uz > 0.01 ? (ARENA_BOUNDS.maxZ + M - z0) / uz : uz < -0.01 ? (ARENA_BOUNDS.minZ - M - z0) / uz : Infinity;
+    return Math.max(4, Math.min(tx, tz, 120));
+}
+function endBeam(room, pid, idx, reason) {
+    const m = room.players[pid]?.squad[idx];
+    if (!m) return;
+    const had = m.statusEffects.some(e => e.type === 'elem_beam');
+    m.statusEffects = m.statusEffects.filter(e => e.type !== 'elem_beam');
+    if (had) emitElem(room.id, { kind: 'beamEnd', casterId: pid, casterIdx: idx, reason });
+}
+/** Mỗi giây lúc chưởng: mọi đối thủ (dưới đất) trong tia — Băng (Hàn Khí + giảm tốc đánh) + Hỏa (tăng dần, đủ 5 tầng: tia to, +30%) */
+function processBeam(room, pid, idx, oppId, now) {
+    const team = room.players[pid], opp = room.players[oppId];
+    const m = team.squad[idx];
+    const b = m.statusEffects.find(e => e.type === 'elem_beam');
+    if (!b) return;
+    if (now >= b.endTime) return endBeam(room, pid, idx, 'time');
+    if (now < b.next || !opp) return;
+    b.next += b.every;
+    b.tick = (b.tick ?? 0) + 1;
+    const stacks = Math.min(b.max, b.tick);
+    const big = stacks >= b.max;
+    const fireMult = b.fire * (1 + b.ramp * stacks + (big ? b.maxBonus : 0));
+    const width = big ? b.widthMax : b.width;
+    const len = beamLength(m, b);
+    const ice = [], fire = [];
+    foesOf(opp, now).forEach(({ e, i }) => {
+        if (isAirborne(e, now) || !inBeam(e, m.x, m.z || 0, b.ux, b.uz, width, len)) return;   // đang bay: tia đi bên dưới
+        const ei = iceHit(m, e, i, opp, b.ice, now, { ground: true });
+        if (!ei.isMiss) putEffect(e, { type: 'beam_slow', endTime: now + b.slowTime, duration: b.slowTime, value: b.slow, debuff: true });
+        ice.push(ei);
+        const ef = hitTarget(m, e, i, opp, fireMult, now, { aoe: true, ground: true, delay: 150 });
+        ef.delay = 150;
+        fire.push(ef);
+    });
+    emitElem(room.id, { kind: 'beamTick', casterId: pid, casterIdx: idx, targetId: oppId, tick: b.tick, stacks, big, bonus: Math.round((fireMult / b.fire - 1) * 100), ice, fire });
 }
 
 // ------------------------------------------------------------
@@ -4440,6 +4823,9 @@ function elemContext(room, pid, idx, oppId, now) {
         alliesFighting: team.squad.filter(a => a.alive && !a.summon && a.state === 'attacking').length,
         engaged: foes.some(e => team.squad.some(a => a.alive && dist(a, e) <= (a.atkRange ?? 2) + 2)),
         golemAlive: team.squad.some(a => a.classId === 'elem_golem' && a.alive && a.ownerIdx === idx),
+        alliesHurt: team.squad.filter(a => a.alive && !a.summon && a.hp / a.maxHp < 0.75).length >= 2,
+        beamLine: m.spells?.beams ? beamAim(m, foes, m.spells.beams, side, now).count : 0,   // số đối thủ (dưới đất) 1 tia SolarBeam quét trúng
+        boltZone: foes.filter(e => Math.hypot(e.x - (m.x + side * (m.spells?.firebolt?.distance ?? 12)), (e.z || 0) - (m.z || 0)) <= (m.spells?.firebolt?.radius ?? 3.5) + 0.5).length,
         hpPct: m.hp / m.maxHp,
     };
 }
@@ -4456,10 +4842,10 @@ function elemSpellScore(key, c, now) {
         case 'meteor': return c.cluster4 >= 2 ? 40 + 15 * c.cluster4 : 20;
         case 'frost': return c.foes.length >= 3 ? 48 : c.foes.length >= 2 ? 36 : 18;
         case 'chain': return c.foes.length >= 3 ? 46 : c.foes.length >= 2 ? 38 : 24;
-        case 'steam': return c.cluster4 >= 2 ? 36 : 12;
-        case 'firebolt': return c.cluster4 >= 2 ? 40 : 30;
-        case 'avalanche': return c.frontCluster >= 2 ? 42 : 20;
-        case 'haste': return c.alliesFighting >= 2 ? 40 : 0;
+        case 'steam': return c.meleeNear ? 0 : c.alliesHurt ? 58 : c.engaged ? 34 : 0;   // mưa giông: đứng thi triển 7s -> tránh lúc bị áp sát
+        case 'firebolt': return c.boltZone >= 2 ? 48 : c.boltZone ? 34 : 0;   // chỉ dùng khi có đối thủ quanh điểm nổ (12 ô phía trước)
+        case 'beams': return c.beamLine >= 3 ? 60 : c.beamLine >= 2 ? 50 : c.beamLine ? 26 : 0;   // chưởng 7s: càng nhiều đối thủ thẳng hàng càng tốt
+        case 'haste': return c.engaged ? 40 : 0;
     }
     return 0;
 }
@@ -4499,6 +4885,8 @@ function elemAiPick(room, pid, idx, oppId, now) {
     if (now < (m.aiPickAt ?? 0) || !m.gems?.length) return;
     m.aiPickAt = now + 450;
     const c = elemContext(room, pid, idx, oppId, now);
+    // phép đang giữ vẫn tốt và hết hồi chiêu -> chưa cần nhặt ngọc cho phép khác
+    if (m.spell && now >= (m.skillCooldowns[1] ?? 0) && elemSpellScore(m.spell, c, now) > 0 && m.held.length === 3) return;
     // đã đủ 3 viên ghép ra phép đáng dùng -> chờ đọc Sách, không nhặt nữa
     if (m.held.length === 3) {
         const k = SPELL_BY_RECIPE[recipeOf(m.held)];

@@ -1,0 +1,21 @@
+{
+ "ref": "art/elarion/05-golem-v2.png",
+ "out": "src/assets/sprites/golem_atlas.png",
+ "meta": "src/characters/cutout/golemAtlas.json",
+ "width": 1024,
+ "order": [],
+ "pieces": {},
+ "extra": {
+  "body": {
+   "sheet": "art/elarion/05-golem-v2.png",
+   "box": [
+    100,
+    4,
+    1304,
+    1144
+   ],
+   "scale": 0.75,
+   "largest": false
+  }
+ }
+}

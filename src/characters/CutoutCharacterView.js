@@ -25,6 +25,7 @@ import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
 import { makeWaterBubble, makeGoddessAura, makeNoteHalo, spawnManaRise } from '../vfx/nerissaFx.js';
+import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -33,7 +34,7 @@ import {
 
 const FADE = 0.08;
 const HIT_FLASH_SECONDS = 0.07;
-const LOCOMOTION_CLIP = { idle: 'idle', ready: 'ready', stunned: 'stunned', guarding: 'guard', dead: 'dead', move: 'move', cast: 'cast', fall: 'fall', victory: 'victoryIdle' };
+const LOCOMOTION_CLIP = { idle: 'idle', ready: 'ready', stunned: 'stunned', guarding: 'guard', dead: 'dead', move: 'move', cast: 'cast', fall: 'fall', victory: 'victoryIdle', channel: 'channel', beam: 'beam' };
 const STILL_SPEED = 0.6; // server báo 'moving' nhưng thực tế đứng yên (VD lúc đếm ngược) -> đứng thủ thế
 const TAU = Math.PI * 2;
 const GIANT_SCALE = 1.25;   // Brakk dạng Khổng Lồ: cả người to thêm 25% (mảnh khổng lồ vốn đã bè hơn)
@@ -359,6 +360,12 @@ export class CutoutCharacterView extends CharacterView {
         return true;
     }
 
+    /** Thả động tác đang giữ (hold) tên `name` -> về động tác theo trạng thái (VD Elarion thôi chưởng SolarBeam) */
+    releaseHold(name) {
+        const s = this._oneShot;
+        if (s && s.action === this.actions[this.def.anims?.[name]?.clip ?? name]) this._interruptOneShot();
+    }
+
     _fireHit() {
         const s = this._oneShot;
         if (s && !s.hitFired) { s.hitFired = true; s.onHit?.(); }
@@ -452,6 +459,13 @@ export class CutoutCharacterView extends CharacterView {
         const { name, time } = this._activeClip();
         for (const [t, part, skin] of this.def.skinKeys?.[name] ?? []) if (t <= time) want[part] = skin;
         if (this.def.blink && want.eye === 'open' && this._blink.left > 0) want.eye = 'blink';
+        // Hiệu ứng đang có -> đổi da (VD Golem: Hào Quang Sét -> nắm đấm sét)
+        if (this.def.effectSkins) {
+            const now = gameNow();
+            for (const [eff, map] of Object.entries(this.def.effectSkins)) {
+                if (this.member.statusEffects?.some(e => e.type === eff && e.endTime > now)) Object.assign(want, map);
+            }
+        }
         // Brakk — Thần Lực Khổng Lồ: mọi mảnh có da 'giant' đổi sang dạng khổng lồ (cùng bộ xương / động tác)
         // (hết khổng lồ: trả mọi mảnh về 'normal' — bàn tay / mắt theo da của động tác)
         for (const part of this._giantParts ?? []) want[part] = this._giantOn ? 'giant' : (want[part] ?? 'normal');
@@ -495,6 +509,18 @@ export class CutoutCharacterView extends CharacterView {
             s.vel *= Math.exp(-(c.damp ?? 7) * h);
             s.angle += s.vel * h;
             s.joint.rotation.z = s.angle;
+        }
+    }
+
+    /** Mảnh lơ lửng nhấp nhô lên xuống (VD Sách Nguyên Tố của Elarion) — visual.floatParts: { khớp: {amp, period} } */
+    _updateFloat() {
+        const fp = this.def.floatParts;
+        if (!fp) return;
+        for (const [name, c] of Object.entries(fp)) {
+            const j = this.parts[name];
+            if (!j) continue;
+            j.userData.baseY ??= j.position.y;
+            j.position.y = j.userData.baseY + Math.sin(this._time * Math.PI * 2 / (c.period ?? 2)) * (c.amp ?? 0.02) * this.height;
         }
     }
 
@@ -620,6 +646,8 @@ export class CutoutCharacterView extends CharacterView {
         }
         // Thủy Vũ (Nerissa): giáp nước (bong bóng) · hào quang Thủy Thần · nốt nhạc bay vòng · MP bay lên khi được Sóng Triều
         this._updateWaterFx(dt, alive ? effs : [], now);
+        // Tam Nguyên (Elarion): đóng băng (lớp băng phủ người) · Giáp Băng Sét · Hào Quang Sét của Golem
+        this._updateElemFx(dt, alive ? effs : [], now);
         // Ấn Tử (thiên phú Phán Quyết Tử Thần của Zerith) trên đầu mục tiêu
         this._updateDeathMark(dt, alive && effs.some(e => e.type === 'death_mark' && e.endTime > now));
         this._updatePrayGuardian(dt, praying);
@@ -955,6 +983,29 @@ export class CutoutCharacterView extends CharacterView {
         const frac = ef?.maxHp ? Math.max(0, ef.hp / ef.maxHp) : 0;
         this._brakkBubble.update(dt, this._bubbleK, frac, this._giantSc ?? 1);
         this._brakkBubble.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+    }
+
+    /** Tam Nguyên: hiệu ứng bám người — tạo khi cần, mờ dần rồi bỏ */
+    _updateElemFx(dt, effs, now) {
+        const fade = (key, on, make, rate = 8) => {
+            let o = this[key];
+            if (on && !o) { o = this[key] = make(); o.k = 0; this.root.add(o.group); }
+            if (!o) return null;
+            o.k += ((on ? 1 : 0) - o.k) * Math.min(1, dt * rate);
+            if (!on && o.k < 0.03) { o.dispose(); this[key] = null; return null; }
+            o.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+            return o;
+        };
+        const frozen = effs.some(e => e.type === 'frozen' && e.endTime > now) && effs.some(e => e.type === 'stun' && e.endTime > now);
+        const ice = fade('_iceBlock', frozen, () => makeIceBlock(this.height), 14);
+        ice?.update(dt, ice.k);
+        const ward = effs.find(e => e.type === 'storm_ward' && e.endTime > now);
+        const dome = fade('_wardDome', !!ward, () => makeWardDome(this.height));
+        dome?.update(dt, dome.k, ward?.maxHp ? Math.max(0, ward.hp / ward.maxHp) : 0);
+        // Tốc Lôi (Elarion) / tay có sét (Golem — Hào Quang Sét): sét lách tách quanh người
+        const spark = effs.some(e => (e.type === 'storm_self' || e.type === 'golem_haste') && e.endTime > now);
+        const sa = fade('_sparkAura', spark, () => makeSparkAura(this.height), 6);
+        sa?.update(dt, sa.k, this.position);
     }
 
     /** Thủy Vũ: mọi hiệu ứng bám người — tạo khi cần, mờ dần rồi bỏ khi hết */
@@ -1313,6 +1364,7 @@ export class CutoutCharacterView extends CharacterView {
         this._updateBlink(dt);
         this._applySkins();
         this._updateSecondary(dt);
+        this._updateFloat();
 
         // Vòng ấn chú khi vận chiêu
         this._circleTimer = Math.max(0, (this._circleTimer ?? 0) - dt);

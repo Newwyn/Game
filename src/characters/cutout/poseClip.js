@@ -7,6 +7,7 @@
 //   liftF: 1 = đưa cả tay xa (armF và mọi thứ nó cầm) lên lớp TRƯỚC thân người
 //          (VD: tay xa đưa ấn ra trước ngực), nhưng vẫn sau tay gần
 //   air  : true = tư thế đang ở trên không (nhảy, rơi) -> KHÔNG tự đặt chân chạm đất
+//   sq   : [sx, sy] = co giãn cả người quanh gốc hông (nhân vật 1 hình liền như Golem: nhún, phồng, dẹp)
 //
 // Tự chạm đất: với nhân vật có chân 2 đốt (thigh + shin), mỗi tư thế (trừ air) được dịch hips lên/xuống
 // sao cho điểm thấp nhất của hai bàn chân (gót hoặc mũi) nằm đúng mặt đất -> không lơ lửng, không lún.
@@ -14,7 +15,7 @@ import * as THREE from 'three';
 
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
-const SPECIAL = new Set(['hips', 'liftF', 'dropN', 'air']);
+const SPECIAL = new Set(['hips', 'liftF', 'dropN', 'air', 'sq']);
 export const LIFT_Z = 0.38;
 // dropN: 1 = đưa cả tay GẦN (armN + mọi thứ nó cầm) xuống SAU đầu (nhưng vẫn trước thân) — dùng khi giơ tay/kiếm
 //        qua đầu để cánh tay không che mặt. Rig nào cần thì khai báo rig.dropNZ (độ lùi z).
@@ -41,6 +42,11 @@ export function buildPoseClip(name, times, poses, parts, height, { liftPart = 'a
             values.push(p0.x + o[0] * height, y, p0.z);
         });
         tracks.push(new THREE.VectorKeyframeTrack('hips.position', times, values));
+    }
+    if (parts.hips && poses.some(p => p.sq)) {
+        const values = [];
+        poses.forEach(p => { const [sx, sy] = p.sq ?? [1, 1]; values.push(sx, sy, 1); });
+        tracks.push(new THREE.VectorKeyframeTrack('hips.scale', times, values));
     }
     if (parts[liftPart] && poses[0].liftF !== undefined) {
         const p0 = parts[liftPart].position;

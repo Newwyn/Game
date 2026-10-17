@@ -138,6 +138,8 @@ export class CharacterView {
 
         // Animation lặp theo trạng thái ('attacking' = đứng chờ hồi đòn -> idle;
         // nhát chém chỉ phát khi có sự kiện autoAttack)
+        // gục khi đang giữ 1 động tác (VD Golem đang phun bão tuyết) -> bỏ động tác đó để ngã xuống
+        if (!member.alive && this._oneShot?.hold) this._interruptOneShot?.();
         if (!this.isBusy) {
             if (!member.alive) this.setLocomotion('dead');
             else if (member.state === 'moving') this.setLocomotion('move');
@@ -145,6 +147,8 @@ export class CharacterView {
             else if (member.state === 'attacking') this.setLocomotion('ready');
             else if (member.state === 'stunned' || member.state === 'judged') this.setLocomotion('stunned');   // judged: bị Thần Chết nhấc lên
             else if (member.state === 'guarding') this.setLocomotion('guarding'); // đứng thủ thế giữa các đòn
+            else if (member.state === 'channeling') this.setLocomotion('channel');   // Elarion: đứng thi triển Mưa Giông
+            else if (member.state === 'beaming') this.setLocomotion('beam');         // Elarion: chưởng SolarBeam (Băng Hoại Hỏa Thiên)
             else if (member.state === 'dancing') this.setLocomotion('dance' + (member.danceKey || '1'));   // Thủy Vũ: điệu theo tổ hợp 1/12/123...
             else this.setLocomotion('idle');
         }

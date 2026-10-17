@@ -83,6 +83,7 @@ const ACTIONS = {
     spawnEnemy: (arg) => net.debugEnemyAction(arg),
     toggleMember: (classId) => net.debugAction('toggleMember', classId),
     debugKill: (classId) => net.debugAction('kill', classId),
+    elemSpell: (key) => net.debugAction('elemSpell', key),   // Elarion: đặt thẳng 1 phép vào nút KN2 (test)
     monsterLevel: (arg) => net.debugEnemyAction('monsterLevel', undefined, arg),
     backToMenu: () => net.backToMenu(),
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },

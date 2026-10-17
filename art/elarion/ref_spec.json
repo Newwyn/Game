@@ -1,0 +1,321 @@
+{
+ "ref": "art/elarion/01-character.png",
+ "out": "src/assets/sprites/elarion_atlas.png",
+ "meta": "src/characters/cutout/elarionAtlas.json",
+ "width": 2048,
+ "order": [],
+ "pieces": {},
+ "extra": {
+  "head": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    8,
+    55,
+    378,
+    410
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "hairBack": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    374,
+    63,
+    670,
+    480
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "torso": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    689,
+    127,
+    919,
+    473
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "tailB": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    941,
+    171,
+    1167,
+    497
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "tailF": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    1168,
+    180,
+    1365,
+    474
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "armN": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    114,
+    535,
+    273,
+    771
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "armF": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    426,
+    527,
+    600,
+    759
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "foreN": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    741,
+    535,
+    931,
+    763
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "foreF": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    1046,
+    530,
+    1253,
+    766
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "thighN": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    134,
+    813,
+    300,
+    1080
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "thighF": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    443,
+    810,
+    575,
+    1085
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "shinN": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    728,
+    787,
+    929,
+    1108
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "shinF": {
+   "sheet": "art/elarion/gen/02-body-parts-caps.png",
+   "box": [
+    1067,
+    809,
+    1292,
+    1102
+   ],
+   "scale": 1.0,
+   "largest": true
+  },
+  "hRelax": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    35,
+    240,
+    300,
+    405
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "hPalm": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    330,
+    262,
+    630,
+    398
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "hPush": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    660,
+    140,
+    865,
+    398
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "hPoint": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    925,
+    250,
+    1205,
+    402
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "hFist": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    1225,
+    245,
+    1465,
+    414
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "hMudra": {
+   "sheet": "art/elarion/03-hands-eyes.png",
+   "box": [
+    1505,
+    150,
+    1752,
+    382
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "eye_blink": {
+   "sheet": "art/elarion/gen/eye-blink.png",
+   "box": [
+    0,
+    0,
+    74,
+    59
+   ],
+   "scale": 1.0,
+   "largest": false
+  },
+  "eye_determined": {
+   "sheet": "art/elarion/gen/eye-determined.png",
+   "box": [
+    0,
+    0,
+    75,
+    59
+   ],
+   "scale": 1.0,
+   "largest": false
+  },
+  "eye_happy": {
+   "sheet": "art/elarion/gen/eye-happy.png",
+   "box": [
+    0,
+    0,
+    75,
+    59
+   ],
+   "scale": 1.0,
+   "largest": false
+  },
+  "eye_pain": {
+   "sheet": "art/elarion/gen/eye-pain.png",
+   "box": [
+    0,
+    0,
+    75,
+    61
+   ],
+   "scale": 1.0,
+   "largest": false
+  },
+  "eye_cast": {
+   "sheet": "art/elarion/gen/eye-cast.png",
+   "box": [
+    0,
+    0,
+    75,
+    59
+   ],
+   "scale": 1.0,
+   "largest": false
+  },
+  "eyeOpen": {
+   "blank": true
+  },
+  "bookClosed": {
+   "sheet": "art/elarion/04-book-gems.png",
+   "box": [
+    50,
+    55,
+    352,
+    488
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "bookHalf": {
+   "sheet": "art/elarion/04-book-gems.png",
+   "box": [
+    342,
+    52,
+    668,
+    482
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "bookOpen": {
+   "sheet": "art/elarion/04-book-gems.png",
+   "box": [
+    684,
+    138,
+    1112,
+    472
+   ],
+   "scale": 0.5,
+   "largest": true
+  },
+  "bookGlow": {
+   "sheet": "art/elarion/04-book-gems.png",
+   "box": [
+    1126,
+    25,
+    1525,
+    492
+   ],
+   "scale": 0.5,
+   "largest": true
+  }
+ }
+}

@@ -1,72 +1,86 @@
-# Prompt vẽ Elarion (Tam Nguyên) + Golem Nguyên Tố
+# Prompt vẽ Elarion (Tam Nguyên) + Golem Nguyên Tố — bản 2 (CHIBI)
+
+## Quan trọng: giữ đúng phong cách CHIBI của game
+Mọi nhân vật trong game là **chibi**: đầu to (khoảng 1/3 chiều cao, cao khoảng 3 cái đầu), mắt to, tay chân ngắn, trang phục chi tiết.
+Tranh Nerissa lần trước bị vẽ người lớn vì prompt thiếu dòng này.
+- Khi vẽ **01** và **01b**, đính kèm `art/ignar/01-character.png` làm **ảnh mẫu phong cách**: chỉ lấy nét vẽ và tỉ lệ chibi, không lấy nhân vật.
+- Khi vẽ **02, 03, 04**, đính kèm **01 của Elarion** vừa vẽ.
+- Khi vẽ **05**, đính kèm `art/brakk/01-character.png` làm mẫu phong cách. Khi vẽ **06**, đính kèm **05** vừa vẽ.
+- Khi vẽ các tấm **fx**, đính kèm `art/ignar/fx-a.png` làm mẫu phong cách hiệu ứng.
 
 Lưu tất cả vào **một thư mục** (ví dụ `elarion-all-resources`), đặt đúng tên file như dưới.
-- Vẽ **01** trước, rồi **đính kèm 01 làm ảnh tham chiếu** khi vẽ 01b, 02, 03, 04.
-- Vẽ **05** xong thì đính kèm 05 khi vẽ 06.
-- Tấm `fx-*`: **nền đen tuyền**. Các tấm còn lại: **nền trong suốt** (không được thì nền trắng trơn).
+- Tấm `fx-*`: **nền đen tuyền**.
+- Các tấm còn lại: **nền trong suốt** (không được thì nền trắng trơn).
+
+Dòng phong cách (đã gắn sẵn trong từng prompt):
+`Chibi 2D game character art in exactly the same style as the attached reference: big head about one third of the total height (about 3 heads tall), large expressive anime eyes, short arms and legs, highly detailed outfit and accessories, crisp clean line art, soft cel shading, vibrant saturated colors.`
+
+---
 
 ## 01-character.png (1024×1536)
 ```
-Full-body character design of Elarion, a young male elf elemental mage, strict side view (profile) facing RIGHT, standing in a relaxed ready pose, both arms slightly away from the body so each arm is clearly visible. Long silver-white hair, long pointed elf ears, calm confident face, amber eyes. Outfit: high-collared dark navy mage coat with gold trim and small accents of ruby red, icy cyan and violet, long split coat tails at the back, fitted dark trousers, knee-high boots. No weapon. A thick spellbook (the Book of Elements) floats beside his front hand: dark leather cover, gold corners, three gem sockets (ruby red, icy cyan, violet). Three small elemental crystals float around him: red fire crystal, icy blue crystal, violet lightning crystal. 2D anime fantasy game art, adult proportions, clean line art, soft cel shading, vibrant colors, transparent background, no ground shadow, no text.
+Chibi 2D game character art in exactly the same style as the attached reference: big head about one third of the total height (about 3 heads tall), large expressive anime eyes, short arms and legs, highly detailed outfit and accessories, crisp clean line art, soft cel shading, vibrant saturated colors. The attached image is ONLY a style reference — draw a completely NEW character. Character: Elarion, a young male elf elemental mage, strict side view (profile) facing RIGHT, full body, standing in a relaxed ready pose, both arms slightly away from the body so each arm is clearly visible. Silver-white hair, long pointed elf ears, calm confident face, amber eyes. Outfit: high-collared dark navy mage coat with gold trim and small accents of ruby red, icy cyan and violet, split coat tails at the back, dark trousers, short boots. No weapon. A thick spellbook (the Book of Elements) floats beside his front hand: dark leather cover, gold corners, three gem sockets (ruby red, icy cyan, violet). Transparent background, no ground shadow, no text.
 ```
 
 ## 01b-character-cast.png (1024×1536) — ảnh chân dung
 ```
-Same character as the attached reference, dynamic spell-casting pose, one hand raised with swirling red, cyan and violet elemental energy, the Book of Elements floating open with pages fluttering, three elemental crystals orbiting him. Full body, 2D anime fantasy game art, clean line art, cel shading, transparent background, no text.
+Chibi 2D game character art in exactly the same style as the attached reference: big head about one third of the total height, large expressive anime eyes, short arms and legs, highly detailed outfit, crisp clean line art, soft cel shading, vibrant colors. Same character as the attached Elarion image, dynamic spell-casting pose, one hand raised with swirling red, cyan and violet elemental energy, the Book of Elements floating open with pages fluttering. Full body, transparent background, no text.
 ```
 
 ## 02-body-parts.png (1536×1024)
 ```
-Character parts sheet for 2D cutout skeletal animation (Spine style) of the same character as the attached reference. Strict side view facing RIGHT, same proportions and colors. Every part drawn separately with generous empty space between parts, nothing overlapping, nothing cropped. Every joint end is drawn as a full ROUNDED cap (circular end) so parts can rotate without gaps. Parts: (1) head with front bangs and pointed ear, short neck stub with round bottom, without back hair; (2) long back hair as a separate piece; (3) torso: coat upper body from collar to hips, NO arms, NO legs, NO coat tails, rounded shoulders and rounded hip bottom; (4) back coat tail panel; (5) front coat tail panel; (6) upper arm with sleeve, near side; (7) upper arm with sleeve, far side; (8) forearm with wide sleeve cuff, near side, open at the wrist; (9) forearm with wide sleeve cuff, far side; (10) thigh near; (11) thigh far; (12) shin with boot near, foot pointing right; (13) shin with boot far. Arrange in neat rows. Flat even lighting, transparent background, no text, no labels, no numbers.
+Chibi 2D game art, same character, same chibi proportions and colors as the attached reference. Character parts sheet for 2D cutout skeletal animation (Spine style). Strict side view facing RIGHT. Every part drawn separately with generous empty space between parts, nothing overlapping, nothing cropped. Every joint end is drawn as a full ROUNDED cap (circular end) so parts can rotate without gaps. Parts: (1) big chibi head with front bangs and pointed ear, short neck stub with round bottom, without back hair; (2) back hair as a separate piece; (3) torso: coat upper body from collar to hips, NO arms, NO legs, NO coat tails, rounded shoulders and rounded hip bottom; (4) back coat tail panel; (5) front coat tail panel; (6) upper arm with sleeve, near side; (7) upper arm with sleeve, far side; (8) forearm with wide sleeve cuff, near side, open at the wrist; (9) forearm with wide sleeve cuff, far side; (10) thigh near; (11) thigh far; (12) shin with boot near, foot pointing right; (13) shin with boot far. Arrange in neat rows. Flat even lighting, transparent background, no text, no labels, no numbers.
 ```
 
 ## 03-hands-eyes.png (1536×1024)
 ```
-Sheet of separate hands and eye expressions for the same character as the attached reference, for 2D cutout animation. TOP ROW, 6 bare hands drawn HORIZONTALLY with the wrist on the LEFT and fingers pointing to the RIGHT, side view, slim elegant fingers, each with a short rounded wrist stub: (1) relaxed hand, (2) open palm facing up holding a small glow, (3) open palm pushing forward, (4) pointing index finger, (5) closed fist, (6) two-finger mudra with index and middle finger raised. BOTTOM ROW, 6 close-up eye patches of the same side-view face (one eye on a small patch of skin, same angle and skin tone as the head): (1) open normal, (2) closed blink, (3) determined narrowed, (4) happy closed smile, (5) pain squeezed shut, (6) casting with the iris glowing in red, cyan and violet. Everything separated with space, transparent background, no text.
+Chibi 2D game art, same character as the attached reference. Sheet of separate hands and eye expressions for 2D cutout animation. TOP ROW, 6 small chibi bare hands drawn HORIZONTALLY with the wrist on the LEFT and fingers pointing to the RIGHT, side view, each with a short rounded wrist stub: (1) relaxed hand, (2) open palm facing up holding a small glow, (3) open palm pushing forward, (4) pointing index finger, (5) closed fist, (6) two-finger mudra with index and middle finger raised. BOTTOM ROW, 6 close-up chibi eye patches of the same side-view face (one big anime eye on a small patch of skin, same angle and skin tone as the head): (1) open normal, (2) closed blink, (3) determined narrowed, (4) happy closed smile, (5) pain squeezed shut, (6) casting with the iris glowing red, cyan and violet. Everything separated with space, transparent background, no text.
 ```
 
 ## 04-book-gems.png (1536×1024)
 ```
-Props sheet matching the attached character, all items separated with space: (1) the Book of Elements closed, floating, side view; (2) the book half open; (3) the book fully open with glowing runic pages; (4) the open book with pages flipping and red, cyan and violet light rising; (5) FIRE gem: faceted ruby crystal with a flame inside; (6) ICE gem: faceted icy cyan crystal with frost; (7) LIGHTNING gem: faceted violet crystal with crackling arcs inside. Gems medium size, clean shapes, 2D anime fantasy game art, cel shading, transparent background, no text.
+Chibi 2D game art props sheet matching the attached character, all items separated with space: (1) the Book of Elements closed, floating, side view; (2) the book half open; (3) the book fully open with glowing runic pages; (4) the open book with pages flipping and red, cyan and violet light rising; (5) FIRE gem: faceted ruby crystal with a flame inside; (6) ICE gem: faceted icy cyan crystal with frost; (7) LIGHTNING gem: faceted violet crystal with crackling arcs inside. The three gems the same size and shape, cute game-icon style, crisp line art, cel shading, transparent background, no text.
 ```
 
 ## 05-golem.png (1024×1536)
 ```
-Full-body design of an Elemental Golem summoned by a mage: massive humanoid golem made of dark basalt stone plates, about 1.5 times taller and much bulkier than a human, strict side view facing RIGHT, standing ready pose, huge fists, short thick legs, small head sunk between broad shoulders with glowing eyes. Three elements on its body: glowing orange-red magma cracks on the near arm and shoulder, icy cyan crystal clusters on the far arm and on its back, violet lightning runes across the chest, and a glowing tri-color core (red, cyan, violet) in the middle of the chest. 2D anime fantasy game art, clean line art, cel shading, transparent background, no text.
+Chibi 2D game character art in exactly the same style as the attached reference (cute chunky proportions, crisp clean line art, soft cel shading, vibrant colors). The attached image is ONLY a style reference — draw a NEW creature: an Elemental Golem summoned by a mage. Massive chunky stone golem made of dark basalt plates, about 1.4 times taller than a chibi hero, very wide body, huge fists, short thick legs, small head sunk between broad shoulders with glowing eyes. Strict side view facing RIGHT, standing ready pose. Three elements on its body: glowing orange-red magma cracks on the near arm and shoulder, icy cyan crystal clusters on the far arm and on its back, violet lightning runes on the chest, a glowing tri-color core (red, cyan, violet) in the middle of the chest. Transparent background, no text.
 ```
 
 ## 06-golem-parts.png (1536×1024)
 ```
-Parts sheet for 2D cutout skeletal animation of the same golem as the attached reference, strict side view facing RIGHT, every part separated with generous space, every joint end drawn as a full ROUNDED cap: (1) head; (2) torso with the chest core, NO arms, NO legs; (3) upper arm near (magma); (4) upper arm far (ice crystals); (5) forearm with fist near (magma); (6) forearm with fist far (ice crystals); (7) alternate near forearm with a BURNING FIRE FIST engulfed in flames; (8) thigh near; (9) thigh far; (10) lower leg with heavy stone foot near; (11) lower leg with heavy stone foot far; (12) separate back crystal cluster piece. Flat lighting, transparent background, no text, no labels.
+Chibi 2D game art, same golem as the attached reference. Parts sheet for 2D cutout skeletal animation, strict side view facing RIGHT, every part separated with generous space, every joint end drawn as a full ROUNDED cap: (1) head with mouth closed; (2) head with mouth wide open breathing frost; (3) torso with the chest core, NO arms, NO legs; (4) upper arm near (magma); (5) upper arm far (ice crystals); (6) forearm with fist near (magma); (7) forearm with fist far (ice crystals); (8) alternate near forearm with a BURNING FIRE FIST engulfed in flames; (9) alternate near forearm with the fist crackling with violet lightning; (10) thigh near; (11) thigh far; (12) lower leg with heavy stone foot near; (13) lower leg with heavy stone foot far; (14) separate back crystal cluster piece. Flat lighting, transparent background, no text, no labels.
 ```
 
+---
+
 ## Năm tấm hiệu ứng (mỗi tấm 1536×1024, nền đen tuyền)
-Dán câu này lên **đầu mỗi prompt** hiệu ứng:
+Dán câu này lên **đầu mỗi prompt** hiệu ứng (đính kèm `art/ignar/fx-a.png` làm mẫu phong cách):
 ```
-Game VFX sprite sheet on a pure black background, 2D anime fantasy style, bright glowing effects, each effect isolated with plenty of black space around it, nothing touching the edges, no text, no labels, arranged in a 3x3 grid:
+Game VFX sprite sheet in the same 2D anime game style as the attached reference, on a pure black background, bright glowing effects, each effect isolated with plenty of black space around it, nothing touching the edges, no text, no labels, arranged in a 3x3 grid:
 ```
 
 ### fx-a.png — ngọc, sách, bão
 ```
-(1) fire gem glow aura: soft red-orange round halo with tiny sparks; (2) ice gem glow aura: cyan frosty round halo; (3) lightning gem glow aura: violet crackling round halo; (4) gem appear burst: small white-gold sparkle burst; (5) gem pickup streak: comet-like white light streak, horizontal; (6) gem fade: small crystal fragments dissolving into dust; (7) book invoke flash: golden rune circle rising above open pages; (8) tri-element magic circle seen from the front, segments in red, cyan and violet; (9) elemental storm vortex: swirling ring of fire, ice and lightning.
+(1) fire gem glow aura: soft red-orange round halo with tiny sparks; (2) ice gem glow aura: cyan frosty round halo; (3) lightning gem glow aura: violet crackling round halo; (4) gem hover highlight: thin golden ring with small twinkling stars, to show a gem can be clicked; (5) gem appear burst: small white-gold sparkle burst; (6) gem pickup streak: comet-like white light streak, horizontal; (7) gem fade: small crystal fragments dissolving into dust; (8) book invoke flash: golden rune circle rising above open pages; (9) elemental storm vortex: swirling ring of fire, ice and lightning.
 ```
 
 ### fx-b.png — hỏa
 ```
-(1) large meteor falling diagonally down-right with a long fiery tail; (2) round flaming rock boulder for rolling, side view; (3) huge meteor impact explosion with fire, rocks and shockwave, side view; (4) long horizontal strip of burning ground flames, side view; (5) fireball wrapped in violet lightning; (6) fire and lightning explosion; (7) scalding steam cloud, white with orange glow, side view; (8) second steam cloud with a different shape; (9) small burning flame debuff icon.
+(1) large meteor falling diagonally down-right with a long fiery tail; (2) round flaming rock boulder for rolling, side view; (3) huge meteor impact explosion with fire, rocks and shockwave, side view; (4) long horizontal strip of burning ground flames, side view; (5) small fire-lightning orb: fireball wrapped in violet lightning; (6) huge unstable fire-lightning orb about to explode, crackling, bigger and brighter; (7) fire and lightning explosion; (8) long horizontal beam of fire (solar beam), straight, very long; (9) row of fire explosions along a line on the ground, side view.
 ```
 
 ### fx-c.png — băng
 ```
-(1) frost nova: ice crystals exploding outward; (2) ice shard hit splash; (3) tall semi-transparent ice crystal prison shell, shaped to encase a standing person; (4) the ice prison shattering into fragments; (5) large avalanche snow wave rolling to the right, side view; (6) blizzard cone of snow and wind blowing to the right, side view; (7) snowflake slow debuff icon; (8) ice dome shield with violet lightning cracks, front view; (9) frosty ice patch on the ground, side view.
+(1) huge jagged ice block (giant ice crystal chunk) for falling from the sky; (2) the huge ice block smashing into the ground and shattering, side view; (3) small ice chunk shard flying; (4) long horizontal beam of freezing ice (ice laser), straight, very long; (5) row of ice spikes bursting from the ground along a line, side view; (6) tall semi-transparent ice crystal prison shell, shaped to encase a small chibi character; (7) the ice prison shattering into fragments; (8) frost stack icon: snowflake inside a small ice ring; (9) ice dome shield with violet lightning cracks, front view.
 ```
 
-### fx-d.png — lôi
+### fx-d.png — lôi và mưa
 ```
-(1) chain lightning bolt, horizontal, jagged, violet-white; (2) second chain lightning bolt with a different shape; (3) lightning hit spark burst; (4) tall tornado funnel with violet sparks, side view; (5) second tornado frame with a different twist; (6) crackling violet haste ring aura; (7) small electric zap spark; (8) cracked violet shield icon (magic defense down); (9) thick lightning strike falling straight down from the sky, tall.
+(1) chain lightning bolt, horizontal, jagged, violet-white; (2) second chain lightning bolt with a different shape; (3) lightning hit spark burst; (4) tall tornado funnel with violet sparks, side view; (5) second tornado frame with a different twist; (6) wide dark storm cloud with falling rain streaks, side view; (7) lightning strike falling straight down from a cloud, tall; (8) glowing healing raindrops, soft green and cyan; (9) small electric zap spark.
 ```
 
-### fx-e.png — Golem
+### fx-e.png — Golem và Tốc Lôi
 ```
-(1) summon portal: pillar of red, cyan and violet light rising from a magic circle, side view; (2) heavy landing burst of dust and rocks; (3) flaming fist dash trail, horizontal fire streak with a fist-shaped front pointing right; (4) fire eruption bursting upward; (5) blizzard roar: cone of snowstorm blowing to the right, side view; (6) frost stack icon: snowflake inside a small ice ring; (7) wide crackling violet lightning ring aura, front view; (8) lightning bolt striking down onto the ground with sparks, tall; (9) golem crumbling into falling rocks and dust.
+(1) summon portal: pillar of red, cyan and violet light rising from a magic circle, side view; (2) heavy landing burst of dust and rocks; (3) flaming fist dash trail, horizontal fire streak with a fist-shaped front pointing right; (4) icy wind spiral being inhaled, swirling toward a point; (5) blizzard breath: wide cone of snowstorm blowing to the right, side view; (6) lightning bolt striking down onto a stone fist, sparks around it; (7) two violet lightning palm blasts side by side (double palm strike); (8) crackling violet haste ring aura; (9) golem crumbling into falling rocks and dust.
 ```

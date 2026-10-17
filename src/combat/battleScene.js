@@ -9,19 +9,23 @@ import { gameNow } from '../config.js';
 import { createCharacterView } from '../characters/registry.js';
 import { clearVfx, spawnDashStreak, spawnLandingDust } from '../vfx/vfx.js';
 import { makeRokTether } from '../vfx/linkFx.js';
+import { updateElemGems, clearElemGems } from './elemGems.js';
 
 
-function createSquadViews(playerId, squad) {
+function makeView(playerId, member) {
     const isMine = playerId === myId();
-    game.views[playerId] = squad.map(member => {
-        const view = createCharacterView(member, game.classDefs[member.classId], isMine);
-        view.isLocalPlayer = isMine;
-        scene.add(view.root);
-        return view;
-    });
+    const view = createCharacterView(member, game.classDefs[member.classId], isMine);
+    view.isLocalPlayer = isMine;
+    view._summonId = member.summonId ?? null;
+    scene.add(view.root);
+    return view;
+}
+function createSquadViews(playerId, squad) {
+    game.views[playerId] = squad.map(member => makeView(playerId, member));
 }
 
 function disposeAllViews() {
+    clearElemGems();
     forEachView(view => view.dispose());
     game.views = {};
 }
@@ -90,7 +94,25 @@ export function syncState(players) {
     Object.entries(players).forEach(([playerId, playerData]) => {
         const views = game.views[playerId];
         if (!views) return;
-        playerData.squad.forEach((member, i) => views[i]?.syncFromServer(member, players, playerId));
+        playerData.squad.forEach((member, i) => {
+            // nhân vật triệu hồi (Golem Nguyên Tố của Elarion): thêm vào cuối đội / thay Golem cũ cùng chỗ
+            if (member.summon && (!views[i] || views[i]._summonId !== member.summonId)) {
+                if (!member.alive && !views[i]) return;
+                views[i]?.dispose();
+                views[i] = makeView(playerId, member);
+                if (member.classId === 'elem_golem' && views[i].playAction) views[i].playAction('summon');   // trồi lên từ vòng triệu hồi
+                else views[i].playIntro?.({ delay: 0 });
+            }
+            const v = views[i];
+            if (!v) return;
+            v.syncFromServer(member, players, playerId);
+            // Golem tan / bị hạ: ẩn sau khi diễn xong lúc gục
+            if (member.summon) {
+                if (member.alive) v._goneAt = 0;
+                else if (!v._goneAt) v._goneAt = performance.now() + (member.vanished ? 250 : 1600);
+                v.root.visible = member.alive || performance.now() < v._goneAt;
+            }
+        });
     });
 }
 
@@ -138,6 +160,7 @@ function updateCamera() {
 /** Mỗi frame render */
 export function updateViews(dt) {
     forEachView(view => view.update(dt, camera));
+    updateElemGems(dt);
     updateTethers(dt);
     updateCamera();
 }

@@ -37,7 +37,8 @@ const SKILL_SCALE = { dmg: [1, 1.2, 1.45, 1.75], buff: [1, 1.1, 1.2, 1.3] };
 const SKILL_DMG_KEYS = ['multiplier', 'spiritMultiplier', 'splashMultiplier', 'burstMultiplier', 'shieldHp', 'heal', 'prayHeal',
     'tickMultiplier', 'burnMultiplier', 'palmMultiplier', 'volleyMultiplier', 'guardianMultiplier',
     'slamMultiplier', 'cleaveMultiplier', 'aoeMultiplier', 'fallMultiplier', 'upliftMultiplier',
-    'rollMultiplier', 'trailMultiplier', 'counterMultiplier'];
+    'rollMultiplier', 'trailMultiplier', 'counterMultiplier',
+    'iceMultiplier', 'fireMultiplier', 'shardMultiplier', 'crashMultiplier', 'strikeMultiplier'];   // (Elarion: trước đây sót, không tăng theo bậc)
 const SKILL_BUFF_KEYS = ['atkSpeedUp', 'atkUp', 'critUp', 'critDmgUp', 'teamAccUp', 'teamDodgeUp', 'teamDef', 'defDown', 'mAtkUp', 'mDefUp', 'burstHeal', 'shieldPct'];
 
 function scaleSkills(skills, rank) {
@@ -207,6 +208,7 @@ function rankUp(hero, items) {
 
 // ---------- Tính chỉ số ----------
 const MAIN_STATS = ['maxHp', 'pAtk', 'mAtk', 'pDef', 'mDef'];
+const NON_WARRIOR_HP = 1.5;   // hệ số máu cho mọi tướng không thuộc nhóm Chiến Binh
 
 /**
  * Chỉ số NỀN của nhân vật khi vào trận (chưa tính buff trong trận).
@@ -238,6 +240,8 @@ function computeStats(def, hero = { level: 1, rank: 0 }) {
         for (const [k, v] of Object.entries(race.mul)) s[k] *= v;
         for (const [k, v] of Object.entries(race.add)) s[k] += v;
     }
+    // Tướng KHÔNG phải Chiến Binh: máu ×1,5 (đỡ mỏng, đỡ chết nhanh) — Chiến Binh (Rok, Brakk) giữ nguyên
+    if (def.classGroup && def.classGroup !== 'warrior') s.maxHp *= NON_WARRIOR_HP;
     // làm tròn số nguyên cho gọn (trừ tốc chạy)
     for (const k of Object.keys(s)) if (k !== 'moveSpeed') s[k] = Math.round(s[k]);
     return s;

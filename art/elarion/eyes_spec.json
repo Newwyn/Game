@@ -1,0 +1,19 @@
+{
+ "head": "art/elarion/02-body-parts.png",
+ "sheet": "art/elarion/03-hands-eyes.png",
+ "out": "art/elarion/gen",
+ "headIris": [268, 307],
+ "sheetIris": [192, 686],
+ "openBox": [31, 532, 293, 761],
+ "scale": 0.36,
+ "erode": 8,
+ "region": [[230, 280], [262, 276], [294, 280], [298, 300], [294, 326], [270, 334], [240, 330], [228, 304]],
+ "irisEllipse": [266, 306, 22, 18],
+ "eyes": {
+  "blink": [313, 532, 580, 761],
+  "determined": [594, 533, 869, 761],
+  "happy": [883, 535, 1152, 762],
+  "pain": [1167, 529, 1446, 762],
+  "cast": [1467, 532, 1739, 761]
+ }
+}

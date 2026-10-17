@@ -95,6 +95,8 @@ Quái **Hỗ Trợ** đánh phép (M.ATK vs M.DEF); còn lại đánh vật lý.
 - **1 Orb = 1000 MP**, tối đa 5 Orb. MP hồi theo giây (MP/s) và mỗi đòn đánh trúng (MP/Atk).
 - Kỹ năng tốn 1 / 2 / 3 Orb (Kỹ năng 1 / 2 / 3) và có hồi chiêu riêng.
 - Kỹ năng cần cự ly (VD Đẩy Khiên) → nhân vật tự đi tới tầm rồi mới dùng.
+- **Phải gặp đối thủ mới dùng:** các điệu múa của Nerissa và Tàng Hình của Jessica chỉ dùng được khi có đối thủ còn sống trong **tầm bắn của Lyra (11)** quanh người dùng — tránh múa / tàng hình lúc chưa giao tranh làm camera chạy loạn. Bấm sớm thì lệnh nằm chờ (nhân vật vẫn tiến lên), gặp địch là dùng ngay; nút hiện nhãn đỏ **"chưa gặp địch"**. AUTO cũng chỉ chọn các chiêu này khi đã gặp địch.
+- **AUTO từng tướng:** mỗi thẻ có nút **AUTO** (góc phải) — AUTO MODE cả đội đang tắt vẫn để riêng tướng đó tự dùng kỹ năng, các tướng khác bấm tay. Bật: nút vàng; AUTO MODE cả đội đang bật: nút viền vàng. Lựa chọn được nhớ theo trình duyệt (theo nhân vật), vào trận mới tự bật lại.
 
 ### 3.3b Logic theo animation (thời điểm chạm & thời gian diễn)
 Server không trừ máu ngay lúc ra đòn mà **hẹn đúng lúc đòn chạm** — khớp với hình phía client (vung kiếm / nhả tên + thời gian tên bay):
@@ -172,7 +174,7 @@ Chỉ số chính = HP, P.ATK, M.ATK, P.DEF, M.DEF. **Cấp kỹ năng chỉ tă
 | Nhân vật | Thiên phú 1 · Lv1 / Lv2 / Lv3 | Thiên phú 2 · Lv1 / Lv2 |
 | :--- | :--- | :--- |
 | Jessica | **Đánh Lén:** +30% / 40% / 50% chí mạng khi đánh sau lưng hoặc tàng hình · **Bóng Ẩn**: máu còn 50% → tàng hình 2s, nhảy ra sau lưng đối thủ yếu máu nhất (1 lần/trận) | **Sát Ý:** +20% / 35% sát thương lên mục tiêu < 50% máu (bật 10s, hồi 20s) |
-| Rok | **Ý Chí Thép + Dây liên kết:** vào trận nối dây với đồng đội ATK cao nhất; Rok & người được nối: máu < 30% → +15% / 20% / 25% chặn đòn, kèm 5s hồi 3% máu/giây (hồi 10s); còn dây → thiên phú 1 & 2 trên riêng Rok ×2 | **Kiên Cường:** (Rok & người được nối) giảm 15% / 25% sát thương nhận & thời gian khống chế (sau 10 đòn, bật 10s, hồi 15s) |
+| Rok | **Ý Chí Thép + Dây liên kết:** vào trận nối dây với đồng đội ATK cao nhất; Rok & người được nối: máu < 30% → +15% / 20% / 25% chặn đòn, kèm 5s hồi 3% máu/giây (hồi 10s); còn dây → thiên phú 1 & 2 trên riêng Rok ×2 | **Kiên Cường:** (Rok & người được nối) giảm 15% / 25% sát thương nhận & thời gian khống chế (sau 10 đòn, bật 10s, hồi 15s) · **Gánh đòn:** còn dây → người được nối chỉ nhận 50% sát thương, Rok gánh 50% còn lại |
 | Lyra | **Phong Tiễn:** mũi gió xuyên ×0.6 / 0.7 / 0.8 · mọi mũi tên xuyên 30% / 40% / 50% giáp | **Ưng Nhãn:** tối đa +15% / 25% sát thương ở tầm 17+ (chỉ khi bật Thần Phong Giáng Thế) |
 
 **Tộc** (theo nhân vật, không theo class): Lyra **Elf** · Jessica **Human** · Rok **Dragon**.
@@ -203,29 +205,33 @@ Lv1 · bậc Thường:
 
 | Nhân vật | Class · Tộc | HP | ATK | P.DEF / M.DEF | Chí mạng | Né | Xuyên | Chặn | Tốc đánh | Tầm |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Jessica | Sát Thủ · Human | 1.260 | 231 vật lý | 53 / 53 | 35% | 20% | 15% | 5% | 0,80s | 2,4 |
+| Jessica | Sát Thủ · Human | 1.890 | 231 vật lý | 53 / 53 | 35% | 20% | 15% | 5% | 0,80s | 2,4 |
 | Rok | Chiến Binh · Dragon | 3.680 | 150 vật lý | 242 / 176 | 8% | 5% | 5% | 25% | 1,26s | 2,4 |
-| Lyra | Cung Thủ · Elf | 1.000 | 200 vật lý | 40 / 60 | 25% | 20% | 0% | 0% | 0,90s | 11 |
-| Seraphine | Tu Sĩ · Human | 1.155 | 189 phép | 47 / 95 | 10% | 10% | 0% | 0% | 1,00s | 9 |
-| Ignar | Phù Thủy · Human | 998 | 231 phép | 37 / 74 | 15% | 8% | 10% | 0% | 1,10s | 13 |
-| Zerith | Sát Thủ phép · Devil | 1.150 | 235 phép | 46 / 55 | 25% | 16% | 12% | 3% | 0,85s | 2,8 |
+| Lyra | Cung Thủ · Elf | 1.500 | 200 vật lý | 40 / 60 | 25% | 20% | 0% | 0% | 0,90s | 11 |
+| Seraphine | Tu Sĩ · Human | 1.733 | 189 phép | 47 / 95 | 10% | 10% | 0% | 0% | 1,00s | 9 |
+| Ignar | Phù Thủy · Human | 1.496 | 231 phép | 37 / 74 | 15% | 8% | 10% | 0% | 1,10s | 15 |
+| Zerith | Sát Thủ phép · Devil | 1.725 | 235 phép | 46 / 55 | 25% | 16% | 12% | 3% | 0,85s | 2,8 |
 | Brakk | Chiến Binh · Dragon | 4.600 | 180 vật lý | 198 / 154 | 10% | 5% | 8% | 10% | 1,21s | 2,4 |
-| Nerissa | Tu Sĩ (vũ công) · Elf | 1.050 | 170 phép | 45 / 100 | 8% | 22% | 0% | 0% | 1,00s | 8 |
+| Nerissa | Tu Sĩ (vũ công) · Elf | 1.575 | 170 phép | 45 / 100 | 8% | 22% | 0% | 0% | 1,00s | 8 |
+| Elarion | Phù Thủy nguyên tố · Elf | 1.500 | 240 phép | 40 / 75 | 10% | 16% | 0% | 0% | 1,05s | 14 |
 
-Riêng: Lyra chính xác 122% · Nerissa chính xác 112% · Zerith hút máu 5%. Mọi nhân vật: sát thương chí mạng ×2,0.
+Riêng: Lyra chính xác 122% · Nerissa, Elarion chính xác 112% · Zerith hút máu 5%. Mọi nhân vật: sát thương chí mạng ×2,0.
+
+**Máu:** mọi tướng **không phải Chiến Binh** (trừ Rok, Brakk) có máu **×1,5** (`NON_WARRIOR_HP` trong `progression.js`, đã tính trong 2 bảng này; bảng chỉ số riêng từng nhân vật bên dưới là số gốc trước khi ×1,5).
 
 Lv60 · bậc SSS:
 
 | Nhân vật | HP | ATK | P.DEF / M.DEF |
 |---|---|---|---|
-| Jessica | 7.028 | 1.280 | 363 / 363 |
+| Jessica | 10.542 | 1.280 | 363 / 363 |
 | Rok | 17.644 | 754 | 1.238 / 844 |
-| Lyra | 5.969 | 1.100 | 239 / 358 |
-| Seraphine | 8.375 | 1.030 | 455 / 811 |
-| Ignar | 5.708 | 1.478 | 244 / 587 |
-| Zerith | 6.630 | 1.351 | 318 / 330 |
+| Lyra | 8.954 | 1.100 | 239 / 358 |
+| Seraphine | 12.562 | 1.030 | 455 / 811 |
+| Ignar | 8.562 | 1.478 | 244 / 587 |
+| Zerith | 9.945 | 1.351 | 318 / 330 |
 | Brakk | 18.812 | 793 | 1.182 / 816 |
-| Nerissa | 7.913 | 968 | 433 / 785 |
+| Nerissa | 11.870 | 968 | 433 / 785 |
+| Elarion | 8.249 | 1.401 | 239 / 565 |
 
 Số liệu kỹ năng ghi ở các mục dưới là ở bậc Thường; lên bậc: sát thương / máu khiên / hồi máu ×1,2 (S) · ×1,45 (SS) · ×1,75 (SSS), các buff % ×1,1 / 1,2 / 1,3.
 
@@ -261,7 +267,7 @@ Khiêu khích: **100** (như mọi nhân vật).
 | **2. Đẩy Khiên** | 2 / 8s | Húc khiên vào quái **trước mặt (đang đánh)**: **sát thương đơn ×1.6**, **hất văng ra sau 5 đơn vị**, đáp đất xong **choáng 1s**. Đối thủ **rơi xuống đất gây địa chấn nhẹ**: mọi đối thủ khác trong **3 đơn vị** quanh chỗ rơi bị **choáng 0,5s** (không gây sát thương). |
 | **3. Dựng Khiên** | 3 / 15s | **Thần Hộ Vệ** hiện trên đầu Rok + vòm lục giác. **(Bản mạnh)** Khiên = **20% máu tối đa của Rok**, tối đa **6s**; cứ mất **1/6 máu khiên** → khiên **nổ ×0.8** lên mọi quái trong **5,5 đơn vị**, choáng **0,5s**, cả đội hồi **2,5% máu**; kết thúc (hết giờ / vỡ / dùng kỹ năng khác) → nổ thêm lần cuối. Cả đội **+35% P.DEF / M.DEF** khi khiên còn. |
 | *Thiên phú 1 (Lv20): Ý Chí Thép* | — | **Vào trận nối dây** (sợi xích ánh sáng vàng) với **đồng đội có ATK cao nhất** (P.ATK hoặc M.ATK theo kiểu đánh). Rok và người được nối: máu **dưới 30%** → **+15/20/25% chặn đòn**; lần tụt xuống dưới 30% → **5s, mỗi giây hồi 3% máu** (hồi 10s). Còn dây: chỉ số thiên phú 1 & 2 **trên riêng Rok ×2** (chặn đòn, hồi máu, Kiên Cường — Kiên Cường khi đó tối đa 50%). **1 trong 2 chết → đứt dây**, cả trận không nối lại với ai. |
-| *Thiên phú 2 (Lv40): Kiên Cường* | — | Rok **và người được nối dây** (mỗi người tự đếm): **nhận đủ 10 đòn → bật 10s**, giảm 15/25% sát thương nhận và thời gian bị khống chế. Hết 10s thì **hồi 15s**. |
+| *Thiên phú 2 (Lv40): Kiên Cường* | — | Rok **và người được nối dây** (mỗi người tự đếm): **nhận đủ 10 đòn → bật 10s**, giảm 15/25% sát thương nhận và thời gian bị khống chế. Hết 10s thì **hồi 15s**. **Gánh đòn:** còn dây → mọi đòn trúng người được nối chỉ gây **50%**, Rok **gánh 50% còn lại** (khiên của Rok — Dựng Khiên — hứng trước; Kiên Cường của Rok đang bật thì giảm tiếp). Rok hiện số vàng `◈ -x`, khối sáng chạy dọc dây về Rok. |
 
 **Đòn đánh thường của Rok:** bổ dọc — vung kiếm qua đầu (lưỡi ngả ra sau) rồi bổ mạnh xuống phía trước, vệt chém thép sáng gần thẳng đứng.
 
@@ -329,7 +335,7 @@ Khiêu khích: **100** (như mọi nhân vật).
 
 ### 4.5 Ignar (Hỏa Ngục) — Phù Thủy 🔥 · tộc Human
 Đứng hàng sau, sát thương **phép diện rộng**, vũ khí là quả cầu lửa trên tay.
-Lv1: HP ~1.000 · M.ATK ~231 · P.DEF/M.DEF 37/74 · chí mạng 15% · né 8% · xuyên 10% · tốc đánh 1100ms · tầm 13 · khiêu khích 100.
+Lv1: HP ~1.500 · M.ATK ~231 · P.DEF/M.DEF 37/74 · chí mạng 15% · né 8% · xuyên 10% · tốc đánh 1100ms · tầm 15 · khiêu khích 100.
 
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
@@ -345,7 +351,7 @@ Hình: `art/ignar/` (tranh toàn thân nền trong suốt, tấm bộ phận, ta
 
 ### 4.6 Zerith (U Minh) — Sát Thủ 💀 · tộc Devil · sát thương PHÉP
 Sát Thủ cầm **lưỡi hái tử thần**, đánh cận chiến bằng sát thương **phép**. Nhóm class Sát Thủ nhưng vì đánh phép nên mỗi level tăng **M.ATK** thay cho P.ATK.
-Lv1: HP 1.150 · M.ATK ~235 · P.DEF/M.DEF 46/55 · chí mạng 25% · né 16% · xuyên 12% · hút máu 5% (Devil) · tốc đánh 850ms · tầm 2,8 · khiêu khích 100.
+Lv1: HP 1.725 · M.ATK ~235 · P.DEF/M.DEF 46/55 · chí mạng 25% · né 16% · xuyên 12% · hút máu 5% (Devil) · tốc đánh 850ms · tầm 2,8 · khiêu khích 100.
 
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
@@ -354,7 +360,7 @@ Lv1: HP 1.150 · M.ATK ~235 · P.DEF/M.DEF 46/55 · chí mạng 25% · né 16% �
 | **2. Lưỡi Hái Hất Hồn** | 2 / 10s · niệm 0,7s | Niệm: **lưỡi hái khổng lồ** hiện dần sau lưng, lưỡi trên đầu → vọt ra trước quét từ dưới lên: quái phía trước trong 3,5 đơn vị trúng ×2.2 và bị **hất tung 1s**. Lúc Đêm Tử Thần: **không cần niệm** (lưỡi hái hiện ngay), phạm vi **rộng 6 đơn vị**, quét lên rồi **bổ xuống** thêm ×1.2 |
 | **3. Đêm Tử Thần** | 3 / 25s · niệm 1s | 10s: **Hộ Vệ Thần Chết** chiến đấu cùng (chém ×0.6 mỗi 1,2s; cứ chém đủ 2 nhát → 50% **tự dùng Lưỡi Hái Hất Hồn** miễn phí: hất tung quái quanh mục tiêu (4,5 đơn vị) ×2.2 rồi chém bổ xuống ×1.2), Zerith bay lơ lửng · +20% sát thương · +30% tốc đánh · −40% thời gian bị khống chế · **không thể chết** (máu tối thiểu 1, hiện đồng hồ cát). Đánh thường **chém lan** ×0.5 lên quái quanh mục tiêu (3 đơn vị) |
 
-Thiên phú 1 (Lv20) **Phán Quyết Tử Thần**: vào giao tranh (có địch trong tầm 9) và mỗi 15s, Zerith chỉ tay gắn **Ấn Tử** lên **tất cả** nhân vật phe địch: **−5 / 7,5 / 10% hồi máu nhận được**; Ấn Tử **không thể bị gỡ bằng bất kỳ cách nào** (chỉ hết theo thời gian). **Lưỡi Hái Hất Hồn lúc Đêm Tử Thần** (cả nhát hất lên lẫn nhát bổ xuống) lên mục tiêu có Ấn Tử **phá sạch khiên** — các đòn khác của Zerith không phá khiên. Thanh máu mục tiêu hiện **vạch NGƯỠNG TỬ** (5 / 7 / 10%). Máu chạm ngưỡng tử (bởi **bất kỳ đòn nào**) → **THẦN CHẾT PHÁN QUYẾT**: Thần Chết hiện sau lưng, **nhấc mục tiêu lên không trung từ từ (1,1s)** rồi **chém**: có khiên → **vỡ khiên, rơi xuống** (sống); không khiên → **chết**. Trong lúc bị nhấc: mục tiêu **không bị đánh trúng, không bị chọn làm mục tiêu, không nhận hiệu ứng mới**, trận bên dưới vẫn diễn ra. Xong thì **mất Ấn Tử**, chờ lượt gắn sau. Đang có **2 giây bất tử sau hồi sinh** (Thiên Thần Hộ Mệnh của Sera) thì **kháng được** phán quyết.
+Thiên phú 1 (Lv20) **Phán Quyết Tử Thần**: vào giao tranh (có địch trong tầm 9) và mỗi 15s, Zerith chỉ tay gắn **Ấn Tử** lên **tất cả** nhân vật phe địch: **−20 / 27,5 / 35% hồi máu nhận được**; Ấn Tử **không thể bị gỡ bằng bất kỳ cách nào** (chỉ hết theo thời gian). **Lưỡi Hái Hất Hồn lúc Đêm Tử Thần** (cả nhát hất lên lẫn nhát bổ xuống) lên mục tiêu có Ấn Tử **phá sạch khiên** — các đòn khác của Zerith không phá khiên. Thanh máu mục tiêu hiện **vạch NGƯỠNG TỬ** (5 / 7 / 10%). Máu chạm ngưỡng tử (bởi **bất kỳ đòn nào**) → **THẦN CHẾT PHÁN QUYẾT**: Thần Chết hiện sau lưng, **nhấc mục tiêu lên không trung từ từ (1,1s)** rồi **chém**: có khiên → **vỡ khiên, rơi xuống** (sống); không khiên → **chết**. Trong lúc bị nhấc: mục tiêu **không bị đánh trúng, không bị chọn làm mục tiêu, không nhận hiệu ứng mới**, trận bên dưới vẫn diễn ra. Xong thì **mất Ấn Tử**, chờ lượt gắn sau. Đang có **2 giây bất tử sau hồi sinh** (Thiên Thần Hộ Mệnh của Sera) thì **kháng được** phán quyết.
 Thiên phú 2 (Lv40) **Linh Hồn Báo Thù**: lần đầu gục ngã → hóa **linh hồn Thần Chết** chiến đấu tiếp 7s với **60/80%** sức mạnh (bay tới chém ×1.2, lan ×0.5 bán kính 2,5 mỗi 0,9s). Linh hồn **bất tử**: không có máu, không bị chọn làm mục tiêu, không bị khống chế. Được Tu Sĩ hồi sinh thì Zerith **đánh chung** với linh hồn tới hết 7s. Chỉ 1 lần mỗi trận (gục lần sau không có linh hồn nữa). Linh hồn **không giữ trận**: cả đội gục là thua ngay.
 AI: áp sát → bật Đêm Tử Thần → Lưỡi Hái Hất Hồn khi có cụm quái trước mặt → Lưỡi Hái Xuyên Hồn (có lượt miễn phí thì lướt luôn).
 Động tác: cán liềm xoay quanh nắm tay bằng khớp riêng `scy` (bàn tay giữ nguyên) — tư thế viết theo góc cán liềm ngoài thế giới (`zerithClips.js`). Xem thử hiệu ứng: `/tools/fx-zerith.html`.
@@ -372,20 +378,20 @@ Lv1: HP 4.000 · P.ATK 180 · P.DEF/M.DEF 180/140 · chí mạng 10% · chặn 1
 | **3. Thần Lực Khổng Lồ** | 3 + 8% / 25s · niệm 0,5s | Hoá **khổng lồ** 10s (cả bộ hình đổi sang dạng khổng lồ, mắt trắng rực, to thêm 25%, hào quang rồng lửa): **+50% máu tối đa** (hồi đúng phần tăng; hết giờ thì máu tối đa trở lại cũ) · **+40% P.DEF/M.DEF** · **+25% sát thương**. **5 giây đầu miễn mọi hiệu ứng bất lợi** (choáng, hất tung, đẩy lùi, khiêu khích, debuff — trừ Ấn Tử; vương miện vảy rồng trên đầu). Đánh thường **đầu tiên** và cứ **sau 3 đòn thường**: **móc ngược** ×1.3 hất tung 0,8s + hất văng 3 đơn vị |
 
 Thiên phú 1 (Lv20) **Khí Thế Đấu Trường**: phe địch dùng đủ **5 chiêu** → Brakk hồi **8 / 10 / 12%** máu (hồi 10s); phe mình (kể cả Brakk) dùng đủ **5 chiêu** → khiên **10 / 12 / 15%** máu trong 10s, **cộng dồn** với khiên Chấn Địa (hồi 20s). Đang hồi thì không đếm. Thêm **Tiếng Hét Bảo Hộ**: khi có **đồng đội** (không tính Brakk) **dưới 50% máu** → Brakk tự **gầm lên khiêu khích TẤT CẢ đối thủ 3s** (buộc đánh Brakk, **không gây sát thương**; địch đang miễn khống chế thì không dính), hồi **10s**.
-Thiên phú 2 (Lv40) **Long Huyết Bất Khuất**: máu tụt **dưới 50%** → Brakk hồi **25%** (SSS **30%**) máu, đồng đội hồi **10%** (SSS **15%**), **cả đội +1 Orb** (SSS **+2**) và được **giải mọi hiệu ứng bất lợi** (Ấn Tử thì không). Hồi 20s. Thêm **Độc Long**: khi đồng đội đã gục hết, **chỉ còn 1 mình Brakk trên sân** → mọi sát thương của Brakk **×2** (hào quang rồng lửa nhạt quanh người; đồng đội được hồi sinh thì tắt).
+Thiên phú 2 (Lv40) **Long Huyết Bất Khuất**: máu tụt **dưới 50%** → Brakk hồi **25%** (SSS **30%**) máu, đồng đội hồi **10%** (SSS **15%**), **cả đội +1 Orb** (SSS **+2**) và được **giải mọi hiệu ứng bất lợi** (Ấn Tử thì không). Hồi 20s. Thêm **Độc Long**: khi đồng đội đã gục hết, **chỉ còn 1 mình Brakk trên sân** → mọi sát thương của Brakk **×2** (hào quang rồng lửa nhạt quanh người; đồng đội được hồi sinh thì tắt). Vừa còn 1 mình → **tự hoá Khổng Lồ MIỄN PHÍ** (không tốn Orb / máu, không tính hồi chiêu); đang Khổng Lồ rồi thì **làm mới thời gian** Khổng Lồ (10s). Mỗi lần bị bỏ lại 1 mình kích hoạt 1 lần.
 AI: áp sát (≤ 4 đơn vị) → Khổng Lồ → Chấn Địa khi có ≥ 2 quái quanh mình / đang bị đánh dồn / máu < 70% / đang Khổng Lồ → Bá Vương Quật quái trước mặt (khi Khổng Lồ, dư Orb hoặc mục tiêu yếu máu).
 Hình (bản 2): ghép từ **tấm bộ phận vẽ riêng** (đầu khớp tròn, không cắt từ tranh toàn thân nữa) — `art/brakk/` (tranh nhìn nghiêng + 3/4, tấm bộ phận, tay & mắt, tranh + tấm bộ phận **dạng khổng lồ**, 3 tấm hiệu ứng — fx-c là Tiếng Hét Bảo Hộ) → `tools/cut_reference.py art/brakk/ref_spec.json` (mỗi mảnh có 2 da `normal` / `giant`, `brakkRig.js`) và `tools/build_fx_atlas.py art/brakk/fx_spec.json` (→ `brakk_fx.png`, vẽ ở `src/vfx/brakkFx.js`). Xem thử dạng khổng lồ: `/tools/preview-cutout.html?rig=../src/characters/cutout/brakkRig.js&clip=roar&t=0.4&giant=1`; xem thử kỹ năng + hiệu ứng theo từng mốc: `/tools/fx-brakk.html?s=grab` (grab / stomp / giant / ggrab / gstomp / gup / blood / shout / end).
 
 ### 4.8 Nerissa (Thủy Vũ) — Tu Sĩ nước, vũ công dải lụa 🌊 · tộc Elf · sát thương PHÉP
 Tu sĩ nước múa dải lụa: **buff MP** cho cả đội và **đốt MP để hồi máu**. Ba kỹ năng là **3 điệu múa chạy SONG SONG** — múa nhiều điệu cùng lúc thì mỗi **tổ hợp** có điệu múa (animation) riêng và hiệu ứng riêng (thiên phú 1). Trong lúc múa Nerissa **lượn qua lại thật** quanh chỗ bắt đầu múa (±1,5 ngang, ±0,7 sâu, 1 vòng 3s — quái phải đuổi theo), **không đánh thường**, vẫn bấm thêm được các điệu khác. Bị **choáng** hoặc **gục** → dừng mọi điệu.
-Lv1: HP 1.050 · M.ATK 170 · P.DEF/M.DEF 45/100 · chí mạng 8% · né 22% · chính xác 112% · tốc đánh 1000ms · tầm 8.
+Lv1: HP 1.575 · M.ATK 170 · P.DEF/M.DEF 45/100 · chí mạng 8% · né 22% · chính xác 112% · tốc đánh 1000ms · tầm 8.
 
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
 | Đánh thường | — | Vung lụa bắn **giọt nước** ×1.0 (phép) |
 | **1. Vũ Khúc Sóng Triều** | 2 / 10s (tính **sau khi múa xong** hoặc bị ngắt) | Múa **5s**: cả đội (kể cả Nerissa) **tăng tốc hồi MP** +400 / 600 / 800 / 1.000 MP mỗi giây theo bậc Thường / S / SS / SSS → múa đủ 5s mỗi người thêm **2 / 3 / 4 / 5 Orb** (nhận dần, không nhận ngay) |
 | **2. Lưu Thủy Hồi Xuân** | cần **≥ 1 Orb**, **không hồi chiêu** | Múa tới khi **hết Orb**: cứ **0,5s đốt 0,5 Orb** → cả đội hồi ×0.35 M.ATK + 1% máu tối đa. Đang múa thì không bấm lại được |
-| **3. Thủy Thần Vũ** | 4 / 12s (tính **sau khi múa xong** hoặc bị ngắt) | Múa **10s**: cả đội **+20% máu tối đa** (hồi đúng phần tăng; hết giờ / Nerissa gục thì trả lại), **+30% lượng hồi máu nhận**, **+20% ATK** (P.ATK & M.ATK), **kháng khống chế** Nerissa 100% (giải luôn khống chế đang dính) · đồng đội 50% |
+| **3. Thủy Thần Vũ** | 4 / 12s (tính **sau khi múa xong** hoặc bị ngắt) | Múa **10s**: cả đội **+20% máu tối đa** (hồi đúng phần tăng; hết giờ / Nerissa gục thì trả lại), **+30% lượng hồi máu nhận**, **+20% ATK** (P.ATK & M.ATK), **kháng khống chế** Nerissa 100% (giải luôn khống chế đang dính) · đồng đội 50%. **Vừa vào điệu: cả đội (kể cả Nerissa) +2 Orb ngay** |
 | **Cả 3 điệu cùng múa** | — | Mỗi **1s** bắn **nốt nhạc**: mọi đối thủ ×0.4 phép + **−15% M.DEF 3s**; mọi đồng đội **+10% sát thương phép 3s** + **50%** giải 1 hiệu ứng khống chế ngẫu nhiên (choáng / hất tung / hất văng / khiêu khích / bị túm) |
 
 Thiên phú 1 (Lv20) **Hòa Âm Thủy Vũ** — hiệu ứng theo tổ hợp điệu đang múa:
@@ -399,42 +405,60 @@ AI: đã giao tranh / quái trong 12 đơn vị → Thủy Thần Vũ → Sóng 
 Nút kỹ năng **đang chạy** có **vòng sáng chạy quanh viền** + **vạch thời gian còn lại** ở đáy nút (Lưu Thủy: vạch = MP còn lại); cả 3 điệu cùng chạy → vòng **vàng**. Trong lúc múa, nút đó không bấm được và chưa đếm hồi chiêu.
 Hình: ghép từ **tấm bộ phận vẽ riêng** — `art/nerissa/` (tranh nhìn nghiêng + tư thế múa, tấm bộ phận, bàn tay & mắt, 8 đoạn dải lụa + đầu lụa, 2 tấm hiệu ứng). Mắt biểu cảm căn sẵn lên đầu bằng `tools/make_overlay_eyes.py art/nerissa/eyes_spec.json` → `art/nerissa/gen/`; cắt mảnh `tools/cut_reference.py art/nerissa/ref_spec.json` (→ `nerissa_atlas.png`, `nerissaRig.js`, `nerissaClips.js`); hiệu ứng `tools/build_fx_atlas.py art/nerissa/fx_spec.json` (→ `nerissa_fx.png`, vẽ ở `src/vfx/nerissaFx.js`). **Dải lụa** là chuỗi 7 khớp lò xo (tay gần) + 4 khớp (tay xa) nối từ bàn tay → tự bay theo động tác. Động tác múa: `dance1, dance2, dance3, dance12, dance13, dance23, dance123`. Xem thử: `/tools/preview-cutout.html?rig=../src/characters/cutout/nerissaRig.js&clip=dance123&t=0.3`; kỹ năng + hiệu ứng theo từng mốc: `/tools/fx-nerissa.html?s=d123` (auto / d1 / d2 / d3 / d12 / d123 / notes / shield / flow / drain / gift / end).
 
-### 4.9 Elarion (Tam Nguyên) — Phù Thủy nguyên tố 🔮 · tộc Elf · sát thương PHÉP — ĐANG LÀM (tạm ẩn khỏi đội hình)
-Cơ chế kiểu Invoker. Server đã xong (`CLASS_DEFS.elementalist`, `elem_golem`); còn thiếu hình + giao diện → thêm `'elementalist'` vào `SQUAD_ORDER` khi xong.
+### 4.9 Elarion (Tam Nguyên) — Phù Thủy nguyên tố 🔮 · tộc Elf · sát thương PHÉP
+Cơ chế kiểu Invoker. Đã có tranh riêng (`art/elarion/`): Elarion chibi + **Sách Nguyên Tố lơ lửng** trước người (đóng → mở → bốc 3 luồng nguyên tố khi đọc / tung phép), Golem đá 3 nguyên tố, 5 tấm hiệu ứng + ngọc (xem mục **Đồ hoạ** cuối phần này).
+Lv1: HP 1.500 · M.ATK 240 · P.DEF/M.DEF 40/75 · chí mạng 10% · né 16% · chính xác 112% · tốc đánh 1050ms · tầm 14.
 - **Ngọc Nguyên Tố** (🔥 Hỏa · ❄️ Băng · ⚡ Lôi):
-  - Lơ lửng quanh pháp sư, cứ 3s rơi 1 viên ngẫu nhiên; một hệ không rơi quá 2 lần liền.
-  - Tối đa 5 viên, mỗi viên sống 8s **giờ thật**.
-  - Bấm vào ngọc để nhặt vào 3 ô; nhặt viên thứ 4 thì viên cũ nhất bị đẩy ra. Chỉ phe mình thấy ngọc của mình.
-- **KN1 Sách Nguyên Tố** (0 Orb, hồi 2s): đọc 3 viên đang giữ (mất 3 viên) → phép tương ứng vào nút KN2.
-- **KN2:** phép vừa ghép, mỗi phép có Orb và hồi chiêu riêng.
-- **KN3 Bão Nguyên Tố** (3 Orb, hồi 30s): ngọc đủ 7 viên ngay; trong 7s cứ bớt là tung thêm; Sách hồi 1s.
+  - Hiện trên **KHAY NGỌC ngay phía trên thẻ Elarion** (giao diện, không nằm trong cảnh 3D) → bấm dễ, không bị camera / góc nhìn / động tác ảnh hưởng. Mỗi viên có chỗ cố định (5 ô hàng dưới + 4 ô hàng trên so le), viên khác rơi / tan không làm xê dịch.
+  - Cứ 3s rơi 1 viên ngẫu nhiên; một hệ không rơi quá 2 lần liền. Tối đa 5 viên, mỗi viên sống 8s **giờ thật**.
+  - **Ngọc từ kỹ năng:** **đồng đội** dùng đủ **5 kỹ năng** → +1 ngọc ngẫu nhiên; **đối thủ** dùng đủ **10 kỹ năng** → +1 ngọc ngẫu nhiên (luồng nguyên tố bay từ người vừa dùng kỹ năng về Elarion, viên ngọc thưởng loé vàng trên khay). Không tính kỹ năng của chính Elarion và của Golem / nhân vật triệu hồi; quái không dùng kỹ năng nên đánh quái chỉ có ngọc từ đồng đội. Bộ đếm hiện trên thẻ: `🤝x/5 ⚔x/10`. Khay đầy (9 ô) thì giữ lượt, có chỗ là ra ngọc. Elarion gục thì không đếm.
+  - Vòng quanh mỗi viên = thời gian còn lại; sắp tan (< 2 giây thật) thì nhấp nháy. Rê chuột vào: ngọc to lên + viền vàng; bấm để nhặt — viên ngọc bay vào 3 ô trên thẻ (viên thứ 4 đẩy viên cũ nhất ra). Chỉ phe mình thấy ngọc của mình.
+- **KN1 Sách Nguyên Tố** (1 Orb, **không hồi chiêu**): đọc 3 viên đang giữ (mất 3 viên) → phép tương ứng vào nút KN2.
+- **KN2:** phép vừa ghép, mỗi phép có Orb và hồi chiêu riêng. **Dùng xong là mất** — nút KN2 trở về "Chưa ghép phép", muốn dùng lại phải ghép lại bằng Sách (không giữ phép).
+- **KN3 Bão Nguyên Tố** (3 Orb, hồi **10s**): ngọc đủ 7 viên ngay; trong 7s cứ bớt là tung thêm. Dùng xong **+2 Orb ngay** (thực tốn 1 Orb).
+- **Hàn Khí** (hiệu ứng chung): mọi sát thương **băng** (của bất kỳ ai) cộng 1 tầng — mỗi tầng −2% tốc đánh, giữ 5s; **đủ 5 tầng → đóng băng 1,5s**; bị giải hiệu ứng thì đếm lại.
 - **10 phép:**
 
 | Công thức | Phép | Orb / hồi | Tác dụng |
 |---|---|---|---|
-| 🔥🔥🔥 | Thiên Thạch | 3 / 14s | Sau 0,8s rơi vào chỗ đông đối thủ nhất: ×2,2 bán kính 4. Lăn 15 ô: ×0,6 mỗi đối thủ lăn qua. Vệt lửa 2 lần ×0,3 |
-| ❄️❄️❄️ | Băng Phong | 2 / 12s | Cả đội địch ×0,8 và −20% tốc đánh 3s. Cơ hội đóng băng 20% / 1s → 40% / 2s (SSS) |
-| ⚡⚡⚡ | Lôi Xích | 2 / 10s | ×1,2, nảy qua 5 đối thủ. −10% M.DEF 5s → −15% (SSS), không cộng dồn |
+| 🔥🔥🔥 | Thiên Thạch | 3 / 14s | Sau 0,8s rơi vào chỗ đông đối thủ nhất: ×2,8 bán kính 4, **chạm đất luôn chí mạng** (lăn / vệt lửa / va chạm thì tính bình thường). Lăn **chậm** 15 ô (3s) về phía trước (hướng phe địch), cán qua hàng địch: ×0,8 mỗi đối thủ. Vệt lửa 2 lần ×0,4. Đối thủ bị Lốc Xoáy đẩy va vào thiên thạch đang lăn: thêm ×1,2 |
+| ❄️❄️❄️ | Băng Phong | 3 / 12s | Khối băng thành hình trên đầu đội địch 1,5s rồi rơi: **cả đội địch** ×1,1 (băng) + −20% tốc đánh 3s. Vỡ ra 5 khối nhỏ văng xuống ×0,35 (băng, hiệu ứng tính chung). Cơ hội đóng băng 20% / 1s → 40% / 2s (SSS) |
+| ⚡⚡⚡ | Lôi Xích | 2 / 13s | ×1,5, nảy qua tối đa 5 đối thủ, sau đó mỗi lần **50% nảy tiếp** (được trúng lại, tối đa 10 lần thêm). −10% M.DEF 5s → −15% (SSS), không cộng dồn |
 | 🔥❄️⚡ | Nguyên Tố Hợp Nhất | 5 / 25s | Gọi Golem Nguyên Tố 20s |
-| ❄️❄️⚡ | Giáp Băng Sét | 2 / 15s | Khiên 25% máu bản thân 6s. Ai đánh trúng bị giật ×0,3 + choáng 0,5s (mỗi người 1 lần/giây) |
-| ⚡⚡❄️ | Lốc Xoáy | 2 / 16s | Lốc bay thẳng 12 ô: ×0,8, đẩy lùi 4 ô |
-| 🔥🔥❄️ | Hơi Nước Bỏng | 2 / 14s | Mây bán kính 4 trong 4s: ×0,25 mỗi 0,5s, trong mây đánh trượt 30% |
-| 🔥🔥⚡ | Hỏa Lôi Cầu | 2 / 12s | Nổ bán kính 3: ×1,6 + choáng 1s |
-| ❄️❄️🔥 | Tuyết Lở | 2 / 14s | Hàng trước địch (bán kính 3,5): ×1,2 + hất tung 1s |
-| ⚡⚡🔥 | Tốc Lôi | 2 / 18s | Cả đội +30% tốc đánh 5s |
+| ❄️❄️⚡ | Giáp Băng Sét | 2 / 15s | Khiên 25% máu cho **Elarion + đồng đội yếu máu nhất** 6s. Ai đánh trúng người có giáp bị giật ×0,4 + choáng 0,5s (mỗi người 1 lần/giây) |
+| ⚡⚡❄️ | Lốc Xoáy | 2 / 16s | Lốc bay thẳng 12 ô: ×1,1, đẩy lùi 4 ô |
+| 🔥🔥❄️ | Hơi Nước Bỏng | 3 / 14s | **Niệm 2s** → mây mưa giông 7s: Elarion **đứng thi triển** (không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác hoặc bị choáng thì ngắt). Mỗi giây: phe ta hồi ×0,3 M.ATK + 1,5% máu (đầy máu thì +200 MP), sét đánh 1 đối thủ ngẫu nhiên ×0,7 + choáng 0,5s |
+| 🔥🔥⚡ | Hỏa Lôi Cầu | 2 / 12s | Quả cầu hiện ở **1 điểm cố định cách Elarion 12 ô phía trước** (~ hàng trước địch), to dần 2s rồi **nổ tại chỗ** (bán kính 3,5): đối thủ đứng trong vùng nổ ×2,0 + choáng 0,5s + **mất 1 Orb**. **Nổ: cả đội +1 Orb, riêng Elarion +2 Orb.** AI chỉ dùng khi có đối thủ quanh điểm nổ |
+| ❄️❄️🔥 | Băng Hoại Hỏa Thiên | 3 / 14s | **SolarBeam kiểu Kamehameha:** khum 2 tay dồn lực 0,7s → **đứng yên chưởng tia băng-hỏa 10s thẳng tới cuối bản đồ** (ngắm hướng có nhiều đối thủ nhất, lệch tối đa ~26°; tia rộng 1,6 ô mỗi bên). **Người đang bay không dính.** Mỗi giây, mọi đối thủ trong tia: **Băng** ×0,3 (không tăng) + 1 tầng Hàn Khí + −15% tốc đánh 1,5s · **Hỏa** ×0,42, mỗi giây +1 tầng (+3% sát thương lửa); **đủ 5 tầng: tia lửa to hẳn (rộng 2,3 ô), sát thương lửa thêm +30%** (= +45%). Không đánh / chạy trong lúc chưởng; bị choáng / đóng băng hoặc dùng kỹ năng khác thì ngắt |
+| ⚡⚡🔥 | Tốc Lôi | 2 / 13s | **Riêng Elarion 10s:** đánh thường chưởng 2 lần, +25% tốc đánh, **tốc độ hồi Orb ×2**. Cứ 5 đòn → cả đội (kể cả Elarion) +5% tốc đánh 10s (cộng dồn tối đa 5 lần) |
 
 - **Golem Nguyên Tố:**
-  - Nhân vật bình thường trên sân: bị đánh, nhận buff, tính thắng thua. Không có thẻ HUD, không được hồi sinh.
-  - Chỉ số: máu 3,5× pháp sư, ATK 0,8× M.ATK, thủ 6× / 2,3×.
-  - Cứ 2 đòn đánh thường thì dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
-    - **Nộ Lửa:** niệm 1s, lướt chậm 8 ô: ×1,4 + hất tung; cả đội địch −10% M.DEF.
-    - **Bão Tuyết:** niệm 3s, 6 lần ×0,35 trong 6s; mỗi tầng −2% tốc đánh; đủ 4 tầng thì đóng băng 1,5s, được giải hiệu ứng thì đếm lại.
-    - **Hào Quang Sét:** niệm 3s, 5s giật mọi đối thủ quanh 4 ô mỗi giây: ×0,3 + choáng 0,5s.
+  - Nhân vật bình thường trên sân: bị đánh, tính thắng thua. Không có thẻ HUD, không được hồi sinh.
+  - **Không nhận buff / debuff / khống chế nào**, trừ Ấn Tử của Zerith. Vẫn được hồi máu.
+  - Chỉ số: máu **4,67×** máu Elarion (gấp đôi bản trước — máu Elarion đã ×1,5), ATK **1,1×** M.ATK, thủ 6× / 2,3×.
+  - Cứ 2 đòn đánh thường thì dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s).
+    - **Nộ Lửa:** lùi 3 ô về phía đồng minh → niệm 1s → lướt chậm 8 ô (1,2s) đấm lửa: ×1,8 + hất tung 1s; cả đội địch −10% M.DEF 5s.
+    - **Bão Tuyết:** niệm 2s hút khí lạnh → đứng phun bão tuyết 6s (**bão tuyết phủ toàn màn hình**): mỗi giây ×0,5 mọi đối thủ + 1 tầng Hàn Khí. Golem gục / tan thì tắt ngay.
+    - **Hào Quang Sét:** niệm 1s, sét đánh vào tay → +25% tốc đánh 5s; mỗi đòn đánh giật **toàn bộ** đối thủ ×0,45, 50% choáng 0,5s.
 - **Thiên phú 1 Cộng Hưởng Nguyên Tố:**
   - Nhặt ngọc thì hệ đó +1 tầng (tối đa 3), 5s, nhặt thêm thì làm mới.
-  - Mỗi tầng: Hỏa +4 / 5 / 6% ATK · Băng hồi 0,3 / 0,4 / 0,5% máu mỗi giây · Lôi +4 / 5 / 6% tốc đánh.
-- **Thiên phú 2 Thiên Tài Nguyên Tố:** dùng phép hoặc Bão thì 40% / 50% Sách hồi ngay và phép kế tiếp giảm 1 Orb (hồi 7s).
-- **Test:** `debugAction { type: 'elemSpell', value: 'meteor' }` đặt thẳng 1 phép vào nút KN2.
+  - Mỗi tầng: Hỏa +4 / 5 / 6% ATK · Băng hồi 0,3 / 0,4 / 0,5% máu mỗi giây · Lôi +4 / 5 / 6% tốc đánh **và +10 / 15 / 20% tốc độ hồi Orb** (MP mỗi giây + MP mỗi đòn; 3 tầng Lôi = +30 / 45 / 60%).
+- **Thiên phú 2 Thiên Tài Nguyên Tố:** mỗi lần ghép phép bằng Sách: **40% / 70%** phép kế tiếp giảm 1 Orb (không hồi chiêu).
+- **Cấp kỹ năng:** mọi hệ số sát thương của phép (kể cả băng / lửa của Băng Hoại Hỏa Thiên, mảnh Băng Phong, va chạm Thiên Thạch, sét Mưa Giông) tăng ×1,2 / 1,45 / 1,75 theo bậc.
+- **Giao diện:**
+  - Ngọc rơi ra nằm trên khay ngọc phía trên thẻ, bấm chuột để nhặt; sắp tan thì nhấp nháy (`updateGemTray` trong `src/ui/hud.js`).
+  - 3 viên đang giữ bay quanh đầu pháp sư (2 phe đều thấy).
+  - Thẻ HUD có 3 ô ngọc; nút KN1 ghi số ngọc đang giữ (x/3); nút KN2 đổi tên, giá Orb và hồi chiêu theo phép, giảm Orb nhờ thiên phú 2 thì có dấu "↓".
+  - Bấm Sách khi chưa đủ 3 viên: lệnh xếp hàng chờ, đủ 3 viên tự đọc.
+- **AI (tự động):** đang giữ phép dùng được (đã hồi, đáng dùng) thì không ghép đè bằng Sách, đỡ tốn Orb; dùng phép xong thì nhặt ngọc ghép phép mới.
+- **Hiệu ứng trên người:** đóng băng có ngục băng phủ người, Giáp Băng Sét có vòm băng sét, Tốc Lôi / Hào Quang Sét có vòng sét quanh người (nắm đấm Golem hoá sét).
+- **Đồ hoạ:**
+  - Elarion: rig `src/characters/cutout/elarionRig.js` + `elarionClips.js` (đứng, chạy, chưởng, đọc Sách, tung phép, gọi bão, đứng thi triển Mưa Giông, trúng đòn, thắng, gục). Tay gần ngửa dưới Sách; tóc sau + 2 vạt áo choàng + Sách là lò xo đung đưa, Sách còn nhấp nhô (`floatParts`). Mắt: thường / chớp / quyết tâm / vui / đau / niệm (mắt 3 màu).
+  - Golem: dùng **nguyên tranh** `art/elarion/05-golem-v2.png` (1 hình liền, giữ đúng nét vẽ), cao 4,7 (gấp ~1,6 lần nhân vật). Cử động cả thân (`golemClips.js`: nghiêng, nhún, phồng / dẹp `sq`): đấm, gồng rung, lao đấm, hít khí (phồng người), chồm tới phun, ngửa đón sét rồi nện, trồi lên lúc triệu hồi. Lửa quanh nắm đấm, luồng băng từ miệng, sét giáng là hiệu ứng phủ lên (`golemRig.js` có điểm neo: nắm đấm lửa / băng, miệng, lõi ngực).
+  - Hiệu ứng: atlas `elarion_fx.png` 4096 px (`tools/build_fx_atlas.py art/elarion/fx_spec.json`), vẽ **giữ nguyên màu tranh** (trộn thường, không cộng sáng); đá / mây / khối băng có ruột đặc (`core` trong fx_spec). Thiên thạch khổng lồ rơi chéo + nổ lớn + tảng đá lửa lăn + dải lửa, khối băng lớn rơi vỡ, tia sét xích, lốc xoáy cao 6,6, cầu hỏa lôi to dần, tia băng / tia lửa quẹt + hàng gai băng / hàng nổ lửa, cột triệu hồi, vệt đấm lửa...
+  - Toàn màn hình (`src/vfx/screenFx.js`, lớp 2D phủ trên cảnh, dưới HUD): **Mưa Giông** = 1 mảng mây đen lớn + trời tối sầm + mưa xiên + chớp sáng mỗi lần sét đánh; **Bão Tuyết** của Golem = sương giá viền màn hình + bông tuyết 3 lớp quất ngang + làn gió tuyết.
+  - Đầu khớp tròn màu da của tấm bộ phận được tô lại màu vải (`tools/recolor_caps.py art/elarion/caps_spec.json`) trước khi cắt atlas.
+- **Test:** Tool Phe Mình có mục **"Elarion — đặt thẳng phép vào nút KN2"** (10 nút). Xem code ở `src/ui/hud.js` (khay ngọc), `src/combat/elemGems.js` (3 quả cầu quanh đầu), `src/vfx/elemFx.js` (hiệu ứng), `onElemFx` trong `src/combat/events.js`.
 
 ## 5. QUÁI VẬT
 
@@ -465,13 +489,13 @@ Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có 
 | **Vệ Thần Gió** (windspirit) | Thần Phong Giáng Thế | 8s, đang bay (né kỹ năng dưới đất), +30% tốc đánh, +20% P.ATK, Vệ Thần bắn phụ |
 | **Thành Trì** (fortress) | (dự phòng) | Giảm sát thương nhận theo % |
 | **Bị hất tung** (knockup) | Lưỡi Hái Hất Hồn, Chấn Địa, móc ngược của Brakk | 1s bay lên không (kèm choáng), không hành động |
-| **Ấn Tử** (death_mark) | Phán Quyết Tử Thần (Zerith) | 15s, đầu lâu trên đầu; −5/7,5/10% hồi máu nhận được; Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên, máu dưới 5/7/10% → kết liễu |
+| **Ấn Tử** (death_mark) | Phán Quyết Tử Thần (Zerith) | 15s, đầu lâu trên đầu; −20/27,5/35% hồi máu nhận được; Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên, máu dưới 5/7/10% → kết liễu |
 | **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí |
 | **Đêm Tử Thần** (reaper_form) | Đêm Tử Thần | 10s, bay, Hộ Vệ Thần Chết, +20% sát thương, +30% tốc đánh, −40% khống chế, không thể chết |
 | **Bị túm** (grabbed) | Bá Vương Quật (Brakk) | Bị nhấc bổng qua đầu tới lúc bị quật (~0,85s) rồi choáng 1s |
 | **Thần Lực Khổng Lồ** (giant_form) | Thần Lực Khổng Lồ | 10s, +50% máu tối đa, +40% thủ, +25% sát thương, 5s đầu miễn mọi hiệu ứng bất lợi, móc ngược hất tung |
 | **Khiên Vảy Rồng** (brakk_shield) | Chấn Địa, Khí Thế Đấu Trường | 10s, cộng dồn thành 1 lớp; vòm vảy rồng quanh Brakk |
-| **Độc Long** (lone_dragon) | Long Huyết Bất Khuất (Brakk) | Chỉ còn 1 mình Brakk trên sân: sát thương ×2 |
+| **Độc Long** (lone_dragon) | Long Huyết Bất Khuất (Brakk) | Chỉ còn 1 mình Brakk trên sân: sát thương ×2 · tự hoá Khổng Lồ miễn phí (đang Khổng Lồ thì làm mới thời gian) |
 | **Ý Chí Thép** (iron_regen) | Thiên phú 1 Rok (Rok + người được nối dây) | 5s, mỗi giây hồi 3% máu (Rok còn dây: 6%) |
 | **Hộ Mệnh** (revive_guard) | Thiên Thần Hộ Mệnh (Sera) | 2s sau khi hồi sinh: miễn mọi sát thương |
 | **Giáp Lửa** (fire_ward) | Hỏa Tốc (Ignar) | 10s khiên lửa, +30% M.DEF, −40% khống chế; hết → nổ choáng 1s xung quanh |
@@ -481,6 +505,18 @@ Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có 
 | **Nốt Nhạc Vỡ Giáp** (note_break) | Cả 3 điệu múa (đối thủ) | 3s, −15% M.DEF |
 | **Nốt Nhạc Cổ Vũ** (note_amp) | Cả 3 điệu múa (đồng đội) | 3s, +10% sát thương phép |
 | **Nhịp Triều / Nước Cuốn** (tide_haste / tide_slow) | Hòa Âm 1+3 | Phe Nerissa +15% tốc đánh · phe địch −10% tốc đánh (khi tổ hợp còn chạy) |
+| **Đóng Băng** (frozen) | Băng Phong, đủ 5 tầng Hàn Khí | Đứng im như choáng, lớp băng phủ người; giải được như choáng |
+| **Hàn Khí** (chill) | Mọi sát thương băng (Băng Phong, tia băng, Bão Tuyết của Golem...) | Mỗi tầng −2% tốc đánh, 5s; đủ 5 tầng → đóng băng 1,5s |
+| **Mưa Giông** (elem_rain) | Hơi Nước Bỏng | Elarion đứng thi triển 7s: hồi máu cả đội, sét đánh đối thủ (Elarion gục thì tắt) |
+| **Tốc Lôi / Nhịp Lôi** (storm_self / storm_haste) | Tốc Lôi | Elarion chưởng 2 lần + 25% tốc đánh 10s · cả đội +5% tốc đánh mỗi tầng (tối đa 5) |
+| **Cộng Hưởng Hỏa / Băng / Lôi** (attune_*) | Thiên phú 1 Elarion (nhặt ngọc) | 5s, tối đa 3 tầng mỗi hệ: +ATK / hồi máu mỗi giây / +tốc đánh |
+| **Bão Nguyên Tố** (elem_storm) | Bão Nguyên Tố | 7s: ngọc luôn đủ 7 viên |
+| **Lôi Xích / Nộ Lửa** (chain_break / golem_break) | Lôi Xích, Nộ Lửa của Golem | 5s, −10…15% / −10% M.DEF |
+| **Băng Phong** (frost_slow) | Băng Phong | −20% tốc đánh 3s |
+| **Băng Hoại Hỏa Thiên** (elem_beam / beam_slow) | Băng Hoại Hỏa Thiên | Elarion đứng chưởng SolarBeam 10s (tầng lửa 0…5) · đối thủ trúng tia băng −15% tốc đánh 1,5s (làm mới mỗi giây) |
+| **Hơi Nước Bỏng** (steam_blind) | Hơi Nước Bỏng | Đứng trong mây: đánh trượt thêm 30% |
+| **Giáp Băng Sét** (storm_ward) | Giáp Băng Sét | Khiên 25% máu 6s, ai đánh trúng bị sét giật + choáng 0,5s |
+| **Tay Sét** (golem_haste) | Hào Quang Sét của Golem | 5s, +25% tốc đánh, mỗi đòn giật toàn bộ đối thủ |
 | **Thần Chết phán quyết** (judged) | Ấn Tử chạm ngưỡng tử (Zerith) | ~1,6s bị nhấc lên không trung: không bị đánh / chọn / dính hiệu ứng; chém: có khiên → vỡ khiên, không khiên → chết |
 
 Bảng chỉ số trong trận tô **xanh** khi được buff, **đỏ** khi bị giảm, kèm thẻ hiệu ứng và thời gian còn lại.
@@ -557,7 +593,7 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
 - `/tools/preview-cutout.html?rig=../src/characters/cutout/rokRig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
 - `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
 - `/tools/fx-lion.html`, `/tools/fx-guardian.html` — xem hình linh hồn sư tử / Thần Hộ Vệ.
-- `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123` — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
+- `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
 
 ---
 
@@ -567,7 +603,8 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
 | Jessica, Rok | 2,4 | cận chiến, đứng đầu |
 | Seraphine | 9 | đứng sau tank |
 | Nerissa | 8 | kỹ năng (điệu múa) không cần tầm; lúc múa lượn qua lại quanh chỗ đứng |
-| Ignar | 13 | kỹ năng tầm 16 |
+| Elarion | 14 | phép không cần tầm (tự chọn chỗ đông / hàng trước / mục tiêu đang đánh); Golem cận chiến 2,8 |
+| Ignar | 15 | kỹ năng tầm 18 |
 | Zerith | 2,8 | cận chiến (lưỡi hái dài); Lưỡi Hái Xuyên Hồn dùng trong tầm đánh, lướt 15 |
 | Lyra | 11 (Thần Phong Giáng Thế +8 = **19**, xa nhất) | Tiễn Gió Chớp tầm 13 |
 | Quái: Tanker / Xạ Thủ / Hỗ Trợ | 2,4 / 15 / 10 | |
