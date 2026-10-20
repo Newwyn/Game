@@ -25,7 +25,7 @@ import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js
 import { jessicaBoltTexture } from '../vfx/jessicaFx.js';
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
-import { makeWaterBubble, makeGoddessAura, makeNoteHalo, spawnManaRise } from '../vfx/nerissaFx.js';
+import { makeWaterBubble, makeGoddessAura, makeNoteHalo, makeDanceRing, spawnManaRise } from '../vfx/nerissaFx.js';
 import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
@@ -1056,10 +1056,17 @@ export class CutoutCharacterView extends CharacterView {
         const ws = effs.find(e => e.type === 'water_shield' && e.endTime > now && e.hp > 0);
         const bubble = fade('_waterBubble', !!ws, () => makeWaterBubble(this.height));
         bubble?.update(dt, bubble.k, ws?.maxHp ? Math.max(0, ws.hp / ws.maxHp) : 0);
-        // Thủy Thần Vũ: hào quang nữ thần sau lưng + hoa sen xoay dưới chân (chỉ trên người Nerissa)
+        // Thủy Thần Vũ: Thủy Thần hiện ra sau lưng rồi giữ suốt điệu múa (chỉ trên người Nerissa)
         const god = effs.some(e => e.type === 'dance_god' && e.endTime > now);
         const aura = fade('_goddessAura', god, makeGoddessAura, 5);
         if (aura) { aura.group.scale.x = this.facingLeft ? -1 : 1; aura.update(dt, aura.k); }
+        // Sóng Triều: vòng thủy triều dưới chân · Lưu Thủy: vòng hoa sen (múa cả 2: hoa sen)
+        const flow = effs.some(e => e.type === 'dance_flow' && e.endTime > now);
+        const tide = !flow && effs.some(e => e.type === 'dance_tide' && e.endTime > now);
+        const tr = fade('_tideRing', tide, () => makeDanceRing('tideRing'), 5);
+        tr?.update(dt, tr.k);
+        const lr = fade('_lotusRing', flow, () => makeDanceRing('lotusRing'), 5);
+        lr?.update(dt, lr.k);
         // cả 3 điệu: nốt nhạc bay vòng quanh người
         const all3 = effs.length > 0 && this.member?.danceKey === '123';
         const halo = fade('_noteHalo', all3, makeNoteHalo, 5);

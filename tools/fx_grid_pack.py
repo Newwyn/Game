@@ -19,6 +19,10 @@ Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
   4. Cắt sát theo khung chung của nhóm (mọi khung cùng cỡ) + điểm gốc "pivot":
        core | bottom | center | left (mép trái giữa) | [x, y] theo toạ độ trong ô gốc.
   5. Xếp atlas + json: nhóm -> { size, pivot, frames: [rect...], tip? }. Đuôi "out" .webp -> nén WebP (nhẹ ~3-4 lần).
+  6. Nhóm 1 hình AI vẽ tràn hẳn sang ô bên cạnh và CHẠM hình bên cạnh (VD vòng thủy triều + vòng hoa sen của Nerissa):
+     "rect": [x0, y0, x1, y1] (toạ độ tấm gốc) thay cho "cells" -> cắt đúng khung chữ nhật đó (1 khung), không gom vùng liền.
+     "feather": [trái, phải] (px, tuỳ chọn): AI vẽ hình bị CẮT CỤT ở mép tấm / mép ô -> mờ dần vài chục px ở 2 mép để không
+     lộ đường cắt thẳng (chỉ làm mờ mép, không vẽ thêm).
 """
 import json, os, sys
 import numpy as np
@@ -129,7 +133,20 @@ def main(spec_path, preview=None):
             c[y0 - cy + M:y1 - cy + M, x0 - cx + M:x1 - cx + M] = raw[y0:y1, x0:x1] * keep[..., None]
             return c
         cells = [cell_img(i) for i in range(gc * gr)]
+        def rect_img(r, feather=(0, 0)):   # cắt đúng khung chữ nhật (đặt như 1 ô có lề M)
+            x0, y0, x1, y1 = r
+            part = raw[y0:y1, x0:x1].copy()
+            fl, fr = feather; xs = np.arange(x1 - x0, dtype=np.float32)
+            ramp = np.ones_like(xs)
+            if fl: ramp = np.minimum(ramp, np.clip(xs / fl, 0, 1))
+            if fr: ramp = np.minimum(ramp, np.clip((x1 - x0 - 1 - xs) / fr, 0, 1))
+            part *= (ramp ** 1.5)[None, :, None]   # nền đen: tối đi = trong suốt dần
+            c = np.zeros((ch + 2 * M, cw + 2 * M, 3), np.float32)
+            c[M:M + (y1 - y0), M:M + (x1 - x0)] = part
+            return c
         for g in sh['groups']:
+            if 'rect' in g:
+                cells.append(rect_img(g['rect'], g.get('feather', (0, 0)))); g = {**g, 'cells': [len(cells) - 1]}
             idx = g['cells']
             smoke = set(g.get('smoke', []))
             sf = set(g.get('solidFrames', range(len(idx))))

@@ -1,0 +1,28 @@
+{
+ "note": "Nerissa ban 3: tranh AI nen xanh cua nguoi dung (giu nguyen, chi tach nen matte + can chan + co gian). scale: dua moi tam ve cung co idle (do bang khop mat + so canh dau tung tam). Tua ngoc / dai lua ru gan dat -> footBand 12 + footMin 24 (chi bat de giay, bo tua ngoc). Moc ngang: 'hip' (giua vay trang) cho mua / danh / trung don / guc -> hong dung yen, chan khong truot; 'body' (giua dau) cho chay. ground 'group': khung bat nhay / xoac chan (dance123, victory) giu do cao AI ve.",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "footBand": 12,
+ "footMin": 24,
+ "sheets": {
+  "idle": {"file": "art/nerissa/sprite/sprite-idle.png", "scale": 1.0, "ground": "group", "groups": [["idle", 4, "toe"], ["ready", 4, "hip"]]},
+  "attack": {"file": "art/nerissa/sprite/sprite-attack.png", "scale": 1.03, "anchor": "hip", "ground": "group", "points": {"4": {"ribbon": [1495, 240]}}},
+  "move": {"file": "art/nerissa/sprite/sprite-move.png", "scale": 1.156, "anchor": "body", "ground": "group"},
+  "hurt-stun": {"file": "art/nerissa/sprite/sprite-hurt-stun.png", "scale": 0.943, "ground": "group", "groups": [["hurt", 4, "hip"], ["stun", 4, "hip"]]},
+  "spin-land": {"file": "art/nerissa/sprite/sprite-spin-land.png", "scale": 1.15, "ground": "group", "groups": [["spin", 4, "hip"], ["land", 4, "hip"]]},
+  "dance1": {"file": "art/nerissa/sprite/sprite-dance1.png", "scale": 1.0, "anchor": "hip", "ground": "group"},
+  "dance2": {"file": "art/nerissa/sprite/sprite-dance2.png", "scale": 1.075, "anchor": "hip", "ground": "group"},
+  "dance3": {"file": "art/nerissa/sprite/sprite-dance3.png", "scale": 1.1, "anchor": "hip", "ground": "group"},
+  "dance12": {"file": "art/nerissa/sprite/sprite-dance12.png", "scale": 1.08, "anchor": "hip", "ground": "group"},
+  "dance13": {"file": "art/nerissa/sprite/sprite-dance13.png", "scale": 0.95, "anchor": "hip", "ground": "group"},
+  "dance23": {"file": "art/nerissa/sprite/sprite-dance23.png", "scale": 0.98, "anchor": "hip", "ground": "group"},
+  "dance123": {"file": "art/nerissa/sprite/sprite-dance123.png", "scale": 1.02, "anchor": "hip", "ground": "group"},
+  "dead-victory": {"file": "art/nerissa/sprite/sprite-dead-victory.png", "scale": 0.9, "groups": [["dead", 4, "hip"], ["victory", 4, "hip"]], "ground": ["victory"]}
+ },
+ "out": "src/assets/sprites/nerissa_sprite",
+ "meta": "src/characters/sprite/nerissaSprite.json",
+ "format": "webp"
+}

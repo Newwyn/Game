@@ -6,7 +6,7 @@
 // Đổi chế độ: cameraRig.setMode('combat' | 'explore') — camera chuyển mượt, không giật.
 import { settings } from './settings.js';
 import * as THREE from 'three';
-import { camera, renderer, scene } from './scene.js';
+import { camera, renderer, scene, keepShaders } from './scene.js';
 
 export const CAMERA_MODES = {
     combat:  { pitchDeg: 14, fov: 38, lookHeight: 1.3, minDist: 13, maxDist: 30, margin: 4 },
@@ -146,6 +146,7 @@ export const cameraRig = {
         }
         camera.position.x += ox; camera.position.y += oy;
         renderer.render(scene, camera);
+        keepShaders();
         camera.position.x -= ox; camera.position.y -= oy;
     },
 };

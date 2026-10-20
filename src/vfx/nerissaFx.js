@@ -1,128 +1,142 @@
 // ============================================================
-// HIỆU ỨNG THỦY VŨ — Nerissa (Tu Sĩ nước, vũ công dải lụa)
+// HIỆU ỨNG THỦY VŨ — Nerissa (bản 3) — chạy khung (flipbook)
 // ============================================================
-// Hình lấy từ atlas nerissa_fx.png (tools/build_fx_atlas.py art/nerissa/fx_spec.json):
-//   giọt nước + nước bắn, vòng sóng lụa 3 khung, MP bay lên, mưa hồi máu, bong bóng giáp nước, vòng thuỷ triều,
-//   ấn hoa sen, 3 nốt nhạc, hào quang Thủy Thần, biểu tượng −M.DEF / +sát thương phép, hút Orb, giải khống chế, tim +máu.
-// Mọi hình vẽ nhìn sang PHẢI; nhìn trái thì lật gương (scale.x = -1).
+// Hình lấy từ atlas nerissa_fx2.webp (tools/fx_grid_pack.py art/nerissa/fx2/fx2_spec.json — 5 tấm tranh AI của người dùng):
+//   dropFly (giọt nước bay 4 lặp) · splash (nước bắn tung 4)
+//   danceWave (vòng sóng vào điệu 4) · healRain (mưa hồi máu 4 lặp)
+//   goddessRise (Thủy Thần hiện ra 4) · goddessHold (Thủy Thần giữ 4 lặp)
+//   bubble (bong bóng giáp nước: khung 1 thành hình, 2-4 lặp) · note1..4 (nốt đơn, 2 nốt nối, nốt đen, khoá Sol)
+//   tideRing · lotusRing (vòng thủy triều / hoa sen, vẽ nghiêng sẵn) · manaRise · orbGift · mdefDown · atkUp · orbDrain · cleanse
+// Mọi hình vẽ nhìn sang PHẢI; nhìn trái thì lật gương (scale.x = -1). Mốc sát thương / thời gian do server + events.js quyết định.
 import * as THREE from 'three';
+import fxUrl from '../assets/sprites/nerissa_fx2.webp';
+import FX from './nerissaFx2.json';
 import { textureView } from './texView.js';
-import fxUrl from '../assets/sprites/nerissa_fx.png';
-import fxMeta from './nerissaFx.json';
-import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, spawnShockwave, spawnRisingSparkles } from './vfx.js';
+import { addAnim, fxPlane, glowTexture, easeOut, spawnShockwave, spawnRisingSparkles } from './vfx.js';
+import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR } from './flipbook.js';
 
-const FLOOR = -0.45;
-const AQUA = 0x5eead4, WATER = 0x38bdf8, GOLD = 0xfde68a;
+const FB = makeFlipbook(fxUrl, FX);
+FB.tex('dropFly');   // tải atlas ngay khi vào game (khung đầu không bị trống)
+const frames = FB.frames, setFx = FB.set;
+const AQUA = 0x5eead4, WATER = 0x38bdf8;
+const seqFrame = (p, w) => weighted(Math.min(0.999, Math.max(0, p)), w);
 
-let base = null;
-const texCache = {};
-function tex(name) {
-    if (texCache[name]) return texCache[name];
-    base ??= new THREE.TextureLoader().load(fxUrl, t => { t.colorSpace = THREE.SRGBColorSpace; });
-    base.colorSpace = THREE.SRGBColorSpace;
-    const [W, H] = fxMeta.atlasSize;
-    const [x, y, w, h] = fxMeta.parts[name].rect;
-    const t = textureView(base);   // không tải lại atlas lên GPU (xem texView.js)
-    t.repeat.set(w / W, h / H);
-    t.offset.set(x / W, 1 - (y + h) / H);
-    return (texCache[name] = { texture: t, aspect: w / h, w, h });
-}
-/** Mặt phẳng hiện 1 hình, cao `height` đơn vị (tâm ở giữa hình) */
-export function waterSprite(name, height, { additive = true, opacity = 1 } = {}) {
-    const { texture, aspect } = tex(name);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(height * aspect, height), new THREE.MeshBasicMaterial({
-        map: texture, transparent: true, depthWrite: false, fog: false, opacity,
-        blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide }));
+/** Phần ĐÁY (tỉ lệ `frac`) của 1 hình vòng vẽ nghiêng — đặt TRƯỚC nhân vật để vòng "ôm" quanh chân (nửa sau đặt sau lưng) */
+function frontArc(group, height, frac, { opacity = 1 } = {}) {
+    const g = FX.groups[group];
+    const [w, h] = g.size, [px, py] = g.pivot, u = height / h;
+    const geo = new THREE.PlaneGeometry(w * u, h * frac * u);
+    geo.translate((w / 2 - px) * u, (py - h + (h * frac) / 2) * u, 0);
+    const t = textureView(FB.tex(group, 0));
+    t.repeat.y *= frac;
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, fog: false, opacity, side: THREE.DoubleSide }));
     m.userData.sharedTexture = true;
     return m;
 }
-function setFrame(mesh, name, height) {
-    const { texture, aspect } = tex(name);
-    mesh.material.map = texture;
-    mesh.geometry.dispose();
-    mesh.geometry = new THREE.PlaneGeometry(height * aspect, height);
+/** Loé sáng cộng màu (quầng phụ) */
+function flash(pos, { color = AQUA, size = 1.4, y = 1.0, life = 0.25, z = 0.65 } = {}) {
+    const c = fxPlane(glowTexture(), size, size, { color });
+    c.position.set(pos.x, (pos.y ?? 0) + y, (pos.z ?? 0) + z);
+    addAnim(c, life, (p, fx) => { fx.mesh.scale.setScalar(0.6 + easeOut(p) * 1.1); fx.mesh.material.opacity = 1 - p; });
 }
-function pop(name, pos, { size = 1.6, life = 0.5, y = 1.0, z = 0.7, grow = 0.5, rise = 0, dir = 1, additive = true, opacity = 1 } = {}) {
-    const m = waterSprite(name, size, { additive, opacity });
+/** 1 hình lẻ bật lên rồi mờ (biểu tượng buff / debuff, Orb...) */
+function pop(group, pos, { size = 1, life = 0.6, y = 1.0, z = 0.7, grow = 0.25, rise = 0, opacity = 1 } = {}) {
+    const m = frames(group, size, { opacity: 0 });
     m.position.set(pos.x, (pos.y ?? 0) + y, (pos.z ?? 0) + z);
     const y0 = m.position.y;
     addAnim(m, life, (p, fx) => {
-        const s = 0.6 + easeOut(Math.min(1, p / 0.3)) * (0.4 + grow * p);
-        fx.mesh.scale.set(dir * s, s, 1);
-        fx.mesh.position.y = y0 + rise * p;
-        fx.mesh.material.opacity = opacity * (p > 0.6 ? (1 - p) / 0.4 : 1);
-    });
-    return m;
-}
-function groundDecal(name, pos, { width = 4, life = 1, grow = 0.4, opacity = 0.9, spin = 0 } = {}) {
-    const T = tex(name);
-    const m = waterSprite(name, width / T.aspect, { opacity });
-    m.rotation.x = -Math.PI / 2;
-    m.position.set(pos.x, FLOOR + 0.04, pos.z ?? 0);
-    addAnim(m, life, (p, fx) => {
-        const s = 0.5 + easeOut(Math.min(1, p / 0.4)) * 0.5 * (1 + grow);
+        const s = 0.55 + easeOut(Math.min(1, p / 0.25)) * (0.45 + grow * p);
         fx.mesh.scale.set(s, s, 1);
-        fx.mesh.rotation.z += spin * 0.016;
-        fx.mesh.material.opacity = opacity * (p > 0.6 ? (1 - p) / 0.4 : 1);
+        fx.mesh.position.y = y0 + rise * p;
+        fx.mesh.material.opacity = opacity * fadeInOut(p, 0.08, 0.65);
     });
     return m;
-}
-function flash(pos, { color = AQUA, size = 1.4, y = 1.0, life = 0.25 } = {}) {
-    const c = fxPlane(glowTexture(), size, size, { color });
-    c.position.set(pos.x, (pos.y ?? 0) + y, (pos.z ?? 0) + 0.65);
-    addAnim(c, life, (p, fx) => { fx.mesh.scale.setScalar(0.6 + easeOut(p) * 1.1); fx.mesh.material.opacity = 1 - p; });
 }
 
-/** Đánh thường: giọt nước bay từ `from` tới `to` (vòng cung nhẹ), chạm thì bắn tung */
+// ------------------------------------------------------------
+// ĐÁNH THƯỜNG: giọt nước bay ra từ đầu dải lụa -> trúng thì nước bắn tung
+// ------------------------------------------------------------
+/** Giọt nước bay (4 khung lặp) từ `from` tới `to` (vòng cung nhẹ), chạm thì gọi onHit */
 export function spawnWaterBolt(from, to, { duration = 0.18, onHit } = {}) {
-    const m = waterSprite('drop', 0.45);
-    const dx = to.x - from.x, dy = (to.y ?? 1) - (from.y ?? 1);
-    m.scale.x = dx < 0 ? -1 : 1;
+    const m = frames('dropFly', 0.5);
+    const glow = fxPlane(glowTexture(), 0.75, 0.75, { color: WATER, opacity: 0.45 });
+    const g = new THREE.Group();
+    g.add(glow, m);
+    const dx = to.x - from.x, dy = (to.y ?? 1) - (from.y ?? 1), left = dx < 0;
+    m.scale.x = left ? -1 : 1;
+    const z0 = (from.z ?? 0) + 0.1, z1 = (to.z ?? 0) + 0.6;
+    const ph = Math.random() * 4;
     let hit = false;
-    addAnim(m, duration, (p, fx) => {
-        fx.mesh.position.set(from.x + dx * p, (from.y ?? 1) + dy * p + Math.sin(p * Math.PI) * 0.35, ((from.z ?? 0) + ((to.z ?? 0) - (from.z ?? 0)) * p) + 0.7);
-        fx.mesh.rotation.z = Math.atan2(dy + Math.cos(p * Math.PI) * 0.35 * Math.PI, Math.abs(dx)) * (dx < 0 ? -1 : 1) * 0.6;
+    addAnim(g, duration, (p, fx) => {
+        const arc = Math.sin(p * Math.PI) * 0.3;
+        fx.mesh.position.set(from.x + dx * p, (from.y ?? 1) + dy * p + arc, z0 + (z1 - z0) * p);
+        // nghiêng theo hướng bay (đạo hàm vòng cung)
+        const slope = (dy + Math.cos(p * Math.PI) * 0.3 * Math.PI) / Math.max(0.5, Math.abs(dx));
+        m.rotation.z = Math.atan(slope) * (left ? -1 : 1) * 0.7;
+        setFx(m, loopFrame(p * duration, 18, 4, ph));
         if (p >= 1 && !hit) { hit = true; onHit?.(); }
     });
 }
-export function spawnSplash(pos, { size = 1.1 } = {}) {
-    pop('splash', pos, { size, life: 0.35, y: 1.0, grow: 0.3 });
+/** Nước bắn tung (4 khung): mặc định trên ngực mục tiêu; ground: true -> trên mặt đất (dừng điệu múa) */
+export function spawnSplash(pos, { size = 1.1, ground = false } = {}) {
+    const H = 1.25 * size;
+    const m = frames('splash', H, { opacity: 0 });
+    m.position.set(pos.x, ground ? FLOOR + 0.02 : (pos.y ?? 0) + 0.2, (pos.z ?? 0) + 0.65);
+    addAnim(m, 0.42, (p, fx) => {
+        setFx(fx.mesh, seqFrame(p, [0.7, 1, 1, 1.1]));
+        fx.mesh.material.opacity = fadeInOut(p, 0.05, 0.8);
+    });
+    flash(pos, { size: 0.9 * size, y: ground ? 0.3 : 0.75, life: 0.2 });
 }
 
-/** Bắt đầu điệu múa: vòng sóng lụa xoáy quanh người + vòng thuỷ triều / ấn hoa sen dưới chân */
+// ------------------------------------------------------------
+// VÀO ĐIỆU MÚA (mọi điệu): vòng sóng nước bung quanh Nerissa lúc xoay (khung chính 0,3s)
+// ------------------------------------------------------------
 export function spawnDanceStart(pos, dance, dir = 1) {
-    const H = 2.6;
-    const ring = waterSprite('ring0', H);
-    ring.position.set(pos.x, FLOOR + H * 0.5 + 0.2, (pos.z ?? 0) + 0.75);
-    let cur = 'ring0';
-    addAnim(ring, 0.6, (p, fx) => {
-        const n = 'ring' + Math.min(2, Math.floor(p * 3));
-        if (n !== cur) { cur = n; setFrame(fx.mesh, n, H); }
-        fx.mesh.scale.set(dir, 1, 1);
-        fx.mesh.material.opacity = p > 0.65 ? (1 - p) / 0.35 : 1;
+    const H = dance === 3 ? 3.4 : 3.0;
+    const m = frames('danceWave', H, { opacity: 0 });
+    m.position.set(pos.x, FLOOR, (pos.z ?? 0) + 0.35);
+    m.scale.x = dir;
+    addAnim(m, 0.8, (p, fx) => {
+        setFx(fx.mesh, seqFrame(p, [0.8, 1.1, 1, 1.2]));
+        fx.mesh.material.opacity = 0.92 * fadeInOut(p, 0.06, 0.75);
     });
-    if (dance === 1) { groundDecal('tideRing', pos, { width: 4.5, life: 1.0 }); pop('manaRise', pos, { size: 2.2, life: 0.9, y: 1.1, rise: 0.6 }); }
-    if (dance === 2) { groundDecal('tideRing', pos, { width: 3.6, life: 0.9 }); pop('healRain', pos, { size: 2.4, life: 0.9, y: 1.2 }); }
-    if (dance === 3) {
-        groundDecal('lotus', pos, { width: 5.2, life: 1.4, grow: 0.3 });
-        pop('heart', pos, { size: 0.8, life: 1.0, y: 3.3, rise: 0.4 });
-        spawnShockwave(pos, { color: AQUA, radius: 4, life: 0.6 });
-    }
+    if (dance === 1) spawnManaRise(pos, { size: 1.4, opacity: 0.9 });                 // Sóng Triều: MP bay lên
+    if (dance === 2) spawnHealRain(pos);                                                // Lưu Thủy: mưa hồi máu
+    if (dance === 3) spawnShockwave(pos, { color: AQUA, radius: 4, life: 0.6 });        // Thủy Thần Vũ: sóng lan (Thủy Thần hiện sau lưng — makeGoddessAura)
     flash(pos, { size: 2.2, y: 1.2 });
 }
 
-/** Sóng Triều: MP bay lên trên đồng đội (mỗi lần nhận MP) */
+/** Sóng Triều: giọt MP bay lên trên đồng đội (mỗi nhịp nhận MP) */
 export function spawnManaRise(pos, { size = 1.5, opacity = 0.85 } = {}) {
-    pop('manaRise', pos, { size, life: 0.7, y: 1.2, rise: 0.5, opacity });
+    const H = 1.7 * size;
+    const m = frames('manaRise', H, { opacity: 0 });
+    m.position.set(pos.x, FLOOR, (pos.z ?? 0) + 0.5);
+    addAnim(m, 0.9, (p, fx) => {
+        fx.mesh.position.y = FLOOR + 0.5 * easeOut(p);
+        fx.mesh.scale.set(1, 0.85 + 0.25 * easeOut(p), 1);
+        fx.mesh.material.opacity = opacity * fadeInOut(p, 0.15, 0.55);
+    });
 }
-/** Lưu Thủy: mưa nước hồi máu rơi trên đồng đội */
+/** Lưu Thủy: mưa nước hồi máu rơi trên đồng đội (mây + giọt nước + cánh hoa, 4 khung lặp) */
 export function spawnHealRain(pos) {
-    pop('healRain', pos, { size: 1.9, life: 0.6, y: 1.3, grow: 0.1, opacity: 0.9 });
+    // cao hơn người một chút: mây nằm trên đầu, mưa rơi phủ người (mờ vừa để vẫn thấy mặt)
+    const m = frames('healRain', 3.7, { opacity: 0 });
+    m.position.set(pos.x, FLOOR, (pos.z ?? 0) + 0.45);
+    const ph = Math.random() * 4;
+    addAnim(m, 0.95, (p, fx) => {
+        setFx(fx.mesh, loopFrame(p * 0.95, 9, 4, ph));
+        fx.mesh.material.opacity = 0.72 * fadeInOut(p, 0.12, 0.7);
+    });
 }
-/** Nốt nhạc bay từ Nerissa tới `getTo()` (đối thủ: nốt xanh ; đồng đội: khoá Sol vàng nhẹ) */
+
+// ------------------------------------------------------------
+// CẢ 3 ĐIỆU: nốt nhạc bay tới đối thủ (−M.DEF) / đồng đội (+sát thương phép, giải khống chế)
+// ------------------------------------------------------------
+/** Nốt nhạc bay từ Nerissa tới `getTo()` (đối thủ: nốt đơn / 2 nốt / nốt đen ; đồng đội: khoá Sol) */
 export function spawnNote(from, getTo, { ally = false, duration = 0.35, kind = 0, onHit } = {}) {
-    const name = 'note' + (ally ? 2 : kind % 2);
-    const m = waterSprite(name, ally ? 0.6 : 0.7);
+    const name = ally ? 'note4' : 'note' + (1 + (kind % 3));
+    const m = frames(name, ally ? 0.7 : 0.8);
     const a = { x: from.x, y: (from.y ?? 0) + 2.2, z: (from.z ?? 0) + 0.9 };
     const lift = 0.8 + Math.random() * 0.8;
     addAnim(m, duration, (p, fx) => {
@@ -135,75 +149,104 @@ export function spawnNote(from, getTo, { ally = false, duration = 0.35, kind = 0
         if (p >= 1 && onHit) { const f = onHit; onHit = null; f(); }
     });
 }
-/** Nốt nhạc trúng: biểu tượng nhỏ −M.DEF (đối thủ) / +sát thương phép (đồng đội) */
+/** Nốt nhạc trúng: biểu tượng −M.DEF (đối thủ) / +sát thương (đồng đội) trên đầu */
 export function spawnNoteMark(pos, ally = false) {
-    pop(ally ? 'matkUp' : 'mdefDown', pos, { size: 0.65, life: 0.8, y: 3.0, rise: 0.35, additive: false });
+    pop(ally ? 'atkUp' : 'mdefDown', pos, { size: 0.75, life: 0.9, y: 3.0, rise: 0.35 });
 }
-/** Giải khống chế: xiềng xích vỡ */
+/** Giải khống chế: xiềng xích nước tối vỡ tan thành giọt nước */
 export function spawnCleanseChains(pos) {
-    pop('cleanse', pos, { size: 1.5, life: 0.55, y: 1.1, grow: 0.4 });
+    pop('cleanse', pos, { size: 1.6, life: 0.6, y: 0.8, grow: 0.35 });
 }
-/** Hút Orb đối thủ (Hòa Âm 2+3) */
+/** Hòa Âm 2+3: Orb đối thủ bị xoáy nước hút đi */
 export function spawnOrbDrain(pos) {
-    pop('drain', pos, { size: 1.0, life: 0.7, y: 2.9, rise: -0.4 });
+    pop('orbDrain', pos, { size: 1.15, life: 0.8, y: 2.6, rise: -0.4 });
 }
-/** Giáp nước vừa xuất hiện (Hòa Âm 1+2) */
+/** Hòa Âm 1+2: giáp nước vừa xuất hiện (bong bóng thành hình) */
 export function spawnWaterShieldPop(pos, { height = 2.9 } = {}) {
-    const m = waterSprite('bubble', height * 1.05, { opacity: 0.8 });
-    m.position.set(pos.x, FLOOR + height * 0.5, (pos.z ?? 0) + 0.55);
-    addAnim(m, 0.45, (p, fx) => { const s = 0.7 + easeOut(p) * 0.35; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 0.8 * (1 - p); });
+    const m = frames('bubble', height * 1.2, { opacity: 0 });
+    m.position.set(pos.x, FLOOR, (pos.z ?? 0) + 0.5);
+    addAnim(m, 0.5, (p, fx) => {
+        setFx(fx.mesh, p < 0.5 ? 0 : 1);
+        const s = 0.8 + easeOut(p) * 0.25;
+        fx.mesh.scale.set(s, s, 1);
+        fx.mesh.material.opacity = 0.6 * fadeInOut(p, 0.1, 0.6);
+    });
 }
-/** Orb cả đội (Hòa Âm 1+2+3 / Triều Dâng): giọt nước sáng + MP bay lên */
+/** Orb cả đội (Hòa Âm 1+2+3 / Triều Dâng): Orb xanh vàng bung sáng + MP bay lên */
 export function spawnOrbGift(pos) {
-    pop('manaRise', pos, { size: 1.8, life: 0.8, y: 1.3, rise: 0.6 });
+    pop('orbGift', pos, { size: 1.0, life: 0.8, y: 2.5, rise: 0.4 });
+    spawnManaRise(pos, { size: 1.1, opacity: 0.7 });
     spawnRisingSparkles(pos, { count: 10, color: WATER, radius: 0.8 });
 }
 
-/** Bong bóng giáp nước bao quanh 1 nhân vật khi còn giáp (gắn vào view) */
+// ------------------------------------------------------------
+// HIỆU ỨNG BÁM NGƯỜI (CutoutCharacterView._updateWaterFx gắn vào view, gốc ở mặt đất) — update(dt, k) với k = độ hiện 0..1
+// ------------------------------------------------------------
+/** Bong bóng giáp nước quanh 1 nhân vật khi còn giáp (sáng theo máu giáp còn lại) */
 export function makeWaterBubble(height = 2.9) {
     const g = new THREE.Group();
-    const dome = waterSprite('bubble', height * 1.05, { opacity: 0 });
-    dome.position.set(0, height * 0.5 - 0.1, 0.55);
+    const dome = frames('bubble', height * 1.2, { opacity: 0, frame: 1 });
+    dome.position.set(0, -0.06, 0.5);
     g.add(dome);
     let t = 0;
     return {
         group: g,
         update(dt, k, frac = 1) {
             t += dt;
-            dome.material.opacity = k * (0.16 + 0.24 * frac) * (0.9 + 0.1 * Math.sin(t * 4));
-            g.scale.setScalar(1 + 0.02 * Math.sin(t * 3));
+            setFx(dome, 1 + loopFrame(t, 3, 3));
+            dome.material.opacity = k * (0.22 + 0.28 * frac);   // còn thấy rõ người bên trong
         },
         dispose() { g.parent?.remove(g); },
     };
 }
-/** Hào quang Thủy Thần sau lưng Nerissa + ấn hoa sen xoay dưới chân (khi Thủy Thần Vũ) */
+/** Thủy Thần Vũ: nữ thần nước hiện ra sau lưng Nerissa (4 khung) rồi giữ lặp suốt điệu múa */
 export function makeGoddessAura() {
     const g = new THREE.Group();
-    const H = 3.6;
-    const aura = waterSprite('goddess', H, { opacity: 0 });
-    aura.position.set(0, H * 0.5 - 0.15, -0.5);
-    const T = tex('lotus');
-    const lotus = waterSprite('lotus', 3.2 / T.aspect, { opacity: 0 });
-    lotus.rotation.x = -Math.PI / 2;
-    lotus.position.y = 0.05;
-    g.add(lotus, aura);
+    const H = 4.6;
+    const god = frames('goddessRise', H, { opacity: 0 });
+    god.position.set(0, -0.08, -0.7);
+    g.add(god);
+    let t = 0, hold = null;
+    return {
+        group: g,
+        update(dt, k) {
+            t += dt;
+            if (t < 0.8) { setFx(god, seqFrame(t / 0.8, [1, 1, 0.9, 1.1])); god.material.opacity = 0.95 * k; return; }
+            if (!hold) { hold = frames('goddessHold', H, { opacity: 0 }); hold.position.copy(god.position); g.remove(god); g.add(hold); }
+            setFx(hold, loopFrame(t, 4, 4));
+            hold.material.opacity = 0.9 * k;
+        },
+        dispose() { g.parent?.remove(g); },
+    };
+}
+/** Sóng Triều / Lưu Thủy: vòng thủy triều / vòng hoa sen dưới chân Nerissa suốt điệu múa (nửa sau sau lưng, vành trước trước chân) */
+export function makeDanceRing(group = 'tideRing') {
+    const g = new THREE.Group();
+    const W = group === 'lotusRing' ? 2.6 : 2.8;
+    const sz = FX.groups[group].size, H = (W * sz[1]) / sz[0];
+    // gốc hình = đáy giữa: đáy chạm đất (phần dưới mặt đất sẽ bị cỏ che) -> vành trước nằm ngay trước chân
+    const back = frames(group, H, { opacity: 0 });
+    const front = frontArc(group, H, 0.32, { opacity: 0 });
+    back.position.set(0, FLOOR + 0.01, -0.35);
+    front.position.set(0, FLOOR + 0.01, 0.35);
+    g.add(back, front);
     let t = 0;
     return {
         group: g,
         update(dt, k) {
             t += dt;
-            aura.material.opacity = 0.28 * k * (0.85 + 0.15 * Math.sin(t * 3));
-            aura.scale.set(1 + 0.03 * Math.sin(t * 2.2), 1 + 0.04 * Math.sin(t * 2.7), 1);
-            lotus.material.opacity = 0.6 * k;
-            lotus.rotation.z += dt * 0.5;
+            const s = 1 + 0.03 * Math.sin(t * 2.4);
+            back.scale.set(s, s, 1); front.scale.set(s, s, 1);
+            back.material.opacity = 0.85 * k;
+            front.material.opacity = 0.85 * k;
         },
         dispose() { g.parent?.remove(g); },
     };
 }
-/** Nốt nhạc bay vòng quanh Nerissa khi cả 3 điệu múa cùng chạy */
+/** Cả 3 điệu: 4 nốt nhạc nước bay vòng quanh Nerissa */
 export function makeNoteHalo() {
     const g = new THREE.Group();
-    const notes = [0, 1, 2, 0].map((k, i) => { const m = waterSprite('note' + k, 0.5, { opacity: 0 }); g.add(m); return m; });
+    const notes = ['note1', 'note2', 'note3', 'note4'].map(n => { const m = frames(n, 0.55, { opacity: 0 }); g.add(m); return m; });
     let t = 0;
     return {
         group: g,
@@ -211,7 +254,7 @@ export function makeNoteHalo() {
             t += dt;
             notes.forEach((n, i) => {
                 const a = t * 1.8 + (i / notes.length) * Math.PI * 2;
-                n.position.set(Math.cos(a) * 1.2, 1.6 + Math.sin(a * 2) * 0.5, Math.sin(a) * 0.6 + 0.3);
+                n.position.set(Math.cos(a) * 1.2, 1.4 + Math.sin(a * 2) * 0.5, Math.sin(a) * 0.6 + 0.3);
                 n.material.opacity = k * (0.6 + 0.4 * (Math.sin(a) * 0.5 + 0.5));
             });
         },

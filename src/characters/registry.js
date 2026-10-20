@@ -14,6 +14,7 @@ import { FrameSpriteView } from './FrameSpriteView.js';
 import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
 import { ROK_SPRITE } from './sprite/rokSprite.js';
 import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
+import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { makeDivineShield } from '../vfx/rokFx.js';
 import { makeStealthAura } from '../vfx/jessicaFx.js';
 import { PlaceholderCharacterView } from './PlaceholderCharacterView.js';
@@ -260,6 +261,10 @@ const DANCER = {
     blink: true,
     ghostTint: 0x5eead4,
     circleTint: 0x38bdf8,
+    // Kiểu sprite (bản 3: vũ công nước chibi) — ?nerissa=cutout về bản khung xương, ?nerissaIdle=A|B|C đổi cách đứng
+    sprite: NERISSA_SPRITE,
+    spriteParam: 'nerissa',
+    spriteIdleParam: 'nerissaIdle',
     anims: {
         attack: { clip: 'attack', hitTime: 0.24 },   // vung lụa bắn giọt nước
         spin:   { clip: 'spin',   hitTime: 0.3 },    // xoay người vào điệu múa

@@ -2,9 +2,45 @@
 chcp 65001 >nul
 REM ============================================================
 REM  Đẩy toàn bộ dự án lên GitHub (https://github.com/Newwyn/Game)
-REM  Bấm đúp file này. Lần đầu: dọn file cũ không dùng nữa rồi commit + push.
+REM  Bấm đúp file này: dọn file cũ không dùng nữa rồi commit + push.
+REM  Thư mục tải bằng ZIP (chưa có .git): lần đầu tự nối với GitHub, giữ nguyên file trên máy.
 REM ============================================================
 cd /d "%~dp0"
+
+where git >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo *** May chua cai Git. Tai tai https://git-scm.com/download/win
+  echo     Cai xong - bam Next het - roi bam dup lai file nay.
+  echo.
+  pause
+  exit /b 1
+)
+
+if not exist ".git" (
+  echo.
+  echo [0/4] Lan dau: noi thu muc nay voi GitHub - giu nguyen file tren may...
+  git init -q
+  git remote add origin https://github.com/Newwyn/Game.git
+  git fetch -q origin main
+  if errorlevel 1 (
+    rmdir /s /q .git
+    echo.
+    echo *** Khong tai duoc tu GitHub. Kiem tra mang roi bam dup lai file nay.
+    echo.
+    pause
+    exit /b 1
+  )
+  git reset -q origin/main
+  git branch -M main
+  git branch -q -u origin/main
+)
+
+REM Ten + email ghi trong commit: may moi chua co thi dung ten tai khoan GitHub cu
+git config user.name >nul 2>&1
+if errorlevel 1 git config user.name "newwyn"
+git config user.email >nul 2>&1
+if errorlevel 1 git config user.email "newwyn2410@gmail.com"
 
 echo.
 echo [1/4] Don cac file cu khong con dung (3D, sprite cu, public/, tool 3D, model Tripo)...
@@ -22,6 +58,20 @@ for %%F in (
   "tools\rig_character.py"
   "src\assets\sprites\ignar_fx.png"
   "src\vfx\ignarFx.json"
+  "src\assets\sprites\nerissa_fx.png"
+  "src\vfx\nerissaFx.json"
+  "src\characters\cutout\rokRig.js"
+  "src\characters\cutout\rokAtlas.json"
+  "src\assets\sprites\rok_atlas.png"
+  "tools\fx-lion.html"
+  "tools\fx-guardian.html"
+  "Claude outputs\ignar_hieu_ung_khung_chinh-1.jpg"
+  "Claude outputs\ignar_hieu_ung_moi-1.mp4"
+  "Claude outputs\ignar_sprite_3_cach_dung-1.gif"
+  "Claude outputs\ignar_sprite_soi_khung-1.png"
+  "Claude outputs\ignar_sprite_vs_khungxuong_phongto-1.gif"
+  "Claude outputs\nerissa_hieu_ung_moi-1.mp4"
+  "Claude outputs\nerissa_sprite_moi_dong_tac-1.mp4"
   "src\assets\sprites\ignar_sprite.png"
   "src\assets\sprites\ignar_fx2.png"
   "make_gdd_word.js"

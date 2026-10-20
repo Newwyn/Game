@@ -12,6 +12,8 @@ import { textureView } from './texView.js';
 
 export const FLOOR = -0.45;
 
+const ALL = [];   // mọi flipbook đã tạo (để tải sẵn atlas lên card đồ hoạ lúc vào trận — warmFlipbooks)
+
 export function makeFlipbook(url, meta) {
     let base = null;
     const cache = {};
@@ -58,7 +60,18 @@ export function makeFlipbook(url, meta) {
         m.scale.set(2 * r / aspect, 1.5 * r, 1);
         return m;
     }
-    return { tex, count, frames, set, decal, meta };
+    const fb = { tex, count, frames, set, decal, meta, base: () => { tex(Object.keys(meta.groups)[0]); return base; } };
+    ALL.push(fb);
+    return fb;
+}
+
+/** Tải sẵn mọi atlas hiệu ứng lên card đồ hoạ (gọi lúc dựng trận, trong lúc đếm ngược). Không tải sẵn thì lần ĐẦU một kỹ năng
+ *  hiện hiệu ứng, cả atlas 4096×1024 (~16 MB + mipmap) mới được tải lên giữa trận -> khựng 1 nhịp. */
+export function warmFlipbooks(renderer) {
+    for (const fb of ALL) {
+        const b = fb.base();
+        if (b?.image?.complete !== false && b?.image) renderer.initTexture(b);
+    }
 }
 
 /** Khung lặp theo thời gian t (giây), `fps` khung/giây, n khung, lệch pha `phase` khung */

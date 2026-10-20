@@ -1,7 +1,8 @@
 // ============================================================
 // BATTLE SCENE — dựng trận, đồng bộ trạng thái server, điều khiển camera
 // ============================================================
-import { scene, camera, clearDynamicObjects } from '../core/scene.js';
+import { scene, camera, renderer, clearDynamicObjects } from '../core/scene.js';
+import { warmFlipbooks } from '../vfx/flipbook.js';
 import { cameraRig } from '../core/cameraRig.js';
 import { game, myId, forEachView } from '../state.js';
 import { gameNow } from '../config.js';
@@ -57,6 +58,8 @@ export function buildBattleScene(data) {
         );
     }
     playBattleIntro(me);
+    // tải sẵn atlas hiệu ứng lên card đồ hoạ trong lúc đếm ngược (khỏi khựng lần đầu tung kỹ năng)
+    try { warmFlipbooks(renderer); } catch (e) { console.warn('warmFlipbooks', e); }
 }
 
 /**

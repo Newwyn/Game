@@ -2,7 +2,10 @@
 // CẢNH QUAN ĐẤU TRƯỜNG — cây, đá, bụi hoa quanh rìa (giải thích "bức tường vô hình")
 // ============================================================
 // Dựng bằng khối cơ bản + toon shading cho cùng phong cách với nhân vật.
+// HIỆU NĂNG: ~70 cây × (thân + 4 tán) × 2 (viền) = ~700 lần vẽ mỗi khung nếu để từng khối riêng (máy yếu tụt FPS rõ).
+// Cảnh quan đứng yên nên dựng xong thì GỘP mọi khối cùng vật liệu thành 1 khối (bake) -> còn ~30 lần vẽ, hình y hệt.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { scene } from './scene.js';
 import { toonMaterial, addOutline } from '../render/toon.js';
 import { GROUND_Y } from '../config.js';
@@ -80,14 +83,45 @@ function makeBush(scale) {
 
 // Đồ trang trí phía trước (gần camera): ẩn khi camera nhìn ngang để không che trận đấu
 const frontProps = [];
+const backProps = [];
 
-function place(obj, x, z) {
+function place(obj, x, z, list = backProps) {
     obj.position.x = x;
     obj.position.z = z;
     obj.position.y += GROUND_Y;
-    obj.userData.persistent = true;
-    obj.traverse(o => { o.userData.persistent = true; });
-    scene.add(obj);
+    obj.updateMatrixWorld(true);
+    list.push(obj);
+}
+
+/** Gộp mọi khối của `objects` theo vật liệu (viền: theo màu + độ dày) thành ít khối lớn đã đặt sẵn vị trí -> 1 Group */
+function bake(objects) {
+    const buckets = new Map();   // khoá -> { material, geos, renderOrder }
+    for (const root of objects) {
+        root.traverse(o => {
+            if (!o.isMesh) return;
+            const m = o.material;
+            const key = (o.userData.isOutline
+                ? 'o' + m.uniforms.outlineColor.value.getHexString() + m.uniforms.thickness.value
+                : 'm' + m.uuid) + (o.geometry.index ? 'i' : 'n');
+            if (!buckets.has(key)) buckets.set(key, { material: m, geos: [], renderOrder: o.renderOrder });
+            // chỉ giữ thuộc tính chung (vị trí, pháp tuyến, uv) để gộp được mọi loại khối
+            const g = new THREE.BufferGeometry();
+            for (const a of ['position', 'normal', 'uv']) g.setAttribute(a, o.geometry.getAttribute(a).clone());   // bản sao: khối gốc dùng chung
+            if (o.geometry.index) g.setIndex(o.geometry.index);
+            buckets.get(key).geos.push(g.applyMatrix4(o.matrixWorld));
+        });
+    }
+    const group = new THREE.Group();
+    for (const { material, geos, renderOrder } of buckets.values()) {
+        const merged = new THREE.Mesh(mergeGeometries(geos), material);
+        merged.renderOrder = renderOrder;
+        merged.matrixAutoUpdate = false;
+        group.add(merged);
+        geos.forEach(g => g.dispose());
+    }
+    group.userData.persistent = true;
+    group.traverse(o => { o.userData.persistent = true; });
+    return group;
 }
 
 /** Dựng cảnh quan một lần khi khởi động */
@@ -106,15 +140,19 @@ export function buildEnvironment() {
     // Phía trước (gần camera): chỉ đá + bụi thấp để không che nhân vật
     for (let x = BOUNDS.minX; x <= BOUNDS.maxX; x += 3 + rand() * 3) {
         const prop = rand() > 0.55 ? makeRock(0.5 + rand() * 0.5) : makeBush(0.8 + rand() * 0.4);
-        place(prop, x, BOUNDS.maxZ + 1.6 + rand() * 1.5);
-        frontProps.push(prop);
+        place(prop, x, BOUNDS.maxZ + 1.6 + rand() * 1.5, frontProps);
     }
-    const syncFront = (mode) => frontProps.forEach(p => { p.visible = mode !== 'combat'; });
-    syncFront(cameraRig.getMode());
-    cameraRig.onModeChange(syncFront);
 
     // Vài tảng đá, bụi hoa lác đác ngoài rìa sau
     for (let i = 0; i < 14; i++) {
         place(makeRock(0.5 + rand() * 0.9), BOUNDS.minX + rand() * (BOUNDS.maxX - BOUNDS.minX), BOUNDS.minZ - 1.2 - rand() * 1.2);
     }
+
+    // Gộp: phía sau + hai bên (luôn hiện) · phía trước (ẩn khi camera nhìn ngang)
+    scene.add(bake(backProps));
+    const front = bake(frontProps);
+    scene.add(front);
+    const syncFront = (mode) => { front.visible = mode !== 'combat'; };
+    syncFront(cameraRig.getMode());
+    cameraRig.onModeChange(syncFront);
 }

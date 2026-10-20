@@ -5,7 +5,7 @@
        char = mage (Ignar) | warrior (Rok) | assassin (Jessica) | archer (Lyra) | priest (Seraphine) | reaper (Zerith)
               wrestler (Brakk) | dancer (Nerissa) | elementalist (Elarion) | elem_golem (Golem)
        &ignar=cutout (hoặc tham số của nhân vật khác): xem bản khung xương để so
-       &only=attack,bash : chỉ xem vài động tác · &left=1 quay trái · &zoom=1.6 · &speed=0.5 · &auto=1 tự chạy lặp
+       &only=attack,bash : chỉ xem vài động tác (Nerissa: &only=dance xem 7 điệu múa, &dances=1,123 chọn điệu) · &left=1 quay trái · &zoom=1.6 · &speed=0.5 · &auto=1 tự chạy lặp
      Đánh thường gọi đúng hàm của game (cầu lửa, bùa, mũi tên...). Kỹ năng: chạy động tác + loé đơn giản ở mốc ra đòn
      (hiệu ứng thật của từng kỹ năng xem ở tools/fx-<tên>.html). -->
 <script>
@@ -84,6 +84,18 @@ for (const [name, a] of Object.entries(def.anims ?? {})) {
     at(tt, () => v.playAction(name, { onHit: () => { window.hitAt.push(+(window.__vt - tt0[name]).toFixed(3)); spawnHitSpark(t.position, { count: 7, color: 0xffe08a }); spawnShockwave(t.position, { color: 0xffffff, radius: 1.2, life: 0.3 }); t.flashHit?.(); } }));
     tt0[name] = tt; tt += Math.max(1.0, durOf(clip) + 0.5);
   }
+}
+// Nerissa: 7 điệu múa (trạng thái 'dancing' + danceKey, như server gửi) — &only=dance để chỉ xem múa, &dances=1,123 chọn điệu
+if (CHAR === 'dancer' && want('dance')) {
+  const keys = (q.get('dances') || '1,2,3,12,13,23,123').split(',');
+  const names = { 1: 'Sóng Triều', 2: 'Lưu Thủy', 3: 'Thủy Thần', 12: '1+2', 13: '1+3', 23: '2+3', 123: 'cả 3 điệu' };
+  const per = +(q.get('dancefor') || 3.2);
+  for (const k of keys) {
+    say(tt, `Múa ${k} · ${names[k] ?? ''}`);
+    at(tt, () => { hero.state = 'dancing'; hero.danceKey = k; v.setLocomotion('dance' + k); });
+    tt += per;
+  }
+  at(tt, () => { hero.state = 'idle'; hero.danceKey = null; v.setLocomotion('idle'); }); tt += 0.6;
 }
 if (want('hurt')) { say(tt, 'Trúng đòn'); at(tt, () => { v.setLocomotion('idle'); v.playHurt(); }); tt += 0.8; }
 if (want('stunned')) {

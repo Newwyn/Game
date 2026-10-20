@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import fxUrl from '../assets/sprites/ignar_fx2.webp';
 import FX from './ignarFx2.json';
-import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, spawnShockwave } from './vfx.js';
+import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, spawnShockwave, fxBudget } from './vfx.js';
 
 import { makeFlipbook, FLOOR, loopFrame, weighted, fadeInOut } from './flipbook.js';
 
@@ -123,6 +123,7 @@ export function spawnMeteorImpact(x, z, { size = 4.2, radius = 5.5 } = {}) {
 
 /** Tàn lửa nhỏ bay lên (dùng chung — Elarion) */
 export function spawnEmbers(x, z, { count = 16, radius = 2, life = 1, y = FLOOR + 0.3 } = {}) {
+    count = fxBudget(count, 4);
     for (let i = 0; i < count; i++) {
         const sp = fxPlane(glowTexture(), 0.16, 0.16, { color: Math.random() < 0.5 ? 0xffb347 : 0xff5a1a });
         const a = Math.random() * Math.PI * 2, r = Math.random() * radius;

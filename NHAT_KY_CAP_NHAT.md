@@ -5,6 +5,33 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 20/10/2026 — Giảm lag / tụt FPS + dọn file cũ
+- **Cảnh nền:** cây, đá, bụi gộp lại → từ ~660 xuống ~24 lần vẽ mỗi khung (nhìn y hệt).
+- **Màn hình độ phân giải cao** (laptop chỉnh 150–200%): vẽ tối đa 1,5 điểm ảnh / điểm → bớt tới ~44% điểm ảnh phải tô.
+- **Hết giật giữa trận:** shader không bị xoá rồi biên dịch lại mỗi lần hiệu ứng xuất hiện; atlas hiệu ứng tải lên GPU ngay lúc vào trận.
+- **Hiệu ứng đông:** mặt phẳng trong suốt chỉ vẽ 1 lần (trước vẽ 2 lần + tính lại shader mỗi khung); khi trên sân quá nhiều tia lửa / đốm sáng thì hiệu ứng phụ tự giảm bớt; tối đa 36 số sát thương cùng lúc.
+- Kết quả đo (4v4 tự đánh): số lần vẽ mỗi khung 666 → 230 (lúc đông 1.110 → 355), thời gian xử lý mỗi khung 19 → 7,5ms.
+- **Dọn file không dùng:** Rok bản 1 (`rokRig.js`, `rokAtlas.json`, `rok_atlas.png`), trang thử cũ `tools/fx-lion.html`, `tools/fx-guardian.html` (đã thêm vào danh sách dọn của `cap_nhat_github.bat`).
+
+## 20/10/2026 — Nerissa bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 13 tấm sprite (104 khung) + 5 tấm hiệu ứng + ảnh chân dung màn chọn đội.
+- **Động tác:** đứng, thủ thế, quất lụa, chạy, trúng đòn, choáng, xoay vào điệu, rơi vào trận, gục, thắng và **đủ 7 điệu múa** (Sóng Triều, Lưu Thủy, Thủy Thần, 1+2, 1+3, 2+3, cả 3). Dải lụa vẽ sẵn trong tranh nên bỏ dải lụa lò xo cũ.
+- **Khớp mốc cũ:** quất lụa 0,24s (giọt nước bay ra đúng **đầu dải lụa**) · xoay vào điệu 0,3s · mỗi điệu múa lặp đúng nhịp cũ. Sát thương, thời gian, cơ chế không đổi.
+- **Căn khung:** tua ngọc / dải lụa rủ sát đất nên căn theo **giữa váy** (hông đứng yên, chân không trượt khi múa). Khung **xoạc chân giữa không trung** (cả 3 điệu) và **nhảy mừng thắng** giữ đúng độ cao tranh vẽ.
+- **Hiệu ứng mới:**
+  - Đánh thường: giọt nước bay xoay → nước bắn tung.
+  - Vào điệu: vòng sóng nước bung quanh người.
+  - Sóng Triều: vòng thủy triều dưới chân suốt điệu + giọt MP bay lên đồng đội.
+  - Lưu Thủy: vòng hoa sen dưới chân + mưa hồi máu (mây, giọt nước, cánh hoa) trên đồng đội được hồi.
+  - Thủy Thần Vũ: Thủy Thần hiện ra sau lưng rồi giữ suốt 10s.
+  - Hòa Âm: bong bóng giáp nước (1+2) · Orb bị xoáy nước hút (2+3) · cả 3 điệu: 4 nốt nhạc nước khác nhau, dấu −M.DEF / +ATK, xích nước vỡ khi giải khống chế · Orb tặng cả đội.
+- **Ảnh màn chọn đội:** dùng chân dung mới (Nerissa xoay một chân).
+- **Xem:** `/tools/test-sprite.html?char=dancer&auto=1` (thêm 7 điệu múa) · `/tools/fx-nerissa.html?s=d3`. Video: `Claude outputs/nerissa_sprite_moi_dong_tac.mp4`, `Claude outputs/nerissa_hieu_ung_moi.mp4`. Bản cũ: `?nerissa=cutout`.
+- **Công cụ ráp:** `sprite_pack.py` thêm mốc căn `hip`, `footBand` / `footMin`, `ground`; `fx_grid_pack.py` thêm `rect` / `feather` (cắt hình vẽ tràn sang ô bên cạnh).
+- Đã chơi thử trận AUTO (đấu với quái + đấu tướng, Nerissa cả 2 phe) + build: không lỗi.
+- **Cần xem lại (tranh):** ô 1 tấm `fx-nerissa-icons` (vòng thủy triều) AI vẽ bị **cắt cụt ở mép trái** và chạm vòng hoa sen → mình làm mờ 2 mép cho đỡ lộ; muốn đẹp hẳn thì tạo lại ô đó (vòng nằm gọn trong ô). Tấm `sprite-dance12` khung 5 là quay lưng (đúng prompt).
+- **Không còn dùng:** hiệu ứng bản 1 (`src/assets/sprites/nerissa_fx.png`, `src/vfx/nerissaFx.json`) — `cap_nhat_github.bat` tự xoá khi đẩy.
+
 ## 20/10/2026 — Nerissa bản 3: prompt vẽ lại chibi + 13 tấm sprite + 5 tấm hiệu ứng
 - **Giữ tạo hình** (bạn chọn): elf tóc xanh biển dài gợn sóng, vỏ sò ngọc trai, đồ vũ công trắng xanh ngọc viền vàng, 2 dải lụa nước — chỉ **vẽ lại chibi** cho đồng bộ cả đội.
 - **Prompt sprite** `art/nerissa/sprite/PROMPTS_SPRITE.md`: vẽ lại tạo hình + 13 tấm — đứng / thủ thế, quất lụa bắn giọt nước, chạy, trúng đòn / choáng, xoay vào điệu + rơi vào trận, **7 điệu múa mỗi điệu 1 tấm 8 khung** (Sóng Triều, Lưu Thủy, Thủy Thần, 1+2, 1+3, 2+3, cả 3), gục / thắng.

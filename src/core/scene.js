@@ -27,7 +27,25 @@ export const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+// Màn hình độ phân giải cao (laptop chỉnh 150-200%): vẽ tối đa 1,5 điểm ảnh / điểm màn hình — số điểm ảnh phải tô giảm tới ~44%,
+// nhìn gần như không khác (nhân vật / hiệu ứng là tranh, không phải chữ nhỏ)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+/** Giữ shader đã biên dịch suốt phiên chơi. Mặc định three.js xoá shader khi vật liệu cuối cùng dùng nó bị huỷ (hiệu ứng tan)
+ *  -> lần sau hiệu ứng đó hiện lại phải BIÊN DỊCH LẠI giữa trận (Windows / ANGLE: 50-200ms mỗi lần = giật). Đánh dấu "đang dùng"
+ *  thêm 1 lần cho mỗi shader để không bao giờ bị xoá (số shader có hạn, ~20-30). Gọi sau mỗi lần vẽ. */
+export function keepShaders() {
+    for (const p of renderer.info.programs ?? []) if (!p.__keep) { p.__keep = true; p.usedTimes++; }
+}
+
+/** Vật liệu trong suốt + 2 mặt (DoubleSide — hình nhân vật, tia lửa, đốm sáng...): three.js mặc định vẽ mỗi vật HAI lần
+ *  (mặt sau rồi mặt trước) và mỗi lần đổi mặt lại đánh dấu vật liệu "cần cập nhật" -> mỗi khung phải dò lại shader cho
+ *  từng mảnh (trận đông vài trăm mảnh = tốn CPU nặng). Game toàn mặt phẳng 2D nên vẽ 1 lần là đủ, nhìn không khác.
+ *  Hình khối 3D (cầu, vòm) giữ nguyên cách vẽ 2 lần. */
+const FLAT = new Set(['PlaneGeometry', 'ShapeGeometry', 'CircleGeometry', 'RingGeometry']);
+THREE.Material.prototype.onBeforeRender = function (r, s, c, geometry) {
+    if (this.side === THREE.DoubleSide && this.transparent && !this.forceSinglePass && FLAT.has(geometry?.type)) this.forceSinglePass = true;
+};
 
 // Ánh sáng kiểu "chiều nắng ấm" (tham khảo Tree of Savior): trời vàng nhạt, phản xạ xanh lá từ mặt đất.
 scene.add(new THREE.HemisphereLight(0xfff2dc, 0x4f6e38, 1.35));
@@ -102,6 +120,7 @@ export function mountRenderer(container) {
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));   // kéo cửa sổ sang màn hình khác
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 }

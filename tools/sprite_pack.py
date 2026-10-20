@@ -13,10 +13,19 @@ Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
        toe  : mũi giày trước (điểm phải nhất ở đáy) — chân trước đứng yên (đánh thường, kỹ năng, gục...)
        heel : gót giày sau (điểm trái nhất ở đáy) — chân sau đứng yên, chân trước bước tới (Hỏa Chưởng)
        body : giữa đầu — chạy, nhảy, gồng dang chân (chân di chuyển, thân đứng yên)
+       hip  : giữa VÁY TRẮNG (vùng trắng liền lớn nhất ở thân dưới) — múa tại chỗ của Nerissa: hông là trục giữ thăng bằng,
+              đầu nghiêng / quay lưng không làm cả hình trượt ngang
      cả 3 kiểu quy về cùng 1 điểm nhờ khung chuẩn "calib" (VD idle1); trục dọc luôn = đáy hình (chạm đất).
   5. Xếp atlas cắt sát từng khung (đỡ tốn bộ nhớ) + json: ô khung, gốc chân trong ô, đỉnh hình, điểm bàn tay xa (lửa / cầu lửa).
      "points" (theo tấm): điểm gắn đánh dấu tay {"số khung": {"tên": [x, y] trên tấm gốc}} -> json "pts" (VD mũi kiếm, đầu cung,
      tay cầm lụa); game đọc bằng view.pointWorld(tên). "format": "webp" -> atlas WebP (nhẹ ~3-4 lần PNG).
+  6. Tuỳ chọn thêm (Nerissa):
+     "footBand" (cả spec, px trên tấm gốc, mặc định 30): bề cao dải đáy để tìm mũi / gót giày + tâm đứng. Nhân vật có
+       tua ngọc / dải lụa rủ gần đất (Nerissa) đặt nhỏ (VD 12) để chỉ bắt đế giày, không bắt tua.
+     "footMin" (cả spec, px trên tấm gốc, mặc định 8): mảnh hẹp hơn trong dải đáy không tính là giày khi tìm tâm đứng
+       (Nerissa 24: tua ngọc rủ ngang đế giày).
+     "ground": "group" hoặc ["tên nhóm", ...] (theo tấm): trục dọc = đường đất CHUNG của cả nhóm (trung vị đáy các khung cùng hàng tấm trong nhóm, đo
+       trên tấm gốc) thay vì đáy từng khung -> khung nhảy / bật / xoạc chân giữ đúng độ cao AI vẽ (không bị kéo xuống đất).
 """
 import json, os, sys
 import numpy as np
@@ -108,14 +117,14 @@ def split_frames(rgba, min_size=20000, attach=60):
 
 class Feet:
     """Đo mốc trên 1 khung (đã co giãn): mũi giày trước, gót giày sau, giữa đầu, đáy"""
-    def __init__(self, im, off, hair_min, band_h):
+    def __init__(self, im, off, hair_min, band_h, foot_band=30):
         a = np.asarray(im)[..., 3] > 128
         self.a = a
         h = a.shape[0]
         rows = np.where(a.any(1))[0]
         self.bottom = int(rows[-1]) + 1
         self.top = int(rows[0])
-        xs = np.where(a[self.bottom - int(30 * off / 40):self.bottom].any(0))[0]
+        xs = np.where(a[self.bottom - max(2, int(foot_band * off / 40)):self.bottom].any(0))[0]
         self.toe = xs[-1] - off
         self.heel = xs[0] + off
         cnt = a.sum(1)
@@ -124,6 +133,25 @@ class Feet:
         band = a[ht:ht + band_h]
         bx = np.where(band)[1]
         self.head = float(bx.mean()) if len(bx) else (self.toe + self.heel) / 2
+        # hông = giữa váy trắng (chỉ tính khi cần: kiểu 'hip')
+        self._rgba = np.asarray(im)
+        self._hip = None
+
+    @property
+    def hip(self):
+        if self._hip is None:
+            c = self._rgba[..., :3].astype(np.int16); a = self._rgba[..., 3] > 200
+            white = a & (c.min(-1) > 205) & (c.max(-1) - c.min(-1) < 45)
+            h = self.bottom - self.top
+            white[:self.top + int(0.45 * h)] = False; white[self.top + int(0.88 * h):] = False
+            white = ndi.binary_opening(white, iterations=2)
+            lab, n = ndi.label(white)
+            if n:
+                sz = ndi.sum(white, lab, range(1, n + 1)); k = int(np.argmax(sz)) + 1
+                self._hip = float(np.where(lab == k)[1].mean())
+            else:
+                self._hip = self.head
+        return self._hip
 
 
 def hand_points(a, ax, ay, top):
@@ -154,6 +182,8 @@ def main(spec_path, debug=None):
     AS = spec.get('atlasScale', 1.0)
     off = 40 * AS                                   # nửa bề ngang giày (px, cỡ tấm attack × atlasScale)
     frames = []                                     # (tên, ảnh, kiểu mốc)
+    gy = {}                                         # tên khung -> đường đất chung của nhóm (None: đáy khung)
+    FB = spec.get('footBand', 30)                   # dải đáy tìm giày (px tấm gốc)
     for sname, sh in spec['sheets'].items():
         rgba = load_sheet(os.path.join(ROOT, sh['file']), sh.get('key', spec.get('key')))
         imgs, offs = split_frames(rgba)
@@ -166,10 +196,23 @@ def main(spec_path, debug=None):
         for g in groups:
             prefix, count, mode = g[:3]
             s = s0 * (g[3] if len(g) > 3 else 1)    # nhóm vẽ to / nhỏ hơn phần còn lại của tấm: hệ số riêng (phần tử thứ 4)
+            gnd = {}                                # "ground": "group" -> đường đất chung của nhóm theo từng HÀNG tấm (toạ độ tấm gốc)
+            gs = sh.get('ground')
+            if gs == 'group' or (isinstance(gs, list) and prefix in gs):
+                bot = {}
+                for j in range(k, k + count):
+                    rows = np.where((np.asarray(imgs[j])[..., 3] > 128).any(1))[0]
+                    hrow = int(offs[j][1] + imgs[j].height / 2 >= rgba.shape[0] / 2)
+                    bot.setdefault(hrow, []).append(offs[j][1] + int(rows[-1]) + 1)
+                # trung vị đáy các khung cùng hàng: 1 khung có tua lụa rủ thấp hơn giày không kéo cả hàng lơ lửng;
+                # khung bật nhảy / xoạc chân vẫn ở trên không
+                gnd = {r: float(np.median(v)) for r, v in bot.items()}
             for i in range(count):
                 im = imgs[k]; ox, oy = offs[k]; k += 1
+                hrow = int(oy + im.height / 2 >= rgba.shape[0] / 2)
                 if s != 1: im = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
                 fp = {n: ((x - ox) * s, (y - oy) * s) for n, (x, y) in pts.get(str(k), {}).items()}
+                gy[f'{prefix}{i + 1}'] = (gnd[hrow] - oy) * s if hrow in gnd else None
                 frames.append((f'{prefix}{i + 1}', im, mode, fp))
         print(sname, len(imgs), 'khung · scale', round(s0, 4))
     names = [f[0] for f in frames]
@@ -183,21 +226,23 @@ def main(spec_path, debug=None):
     hair_w = np.where(a0[top0 + int(25 * AS):top0 + int(95 * AS)].any(0))[0]
     hair_min = 0.5 * (hair_w[-1] - hair_w[0])       # hàng "tóc" = rộng >= nửa bề ngang tóc (tay giơ lên đầu hẹp hơn)
     band_h = int(70 * AS)
-    C = Feet(cim, off, hair_min, band_h)
+    C = Feet(cim, off, hair_min, band_h, FB)
     d_heel, d_head = C.toe - C.heel, C.toe - C.head
+    d_hip = C.toe - C.hip
     # tâm đứng (gốc nhân vật trong game) = giữa 2 giày ở khung chuẩn
-    band = a0[C.bottom - int(30 * AS):C.bottom]
+    band = a0[C.bottom - max(2, int(FB * AS)):C.bottom]
     lab, _ = ndi.label(band)
-    bl = sorted([(o[1].start, o[1].stop) for o in ndi.find_objects(lab) if o[1].stop - o[1].start > 8 * AS])
+    # "footMin" (px tấm gốc, mặc định 8): bỏ mảnh nhỏ hơn (VD tua ngọc rủ sát đất của Nerissa) khi tìm 2 chiếc giày
+    bl = sorted([(o[1].start, o[1].stop) for o in ndi.find_objects(lab) if o[1].stop - o[1].start > spec.get('footMin', 8) * AS])
     origin_dx = (bl[0][0] + bl[-1][1]) / 2 - C.toe
 
     pad = spec.get('pad', 6)
     trims, sizes, meta_f = [], [], {}
     for nm, im, mode in frames:
-        F = Feet(im, off, hair_min, band_h)
-        ax = F.toe if mode == 'toe' else F.heel + d_heel if mode == 'heel' else F.head + d_head
+        F = Feet(im, off, hair_min, band_h, FB)
+        ax = F.toe if mode == 'toe' else F.heel + d_heel if mode == 'heel' else F.hip + d_hip if mode == 'hip' else F.head + d_head
         ax += origin_dx                              # gốc = tâm đứng
-        ay = F.bottom
+        ay = F.bottom if gy.get(nm) is None else gy[nm]
         hp = hand_points(F.a, ax - origin_dx, ay, F.top)
         bb = im.getbbox()
         crop = im.crop(bb)

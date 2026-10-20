@@ -1002,7 +1002,7 @@ function onWaterFx(d) {
             break;
         case 'danceEnd':
             // dừng 1 điệu: nước bắn nhẹ (bị ngắt: bắn mạnh hơn)
-            if (caster) spawnSplash(caster.position, { size: d.reason === 'stun' || d.reason === 'dead' ? 1.6 : 1.0 });
+            if (caster) spawnSplash(caster.position, { size: d.reason === 'stun' || d.reason === 'dead' ? 1.6 : 1.0, ground: true });
             break;
     }
 }

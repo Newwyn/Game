@@ -19,7 +19,7 @@ let seals = [];
 function disposeObject(obj) {
     obj.removeFromParent();
     obj.traverse(o => {
-        o.geometry?.dispose?.();
+        if (!o.userData.sharedGeometry) o.geometry?.dispose?.();
         if (o.material) {
             if (!o.userData.sharedTexture) o.material.map?.dispose?.();
             o.material.dispose?.();
@@ -72,14 +72,28 @@ export function spawnDamageNumber(pos, value, type = 'normal') {
 
     sprite.position.set(pos.x + (Math.random() - 0.5) * 0.5, pos.y + 3, pos.z + 0.5);
     scene.add(sprite);
+    // tối đa 36 số cùng lúc: số cũ nhất mờ nhanh để nhường chỗ (trận đông từng có ~80 số chồng nhau)
+    if (damageNumbers.length >= 36) { const old = damageNumbers.find(d => d.life > 0.15); if (old) old.life = 0.15; }
     damageNumbers.push({ sprite, life: 1.2, vy: isCrit ? 0.06 : 0.04 });
 }
 
 // ------------------------------------------------------------
 // Bộ khung chung: hiệu ứng có hàm cập nhật riêng theo tiến độ 0..1
 // ------------------------------------------------------------
+// ---------- Ngân sách hiệu ứng (chống tụt FPS) ----------
+// Trận đông (4v4, nhiều chiêu nổ cùng lúc) từng sinh vài trăm mảnh sáng cùng lúc — mỗi mảnh là 1 lần vẽ riêng.
+// Càng nhiều mảnh đang sống thì các hiệu ứng "rắc thêm" (tia lửa, đốm sáng, tàn lửa, vệt sau đạn) sinh càng ít;
+// phần chính của chiêu (vệt chém, vụ nổ, hình vẽ) luôn hiện đủ.
+const FX_SOFT = 70, FX_HARD = 220;
+let liveFx = 0;
+/** 0 = rảnh … 1 = quá tải */
+export function fxLoad() { return Math.min(1, Math.max(0, (liveFx - FX_SOFT) / (FX_HARD - FX_SOFT))); }
+/** Số mảnh phụ nên sinh thay cho `n` (ít nhất `min`) */
+export function fxBudget(n, min = 1) { return Math.max(Math.min(n, min), Math.round(n * (1 - 0.85 * fxLoad()))); }
+
 /** Thêm hiệu ứng `mesh` sống `life` giây; tick(p, fx, dt) với p = 0..1 */
 function addAnim(mesh, life, tick, parent = scene) {
+    liveFx++;
     parent.add(mesh);
     const fx = { mesh, type: 'anim', age: 0, life, tick };
     tick(0, fx, 0);
@@ -99,15 +113,27 @@ function canvasTexture(w, h, draw) {
     return t;
 }
 
+// Mặt phẳng dùng chung theo kích thước (làm tròn 1cm): hàng trăm tia lửa / đốm sáng không phải tạo + xoá
+// bộ đệm GPU riêng cho từng mảnh. Tối đa 400 kích thước, quá thì tạo riêng như cũ.
+const PLANES = new Map();
+function planeGeo(w, h) {
+    const key = Math.round(w * 100) + 'x' + Math.round(h * 100);
+    let g = PLANES.get(key);
+    if (!g && PLANES.size < 400) PLANES.set(key, g = new THREE.PlaneGeometry(Math.round(w * 100) / 100, Math.round(h * 100) / 100));
+    return g;
+}
+
 function fxPlane(texture, w, h, { additive = true, color = 0xffffff, opacity = 1 } = {}) {
+    const shared = planeGeo(w, h);
     const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(w, h),
+        shared ?? new THREE.PlaneGeometry(w, h),
         new THREE.MeshBasicMaterial({
             map: texture, transparent: true, depthWrite: false, opacity, color, fog: false,
             blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide,
         }),
     );
     m.userData.sharedTexture = true;
+    if (shared) m.userData.sharedGeometry = true;
     return m;
 }
 
@@ -854,6 +880,7 @@ export function spawnHitSpark(pos, { count = 7, color = 0xffe7a8, size = 1 } = {
     const flash = fxPlane(glowTexture(), 1.1 * size, 1.1 * size, { color });
     flash.position.copy(at);
     addAnim(flash, 0.16, (p, fx) => { const s = 0.6 + p * 0.9; fx.mesh.scale.set(s, s, 1); fx.mesh.material.opacity = 1 - p; });
+    count = fxBudget(count, 2);
     for (let i = 0; i < count; i++) {
         const a = Math.random() * Math.PI * 2;
         const sp = fxPlane(sparkTexture(), 0.09 * size, 0.7 * size, { color });
@@ -1015,6 +1042,7 @@ export function spawnRisingGlyph(pos, char = '隠', color = '#e9d5ff', glow = '#
 
 /** Đốm sáng bay lên quanh người (kết ấn) */
 export function spawnRisingSparkles(pos, { count = 14, color = 0xa78bfa, radius = 0.8 } = {}) {
+    count = fxBudget(count, 2);
     for (let i = 0; i < count; i++) {
         const g = fxPlane(glowTexture(), 0.22, 0.22, { color });
         const x = pos.x + (Math.random() - 0.5) * radius * 2, z = (pos.z ?? 0) + 0.3 + Math.random() * 0.3;
@@ -1317,7 +1345,7 @@ export function updateVfx(dt) {
             if (fx.mesh.userData.spin) fx.mesh.rotation.z += fx.mesh.userData.spin * dt;
             if (fx.mesh.userData.trail != null) {
                 fx.trailT -= dt;
-                if (fx.trailT <= 0) { fx.trailT = 0.018; spawnTrailDot(fx.mesh.position, fx.mesh.userData.trail); }
+                if (fx.trailT <= 0) { fx.trailT = 0.018 * (1 + 2 * fxLoad()); spawnTrailDot(fx.mesh.position, fx.mesh.userData.trail); }
             }
             if (fx.t >= 1) { disposeObject(fx.mesh); return false; }
             return true;
@@ -1369,6 +1397,7 @@ export function updateVfx(dt) {
     });
 
     effects = kept.concat(effects);
+    liveFx = effects.length;
     updateSeals(dt);
 }
 
@@ -1376,7 +1405,7 @@ export function clearVfx() {
     damageNumbers.forEach(dn => disposeObject(dn.sprite));
     effects.forEach(fx => disposeObject(fx.mesh));
     seals.forEach(s => { disposeObject(s.group); disposeObject(s.floor); });
-    damageNumbers = []; effects = []; seals = [];
+    damageNumbers = []; effects = []; seals = []; liveFx = 0;
 }
 
 // ============================================================

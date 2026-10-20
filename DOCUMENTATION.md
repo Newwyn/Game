@@ -526,9 +526,21 @@ Lv1: HP 1.575 · M.ATK 170 · P.DEF/M.DEF 45/100 · chí mạng 8% · né 22% ·
 | **3. Thủy Thần Vũ** | 4 / 12s (tính **sau khi múa xong** hoặc bị ngắt) | Múa **10s**: cả đội **+20% máu tối đa** (hồi đúng phần tăng; hết giờ / Nerissa gục thì trả lại), **+30% lượng hồi máu nhận**, **+20% ATK** (P.ATK & M.ATK), **kháng khống chế** Nerissa 100% (giải luôn khống chế đang dính) · đồng đội 50%. **Vừa vào điệu: cả đội (kể cả Nerissa) +2 Orb ngay** |
 | **Cả 3 điệu cùng múa** | — | Mỗi **1s** bắn **nốt nhạc**: mọi đối thủ ×0.4 phép + **−15% M.DEF 3s**; mọi đồng đội **+10% sát thương phép 3s** + **50%** giải 1 hiệu ứng khống chế ngẫu nhiên (choáng / hất tung / hất văng / khiêu khích / bị túm) |
 
-**Nerissa bản 3 (đang chờ tranh, chưa đổi game):** giữ tạo hình (elf tóc xanh dài, đồ vũ công trắng xanh ngọc viền vàng, 2 dải lụa nước), **vẽ lại tỉ lệ chibi** cho đồng bộ cả đội.
-- **Prompt:** `art/nerissa/sprite/PROMPTS_SPRITE.md` (vẽ lại `01-character-v3.png` + **13 tấm sprite**: đứng / thủ thế, quất lụa, chạy, trúng đòn / choáng, xoay vào điệu + rơi vào trận, **mỗi điệu múa 1 tấm 8 khung**: 1, 2, 3, 1+2, 1+3, 2+3, 1+2+3, gục / thắng) và `art/nerissa/fx2/PROMPTS_FX.md` (5 tấm: giọt nước + nước bắn, vòng sóng vào điệu + mưa hồi máu, Thủy Thần, bong bóng giáp nước + nốt nhạc, 8 hình nhỏ).
-- **Khung chính ↔ mốc:** quất lụa 0,24s (khung 4, đầu dải lụa) · xoay vào điệu 0,3s (khung 3). Điệu múa lặp theo nhịp cũ (1: 1,6s · 2: 2,4s · 3: 2,0s · 1+2: 1,4s · 1+3: 1,3s · 2+3: 1,8s · 1+2+3: 1,5s). Cơ chế / thông số không đổi.
+**Nerissa bản 3 — kiểu SPRITE + hiệu ứng tranh (20/10/2026, mặc định bật):** giữ tạo hình (elf tóc xanh dài, đồ vũ công trắng xanh ngọc viền vàng, 2 dải lụa nước), **vẽ lại tỉ lệ chibi** cho đồng bộ cả đội.
+- **Tranh:** `art/nerissa/01-character-v3.png`, `01b-portrait-v3.png` (ảnh màn chọn đội → `src/assets/portraits/dancer.png`), 13 tấm `art/nerissa/sprite/` (104 khung), 5 tấm `art/nerissa/fx2/`. Prompt: `art/nerissa/sprite/PROMPTS_SPRITE.md`, `art/nerissa/fx2/PROMPTS_FX.md`.
+- **Sprite** (`src/characters/sprite/nerissaSprite.js`, atlas `nerissa_sprite.webp`): đứng, thủ thế, quất lụa, chạy, trúng đòn, choáng, xoay vào điệu, rơi vào trận / đáp đất, **7 điệu múa 8 khung lặp** (1, 2, 3, 1+2, 1+3, 2+3, 1+2+3), gục, thắng. Dải lụa đã vẽ trong tranh → dải lụa lò xo của khung xương ẩn theo.
+  - **Khung chính ↔ mốc:** quất lụa 0,24s (khung 4: giọt nước bay ra từ **đầu dải lụa**, điểm gắn `ribbon`) · xoay vào điệu 0,3s (khung 3: vòng sóng bung). Điệu múa lặp đúng nhịp cũ (1: 1,6s · 2: 2,4s · 3: 2,0s · 1+2: 1,4s · 1+3: 1,3s · 2+3: 1,8s · 1+2+3: 1,5s). Cơ chế / thông số / sát thương không đổi.
+  - **Căn khung:** tua ngọc + dải lụa rủ sát đất → căn theo **giữa váy trắng** (mốc `hip`: hông đứng yên, chân không trượt khi múa), chạy căn theo đầu; đường đất chung từng hàng tấm (`ground`) → khung bật nhảy / xoạc chân (điệu cả 3, thắng) giữ đúng độ cao tranh vẽ.
+  - Bản khung xương cũ: `?nerissa=cutout` · cách đứng `?nerissaIdle=A|B|C`.
+- **Hiệu ứng tranh** (`src/vfx/nerissaFx.js`, atlas `nerissa_fx2.webp`):
+  - Đánh thường: giọt nước bay xoay (4 khung) → nước bắn tung (4 khung).
+  - Vào điệu (mọi điệu): vòng sóng nước bung quanh người (4 khung).
+  - Sóng Triều: **vòng thủy triều dưới chân** suốt điệu (nửa sau sau lưng, vành trước trước chân) + giọt MP bay lên đồng đội.
+  - Lưu Thủy: **vòng hoa sen** dưới chân suốt điệu + **mưa hồi máu** (mây + giọt nước + cánh hoa, 4 khung lặp) trên từng đồng đội được hồi.
+  - Thủy Thần Vũ: **Thủy Thần hiện ra sau lưng** (4 khung) rồi giữ lặp suốt 10s.
+  - Hòa Âm 1+2: bong bóng giáp nước quanh cả đội · 2+3: Orb bị xoáy nước hút · cả 3 điệu: 4 nốt nhạc nước (nốt đơn, 2 nốt, nốt đen, khoá Sol) bay tới đối thủ (dấu −M.DEF) / đồng đội (dấu +ATK, xích nước vỡ khi giải khống chế) · Orb tặng cả đội: Orb xanh vàng bung sáng.
+  - Bỏ hiệu ứng bản 1 (`nerissa_fx.png`, `nerissaFx.json` — `cap_nhat_github.bat` tự xoá khi đẩy).
+- **Xem:** `/tools/test-sprite.html?char=dancer&auto=1` (mọi động tác + 7 điệu múa; `&only=dance` chỉ xem múa, `&dances=1,123`) · `/tools/fx-nerissa.html?s=d3` (auto / d1 / d2 / d3 / d12 / d123 / notes / shield / flow / drain / gift / end). Video: `Claude outputs/nerissa_sprite_moi_dong_tac.mp4`, `Claude outputs/nerissa_hieu_ung_moi.mp4`.
 
 Thiên phú 1 (Lv20) **Hòa Âm Thủy Vũ** — hiệu ứng theo tổ hợp điệu đang múa:
 - **1 + 2**: cả đội có **giáp nước 6 / 8 / 10%** máu (theo cấp thiên phú), giáp **tự hồi 1% máu mỗi giây** khi tổ hợp còn chạy (bong bóng nước quanh người).
@@ -539,7 +551,7 @@ Thiên phú 1 (Lv20) **Hòa Âm Thủy Vũ** — hiệu ứng theo tổ hợp đ
 Thiên phú 2 (Lv40) **Triều Dâng**: mỗi khi **đối thủ gục** → cả đội **+1 Orb ngay**; Nerissa tự hồi MP nhanh hơn **25%** (SSS **40%**).
 AI: đã giao tranh / quái trong 12 đơn vị → Thủy Thần Vũ → Sóng Triều (đang Thủy Thần, ít Orb hoặc đang đánh) → Lưu Thủy khi có ≥ 2 Orb và đồng đội dưới 85% máu (hoặc đã múa 1+3 để thành đủ 3 điệu).
 Nút kỹ năng **đang chạy** có **vòng sáng chạy quanh viền** + **vạch thời gian còn lại** ở đáy nút (Lưu Thủy: vạch = MP còn lại); cả 3 điệu cùng chạy → vòng **vàng**. Trong lúc múa, nút đó không bấm được và chưa đếm hồi chiêu.
-Hình: ghép từ **tấm bộ phận vẽ riêng** — `art/nerissa/` (tranh nhìn nghiêng + tư thế múa, tấm bộ phận, bàn tay & mắt, 8 đoạn dải lụa + đầu lụa, 2 tấm hiệu ứng). Mắt biểu cảm căn sẵn lên đầu bằng `tools/make_overlay_eyes.py art/nerissa/eyes_spec.json` → `art/nerissa/gen/`; cắt mảnh `tools/cut_reference.py art/nerissa/ref_spec.json` (→ `nerissa_atlas.png`, `nerissaRig.js`, `nerissaClips.js`); hiệu ứng `tools/build_fx_atlas.py art/nerissa/fx_spec.json` (→ `nerissa_fx.png`, vẽ ở `src/vfx/nerissaFx.js`). **Dải lụa** là chuỗi 7 khớp lò xo (tay gần) + 4 khớp (tay xa) nối từ bàn tay → tự bay theo động tác. Động tác múa: `dance1, dance2, dance3, dance12, dance13, dance23, dance123`. Xem thử: `/tools/preview-cutout.html?rig=../src/characters/cutout/nerissaRig.js&clip=dance123&t=0.3`; kỹ năng + hiệu ứng theo từng mốc: `/tools/fx-nerissa.html?s=d123` (auto / d1 / d2 / d3 / d12 / d123 / notes / shield / flow / drain / gift / end).
+Hình bản khung xương cũ (`?nerissa=cutout`): ghép từ **tấm bộ phận vẽ riêng** — `art/nerissa/` (tranh nhìn nghiêng + tư thế múa, tấm bộ phận, bàn tay & mắt, 8 đoạn dải lụa + đầu lụa, 2 tấm hiệu ứng). Mắt biểu cảm căn sẵn lên đầu bằng `tools/make_overlay_eyes.py art/nerissa/eyes_spec.json` → `art/nerissa/gen/`; cắt mảnh `tools/cut_reference.py art/nerissa/ref_spec.json` (→ `nerissa_atlas.png`, `nerissaRig.js`, `nerissaClips.js`); hiệu ứng bản 1 `tools/build_fx_atlas.py art/nerissa/fx_spec.json` (→ `nerissa_fx.png`, không còn dùng). **Dải lụa** là chuỗi 7 khớp lò xo (tay gần) + 4 khớp (tay xa) nối từ bàn tay → tự bay theo động tác. Động tác múa: `dance1, dance2, dance3, dance12, dance13, dance23, dance123`. Xem thử: `/tools/preview-cutout.html?rig=../src/characters/cutout/nerissaRig.js&clip=dance123&t=0.3`; kỹ năng + hiệu ứng theo từng mốc: `/tools/fx-nerissa.html?s=d123` (auto / d1 / d2 / d3 / d12 / d123 / notes / shield / flow / drain / gift / end).
 
 ### 4.9 Elarion (Tam Nguyên) — Phù Thủy nguyên tố 🔮 · tộc Elf · sát thương PHÉP
 Cơ chế kiểu Invoker. Đã có tranh riêng (`art/elarion/`): Elarion chibi + **Sách Nguyên Tố lơ lửng** trước người (đóng → mở → bốc 3 luồng nguyên tố khi đọc / tung phép), Golem đá 3 nguyên tố, 5 tấm hiệu ứng + ngọc (xem mục **Đồ hoạ** cuối phần này).
@@ -701,6 +713,16 @@ Trình duyệt (Three.js)                       Server (Node.js)
 - Server gửi `stateUpdate` 20 lần/giây (vị trí, máu, MP, hiệu ứng, đồng hồ trận) và sự kiện `autoAttack`, `skillExecuted`, `castStart`, `squadResized`...
 - Client nội suy vị trí, phát động tác đúng **khoảnh khắc trúng đòn (hitTime)**, mọi hẹn giờ dùng `gameTimeout()` để khớp tốc độ trận.
 
+### 8.0 Hiệu năng (chống tụt FPS) — giữ khi viết code mới
+- **Cảnh nền gộp sẵn** (`environment.js` → `bake()`): cây / đá / bụi gộp theo vật liệu thành ~24 lần vẽ (trước ~660). Thêm đồ trang trí thì cứ `place()`, đừng `scene.add` riêng.
+- **Độ nét tối đa 1,5** điểm ảnh / điểm màn hình (`scene.js`, cả lúc đổi cỡ cửa sổ).
+- **Giữ shader suốt phiên** (`keepShaders()` gọi sau mỗi lần vẽ trong `cameraRig.js`): hiệu ứng tan không làm xoá shader → lần sau không biên dịch lại giữa trận (Windows / ANGLE giật 50–200ms mỗi lần).
+- **Tải trước atlas hiệu ứng** lúc vào trận (`warmFlipbooks()` trong `battleScene.js`): mọi `makeFlipbook` tự đăng ký.
+- **Mặt phẳng trong suốt 2 mặt vẽ 1 lần** (`scene.js`): three.js mặc định vẽ vật liệu trong suốt + `DoubleSide` 2 lần và đánh dấu vật liệu "cần cập nhật" mỗi khung; game tự bật `forceSinglePass` cho mặt phẳng (Plane / Shape / Circle / Ring).
+- **Ngân sách hiệu ứng** (`vfx.js`): `fxBudget(n, min)` giảm số mảnh phụ (tia lửa, đốm sáng, tàn lửa) khi đang có nhiều mảnh sống (từ 70, mạnh nhất ở 220); `fxLoad()` = 0..1; vệt sau đạn thưa ra khi đông; tối đa 36 số sát thương cùng lúc. Hiệu ứng "rắc thêm" mới nên gọi `fxBudget`.
+- `fxPlane` dùng chung hình học theo kích thước (làm tròn 1cm, cờ `userData.sharedGeometry`) — **đừng sửa đỉnh / uv** của mesh tạo bằng `fxPlane`; cần hình riêng thì `new THREE.PlaneGeometry`.
+- Đo (máy chậm, 4v4 tự đánh 30s): lần vẽ / khung trung vị 666 → 230, lúc đông 1.110 → 355; thời gian JS / khung 19 → 7,5ms; khựng >400ms (tải atlas + biên dịch shader) gần như hết.
+
 ### 8.1 Cấu trúc mã nguồn
 ```
 server.js                 Server: CLASS_DEFS (chỉ số + kỹ năng), phòng đấu, vòng lặp, sát thương
@@ -732,13 +754,15 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
   - Sprite: nền xanh #00FF00, lưới 4×2, 3/4 nghiêng nhìn phải.
   - Hiệu ứng: nền đen, lưới A 4×2 / lưới B 2×4.
   - Khung chính = mốc ra đòn.
-- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng, chờ tranh).
+- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (xong: vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng).
   - App vẽ xuất sẵn PNG trong suốt cũng dùng được (`key: "alpha"`).
 - **Hiệu ứng dùng chung cả đội** (trúng đòn, vệt chém, bụi, khói, sao choáng, lấp lánh, sóng xung kích, vòng niệm...): `art/common/PROMPTS_FX_CHUNG.md`, chờ tranh. Phần trắng được nhuộm theo màu từng nhân vật.
 - **Ráp (không tô sửa):**
   - Sprite: `tools/sprite_pack.py art/<tên>/sprite/sprite_spec.json --debug soi.png` → `src/assets/sprites/<tên>_sprite.webp` + `src/characters/sprite/<tên>Sprite.json`.
     - Tách nền `"key"` (cả spec hoặc từng tấm): `green` (mặc định, Ignar) · `matte` (giữ viền đen mảnh — dùng cho nhân vật mới) · `alpha` (PNG đã trong suốt).
-    - Mốc căn `toe / heel / body`; nhiều tấm đưa về cùng cỡ ("scale").
+    - Mốc căn `toe / heel / body / hip` (`hip` = giữa váy trắng — múa tại chỗ của Nerissa); nhiều tấm đưa về cùng cỡ ("scale").
+    - `"footBand"` / `"footMin"` (cả spec): dải đáy tìm giày + bề ngang tối thiểu của 1 chiếc giày — nhân vật có tua / lụa rủ sát đất (Nerissa 12 / 24) để tâm đứng không lệch theo tua.
+    - `"ground": "group"` hoặc `["tên nhóm"]` (theo tấm): đường đất chung từng hàng tấm (trung vị đáy các khung) → khung bật nhảy / xoạc chân giữ độ cao.
     - Điểm gắn đánh dấu tay `"points"` → `view.pointWorld(tên)`; `events.js` `jointPoint()` / `ribbonPoint()` tự dùng khi có.
     - `"format": "webp"`.
   - Hiệu ứng: `tools/fx_grid_pack.py art/<tên>/fx2/fx2_spec.json --preview soi.png` → `<tên>_fx2.webp` + json. Code dùng `src/vfx/flipbook.js` (`makeFlipbook(url, meta)` → `frames / set / decal`).
@@ -746,20 +770,21 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
     - Căn khung `"align": "blob"` + `"blob": [[r,g,b thấp],[r,g,b cao]]`: trùng 1 vật có màu riêng (VD sư tử giữa Khiên Thần); `"pivot": "blob"`.
     - `"holeMax"`: chỉ lấp lỗ nhỏ khi giữ đặc (khoảng tối lớn giữa cánh / hào quang vẫn trong suốt).
     - Lưới B nhiều hình sát nhau: `"regionThr"` / `"regionDilate"` / `"keepGrow"` (theo tấm) để quầng sáng mờ không nối các hình lại.
+    - Hình AI vẽ tràn hẳn sang ô bên cạnh và chạm hình bên cạnh: nhóm dùng `"rect": [x0, y0, x1, y1]` thay `"cells"`; hình bị cắt cụt ở mép tấm: `"feather": [trái, phải]` làm mờ mép (VD vòng thủy triều Nerissa).
+    - Tranh hiệu ứng xuất trong suốt nhưng có quầng tối vẽ sẵn (Nerissa): cứ để tool đặt lên nền đen rồi tách nền đen như thường (bỏ được quầng tối).
 - **Nhân vật:** thêm `sprite: <TÊN>_SPRITE` + `spriteParam` / `spriteIdleParam` vào visual trong `registry.js` → `FrameSpriteView` tự dùng.
   - `?<spriteParam>=cutout` xem lại bản khung xương.
   - Mode clip: `strike` (khung chính = hitTime) · `clip` · `hold` · `once` · `loop` · `still` (1 khung + thở).
 - Bản khung xương cũ (`art/ignar/PROMPTS.md`, tấm bộ phận / tay / mắt) không cần vẽ nữa.
 
 ### 8.2 Công cụ xem thử (chạy `npm run dev`)
-- `/tools/preview-cutout.html?rig=../src/characters/cutout/rokRig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
-- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`.
+- `/tools/preview-cutout.html?rig=../src/characters/cutout/rok2Rig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
+- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`; Nerissa có thêm 7 điệu múa (`&only=dance`, `&dances=1,123`, `&dancefor=3`).
 - `/tools/test-ignar.html?mode=idle` — Ignar đứng / thủ thế → đánh thường (cầu lửa thật như game), khung cố định 1/60s, console `stepTo(giây)`.
 - `/tools/test-ignar-sprite.html?mode=idle | ready | tour` — Ignar kiểu sprite (đúng view trong game), cầu lửa thật; `mode=tour` lần lượt mọi động tác; `&ignarIdle=A|B|C`, `&ignar=cutout` để so với khung xương, `&mode=none` rồi gọi `view.playAction('summon')`... trong console (mục 4.5). Bấm đúp `xem_thu_ignar.bat` = chạy `npm run dev` + mở trang này. **Không mở file html trực tiếp** (ra trang trắng).
 - `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
 - `/tools/fx-rok.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Rok bản 3 (s = attack | roar | push | guard | link).
 - `/tools/fx-jessica.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Jessica bản 3 (s = attack | throw | strike | stealth).
-- `/tools/fx-lion.html`, `/tools/fx-guardian.html` — hình linh hồn sư tử / Thần Hộ Vệ bản code cũ (không còn dùng).
 - `/tools/fx-ignar.html?s=all` — mọi kỹ năng / hiệu ứng Ignar (s = attack | meteor | pillar | god | ward).
 - `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
 
