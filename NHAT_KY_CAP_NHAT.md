@@ -5,6 +5,195 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 20/10/2026 — Nerissa bản 3: prompt vẽ lại chibi + 13 tấm sprite + 5 tấm hiệu ứng
+- **Giữ tạo hình** (bạn chọn): elf tóc xanh biển dài gợn sóng, vỏ sò ngọc trai, đồ vũ công trắng xanh ngọc viền vàng, 2 dải lụa nước — chỉ **vẽ lại chibi** cho đồng bộ cả đội.
+- **Prompt sprite** `art/nerissa/sprite/PROMPTS_SPRITE.md`: vẽ lại tạo hình + 13 tấm — đứng / thủ thế, quất lụa bắn giọt nước, chạy, trúng đòn / choáng, xoay vào điệu + rơi vào trận, **7 điệu múa mỗi điệu 1 tấm 8 khung** (Sóng Triều, Lưu Thủy, Thủy Thần, 1+2, 1+3, 2+3, cả 3), gục / thắng.
+- **Prompt hiệu ứng** `art/nerissa/fx2/PROMPTS_FX.md` (5 tấm): giọt nước bay + nước bắn, vòng sóng vào điệu + mưa hồi máu, Thủy Thần hiện ra + giữ, bong bóng giáp nước + 4 nốt nhạc nước, 8 hình nhỏ (vòng thủy triều, vòng hoa sen, giọt MP, Orb tặng, −M.DEF, +ATK, Orb bị hút, xích vỡ).
+- Chưa đổi game (chờ tranh).
+
+## 20/10/2026 — Sửa giật / tụt FPS khi đánh nhau
+- **Nguyên nhân:** mỗi khi một hiệu ứng tranh (lửa Ignar, Khiên Thần, sư tử, sấm Jessica...) hiện khung nào LẦN ĐẦU, game tải lại NGUYÊN tấm atlas hiệu ứng (4096×1024, ~16 MB) lên card đồ hoạ. Đo 30 giây trận đấu: 31 lần tải lại atlas lớn + 15 lần atlas Jessica → giật từng nhịp. Càng thêm nhân vật có hiệu ứng tranh càng lag.
+- **Sửa:** mọi atlas hiệu ứng chỉ tải lên card đồ hoạ 1 lần (`src/vfx/texView.js`); áp dụng cho hiệu ứng của Ignar, Rok, Jessica, Elarion / Golem, Brakk, Nerissa, Zerith, Seraphine.
+- **Kết quả đo lại (cùng trận thử 3 nhân vật):** thời gian vẽ mỗi khung lúc giao tranh giảm ~10–20 lần; không còn lần tải lại atlas nào ngoài lần đầu.
+- Hình hiệu ứng không đổi (đã soi lại từng trang xem thử). Đã chơi thử AUTO + build: không lỗi.
+
+## 20/10/2026 — Jessica bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 9 tấm sprite (72 khung) + 4 tấm hiệu ứng.
+- **Động tác:** đứng, thủ thế, chém dao, chạy, trúng đòn, choáng, Phóng Bùa lộn mèo (vòng lộn vẽ sẵn), phóng bùa đứng, thụp người biến mất, lướt chém, hiện ra chém, Tàng Hình kết ấn, rơi vào trận, gục, thắng.
+- **Khớp mốc cũ:** chém 0,18s · quăng bùa 0,42s / 0,2s · hiện ra chém 0,18s · Tàng Hình 0,38s. Lá bùa bay ra đúng bàn tay ném.
+- **Hiệu ứng mới:**
+  - Phóng Bùa: lá bùa bay xoay → trúng loé, vỡ, hiện vòng Ấn; dấu Ấn trên đầu quái thành ấn sấm tím.
+  - Đột Kích: khói sấm lúc biến mất, vệt lướt sấm, vệt chém sấm trên từng quái, hiện ra từ vòng bóng tối, chí mạng chém chữ X; chém chết hiện mũi tên vòng.
+  - Tàng Hình: khói sấm bùng + hào quang sấm quanh người; đồng đội +né hiện cánh sét, tia sét nháy quanh người.
+- **Sửa thêm:** nhân vật sprite giờ hiện được động tác choáng dù khung xương không có (Jessica).
+- Đã chơi thử trận AUTO + build: không lỗi. Sát thương / thời gian không đổi.
+- **Cần xem lại:** tấm đánh thường (`sprite-attack`) khung 3–5 dao luôn ở phía sau lưng, chưa thấy nhát chém về phía quái (xem mục báo cáo trong chat).
+
+## 20/10/2026 — Jessica bản 3: tạo hình mới nữ ninja sấm tím (prompt)
+- **Tạo hình mới** (bạn chọn để mình đề xuất): nữ ninja trẻ, tóc đen ánh tím buộc đuôi ngựa cao, mắt tím, đồ ninja đen phối tím viền vàng tia sét, khăn quàng tím 2 đuôi dài, xấp bùa giấy chữ tím, dao găm lưỡi tím cầm ngược.
+- **Prompt sprite** `art/jessica/sprite/PROMPTS_SPRITE.md`: tạo hình + 9 tấm — đứng / thủ thế, chém dao, chạy, trúng đòn / choáng, Phóng Bùa (lộn mèo), phóng đứng + thụp người biến mất, lướt chém + hiện ra chém, Tàng Hình + rơi vào trận, gục / thắng. Khung chính khớp mốc ra đòn cũ.
+- **Prompt hiệu ứng** `art/jessica/fx2/PROMPTS_FX.md`: lá bùa bay + trúng hiện Ấn, vệt chém sấm + chí mạng chữ X, khói sấm + hào quang tàng hình, 8 hình nhỏ (dấu Ấn, vòng bóng tối, vệt lướt, tia sét, buff né, hồi chiêu, tia lửa sấm, bóng mờ).
+- Làm cùng đợt: 4 tấm hiệu ứng chung cả đội (`art/common/PROMPTS_FX_CHUNG.md`).
+- Chưa đổi game (chờ tranh).
+
+## 20/10/2026 — Khiên Thần (Dựng Khiên) to gấp 2,5
+- Khiên Thần to gấp 2,5 (thử gấp 3 thấy hơi to, chỉnh nhỏ lại chút): thân khiên cao ~1,7 lần Rok, mũi khiên chạm đất, đứng giữa Rok và quái.
+- Khiên lùi ra sau theo chiều sâu nên Rok và quái vẫn hiện rõ phía trước; vòng thánh dưới chân to theo.
+- Hiện ra / giữ / nổ sóng / vỡ tan giữ nguyên nhịp; thời gian, sát thương không đổi.
+
+## 20/10/2026 — Sư Tử Gầm to hơn
+- Linh hồn sư tử to gấp ~3,3 lần: cao hơn 2 lần Rok, đứng sau Rok và quái (theo chiều sâu) nên vẫn thấy rõ nhân vật.
+- Sóng gầm bật ra đúng từ miệng sư tử lúc gầm; rung màn hình mạnh hơn.
+- Sửa lỗi nhỏ: số sát thương hiện trước hiệu ứng lớn bị khung chữ nhật sáng (khung chữ khoét lỗ hiệu ứng) — nay hết.
+- Thời gian, sát thương không đổi.
+
+## 20/10/2026 — Rok bản 3: hiệu ứng mới (hoàn chỉnh nhân vật)
+- **4 tấm hiệu ứng của bạn** đã ráp vào game (chỉ tách nền đen, cắt khung, căn — không tô sửa). Mọi hiệu ứng Rok giờ là tranh chạy khung.
+- **Dựng Khiên — Khiên Thần:**
+  - đúng lúc Rok cắm khiên: khiên thần hiện ra, rồi đứng trước Rok về phía quái suốt thời gian khiên;
+  - vòng thánh dưới chân; khiên mờ dần theo máu khiên còn lại;
+  - mỗi lần khiên nổ: khiên nổ sóng + sóng vàng trên đất; lần cuối: khiên vỡ tan thành mảnh và lông vũ;
+  - cả đội hiện khiên nhỏ "+thủ" trên đầu; khi khiên nổ hồi máu: dấu thập vàng bay lên.
+  - Bỏ Thần Hộ Vệ + vòm lục giác cũ.
+- **Sư Tử Gầm:** linh hồn sư tử lửa vàng lao ra, gầm, tan; sóng gầm + sóng vàng trên đất; quái bị khiêu khích hiện dấu đầu sư tử + "!".
+- **Đẩy Khiên:** loé vàng ở mặt khiên lúc húc; quái rơi xuống → vòng nứt địa chấn.
+- **Ý Chí Thép:** dây liên kết thành xích ánh sáng vàng.
+- Thời gian, sát thương không đổi. Xem: `/tools/fx-rok.html?s=all&auto=1`.
+- Đã chơi thử trận AUTO + build: không lỗi.
+
+## 20/10/2026 — Rok bản 3 vào game kiểu sprite
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): đủ 8 tấm, 64 khung — đứng, thủ thế, đánh thường, chạy, trúng đòn, choáng, Sư Tử Gầm, Đẩy Khiên, Dựng Khiên, rơi vào trận, gục, thắng.
+- **Khung chính đúng mốc ra đòn cũ:** chém 0,24s · gầm 0,42s · húc khiên 0,22s · cắm khiên 0,14s. Sát thương, thời gian không đổi.
+- **Tách nền tốt hơn:** cách mới giữ viền đen mảnh quanh lưỡi kiếm (cách cũ làm mép kiếm lởm chởm). Ignar vẫn dùng cách cũ, hình không đổi.
+- **Dùng được PNG trong suốt** từ app vẽ mới (tấm đứng + tấm chém), bỏ quầng sáng mờ quanh nhân vật.
+- **Xem:** `/tools/test-sprite.html?char=warrior&auto=1`; trong trận thêm `?rok=cutout` để xem lại bản khung xương.
+- Đã chơi thử trận AUTO + build: không lỗi.
+- **Chưa đổi:** hiệu ứng kỹ năng (đầu sư tử, Thần Hộ Vệ + vòm lục giác...) vẫn bản cũ — chờ 4 tấm hiệu ứng Khiên Thần / sư tử.
+
+## 19/10/2026 — Rok bản 3: tạo hình mới hiệp sĩ châu Âu + Khiên Thần
+- **Tạo hình mới:**
+  - tóc bạch kim, mắt xanh;
+  - giáp tấm bạc viền vàng, áo trắng có sư tử vàng, áo choàng xanh hoàng gia;
+  - trường kiếm chuôi vàng, khiên heater trắng có sư tử vàng.
+- **Prompt tạo hình:** `01-character-v3.png` (đính kèm tranh Ignar chỉ để lấy phong cách chibi) + chân dung tuỳ chọn. Tranh Rok cũ giữ nguyên.
+- **8 tấm sprite viết lại theo tạo hình mới** (`art/rok/sprite/PROMPTS_SPRITE.md`). Dựng Khiên: giơ khiên lên trời gọi Khiên Thần → cắm khiên thủ thế.
+- **Hiệu ứng Rok** (`art/rok/fx2/PROMPTS_FX.md`, 4 tấm):
+  - **Khiên Thần:** hiện ra, giữ lặp, nổ sóng, vỡ tan. Thay Thần Hộ Vệ + vòm lục giác.
+  - **Sư tử:** linh hồn sư tử vàng gầm + sóng gầm.
+  - **8 hình khác:** vòng thánh, sóng vàng, nứt đất, dấu khiêu khích, khiên nhỏ buff đội, loé húc khiên, xích liên kết, dấu hồi máu.
+- Chưa đổi game (chờ tranh).
+
+## 19/10/2026 — Giai đoạn 0: khuôn chung để đồng bộ cả đội theo Ignar
+- **Bỏ phối hợp với Codex:** 3 file `PHOI_HOP_AI.md`, `BAN_GIAO_CLAUDE.md`, `BAN_GIAO_CODEX.md` sẽ được `cap_nhat_github.bat` xoá khi bạn đẩy (máy không cho Claude xoá trực tiếp). Tài liệu bỏ phần nhắc tới Codex.
+- **Hướng dẫn vẽ mới** `art/HUONG_DAN_VE_NHAN_VAT.md` (quy trình sprite):
+  - bộ tấm chuẩn của 1 nhân vật;
+  - ảnh đính kèm (tấm đầu lấy cỡ theo Ignar, tấm sau theo chính nhân vật);
+  - đoạn prompt chung sprite + hiệu ứng;
+  - câu sửa khi AI vẽ sai.
+- **Code dùng chung cho mọi nhân vật:**
+  - `src/vfx/flipbook.js`: hiệu ứng chạy khung (tách từ hiệu ứng Ignar, Ignar dùng lại, không đổi hình).
+  - `FrameSpriteView`: lửa tay tuỳ chọn; thủ thế 1 khung + thở; điểm gắn từng khung (mũi kiếm, đầu cung, tay cầm lụa...) — `events.js` tự dùng khi có; dư ảnh khi lướt giữ đúng khung.
+  - `tools/sprite_pack.py`: đánh dấu điểm gắn, xuất WebP, chống viền tối khi thu nhỏ.
+  - `tools/fx_grid_pack.py`: xuất WebP.
+  - **Trang thử chung** `tools/test-sprite.html?char=...`: lần lượt mọi động tác của bất kỳ nhân vật nào (đã chạy thử cả 10 nhân vật, không lỗi).
+- **Nhẹ hơn:** atlas Ignar chuyển sang WebP — sprite 9 MB → 3,5 MB, hiệu ứng 3,6 MB → 1,6 MB, hình không đổi (đã so). PNG cũ bat dọn khi đẩy.
+- **Prompt hiệu ứng dùng chung cả đội** `art/common/PROMPTS_FX_CHUNG.md` (4 tấm, phần trắng nhuộm theo màu nhân vật).
+- **Bắt đầu giai đoạn 1:** prompt sprite Rok `art/rok/sprite/PROMPTS_SPRITE.md` (8 tấm, khung chính ↔ mốc ra đòn).
+
+## 19/10/2026 — Ignar hiệu ứng mới (hoàn chỉnh nhân vật)
+- **9 tấm hiệu ứng của bạn** đã ráp vào game. Mọi hiệu ứng giờ chạy khung, không còn 1 hình đứng yên.
+  - **Luôn thấy:** lửa trên tay; cầu lửa bay; trúng cầu lửa.
+  - **Thiên Hỏa Cầu:** vòng báo, thiên thạch rơi, nổ 8 khung từ lửa thành khói, biển lửa đất nứt.
+  - **Cột Lửa:** chưởng đất, vòng phép mờ → rực, cột lửa bùng → cháy → tắt.
+  - **Hỏa Thần:** hào quang, cánh lửa bung sau lưng (theo hướng mặt), Hộ Vệ bay / lấy đà / ném / gầm, khiên lửa vòng lửa.
+  - **Đòn Hỏa Thần:** Hỏa Chưởng có luồng chưởng + cầu xoáy.
+- **Hết viền đỏ đục:** tranh nền đen tuyền. Đá, giáp Hộ Vệ, đất cháy giữ đặc; khói giữ màu xám.
+- **Ráp tranh:** chỉ cắt theo ô, tách nền, căn khung, không tô sửa. Hình AI vẽ lấn sang ô bên cạnh vẫn đủ.
+- **Mốc sát thương không đổi** (vẫn theo server).
+  - Hiệu ứng trúng mới chỉ dành cho Ignar; Elarion giữ hiệu ứng cũ.
+- **Xem:** `/tools/fx-ignar.html?s=all&auto=1`. Video: `Claude outputs/ignar_hieu_ung_moi.mp4`.
+- **Không còn dùng:** hiệu ứng bản 1 (`src/assets/sprites/ignar_fx.png`, `src/vfx/ignarFx.json`). `cap_nhat_github.bat` tự xoá khi đẩy; tranh gốc `art/ignar/fx-a/b/c.png` vẫn giữ.
+
+## 19/10/2026 — Bộ prompt hiệu ứng mới cho Ignar
+- **`art/ignar/fx2/PROMPTS_FX.md`:** kiểm kê mọi hiệu ứng của Ignar — dùng ở kỹ năng nào, đang có mấy khung, lỗi gì.
+  - Lỗi cũ: viền đỏ đục do nền tấm cũ không đen tuyền; ít khung.
+- **9 tấm mới:** lưới cố định để cắt tự động, nền đen tuyền, nhiều khung hơn.
+  - Lửa tay, cầu lửa bay, trúng cầu lửa, cầu xoáy: 4 khung lặp / 4 khung.
+  - Nổ: 8 khung. Thiên thạch: 4 khung lặp. Lửa biển lửa: 4 khung lặp.
+  - 8 hình nằm trên đất. Cột lửa: 8 khung.
+  - Hào quang 4, cánh lửa 4, luồng chưởng 4, khiên lửa 4.
+  - Hộ Vệ Thần Lửa: 8 khung.
+- Chưa đổi game (chờ tranh).
+
+## 19/10/2026 — Ignar sprite đủ mọi động tác
+- **8 tấm mới** của bạn đã ráp vào game:
+  - chạy, trúng đòn, choáng;
+  - Thiên Hỏa Cầu, Cột Lửa, gồng Hỏa Thần, Hỏa Chưởng, chưởng toàn thể;
+  - rơi vào trận / đáp đất, thắng, gục.
+- **Mốc ra đòn đúng từng chiêu** (đo lại trên trang thử):
+  - đánh thường 0,25s · Thiên Hỏa Cầu 0,35s · Cột Lửa 0,25s · Hỏa Chưởng 0,2s · chưởng toàn thể 0,3s;
+  - cầu lửa / chưởng bay ra từ đúng bàn tay.
+- **Gục:** dùng tranh nằm ra đất, không còn xoay ngã kiểu khung xương. **Chạy:** có bước chân thật.
+- **Ráp tranh:**
+  - chỉ tách nền, đưa các tấm về cùng cỡ, căn chân (chạy / nhảy / gồng / Hỏa Chưởng căn theo đầu cho thân không giật);
+  - atlas cắt sát từng khung, thu 0,75 cho nhẹ;
+  - không tô sửa tranh.
+- **Xem nhanh:** `/tools/test-ignar-sprite.html?mode=tour&auto=1` (hoặc `xem_thu_ignar.bat`). Video: `Claude outputs/ignar_sprite_moi_dong_tac.mp4`.
+
+## 19/10/2026 — Bộ prompt sprite đầy đủ cho Ignar
+- **`art/ignar/sprite/PROMPTS_SPRITE.md`:** bảng mọi động tác Ignar dùng trong game.
+  - Gồm: chạy, trúng đòn, choáng, 3 kỹ năng, gồng, rơi vào trận, Hỏa Chưởng, chưởng toàn thể, gục, thắng.
+  - Mỗi động tác ghi số khung, **khung chính trùng mốc ra đòn**, độ ưu tiên.
+- **8 tấm còn lại**, mỗi tấm 4×2 khung. Có đoạn prompt chung + đoạn riêng từng tấm, cách tạo để các tấm cùng cỡ, cùng nét.
+- Chưa đổi game.
+
+## 19/10/2026 — Ignar kiểu sprite đã vào game (bản thử, mặc định bật)
+- **Chơi là thấy:** Ignar trong trận giờ dùng tranh sprite của bạn (`npm run dev` hoặc `npm start` đều được).
+- **Cơ chế không đổi:** khung xương vẫn chạy ẩn để giữ mốc ra đòn, lúc rơi vào trận, chết, choáng... Chỉ phần hình đổi.
+- **Ra đòn** (đánh thường, Thiên Hỏa Cầu, Cột Lửa, Hỏa Chưởng, nhảy chưởng): dùng tấm đánh thường, khung đẩy chưởng trùng đúng mốc ra đòn của từng chiêu. **Gồng Hỏa Thần:** đứng nắm lửa.
+- **Chưa có tấm riêng** (chạy, trúng đòn, choáng, thắng): dùng khung đứng, nghiêng / nhún theo động tác cũ. Chạy hiện là lướt, chưa bước chân.
+- **Cách đứng:** mặc định C (1 khung + thở bằng code). Đổi: thêm `?ignarIdle=A` hoặc `?ignarIdle=B` vào địa chỉ game. Về khung xương: `?ignar=cutout`.
+- **`xem_thu_ignar.bat`:** bấm đúp để chạy game + mở trang xem thử (mở file html trực tiếp sẽ ra trang trắng).
+- **Dọn:** thư mục `tools/sprite-test/` không dùng nữa, `cap_nhat_github.bat` tự xoá khi đẩy.
+
+## 19/10/2026 — Ignar thử kiểu sprite (chưa vào game)
+- **Lý do:** bạn thấy kiểu khung xương vẫn khựng, thích sprite (mỗi khung 1 hình vẽ trọn thân).
+- **Tranh của bạn** (tạo bằng AI, nền xanh, giữ nguyên): `art/ignar/sprite/sprite-idle.png`, `sprite-attack.png`.
+- **`tools/sprite_pack.py`:** tách nền xanh, tách 8 khung mỗi tấm, căn chân, chỉnh tỉ lệ 2 tấm cho bằng nhau, đo điểm bàn tay. Không tô sửa tranh.
+- **`tools/test-ignar-sprite.html`:** xem sprite trong cùng cảnh với cầu lửa thật; mở `&view=cutout` để so với bản khung xương.
+- **Mốc ra đòn giữ nguyên:** đánh thường 12 khung/giây, khung 4 (đẩy chưởng) bắt đầu đúng 0,25s.
+- **Lửa trên tay:** đứng thì ngửa tay giữ lửa → nắm lửa ở khung 2–3 → cầu lửa rời tay ở khung 4.
+- **GIF so sánh** trong `Claude outputs/`.
+- **Game chưa đổi:** trận đấu vẫn dùng khung xương.
+
+## 17/10/2026 — Ignar bản thử chuyển động (đứng → đánh thường → về) — Claude làm, chờ Codex kiểm
+- **Mục tiêu:** hết cảm giác mảnh cứng / rời, giữ thiết kế + thần thái pháp sư điềm tĩnh. Không đổi cơ chế, chỉ số, mốc sát thương (ra đòn 0,25s, cầu lửa bay 0,23s).
+- **Tay xa gập được khuỷu:** tách thành bắp tay (ẩn dưới vạt vai) + ống tay + bàn tay. Động tác cũ giữ y hình (đã so từng điểm ảnh).
+- **Bàn tay ngửa giữ lửa** lấy từ tấm 03 — hết chỗ khuyết ở lòng bàn tay.
+- **Hết vệt sáng ở cổ áo và đường ngang ở thắt lưng** khi nhân vật nhỏ trên màn hình (atlas nới khoảng trống + mảnh chồng mép rộng hơn).
+- **Đứng / thủ thế / đánh thường viết lại:**
+  - tay gần + chân giữ sát dáng tranh nên không lộ lỗ sau lưng;
+  - đánh: gom lửa về (khuỷu gập, cổ tay ngửa) → đẩy cẳng tay + bật cổ tay → quá đà nhẹ → về;
+  - có đường cong tốc độ; thân / đầu gần như đứng yên.
+- **Khăn vai** lắc rất nhẹ (lò xo).
+- **Công cụ:** `tools/test-ignar.html` (xem / quay đoạn thử). `tools/cut_reference.py` thêm tuỳ chọn `"pad"` (mặc định như cũ).
+- **Ảnh / GIF trước–sau** trong `Claude outputs/`.
+- **Chưa chỉnh:** gọi Thiên Hỏa Cầu, Cột Lửa, gồng, Hỏa Chưởng, nhảy chưởng, chạy, trúng đòn — vẫn như cũ (có lỗ sau lưng khi tay gần giơ cao).
+
+## 17/10/2026 — Phối hợp Claude ↔ Codex · bàn giao Ignar
+- **`PHOI_HOP_AI.md`:** yêu cầu Ignar đã chốt (giữ 2D, thiết kế, thần thái điềm tĩnh; sửa hiển thị / animation, giữ nguyên cơ chế, thông số, mốc sát thương), phân công, luật chung (khoá file, không tự đẩy GitHub), tin nhắn.
+- **`BAN_GIAO_CLAUDE.md`:** hiện trạng rig Ignar, 6 nguyên nhân cứng / rời, mốc thời gian không được đổi, tranh tận dụng được (tấm 02 chưa dùng), đánh giá Spine / nâng cấp hệ hiện tại / sprite sheet, đề xuất bản thử đứng → đánh thường → về đứng.
+- Ảnh hiện trạng: `Claude outputs/ignar_hien_trang_dong_tac.png`, `Claude outputs/ignar_hien_trang_danh_thuong.png`.
+- Chưa sửa code, chưa tạo tranh mới — chờ Codex phản hồi trong `BAN_GIAO_CODEX.md`.
+
+## 17/10/2026 — Hướng dẫn vẽ nhân vật + bộ prompt Ignar bản 2
+- **`art/HUONG_DAN_VE_NHAN_VAT.md`:** luật vẽ để tranh ráp thẳng vào game, Claude không phải sửa tranh. Gồm: bộ tranh cần có, bộ mảnh chuẩn và đầu khớp tròn, bàn tay / mắt, chuỗi khung hiệu ứng, cách gửi.
+- **`art/ignar/PROMPTS.md`:** bộ prompt vẽ lại Ignar.
+  - Bảng động tác có sẵn trong code, bảng hiệu ứng ↔ kỹ năng.
+  - Thêm khung cho mượt: lửa tay 3 khung, nổ 6, hào quang 4, Hộ Vệ 4 dáng, thêm vòm Giáp Lửa.
+  - Thêm mảnh lò xo: tóc sau, khăn vai, 2 vạt áo.
+- Chưa đổi code / hình trong game — chờ tranh mới.
+
 ## 17/10/2026 — Thiên Thạch chạm đất luôn chí mạng
 - **Elarion — Thiên Thạch:** cú rơi chạm đất (×2,8) **luôn chí mạng**; lăn, vệt lửa và va chạm với Lốc Xoáy vẫn tính bình thường (có thể chí mạng theo tỉ lệ).
 

@@ -329,16 +329,19 @@ def main():
         pieces[name] = (im, [x0, y0], s)
 
     Wt = spec.get("width", 2048)
+    # "pad": khoảng trống giữa các mảnh trong atlas (mặc định 3). Nhân vật thu nhỏ nhiều trên màn hình (mipmap) cần
+    #   rộng hơn, nếu không màu / alpha mảnh bên cạnh lem sang mép mảnh (vệt sáng ở đường cắt thẳng)
+    pad = spec.get("pad", PAD)
     order = sorted(pieces.items(), key=lambda kv: -kv[1][0].height)
     x = y = shelf = 0
     placed = {}
     for name, (im, src, sc) in order:
-        if x + im.width + PAD > Wt:
-            x, y, shelf = 0, y + shelf + PAD, 0
-        placed[name] = (x + PAD, y + PAD)
-        x += im.width + PAD * 2
-        shelf = max(shelf, im.height + PAD)
-    Ht = 1 << (y + shelf + PAD - 1).bit_length()
+        if x + im.width + pad > Wt:
+            x, y, shelf = 0, y + shelf + pad, 0
+        placed[name] = (x + pad, y + pad)
+        x += im.width + pad * 2
+        shelf = max(shelf, im.height + pad)
+    Ht = 1 << (y + shelf + pad - 1).bit_length()
     atlas = Image.new("RGBA", (Wt, Ht), (0, 0, 0, 0))
     meta = {"atlasSize": [Wt, Ht], "parts": {}}
     for name, (im, src, sc) in pieces.items():
@@ -358,7 +361,11 @@ def main():
     for name, m in layers.items():
         c = rng.integers(40, 255, 3)
         dbg[m] = dbg[m] * 0.45 + c * 0.55
-    Image.fromarray(dbg.astype(np.uint8)).save(spec.get("debug", "/tmp/cut_debug.png"))
+    # ảnh soi vùng cắt: mặc định vào thư mục tạm của máy (Windows / Linux đều chạy được)
+    import os, tempfile
+    dbg_path = spec.get("debug") or os.path.join(tempfile.gettempdir(), "cut_debug.png")
+    os.makedirs(os.path.dirname(dbg_path) or ".", exist_ok=True)
+    Image.fromarray(dbg.astype(np.uint8)).save(dbg_path)
     print(f"atlas {Wt}x{Ht} -> {spec['out']} ({len(pieces)} mảnh)")
 
 

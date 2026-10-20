@@ -1,0 +1,353 @@
+{
+ "note": "Hieu ung Ignar ban 2 (tranh AI nen den cua nguoi dung, giu nguyen). Cat theo o luoi, tach nen den, can khung, dong goi. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/ignar_fx2.webp",
+ "meta": "src/vfx/ignarFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "hand": {
+   "file": "art/ignar/fx2/fx-hand.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.4,
+   "groups": [
+    {
+     "name": "hand",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "core",
+     "coreRegion": [
+      0.2,
+      0.8
+     ],
+     "pivot": "core"
+    },
+    {
+     "name": "ball",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "core",
+     "scale": 0.45
+    }
+   ]
+  },
+  "boom": {
+   "file": "art/ignar/fx2/fx-boom.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "boom",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "bottom",
+     "solid": 90,
+     "inset": 6,
+     "solidFrames": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "smoke": [
+      5,
+      6,
+      7
+     ]
+    }
+   ]
+  },
+  "hit": {
+   "file": "art/ignar/fx2/fx-hit.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "hit",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "swirl",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "core"
+    }
+   ]
+  },
+  "meteor": {
+   "file": "art/ignar/fx2/fx-meteor.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.55,
+   "groups": [
+    {
+     "name": "meteor",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": [
+      186,
+      425
+     ],
+     "solid": 45,
+     "inset": 10
+    },
+    {
+     "name": "flame",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "bottom",
+     "scale": 0.45
+    }
+   ]
+  },
+  "ground": {
+   "file": "art/ignar/fx2/fx-ground.png",
+   "grid": [
+    2,
+    4
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "warn",
+     "cells": [
+      0
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "scorch",
+     "cells": [
+      1
+     ],
+     "pivot": "center",
+     "solid": 28,
+     "inset": 4
+    },
+    {
+     "name": "circleDim",
+     "cells": [
+      2
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "circleLit",
+     "cells": [
+      3
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "summonCircle",
+     "cells": [
+      4
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "shockRing",
+     "cells": [
+      5
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "slam",
+     "cells": [
+      6
+     ],
+     "pivot": "bottom",
+     "solid": 60,
+     "inset": 2
+    },
+    {
+     "name": "breakIcon",
+     "cells": [
+      7
+     ],
+     "pivot": "center",
+     "solid": 30,
+     "inset": 2,
+     "scale": 0.4
+    }
+   ]
+  },
+  "pillar": {
+   "file": "art/ignar/fx2/fx-pillar.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "pillar",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "firegod": {
+   "file": "art/ignar/fx2/fx-firegod.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.55,
+   "groups": [
+    {
+     "name": "aura",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    },
+    {
+     "name": "wing",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": [
+      330,
+      238
+     ]
+    }
+   ]
+  },
+  "palmShield": {
+   "file": "art/ignar/fx2/fx-palm-shield.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "palm",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "core",
+     "coreRegion": [
+      0.0,
+      0.45
+     ],
+     "pivot": "core"
+    },
+    {
+     "name": "shield",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "center"
+    }
+   ]
+  },
+  "guardian": {
+   "file": "art/ignar/fx2/fx-guardian.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "guard",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": [
+      195,
+      270
+     ],
+     "solid": 55,
+     "inset": 8,
+     "tip": 5
+    }
+   ]
+  }
+ }
+}

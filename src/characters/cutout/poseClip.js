@@ -21,8 +21,47 @@ export const LIFT_Z = 0.38;
 //        qua đầu để cánh tay không che mặt. Rig nào cần thì khai báo rig.dropNZ (độ lùi z).
 export const DROP_Z = 0.285; // tay xa (z 1-3) -> 0.40-0.44: trên thân/đầu/khăn (<= 0.36), dưới tay gần (>= 0.44)
 
-export function buildPoseClip(name, times, poses, parts, height, { liftPart = 'armF' } = {}) {
+// ---------- Đường cong tốc độ (tuỳ chọn, mặc định TẮT) ----------
+// ease: mảng tên đường cong cho từng đoạn giữa 2 khoá (dài = số khoá − 1), null = tuyến tính như cũ.
+// Khi bật: lấy mẫu dày (sampleRate khoá / giây) theo đường cong -> clip vẫn nội suy tuyến tính giữa các mẫu,
+// mốc thời gian của khoá gốc (và hitTime của động tác) giữ nguyên.
+export const EASE = {
+    linear: (t) => t,
+    in: (t) => t * t * t,                                            // tăng tốc dần (bung ra)
+    out: (t) => 1 - Math.pow(1 - t, 3),                              // chậm dần (dừng êm)
+    inOut: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+    sine: (t) => 0.5 - 0.5 * Math.cos(Math.PI * t),                  // thở / đung đưa đều
+    outQuad: (t) => 1 - (1 - t) * (1 - t),
+};
+const lerp = (a, b, u) => a + (b - a) * u;
+/** Tư thế xen giữa a -> b ở tỉ lệ u (góc + hips + sq nội suy; liftF / dropN / air giữ theo a) */
+function lerpPose(a, b, u) {
+    const o = { ...a };
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+        if (k === 'liftF' || k === 'dropN' || k === 'air') continue;
+        const va = a[k], vb = b[k] ?? va;
+        if (Array.isArray(va)) o[k] = va.map((x, i) => lerp(x, (vb ?? va)[i] ?? x, u));
+        else if (typeof va === 'number') o[k] = lerp(va, typeof vb === 'number' ? vb : va, u);
+        else if (va === undefined && typeof vb === 'number') o[k] = vb;
+    }
+    return o;
+}
+function easeSample(times, poses, ease, rate) {
+    const T = [], P = [];
+    for (let i = 0; i < times.length - 1; i++) {
+        const t0 = times[i], t1 = times[i + 1];
+        const f = EASE[ease[i]] ?? (typeof ease[i] === 'function' ? ease[i] : null);
+        if (!f || t1 - t0 <= 0) { T.push(t0); P.push(poses[i]); continue; }
+        const n = Math.max(1, Math.ceil((t1 - t0) * rate));
+        for (let k = 0; k < n; k++) { T.push(t0 + (t1 - t0) * k / n); P.push(lerpPose(poses[i], poses[i + 1], f(k / n))); }
+    }
+    T.push(times[times.length - 1]); P.push(poses[poses.length - 1]);
+    return [T, P];
+}
+
+export function buildPoseClip(name, times, poses, parts, height, { liftPart = 'armF', ease = null, sampleRate = 60 } = {}) {
     // liftPart: khớp được nâng lớp khi liftF=1 (mặc định cả tay xa 'armF'; Rok dùng 'foreF' để bắp tay xa vẫn nằm SAU thân)
+    if (ease) [times, poses] = easeSample(times, poses, ease, sampleRate);
     const tracks = [];
     const keys = Object.keys(poses[0]).filter(k => !SPECIAL.has(k));
     for (const key of keys) {

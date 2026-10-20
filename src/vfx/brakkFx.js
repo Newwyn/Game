@@ -7,6 +7,7 @@
 //   hồi máu, vòng rồng, quả Orb, vương miện.
 // Mọi hình vẽ nhìn sang PHẢI; nhìn trái thì lật gương (scale.x = -1).
 import * as THREE from 'three';
+import { textureView } from './texView.js';
 import fxUrl from '../assets/sprites/brakk_fx.png';
 import fxMeta from './brakkFx.json';
 import { gameTimeout } from '../config.js';
@@ -23,10 +24,9 @@ function tex(name) {
     base.colorSpace = THREE.SRGBColorSpace;
     const [W, H] = fxMeta.atlasSize;
     const [x, y, w, h] = fxMeta.parts[name].rect;
-    const t = base.clone();
+    const t = textureView(base);   // không tải lại atlas lên GPU (xem texView.js)
     t.repeat.set(w / W, h / H);
     t.offset.set(x / W, 1 - (y + h) / H);
-    t.needsUpdate = true;
     return (texCache[name] = { texture: t, aspect: w / h, w, h });
 }
 /** Mặt phẳng hiện 1 hình, cao `height` đơn vị (tâm ở giữa hình) */

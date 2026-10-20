@@ -1,0 +1,100 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}</style></head><body>
+<!-- Thử động tác Ignar bản KHUNG XƯƠNG (bản thử 17/10; game hiện dùng sprite, xem test-sprite.html): đứng / thủ thế → đánh thường (ném cầu lửa thật như game) → về.
+     npm run dev rồi mở /tools/test-ignar.html
+       ?mode=idle   : đứng 1s → đánh → đứng            (ngoài giao tranh)
+       ?mode=ready  : thủ thế → đánh (0,5s) → đánh (1,6s, nhịp 1,1s như trong trận) → thủ thế
+       ?mode=run    : chạy 3 ô rồi đứng
+       &left=1      : quay mặt sang trái   &speed=1.5 : tốc độ x1,5   &zoom=1.6 : phóng to   &auto=1 : tự chạy lặp
+     Console: stepTo(giây) tua tới mốc (khung cố định 1/60s) · window.hitAt = các mốc cầu lửa rời tay (giây) -->
+<script>
+  // Đồng hồ ảo: setTimeout + performance.now chạy theo stepTo() để chụp đúng khoảnh khắc
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { spawnFireball, spawnFireHit } from '../src/vfx/fireFx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const MODE = q.get('mode') || 'idle';
+const LEFT = q.get('left') === '1';
+const SPEED = +(q.get('speed') || 1);
+const W = +(q.get('w') || 640), H = +(q.get('h') || 480);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34 / +(q.get('zoom') || 1); camera.updateProjectionMatrix();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
+const sx = LEFT ? -1 : 1;
+const mk = (classId, x, side) => ({ classId, alive: true, statusEffects: [], x, z: 0, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const ig = mk('mage', -1.2 * sx, LEFT ? 'right' : 'left');
+const dummy = mk('monster_dummy', 3.0 * sx, LEFT ? 'left' : 'right');
+game.roomData = { players: { me: { squad: [ig] }, op: { squad: [dummy] } } };
+const v = createCharacterView(ig, { skills: [] }, true);
+const t = createCharacterView(dummy, { skills: [] }, false);
+v.facingLeft = LEFT; t.facingLeft = !LEFT;
+[v, t].forEach(o => scene.add(o.root));
+const CX = q.get('cx') != null ? +q.get('cx') : 0.6 * sx, CY = +(q.get('cy') || 1.05);   // &cx=-1.2&cy=1.3&zoom=3: soi cận 1 vùng
+camera.position.set(CX, CY + 0.25, 8.6); camera.lookAt(CX, CY, 0);
+window.view = v;
+
+/** Lòng bàn tay (chỗ cầu lửa) — giống palmPoint() trong src/combat/events.js */
+function palmPoint(view) {
+  if (view.palmFire) { const p = new THREE.Vector3(); view.palmFire.group.getWorldPosition(p); return { x: p.x, y: p.y, z: p.z }; }
+  return { x: view.position.x + (view.facingLeft ? -0.8 : 0.8), y: 1.5, z: view.position.z };
+}
+window.hitAt = [];
+// đánh thường y như events.js: playAction('attack', { onHit }) -> cầu lửa 0,23s -> nổ
+function attack() {
+  v.playAction('attack', { onHit: () => {
+    window.hitAt.push(+window.__vt.toFixed(3));
+    const to = { x: t.position.x, y: t.position.y + 0.95, z: t.position.z };
+    spawnFireball(palmPoint(v), to, { duration: 0.23, size: 0.75, onHit: () => { spawnFireHit(t.position); t.flashHit?.(); } });
+  } });
+}
+const ev = [];
+const at = (s, fn) => ev.push([s, fn]);
+if (MODE === 'run') {
+  // chạy tới 3 ô rồi đứng (kiểm khăn vai lò xo + chân dưới vạt áo)
+  at(0.3, () => { ig.state = 'moving'; v.setLocomotion('move'); v.targetPos.x = v.position.x + 3 * sx; });
+  at(1.5, () => { ig.state = 'idle'; v.setLocomotion('idle'); });
+} else if (MODE === 'ready') {
+  at(0, () => { ig.state = 'attacking'; v.setLocomotion('ready'); });
+  at(0.5, attack); at(1.6, attack);
+} else {
+  at(0, () => v.setLocomotion('idle'));
+  at(1.0, attack);
+}
+ev.sort((a, b) => a[0] - b[0]);
+window.attackStarts = ev.filter(e => e[1] === attack).map(e => e[0]);
+let time = 0;
+const tick = (dt) => {
+  while (ev.length && ev[0][0] <= time + 1e-9) ev.shift()[1]();
+  time += dt; window.__vt = time; window.__runTimers();
+  updateVfx(dt);
+  v.update(dt, camera); t.update(dt, camera);
+};
+window.stepTo = (target) => {
+  while (time < target - 1e-9) tick(Math.min(1 / 60, target - time) * SPEED);
+  renderer.render(scene, camera);
+  return time;
+};
+window.stepTo(0.001);
+if (q.get('auto')) {
+  const total = MODE === 'ready' ? 2.8 : 2.6;
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(time + Math.min(0.05, (now - last) / 1000)); last = now; if (time > total) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

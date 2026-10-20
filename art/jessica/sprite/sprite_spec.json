@@ -1,0 +1,31 @@
+{
+ "note": "Jessica ban 3: tranh AI nen xanh cua nguoi dung (giu nguyen, chi tach nen matte + can chan + co gian). scale: dua moi tam ve cung co idle (do bang khop mat + dang thu the). land (hang duoi stealth-land) ve to hon hang tren ~8% -> he so rieng 0.92.",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "sheets": {
+  "idle": {"file": "art/jessica/sprite/sprite-idle.png", "scale": 1.0,
+           "groups": [["idle", 4, "toe"], ["ready", 4, "toe"]]},
+  "attack": {"file": "art/jessica/sprite/sprite-attack.png", "scale": 0.92, "anchor": "heel"},
+  "move": {"file": "art/jessica/sprite/sprite-move.png", "scale": 0.94, "anchor": "body"},
+  "hurt-stun": {"file": "art/jessica/sprite/sprite-hurt-stun.png", "scale": 0.87,
+                "groups": [["hurt", 4, "toe"], ["stun", 4, "toe"]]},
+  "throw": {"file": "art/jessica/sprite/sprite-throw.png", "scale": 0.97, "anchor": "body",
+            "points": {"6": {"hand": [775, 696]}}},
+  "throwstand-vanish": {"file": "art/jessica/sprite/sprite-throwstand-vanish.png", "scale": 0.96,
+                        "groups": [["throwStand", 4, "toe"], ["vanish", 4, "toe"]],
+                        "points": {"3": {"hand": [1156, 212]}}},
+  "dash": {"file": "art/jessica/sprite/sprite-dash.png", "scale": 1.0,
+           "groups": [["dash", 4, "body"], ["appear", 4, "toe"]],
+           "points": {"7": {"tip": [1116, 558]}}},
+  "stealth-land": {"file": "art/jessica/sprite/sprite-stealth-land.png", "scale": 0.97,
+                   "groups": [["stealth", 4, "toe"], ["land", 4, "body", 0.92]]},
+  "dead-victory": {"file": "art/jessica/sprite/sprite-dead-victory.png", "scale": 0.87,
+                   "groups": [["dead", 4, "toe"], ["victory", 4, "toe"]]}
+ },
+ "out": "src/assets/sprites/jessica_sprite",
+ "meta": "src/characters/sprite/jessicaSprite.json",
+ "format": "webp"
+}

@@ -1,0 +1,119 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 17px sans-serif;color:#ffe680;background:rgba(0,0,0,.6);padding:3px 9px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem lần lượt MỌI động tác của 1 nhân vật (sprite hoặc khung xương) — trang thử chung cho cả đội.
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/test-sprite.html?char=warrior&auto=1
+       char = mage (Ignar) | warrior (Rok) | assassin (Jessica) | archer (Lyra) | priest (Seraphine) | reaper (Zerith)
+              wrestler (Brakk) | dancer (Nerissa) | elementalist (Elarion) | elem_golem (Golem)
+       &ignar=cutout (hoặc tham số của nhân vật khác): xem bản khung xương để so
+       &only=attack,bash : chỉ xem vài động tác · &left=1 quay trái · &zoom=1.6 · &speed=0.5 · &auto=1 tự chạy lặp
+     Đánh thường gọi đúng hàm của game (cầu lửa, bùa, mũi tên...). Kỹ năng: chạy động tác + loé đơn giản ở mốc ra đòn
+     (hiệu ứng thật của từng kỹ năng xem ở tools/fx-<tên>.html). -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx, spawnHitSpark, spawnShockwave } from '../src/vfx/vfx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView, CHARACTER_VISUALS } from '../src/characters/registry.js';
+import { __fxTest as T } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const CHAR = q.get('char') || 'mage';
+const LEFT = q.get('left') === '1';
+const SPEED = +(q.get('speed') || 1);
+const ONLY = q.get('only') ? new Set(q.get('only').split(',')) : null;
+const W = +(q.get('w') || 800), H = +(q.get('h') || 560);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34 / +(q.get('zoom') || 1); camera.updateProjectionMatrix();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const sx = LEFT ? -1 : 1;
+const mk = (classId, x, side) => ({ classId, alive: true, statusEffects: [], x, z: 0, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0, held: ['f'] });
+const hero = mk(CHAR, -1.4 * sx, LEFT ? 'right' : 'left');
+const dummy = mk('monster_dummy', 3.2 * sx, LEFT ? 'left' : 'right');
+game.roomData = { players: { me: { squad: [hero] }, op: { squad: [dummy] } } };
+game.classDefs = { [CHAR]: { skills: [] }, monster_dummy: { skills: [] } };
+const v = createCharacterView(hero, game.classDefs[CHAR], true);
+const t = createCharacterView(dummy, { skills: [] }, false);
+v.facingLeft = LEFT; t.facingLeft = !LEFT;
+game.views = { me: [v], op: [t] };
+[v, t].forEach(o => scene.add(o.root));
+const CX = q.get('cx') != null ? +q.get('cx') : 0.7 * sx, CY = +(q.get('cy') || 1.05);
+camera.position.set(CX, CY + 0.25, 9.6); camera.lookAt(CX, CY, 0);
+window.view = v;
+
+const lbl = document.getElementById('lbl');
+const ev = [];
+const at = (s, fn) => ev.push([s, fn]);
+const say = (s, text) => at(s, () => { lbl.textContent = text; });
+const want = (k) => !ONLY || ONLY.has(k);
+const def = CHARACTER_VISUALS[CHAR]?.(hero) ?? {};
+const HOLD = new Set(['charge', 'cast', 'pray', 'channel', 'beam', 'guard', 'dash', 'inhale', 'breath', 'vanish']);
+const durOf = (clip) => v.actions?.[clip]?.getClip().duration ?? 0.6;
+let tt = 0.2;
+const tt0 = {};
+window.hitAt = [];
+if (want('idle')) { say(tt, 'Đứng'); at(tt, () => v.setLocomotion('idle')); tt += 1.0; }
+if (want('ready')) { say(tt, 'Thủ thế'); at(tt, () => { hero.state = 'attacking'; v.setLocomotion('ready'); }); tt += 1.0; }
+if (want('attack')) {
+  say(tt, 'Đánh thường (game)');
+  at(tt, () => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 212, isCrit: false }));
+  tt += Math.max(1.0, durOf('attack') + 0.5);
+}
+if (want('move')) {
+  say(tt, 'Chạy'); at(tt, () => { hero.state = 'moving'; window.__run = 3.2; v.setLocomotion('move'); });
+  at(tt + 1.0, () => { window.__run = 0; hero.state = 'idle'; v.setLocomotion('idle'); });
+  at(tt + 1.35, () => { v.teleport(hero.x, 0); }); tt += 1.6;
+}
+for (const [name, a] of Object.entries(def.anims ?? {})) {
+  if (name === 'attack' || !want(name)) continue;
+  const clip = a.clip ?? name;
+  if (a.hitTime == null || HOLD.has(clip)) {
+    say(tt, `${name} (giữ)`); at(tt, () => v.playAction(name, { hold: true })); at(tt + 1.2, () => v._interruptOneShot?.()); tt += 1.5;
+  } else {
+    say(tt, `${name} (ra đòn ${a.hitTime}s)`);
+    at(tt, () => v.playAction(name, { onHit: () => { window.hitAt.push(+(window.__vt - tt0[name]).toFixed(3)); spawnHitSpark(t.position, { count: 7, color: 0xffe08a }); spawnShockwave(t.position, { color: 0xffffff, radius: 1.2, life: 0.3 }); t.flashHit?.(); } }));
+    tt0[name] = tt; tt += Math.max(1.0, durOf(clip) + 0.5);
+  }
+}
+if (want('hurt')) { say(tt, 'Trúng đòn'); at(tt, () => { v.setLocomotion('idle'); v.playHurt(); }); tt += 0.8; }
+if (want('stunned')) {
+  say(tt, 'Choáng'); at(tt, () => { hero.statusEffects = [{ type: 'stun', endTime: 1e12 }]; hero.state = 'stunned'; v.setLocomotion('stunned'); });
+  at(tt + 1.4, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.6;
+}
+if (want('intro')) { say(tt, 'Rơi vào trận → đáp đất'); at(tt, () => v.playIntro?.({ height: 9, duration: 0.42 })); tt += 1.5; }
+if (want('victory')) { say(tt, 'Thắng'); at(tt, () => v.celebrate?.()); tt += 1.4; }
+if (want('dead')) { say(tt, 'Gục'); at(tt, () => { v._victory = false; hero.alive = false; v.setLocomotion('dead'); }); tt += 1.6; }
+window.TOTAL = tt;
+ev.sort((a, b) => a[0] - b[0]);
+window.__run = 0;
+let time = 0;
+const tick = (dt) => {
+  while (ev.length && ev[0][0] <= time + 1e-9) ev.shift()[1]();
+  time += dt; window.__vt = time; window.__runTimers();
+  if (window.__run) v.targetPos.x += window.__run * dt * sx;
+  updateVfx(dt);
+  v.update(dt, camera); t.update(dt, camera);
+};
+window.stepTo = (target) => {
+  while (time < target - 1e-9) tick(Math.min(1 / 60, target - time) * SPEED);
+  renderer.render(scene, camera);
+  return time;
+};
+window.stepTo(0.001);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(time + Math.min(0.05, (now - last) / 1000)); last = now; if (time > window.TOTAL + 0.5) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

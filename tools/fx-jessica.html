@@ -1,0 +1,122 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 18px sans-serif;color:#ffe680;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem thử MỌI kỹ năng + hiệu ứng của Jessica bản 3 (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả, mốc thời gian như server).
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/fx-jessica.html?s=all&auto=1
+     s = all (lần lượt tất cả) | attack | throw | strike | stealth
+     &w=1280&h=720 cỡ khung · &auto=1 tự chạy lặp · &jessica=cutout bản khung xương · console: stepTo(giây) -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+import { __fxTest as T } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'all';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34; camera.updateProjectionMatrix();
+const CX = +(q.get('cx') ?? 0.8), CY = +(q.get('cy') ?? 1.7), CZ = +(q.get('cz') ?? 15);
+camera.position.set(CX, CY + 2.7, CZ); camera.lookAt(CX, CY, 0);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const jes = mk('assassin', -2.2, 'left');
+const ally = mk('warrior', -7.6, 'left', -1.2);
+const allies = [jes, ally];
+const foes = [mk('monster_tank', 1.6, 'right'), mk('monster_archer', 4.6, 'right', -1), mk('monster_supporter', 3.6, 'right', 1.2)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+game.classDefs = { assassin: { skills: [{ type: 'projectile', hitFrame: 3 }, { type: 'melee_strike', hitFrame: 3 }, { type: 'stealth', hitFrame: 2 }] },
+  warrior: { skills: [] }, monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
+const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
+vF.forEach(v => { v.facingLeft = true; });
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+window.view = vA[0];
+vA.forEach(v => { v.isLocalPlayer = true; });   // phe mình: tàng hình vẫn thấy mờ mờ + hào quang
+
+const lbl = document.getElementById('lbl');
+const ev = [];
+const at = (t, fn) => ev.push([t, fn]);
+const say = (t, s) => at(t, () => { lbl.textContent = s; });
+const BIG = 1e12;
+const hit = (i, dmg = 180, extra = {}) => ({ targetIndex: i, damage: dmg, isCrit: false, isBlock: false, isMiss: false, ...extra });
+const exec = (skillIdx, type, payload = {}) => T.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx, type, effects: [], ...payload });
+const attack = (ti = 0, isCrit = false) => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: ti, damage: isCrit ? 420 : 210, isCrit });
+const resetAll = () => { vA[0].teleport(jes.x, 0, true); jes.statusEffects = []; ally.statusEffects = []; foes.forEach(f => { f.statusEffects = []; }); };
+
+function seqAttack(t0) {
+  say(t0, 'Đánh thường: chém dao'); at(t0, () => attack(0));
+  say(t0 + 1.0, 'Đánh thường chí mạng: chém chữ X sấm'); at(t0 + 1.0, () => attack(0, true));
+  return t0 + 2.1;
+}
+function seqThrow(t0) {
+  say(t0, 'Phóng Bùa: lộn mèo ra sau → quăng bùa → bùa trúng hiện Ấn');
+  at(t0, () => {
+    exec(0, 'projectile', { newX: jes.x - 4, newZ: 0, effects: [hit(1, 240)] });
+    foes[1].statusEffects = [{ type: 'seal', endTime: BIG }];
+  });
+  say(t0 + 1.7, 'Phóng bùa đứng tại chỗ (sát mép sân)');
+  at(t0 + 1.7, () => exec(0, 'projectile', { newX: vA[0].basePos.x, newZ: 0, effects: [hit(2, 240)] }));
+  at(t0 + 1.71, () => { foes[2].statusEffects = [{ type: 'seal', endTime: BIG }]; });
+  return t0 + 3.2;
+}
+function seqStrike(t0) {
+  say(t0, 'Đột Kích: thụp người biến mất → lướt chém các quái có Ấn → hiện ra sau lưng chém');
+  at(t0, () => exec(1, 'melee_strike', { newX: 6.4, newZ: 0, isBackstab: false, reset: true,
+    effects: [hit(0, 300), hit(2, 300), hit(1, 520, { isCrit: true })] }));
+  at(t0 + 2.4, () => { resetAll(); vA[0].teleport(-2.2, 0, true); vA[0].facingLeft = false; });
+  return t0 + 2.6;
+}
+function seqStealth(t0) {
+  say(t0, 'Tàng Hình: kết ấn → khói sấm bùng → hào quang tàng hình; đồng đội +né (cánh sét)');
+  at(t0, () => {
+    exec(2, 'stealth', { effects: [{ targetIndex: 0, isStealth: true }] });
+    jes.statusEffects = [{ type: 'stealth', endTime: BIG }];
+    ally.statusEffects = [{ type: 'thunder_blessing', endTime: BIG, dodgeUp: 200 }];
+  });
+  say(t0 + 1.3, 'Đang tàng hình: đòn chém thành vệt sấm');
+  at(t0 + 1.3, () => attack(0)); at(t0 + 2.2, () => attack(0, true));
+  say(t0 + 3.2, 'Đột Kích lúc tàng hình: chắc chắn chí mạng');
+  at(t0 + 3.2, () => exec(1, 'melee_strike', { newX: 6.4, newZ: 0, isBackstab: true, effects: [hit(0, 520, { isCrit: true }), hit(1, 520, { isCrit: true })] }));
+  at(t0 + 5.4, () => { resetAll(); });
+  return t0 + 5.8;
+}
+let end = 0.2;
+if (S === 'all') { end = seqAttack(end); end = seqThrow(end); end = seqStrike(end); end = seqStealth(end); }
+else end = ({ attack: seqAttack, throw: seqThrow, strike: seqStrike, stealth: seqStealth })[S](end);
+say(end, '');
+window.TOTAL = end + 0.3;
+ev.sort((a, b) => a[0] - b[0]);
+let t = 0;
+window.stepTo = (target) => {
+  while (t < target - 1e-9) {
+    const dt = Math.min(1 / 60, target - t);
+    while (ev.length && ev[0][0] <= t + 1e-9) ev.shift()[1]();
+    t += dt; window.__vt = t; window.__runTimers();
+    updateVfx(dt);
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
+  }
+  renderer.render(scene, camera);
+  return t;
+};
+window.stepTo(0.02);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(t + Math.min(0.05, (now - last) / 1000)); last = now; if (t > window.TOTAL) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

@@ -10,6 +10,12 @@
 //   một lần             : attack, throw, vanish, appear, stealth, hurt, land, victory
 // Mỗi hành động trỏ tới một clip + thời điểm trúng đòn (hitTime, giây).
 import { CutoutCharacterView } from './CutoutCharacterView.js';
+import { FrameSpriteView } from './FrameSpriteView.js';
+import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
+import { ROK_SPRITE } from './sprite/rokSprite.js';
+import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
+import { makeDivineShield } from '../vfx/rokFx.js';
+import { makeStealthAura } from '../vfx/jessicaFx.js';
 import { PlaceholderCharacterView } from './PlaceholderCharacterView.js';
 import { ASSASSIN2_RIG } from './cutout/assassin2Rig.js';
 import {
@@ -79,6 +85,12 @@ const ASSASSIN = {
     circleTint: 0xb07cff,    // vòng ấn chú tím
     stealthAura: true,       // tàng hình: hào quang sấm tím + mắt phát sáng
     props: [{ name: 'talisman', joint: 'handF', make: () => makeTalismanMesh(0.55), offset: [0.04, -0.3], z: 0.05 }],
+    // Kiểu sprite (bản 3: nữ ninja sấm tím) — ?jessica=cutout về bản khung xương, ?jessicaIdle=A|B|C đổi cách đứng
+    sprite: JESSICA_SPRITE,
+    spriteParam: 'jessica',
+    spriteIdleParam: 'jessicaIdle',
+    // Tàng hình: hào quang sấm tím vẽ bằng tranh (art/jessica/fx2) thay bản code
+    stealthFx: makeStealthAura,
     anims: {
         attack:  { clip: 'attack',  hitTime: 0.18 },
         throw:   { clip: 'throw',   hitTime: 0.42 },  // lộn mèo ra sau rồi quăng bùa giữa không trung
@@ -101,6 +113,12 @@ const ROK = {
     locomotion: ROK_LOCOMOTION,
     blink: true,
     circleTint: 0xffc94a,
+    // Kiểu sprite (bản 3: hiệp sĩ châu Âu) — ?rok=cutout về bản khung xương, ?rokIdle=A|B|C đổi cách đứng
+    sprite: ROK_SPRITE,
+    spriteParam: 'rok',
+    spriteIdleParam: 'rokIdle',
+    // Dựng Khiên: Khiên Thần vẽ bằng tranh (art/rok/fx2) thay Thần Hộ Vệ + vòm lục giác
+    guardFx: makeDivineShield,
     anims: {
         attack:   { clip: 'attack',   hitTime: 0.24 },
         taunt:    { clip: 'taunt',    hitTime: 0.42 },
@@ -168,6 +186,10 @@ const MAGE = {
     ghostTint: 0xff7a1a,
     circleTint: 0xff5a00,
     palmFire: { joint: 'handF', offset: [PALM_FIRE[0], PALM_FIRE[1] - 70] },
+    // Bản thử SPRITE (tranh AI, mỗi khung 1 hình): mặc định bật. ?ignar=cutout -> về khung xương · ?ignarIdle=A|B|C -> cách đứng
+    sprite: IGNAR_SPRITE,
+    spriteParam: 'ignar',
+    spriteIdleParam: 'ignarIdle',
     anims: {
         attack: { clip: 'attack', hitTime: 0.25 },  // ném cầu lửa
         summon: { clip: 'summon', hitTime: 0.35 },  // Thiên Hỏa Cầu
@@ -305,8 +327,17 @@ export const CHARACTER_VISUALS = {
     monster_dummy: (m) => creatureVisual('monster_dummy', m.color),
 };
 
+/** Nhân vật có bản sprite: bật trừ khi URL có ?<spriteParam>=cutout (VD ?ignar=cutout) */
+function useSprite(visual) {
+    if (!visual.sprite) return false;
+    try { return new URLSearchParams(location.search).get(visual.spriteParam) !== 'cutout'; } catch { return true; }
+}
+
 export function createCharacterView(member, classDef, isMyTeam) {
     const make = CHARACTER_VISUALS[member.classId];
-    if (make) return new CutoutCharacterView(member, classDef, isMyTeam, make(member));
+    if (make) {
+        const visual = make(member);
+        return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);
+    }
     return new PlaceholderCharacterView(member, classDef, isMyTeam);
 }

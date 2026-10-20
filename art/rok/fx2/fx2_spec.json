@@ -1,0 +1,238 @@
+{
+ "note": "Hieu ung Rok ban 3 (tranh AI nen den cua nguoi dung, giu nguyen). Khien Than can theo su tu vang giua khien (blob). Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/rok_fx2.webp",
+ "meta": "src/vfx/rokFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "aegisA": {
+   "file": "art/rok/fx2/fx-aegis-a.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.7,
+   "groups": [
+    {
+     "name": "aegisA",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "blob",
+     "pivot": "blob",
+     "blob": [
+      [
+       200,
+       120,
+       0
+      ],
+      [
+       255,
+       205,
+       95
+      ]
+     ],
+     "blobRegion": [
+      0.3,
+      0.35,
+      0.7,
+      0.8
+     ],
+     "blobRef": 4,
+     "solid": 130,
+     "inset": 3,
+     "solidFrames": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "holeMax": 600
+    }
+   ]
+  },
+  "aegisB": {
+   "file": "art/rok/fx2/fx-aegis-b.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.7,
+   "groups": [
+    {
+     "name": "aegisB",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "blob",
+     "pivot": "blob",
+     "blob": [
+      [
+       200,
+       120,
+       0
+      ],
+      [
+       255,
+       205,
+       95
+      ]
+     ],
+     "blobRegion": [
+      0.3,
+      0.3,
+      0.7,
+      0.8
+     ],
+     "blobRef": 0,
+     "solid": 130,
+     "inset": 3,
+     "solidFrames": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "holeMax": 600
+    }
+   ],
+   "regionThr": 60,
+   "regionDilate": 2,
+   "keepGrow": 14
+  },
+  "lion": {
+   "file": "art/rok/fx2/fx-lion.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "lion",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    },
+    {
+     "name": "roarWave",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "left"
+    }
+   ]
+  },
+  "ground": {
+   "file": "art/rok/fx2/fx-rok-ground.png",
+   "grid": [
+    2,
+    4
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "holyCircle",
+     "cells": [
+      0
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "goldRing",
+     "cells": [
+      1
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "quakeRing",
+     "cells": [
+      2
+     ],
+     "pivot": "center",
+     "solid": 60,
+     "inset": 3,
+     "smoke": [
+      0
+     ]
+    },
+    {
+     "name": "tauntIcon",
+     "cells": [
+      3
+     ],
+     "pivot": [
+      382,
+      108
+     ],
+     "solid": 40,
+     "inset": 3,
+     "scale": 0.5
+    },
+    {
+     "name": "buffIcon",
+     "cells": [
+      4
+     ],
+     "pivot": "center",
+     "solid": 70,
+     "inset": 3,
+     "scale": 0.5
+    },
+    {
+     "name": "bashBurst",
+     "cells": [
+      5
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "chain",
+     "cells": [
+      6
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "healCross",
+     "cells": [
+      7
+     ],
+     "pivot": "center",
+     "scale": 0.5
+    }
+   ],
+   "regionThr": 110,
+   "regionDilate": 1,
+   "keepGrow": 18
+  }
+ }
+}

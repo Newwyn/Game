@@ -13,6 +13,7 @@
 // Mọi hình vẽ nhìn sang PHẢI; nhìn trái thì lật gương (scale.x = -1).
 //   Ngọc Nguyên Tố: f = Hỏa · i = Băng · b = Lôi
 import * as THREE from 'three';
+import { textureView } from './texView.js';
 import fxUrl from '../assets/sprites/elarion_fx.png';
 import fxMeta from './elarionFx.json';
 import {
@@ -40,10 +41,9 @@ function tex(name) {
     base.anisotropy = 4;
     const [W, H] = fxMeta.atlasSize;
     const [x, y, w, h] = fxMeta.parts[name].rect;
-    const t = base.clone();
+    const t = textureView(base);   // không tải lại atlas lên GPU (xem texView.js)
     t.repeat.set(w / W, h / H);
     t.offset.set(x / W, 1 - (y + h) / H);
-    t.needsUpdate = true;
     return (texCache[name] = { texture: t, aspect: w / h });
 }
 /** Mặt phẳng hiện 1 hình, cao `height` đơn vị (tâm ở giữa hình). Mặc định trộn thường (giữ màu tranh) */
@@ -505,8 +505,7 @@ function beamFlareTexture() {
 }
 /** 1 lớp tia (mặt phẳng 1×1, kéo giãn bằng scale). Mỗi tia có bản texture riêng (repeat / offset riêng) */
 function beamLayer(tex, { additive = false, opacity = 1, color = 0xffffff, order = 0, seg = 0 } = {}) {
-    const t = tex.clone();
-    t.needsUpdate = true;
+    const t = textureView(tex);
     const m = new THREE.Mesh(seg ? new THREE.PlaneGeometry(1, 1, seg, 1) : new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
         map: t, transparent: true, depthWrite: false, opacity, color, fog: false, side: THREE.DoubleSide,
         blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,

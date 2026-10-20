@@ -84,18 +84,23 @@ add('handN', {
 borrow('handN', 'relax');
 
 // ---------- Tay xa (đưa ra trước, ngửa tay giữ cầu lửa) ----------
-add('armF', { ...art('armF', B.armF[0], { angle: upright(...B.armF) }), pos: B.armF[0], parent: 'torso', z: 26 });
-add('foreF', { pos: at('armF', B.armF[1]), parent: 'armF', z: 26 });          // khớp cổ tay (không hình)
+// bắp tay (armF) KHÔNG hình — nằm khuất dưới vạt vai; cẳng tay (foreF) = ống tay loe trong tranh, xoay quanh khuỷu
+const lenAF = Math.hypot(B.armF[1][0] - B.armF[0][0], B.armF[1][1] - B.armF[0][1]);
+add('armF', { pos: B.armF[0], parent: 'torso', z: 26 });
+add('foreF', { ...art('armF', B.foreF[0], { angle: upright(...B.foreF) }), pos: [B.armF[0][0], B.armF[0][1] + lenAF], parent: 'armF', z: 26 });
 add('handF', {
-    pos: parts.foreF.pos, parent: 'foreF', z: 25.5, skin: 'palm',
+    pos: at('foreF', B.foreF[1]), parent: 'foreF', z: 25.5, skin: 'palm',
     skins: {
-        palm: art('handF', B.armF[1], { angle: upright(...B.armF) }),          // bàn tay trong tranh
+        palm: sheetHand('palm'),   // ngửa tay — lấy từ tấm 03 (bàn tay cắt từ tranh 01 bị khuyết chỗ ngọn lửa vẽ sẵn đè lên)
         thrust: sheetHand('thrust'), fist: sheetHand('fist'), raise: sheetHand('raise'), relax: sheetHand('relax'),
     },
 });
 borrow('handF', 'palm');
-/** Điểm giữ quả cầu lửa (trên lòng bàn tay), toạ độ trong khớp handF */
-export const PALM_FIRE = local('handF', B.palm);
+/** Điểm giữ quả cầu lửa, toạ độ trong khớp handF — tính theo bàn tay trong tranh 01 (cùng cổ tay, cùng hướng với bàn tay
+ *  ngửa của tấm 03) để quả cầu nằm đúng chỗ như tranh */
+parts._palm01 = { ...art('handF', B.foreF[1], { angle: upright(...B.foreF) }), pos: parts.handF.pos };
+export const PALM_FIRE = local('_palm01', B.palm);
+delete parts._palm01;
 
 // ---------- Xuất ----------
 const out = {};

@@ -1,0 +1,95 @@
+{
+ "note": "Tranh AI nen xanh cua nguoi dung (giu nguyen). scale: dua moi tam ve cung co tam attack (do bang do trung khit dang thu the + be ngang toc, so voi idle1: idle = 1/1.065). atlasScale: thu nho ca atlas cho nhe bo nho (nhan vat tren man hinh ~100-300px).",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "sheets": {
+  "idle": {
+   "file": "art/ignar/sprite/sprite-idle.png",
+   "scale": 0.93897,
+   "anchor": "toe"
+  },
+  "attack": {
+   "file": "art/ignar/sprite/sprite-attack.png",
+   "scale": 1.0,
+   "anchor": "toe"
+  },
+  "move": {
+   "file": "art/ignar/sprite/sprite-move.png",
+   "scale": 0.911,
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "file": "art/ignar/sprite/sprite-hurt-stun.png",
+   "scale": 0.939,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "summon": {
+   "file": "art/ignar/sprite/sprite-summon.png",
+   "scale": 0.9625,
+   "anchor": "toe"
+  },
+  "bolt": {
+   "file": "art/ignar/sprite/sprite-bolt.png",
+   "scale": 0.934,
+   "anchor": "toe"
+  },
+  "palm": {
+   "file": "art/ignar/sprite/sprite-palm.png",
+   "scale": 0.934,
+   "anchor": "body"
+  },
+  "volley": {
+   "file": "art/ignar/sprite/sprite-volley.png",
+   "scale": 0.939,
+   "anchor": "body"
+  },
+  "charge-land": {
+   "file": "art/ignar/sprite/sprite-charge-land.png",
+   "scale": 0.981,
+   "groups": [
+    [
+     "charge",
+     4,
+     "body"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ]
+  },
+  "dead-victory": {
+   "file": "art/ignar/sprite/sprite-dead-victory.png",
+   "scale": 0.939,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ]
+  }
+ },
+ "out": "src/assets/sprites/ignar_sprite",
+ "meta": "src/characters/sprite/ignarSprite.json",
+ "format": "webp"
+}

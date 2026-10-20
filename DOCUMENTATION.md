@@ -252,6 +252,34 @@ Khiêu khích: **100** (như mọi nhân vật).
 | *Thiên phú 1 (Lv20): Đánh Lén* | — | +30/40/50% tỉ lệ chí mạng khi đánh **sau lưng** hoặc **đang tàng hình**. **Bóng Ẩn:** máu tụt còn **50%** (1 lần mỗi trận) → phụt khói **tàng hình 2s** và tự **nhảy ra sau lưng đối thủ yếu máu nhất** (khoá đánh nó). |
 | *Thiên phú 2 (Lv40): Sát Ý* | 10s | Đòn đánh trúng đối thủ **dưới 50% máu** → **chỉ đòn đó** +20/35% sát thương, rồi hồi 10s. |
 
+**Jessica bản 3 — kiểu SPRITE + hiệu ứng tranh (20/10/2026, mặc định bật):**
+- **Tạo hình mới:** nữ ninja trẻ, tóc đen ánh tím buộc đuôi ngựa cao (ruy băng tím treo 2 lá bùa nhỏ), mắt tím; đồ ninja đen ôm người phối tím đậm, viền vàng hình tia sét; khăn quàng tím 2 đuôi dài; xấp bùa giấy trắng chữ tím ở thắt lưng; 1 dao găm lưỡi tím cầm ngược.
+- **Prompt:** `art/jessica/sprite/PROMPTS_SPRITE.md` (tạo hình `01-character-v3.png` + 9 tấm sprite) và `art/jessica/fx2/PROMPTS_FX.md` (4 tấm hiệu ứng: lá bùa + Ấn, vệt chém sấm, khói sấm + hào quang tàng hình, 8 hình nhỏ).
+- **Khung chính ↔ mốc ra đòn:** chém 0,18s (khung 4) · Phóng Bùa lộn mèo 0,42s (khung 6) · phóng đứng 0,2s · hiện ra chém 0,18s · Tàng Hình 0,38s. Cơ chế / thông số không đổi.
+- Khói, vệt chém thường, bụi, sao choáng: lấy từ 4 tấm hiệu ứng chung cả đội (`art/common/PROMPTS_FX_CHUNG.md`), nhuộm tím — **chờ tranh** (hiện vẫn bản code).
+- **Tranh của người dùng** (giữ nguyên) trong `art/jessica/`: `01-character-v3.png`, `01b-portrait-v3.png`, `sprite/` 9 tấm nền xanh (72 khung), `fx2/` 4 tấm hiệu ứng.
+- **Đóng gói sprite:** `tools/sprite_pack.py art/jessica/sprite/sprite_spec.json` → `src/assets/sprites/jessica_sprite.webp` (2,2 MB) + `src/characters/sprite/jessicaSprite.json`.
+  - Tách nền `matte`; cỡ từng tấm đo bằng khớp mặt + dáng thủ thế so với `sprite-idle`; hàng "rơi vào trận" vẽ to hơn ~8% → hệ số nhóm 0,92 (phần tử thứ 4 của `groups`).
+  - Điểm gắn `hand` (bàn tay ném: Phóng Bùa khung 6, phóng đứng khung 3) → lá bùa bay ra đúng tay (`events.js` `throwProjectiles`).
+- **Khung ↔ động tác** (`src/characters/sprite/jessicaSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?jessicaIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 | khung 4 = 0,18s |
+  | Phóng Bùa (lộn mèo) | throw1–8 (vòng lộn vẽ sẵn → `noSpin`, bỏ xoay lộn của khung xương) | khung 6 = 0,42s |
+  | phóng bùa đứng | throwStand1–4 | khung 3 = 0,2s |
+  | Đột Kích | vanish1–4 (thụp người) → dash1–4 lặp (dư ảnh) → appear1–4 | hiện ra: khung 3 = 0,18s |
+  | Tàng Hình | stealth1–4 | khung 3 = 0,38s |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 (khung xương không có clip choáng → `FrameSpriteView` tự chạy tranh theo trạng thái) | — |
+  | rơi vào trận / gục / thắng | land1–4 / dead1–4 / victory1–4 | — |
+- **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/jessica/fx2/fx2_spec.json` → `src/assets/sprites/jessica_fx2.webp` (0,9 MB) + `src/vfx/jessicaFx2.json`; code `src/vfx/jessicaFx.js`:
+  - **Phóng Bùa:** lá bùa bay xoay (`spawnTalismanShot`) → trúng: loé, vỡ, hiện vòng Ấn (`spawnTalismanImpact`); dấu Ấn trên đầu quái = ấn sấm tím (`setSealIconFactory` trong `vfx.js`, vòng đếm ngược giữ nguyên).
+  - **Đột Kích:** khói sấm bùng lúc biến mất (`spawnStealthBurst`), vệt lướt sấm + bóng mờ (`spawnDashStreak`), mỗi quái trúng vệt chém sấm (`spawnThunderSlash`), hiện ra từ vòng bóng tối (`spawnShadowRing`) chém + loé (`spawnSparkBurst`), chí mạng chém chữ X (`spawnThunderX`); chém chết → mũi tên vòng xoay (`spawnResetIcon`).
+  - **Tàng Hình:** khói sấm bùng lúc kết ấn; hào quang sấm (`makeStealthAura`, gắn qua `visual.stealthFx`, thay hào quang + mắt sáng vẽ bằng code); đồng đội +né: cánh sét bật trên đầu (`spawnDodgeIcon`), tia sét nháy quanh người dùng tranh tia sét (`jessicaBoltTexture`).
+  - **Đánh thường:** đang tàng hình → vệt chém sấm; chí mạng → chữ X sấm.
+- **Xem:** `/tools/test-sprite.html?char=assassin&auto=1` (động tác) · `/tools/fx-jessica.html?s=all&auto=1` (s = attack | throw | strike | stealth); `?jessica=cutout` về bản khung xương.
+
 ### 4.2 Rok (Thiết Hộ) — Chiến Binh 🛡️
 *Lối chơi: đứng đầu hàng giữ quái, máu & thủ cao, đánh chậm. Tay gần cầm kiếm, tay xa cầm khiên tròn lớn. Màu chủ đạo: vàng kim.*
 
@@ -284,6 +312,47 @@ Khiêu khích: **100** (như mọi nhân vật).
 Máu khiên 600 ≈ 19% máu Rok: bị 3 quái đánh dồn thì vỡ sau ~3 giây (đã đo trong trận thử).
 
 ---
+
+**Rok bản 3 — kiểu SPRITE + hiệu ứng tranh (20/10/2026, mặc định bật):**
+- **Tạo hình mới:** hiệp sĩ trẻ châu Âu, tóc bạch kim, mắt xanh. Giáp tấm bạc viền vàng, áo trắng sư tử vàng, áo choàng xanh hoàng gia, trường kiếm chuôi vàng, khiên heater trắng có sư tử vàng.
+- **Prompt:** `art/rok/sprite/PROMPTS_SPRITE.md` (tạo hình `01-character-v3.png` + 8 tấm sprite) và `art/rok/fx2/PROMPTS_FX.md` (4 tấm hiệu ứng).
+- **Tranh của người dùng** (giữ nguyên) trong `art/rok/`: `01-character-v3.png`, `01b-character-v3.png` (giơ kiếm) và `sprite/`, mỗi tấm 4×2 = 8 khung:
+  - `sprite-idle` (đứng 4 + thủ thế 4) và `sprite-attack`: PNG trong suốt sẵn;
+  - `sprite-run` (chạy), `sprite-hurt-stun`, `sprite-taunt` (Sư Tử Gầm), `sprite-bash` (Đẩy Khiên), `sprite-guard-land` (Dựng Khiên 4 + rơi / đáp 4), `sprite-dead-victory`: nền xanh;
+  - `sprite-move.png` (bản chạy đầu, làm bằng ChatGPT nền đen) không dùng — tóc nhạt hơn các tấm sau.
+- **Đóng gói:** `tools/sprite_pack.py art/rok/sprite/sprite_spec.json` → `src/assets/sprites/rok_sprite.webp` (64 khung, 4074×1541, 2,5 MB) + `src/characters/sprite/rokSprite.json`.
+  - Tách nền `key: "matte"`: giữ viền đen mảnh của lưỡi kiếm (cách cũ làm mép kiếm lởm chởm); tấm trong suốt dùng `key: "alpha"` (bỏ quầng sáng mờ).
+  - Cỡ từng tấm ("scale") đo bằng cỡ đầu + độ trùng dáng thủ thế so với `sprite-idle`.
+  - Mốc chân: đánh thường / Đẩy Khiên / Dựng Khiên theo gót chân sau (bước tới), chạy / rơi theo đầu, còn lại theo mũi chân trước.
+  - Điểm gắn: `tip` (mũi kiếm, chém khung 4), `shield` (tâm khiên: gầm khung 4–5, húc khiên khung 3–4, Dựng Khiên khung 2–4) — dành cho Khiên Thần / sư tử.
+- **Khung ↔ động tác** (`src/characters/sprite/rokSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng (ngoài trận) | idle1 + thở (`?rokIdle=A` 4 khung, `B` 2 khung) | — |
+  | thủ thế (trong trận) | ready1 + thở | — |
+  | đánh thường | attack1–8 | khung 4 = 0,24s |
+  | Sư Tử Gầm | taunt1–8 | khung 4 = 0,42s |
+  | Đẩy Khiên / Đập Khiên | bash1–8 | khung 3 = 0,22s |
+  | Dựng Khiên | guard1–3, rồi giữ guard3–4 lặp | khung 2 = 0,14s |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận | land1 (trên không), land2–4 (đáp) | — |
+  | gục / thắng | dead1–4 (vẽ sẵn nằm đất) / victory1–3, lặp victory3–4 | — |
+- **Xem:** `/tools/test-sprite.html?char=warrior&auto=1`; `?rok=cutout` về bản khung xương.
+- **Hiệu ứng tranh** (4 tấm nền đen của người dùng trong `art/rok/fx2/`): `tools/fx_grid_pack.py art/rok/fx2/fx2_spec.json` → `src/assets/sprites/rok_fx2.webp` (32 khung, 1,9 MB) + `src/vfx/rokFx2.json`; code `src/vfx/rokFx.js`. Mốc sát thương / thông số không đổi.
+  - **Dựng Khiên — Khiên Thần** (`makeDivineShield`, gắn qua `visual.guardFx` của ROK; `CutoutCharacterView._updateIronGuard` dùng thay Thần Hộ Vệ + vòm lục giác):
+    - cắm khiên (0,14s) → khiên hiện ra 4 khung → giữ lặp 4 khung, đứng trước Rok về phía quái;
+    - cỡ KHỔNG LỒ (`GUARD_SCALE` = 2,5: thân khiên ~4,8 đơn vị ≈ 1,7 lần Rok, cả cánh + hào quang ~10,7), mũi khiên chạm đất, lùi sâu ra sau theo chiều sâu nên Rok + quái vẫn vẽ đè lên, rõ;
+    - vòng thánh dưới chân Rok + khiên; khiên mờ dần theo máu khiên còn lại;
+    - mỗi lần nổ (1/6 máu khiên): nổ sóng 4 khung + sóng vàng trên đất bán kính 5,5; lần nổ cuối: vỡ tan 4 khung rồi tắt;
+    - cả đội: khiên nhỏ "+thủ" bật trên đầu; hồi máu khi nổ: dấu thập vàng bay lên.
+    - Khung 2 tấm khiên căn theo sư tử vàng giữa khiên (`"align": "blob"`) nên đổi tấm không giật.
+  - **Sư Tử Gầm** (`spawnRokRoar`): linh hồn sư tử lửa vàng KHỔNG LỒ (`ROAR_SCALE` = 3,3 — cao ~6,5 đơn vị, hơn 2 lần Rok; đứng sau nhân vật theo chiều sâu nên Rok + quái vẫn rõ) hiện trước Rok, lao về phía quái, gầm (khung lớn nhất) rồi tan; sóng gầm ")))" bật ra từ miệng + sóng vàng trên đất tới bán kính 9; rung màn hình mạnh hơn; quái bị khiêu khích hiện dấu đầu sư tử + "!" (`spawnTauntIcon`).
+  - Số sát thương / chữ nổi (`canvasSprite` trong `vfx.js`) không ghi chiều sâu nữa → khung chữ trong suốt không khoét lỗ hiệu ứng lớn phía sau.
+  - **Đẩy Khiên / Đập Khiên** (`spawnRokBash`): loé vàng ở mặt khiên (điểm `shield` của khung húc khiên); quái bay rơi xuống → vòng nứt địa chấn (`spawnRokQuake`).
+  - **Ý Chí Thép:** dây liên kết thành **xích ánh sáng** (`makeChainTether`, nhiều đoạn tranh xích nối theo đường võng + đốm sáng chạy); hồi máu có dấu thập.
+  - Xem: `/tools/fx-rok.html?s=all&auto=1` (s = attack | roar | push | guard | link).
+  - Bản code cũ (đầu sư tử vẽ canvas, Thần Hộ Vệ, vòm lục giác, khiên ánh sáng bung, vụn lục giác) không còn dùng cho Rok; hàm vẫn nằm trong `vfx.js` / `guardianSpirit.js` / `lionSpirit.js`, dọn ở giai đoạn 3.
 
 ### 4.3 Lyra (Phong Tiễn) — Cung Thủ 🏹 · tộc Elf
 *Lối chơi: bắn xa hàng sau, sát thương VẬT LÝ đều tay, mỏng máu. Màu chủ đạo: gió xanh ngọc. Hình: bộ tranh riêng `art/lyra/` (rig `lyraRig.js`); dây cung + mũi tên trên dây vẽ bằng code nên kéo căng / bật lại thật.*
@@ -347,7 +416,70 @@ Lv1: HP ~1.500 · M.ATK ~231 · P.DEF/M.DEF 37/74 · chí mạng 15% · né 8% �
 Lúc Hỏa Thần: quả cầu nhỏ của KN1 xuất hiện 80% (chưa có thiên phú: 50%); KN2 vòng phép chỉ 0,4s và cột lửa +25% sát thương.
 Thiên phú 1 (Lv20) **Thiên Hỏa Song Tinh**: +8/12/16% M.ATK · Thiên Hỏa Cầu 50% rơi thêm quả 2 (70%) · **Cột Lửa Phá Ma bùng thêm 3 lần** (7 → 10).
 Thiên phú 2 (Lv40) **Hỏa Tốc**: lúc Hỏa Thần +20/30% tốc đánh · **Giáp Lửa** (riêng Ignar): máu **dưới 50%** → khiên lửa **10s** (máu khiên **30 / 40% máu tối đa**, +30% M.DEF, −40% thời gian khống chế) và **+1 Orb**; vừa bật **hất văng** đối thủ trong 4 đơn vị ra xa 3,5 đơn vị; khiên hết (vỡ / hết giờ / bị phá) → **nổ choáng 1s** đối thủ trong 4,5 đơn vị và **+1 Orb**. Hồi **25s** tính từ lúc bật.
-Hình: `art/ignar/` (tranh toàn thân nền trong suốt, tấm bộ phận, tay & mắt, hộ vệ, 3 tấm hiệu ứng) → `tools/cut_reference.py art/ignar/ref_spec.json` (nhân vật) và `tools/build_fx_atlas.py art/ignar/fx_spec.json` (hiệu ứng → `ignar_fx.png`, vẽ ở `src/vfx/fireFx.js`).
+Hình: `art/ignar/` (tranh toàn thân, tấm bộ phận, tay & mắt — bản khung xương) · `art/ignar/sprite/` (sprite, đang dùng) · `art/ignar/fx2/` (hiệu ứng bản 2, đang dùng). Hiệu ứng bản 1 (`fx-a/b/c.png`, `ignar_fx.png`) không còn dùng.
+**Rig / động tác khung xương (bản thử 17/10/2026, nay chỉ dùng khi `?ignar=cutout`):**
+- Tay xa 2 đốt: bắp tay `armF` (không hình, khuất dưới vạt vai) → khuỷu = gốc ống tay loe → cẳng tay `foreF` (ống tay) → `handF`. Các động tác cũ giữ y hình (`F(góc ống tay)`), động tác mới gập khuỷu + cổ tay.
+- Bàn tay ngửa giữ lửa lấy từ tấm 03 (bàn tay cắt từ tranh 01 bị khuyết chỗ ngọn lửa vẽ sẵn đè lên).
+- Atlas: `"pad": 24` + `"grow"` lớn hơn ở các đường cắt → hết vệt sáng ở cổ áo / thắt lưng khi nhân vật thu nhỏ (mipmap).
+- **idle / ready / attack** viết lại kiểu **pháp sư điềm tĩnh**: tay gần + chân giữ sát dáng tranh (không lộ chỗ tranh gốc bị che), tay xa dẫn đòn bằng khuỷu + cổ tay, đường cong tốc độ (`poseClip` tuỳ chọn `ease`, chỉ Ignar bật). Mốc ra đòn giữ 0,25s, clip 0,6s.
+- Lò xo nhỏ cho khăn vai (±0,035 rad).
+- Các động tác khác (summon, bolt, charge, palm, volley, chạy, trúng đòn...) chưa chỉnh — vẫn như cũ.
+- Xem thử: `/tools/test-ignar.html?mode=idle | ready | run` (`&left=1`, `&speed=1.5`, `&zoom=3&cx=..&cy=..`).
+
+**Kiểu SPRITE (đủ mọi động tác, 19/10/2026 — mặc định bật):** người dùng thấy khung xương khựng, thích sprite (mỗi khung 1 hình vẽ trọn thân).
+- **Tranh AI của người dùng** (nền xanh, giữ nguyên) trong `art/ignar/sprite/`. Mỗi tấm 4×2 = 8 khung:
+  - `sprite-idle`, `sprite-attack`, `sprite-move`;
+  - `sprite-hurt-stun` (trúng đòn 4 + choáng 4);
+  - `sprite-summon`, `sprite-bolt`, `sprite-palm`, `sprite-volley`;
+  - `sprite-charge-land` (gồng 4 + rơi / đáp 4);
+  - `sprite-dead-victory` (gục 4 + thắng 4).
+  - Prompt: `PROMPTS_SPRITE.md`.
+- **Đóng gói:** `tools/sprite_pack.py art/ignar/sprite/sprite_spec.json [--debug soi.png]` → `src/assets/sprites/ignar_sprite.webp` (atlas cắt sát 80 khung, ×0,75, WebP) + `src/characters/sprite/ignarSprite.json`.
+  - Tách nền xanh, tách khung.
+  - Đưa mọi tấm về cùng cỡ ("scale" đo bằng độ trùng dáng thủ thế + bề ngang tóc).
+  - Căn chân theo nhóm: `toe` mũi giày trước · `heel` gót sau · `body` giữa đầu (chạy, nhảy, gồng, Hỏa Chưởng).
+  - Đo điểm bàn tay từng khung. Không tô sửa.
+- **`src/characters/FrameSpriteView.js`** (kế thừa `CutoutCharacterView`): khung xương **vẫn chạy ẩn** → hitTime, onComplete, rơi vào trận, chết, choáng, hiệu ứng... giữ nguyên. Hình = 1 mặt phẳng đổi khung theo clip, bảng `clips` trong `sprite/ignarSprite.js`:
+
+  | Clip | Khung | Cách chạy |
+  |---|---|---|
+  | attack · summon · bolt · palm · volley | 8 | `strike`: khung ra đòn = hitTime (khung 4 @0,25 · 5 @0,35 · 4 @0,25 · 3 @0,2 · 4 @0,3) |
+  | move | 8 | theo thời gian clip chạy (0,52s), không nhún thêm |
+  | hurt · stunned | 4 · 4 | theo clip |
+  | charge | 2 + 2 | vào thế 0,24s rồi rung 8 khung/giây khi giữ |
+  | fall / land | 1 / 3 | rơi (lộn nhào như cũ) → đáp đất |
+  | victory / victoryIdle | 3 / 2 | ăn mừng → giữ dáng |
+  | dead | 4 | 7 khung/giây rồi giữ khung nằm; bỏ xoay ngã 90° của khung xương |
+
+  - Lửa trên tay: ngửa tay ở khung đứng / chạy / khung 1 và 8 các chiêu; nắm lửa khung 2–3 đánh thường.
+  - Khung còn lại lửa ẩn; điểm cầu lửa / chưởng bay ra = bàn tay xa của khung ra đòn.
+  - Nhảy (chưởng toàn thể, thắng) nhấc theo hông khung xương.
+- **Cách đứng** `?ignarIdle=A|B|C` (A 8 khung · B 3 khung giống nhất 1-4-6 · **C 1 khung + thở bằng code, mặc định**). `?ignar=cutout` → về khung xương.
+- **Xem:** `npm run dev` rồi mở `/tools/test-ignar-sprite.html?mode=tour&auto=1` (lần lượt mọi động tác, có chữ tên động tác), hoặc bấm đúp `xem_thu_ignar.bat`.
+- **Hiệu ứng bản 2 (19/10/2026, đang dùng):** 9 tấm tranh AI nền đen trong `art/ignar/fx2/` (prompt `PROMPTS_FX.md`).
+  - Đóng gói: `tools/fx_grid_pack.py art/ignar/fx2/fx2_spec.json [--preview soi.png]` → `src/assets/sprites/ignar_fx2.webp` + `src/vfx/ignarFx2.json`.
+    - Cắt theo ô lưới; hình lấn ô bên cạnh gom theo vùng liền.
+    - Tách nền đen giữ độ rực; vật tối (đá thiên thạch, giáp Hộ Vệ, đất cháy, đá văng, khiên tím) giữ đặc; khói xám giữ màu.
+    - Căn khung theo ô / lõi trắng nóng / đáy; mỗi nhóm có pivot. Không tô sửa.
+  - `src/vfx/fireFx.js` chạy khung (flipbook):
+
+    | Hiệu ứng | Khung | Dùng ở |
+    |---|---|---|
+    | lửa tay `hand` | 4 lặp | luôn cầm (cả bản khung xương), quanh Khiên Lửa |
+    | cầu lửa `ball` / xoáy `swirl` | 4 lặp | đánh thường, Hộ Vệ ném / Hỏa Chưởng, chưởng toàn thể |
+    | trúng `hit` | 4 | `spawnIgnarHit` — mọi đòn Ignar trúng (Elarion vẫn dùng `spawnFireHit` cũ) |
+    | nổ `boom` | 8 (lửa → khói) | Thiên Hỏa Cầu, Hỏa Chưởng, chưởng đất, Giáp Lửa vỡ |
+    | thiên thạch `meteor` + vòng báo `warn` | 4 lặp | Thiên Hỏa Cầu (rơi gần thẳng, đuôi ngược hướng rơi) |
+    | đất cháy `scorch` + lửa `flame` | 4 lặp | biển lửa |
+    | `circleDim` → `circleLit` + cột lửa `pillar` | bùng 3 · cháy lặp 3 · tắt 2 | Cột Lửa Phá Ma |
+    | `slam` + `shockRing` | — | chưởng xuống đất, sóng lửa nổ thiên thạch |
+    | `summonCircle` + hào quang `aura` | 4 lặp | niệm KN1 / KN2 (nhỏ), gồng Hỏa Thần |
+    | cánh `wing` | 4 (bung) | Hỏa Thần hiện, Giáp Lửa bật — 2 cánh nhìn nghiêng sau lưng, theo hướng mặt |
+    | luồng chưởng `palm` | 4 | Hỏa Chưởng, chưởng toàn thể |
+    | khiên `shield` | 4 lặp | lúc Hỏa Thần / Giáp Lửa |
+    | Hộ Vệ `guard` | bay 4 · lấy đà 1 · ném 1 · gầm 2 | suốt Hỏa Thần; cầu lửa bay ra từ tay đang ném (`tip`) |
+
+  - Xem: `/tools/fx-ignar.html?s=all&auto=1` (lần lượt mọi kỹ năng, mốc như server) · `s=attack | meteor | pillar | god | ward`.
 
 ### 4.6 Zerith (U Minh) — Sát Thủ 💀 · tộc Devil · sát thương PHÉP
 Sát Thủ cầm **lưỡi hái tử thần**, đánh cận chiến bằng sát thương **phép**. Nhóm class Sát Thủ nhưng vì đánh phép nên mỗi level tăng **M.ATK** thay cho P.ATK.
@@ -393,6 +525,10 @@ Lv1: HP 1.575 · M.ATK 170 · P.DEF/M.DEF 45/100 · chí mạng 8% · né 22% ·
 | **2. Lưu Thủy Hồi Xuân** | cần **≥ 1 Orb**, **không hồi chiêu** | Múa tới khi **hết Orb**: cứ **0,5s đốt 0,5 Orb** → cả đội hồi ×0.35 M.ATK + 1% máu tối đa. Đang múa thì không bấm lại được |
 | **3. Thủy Thần Vũ** | 4 / 12s (tính **sau khi múa xong** hoặc bị ngắt) | Múa **10s**: cả đội **+20% máu tối đa** (hồi đúng phần tăng; hết giờ / Nerissa gục thì trả lại), **+30% lượng hồi máu nhận**, **+20% ATK** (P.ATK & M.ATK), **kháng khống chế** Nerissa 100% (giải luôn khống chế đang dính) · đồng đội 50%. **Vừa vào điệu: cả đội (kể cả Nerissa) +2 Orb ngay** |
 | **Cả 3 điệu cùng múa** | — | Mỗi **1s** bắn **nốt nhạc**: mọi đối thủ ×0.4 phép + **−15% M.DEF 3s**; mọi đồng đội **+10% sát thương phép 3s** + **50%** giải 1 hiệu ứng khống chế ngẫu nhiên (choáng / hất tung / hất văng / khiêu khích / bị túm) |
+
+**Nerissa bản 3 (đang chờ tranh, chưa đổi game):** giữ tạo hình (elf tóc xanh dài, đồ vũ công trắng xanh ngọc viền vàng, 2 dải lụa nước), **vẽ lại tỉ lệ chibi** cho đồng bộ cả đội.
+- **Prompt:** `art/nerissa/sprite/PROMPTS_SPRITE.md` (vẽ lại `01-character-v3.png` + **13 tấm sprite**: đứng / thủ thế, quất lụa, chạy, trúng đòn / choáng, xoay vào điệu + rơi vào trận, **mỗi điệu múa 1 tấm 8 khung**: 1, 2, 3, 1+2, 1+3, 2+3, 1+2+3, gục / thắng) và `art/nerissa/fx2/PROMPTS_FX.md` (5 tấm: giọt nước + nước bắn, vòng sóng vào điệu + mưa hồi máu, Thủy Thần, bong bóng giáp nước + nốt nhạc, 8 hình nhỏ).
+- **Khung chính ↔ mốc:** quất lụa 0,24s (khung 4, đầu dải lụa) · xoay vào điệu 0,3s (khung 3). Điệu múa lặp theo nhịp cũ (1: 1,6s · 2: 2,4s · 3: 2,0s · 1+2: 1,4s · 1+3: 1,3s · 2+3: 1,8s · 1+2+3: 1,5s). Cơ chế / thông số không đổi.
 
 Thiên phú 1 (Lv20) **Hòa Âm Thủy Vũ** — hiệu ứng theo tổ hợp điệu đang múa:
 - **1 + 2**: cả đội có **giáp nước 6 / 8 / 10%** máu (theo cấp thiên phú), giáp **tự hồi 1% máu mỗi giây** khi tổ hợp còn chạy (bong bóng nước quanh người).
@@ -578,21 +714,53 @@ src/
   characters/
     CharacterView.js          lớp cơ sở (vị trí, máu, hướng mặt, đồng bộ server)
     CutoutCharacterView.js    nhân vật 2D ghép mảnh + hiệu ứng trạng thái
+    FrameSpriteView.js        nhân vật kiểu sprite (mỗi khung 1 hình): khung xương chạy ẩn giữ mốc, hình = khung trong atlas (Ignar, Rok, Jessica)
+    sprite/                   cấu hình + json khung sprite từng nhân vật (ignarSprite, rokSprite, jessicaSprite .js / .json)
     registry.js               classId -> cách vẽ + bảng hành động
     cutout/                   rig, clips, atlas của từng nhân vật + poseClip.js; creatureRig.js (quái)
   combat/                 dựng trận, xử lý sự kiện chiến đấu -> động tác + VFX
-  vfx/                    hiệu ứng (vfx.js, lionSpirit.js, guardianSpirit.js)
+  vfx/                    hiệu ứng (vfx.js, flipbook.js = hiệu ứng chạy khung dùng chung, fireFx.js, lionSpirit.js, guardianSpirit.js...)
   ui/                     HUD, overlay, input (nút, kéo thả & phóng to bảng test)
   render/toon.js          vật liệu toon cho cảnh
   assets/sprites/         atlas nhân vật
-art/                      tranh gốc + atlas_spec.json (không đóng gói vào game)
+art/                      tranh gốc + atlas_spec.json (không đóng gói vào game) · HUONG_DAN_VE_NHAN_VAT.md: luật vẽ để ráp thẳng vào game · <tên>/PROMPTS.md: prompt vẽ từng nhân vật
 tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạo file Word), trang xem thử (preview-cutout / preview-scene / fx-*)
 ```
 
+### 8.1b Tranh nhân vật + hiệu ứng (quy trình SPRITE — đồng bộ cả đội theo Ignar)
+- **Luật vẽ + đoạn prompt chung + ảnh đính kèm:** `art/HUONG_DAN_VE_NHAN_VAT.md`.
+  - Sprite: nền xanh #00FF00, lưới 4×2, 3/4 nghiêng nhìn phải.
+  - Hiệu ứng: nền đen, lưới A 4×2 / lưới B 2×4.
+  - Khung chính = mốc ra đòn.
+- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng, chờ tranh).
+  - App vẽ xuất sẵn PNG trong suốt cũng dùng được (`key: "alpha"`).
+- **Hiệu ứng dùng chung cả đội** (trúng đòn, vệt chém, bụi, khói, sao choáng, lấp lánh, sóng xung kích, vòng niệm...): `art/common/PROMPTS_FX_CHUNG.md`, chờ tranh. Phần trắng được nhuộm theo màu từng nhân vật.
+- **Ráp (không tô sửa):**
+  - Sprite: `tools/sprite_pack.py art/<tên>/sprite/sprite_spec.json --debug soi.png` → `src/assets/sprites/<tên>_sprite.webp` + `src/characters/sprite/<tên>Sprite.json`.
+    - Tách nền `"key"` (cả spec hoặc từng tấm): `green` (mặc định, Ignar) · `matte` (giữ viền đen mảnh — dùng cho nhân vật mới) · `alpha` (PNG đã trong suốt).
+    - Mốc căn `toe / heel / body`; nhiều tấm đưa về cùng cỡ ("scale").
+    - Điểm gắn đánh dấu tay `"points"` → `view.pointWorld(tên)`; `events.js` `jointPoint()` / `ribbonPoint()` tự dùng khi có.
+    - `"format": "webp"`.
+  - Hiệu ứng: `tools/fx_grid_pack.py art/<tên>/fx2/fx2_spec.json --preview soi.png` → `<tên>_fx2.webp` + json. Code dùng `src/vfx/flipbook.js` (`makeFlipbook(url, meta)` → `frames / set / decal`).
+    - **Hiệu năng:** cắt 1 hình / 1 khung khỏi atlas phải dùng `textureView(base)` (`src/vfx/texView.js`), KHÔNG dùng `base.clone()` + `needsUpdate`: `clone()` của three.js đánh dấu cả ảnh atlas "cần tải lại" → mỗi khung dùng lần đầu tải lại nguyên atlas 4096×1024 lên GPU (giật, tụt FPS). `flipbook.js`, `elemFx`, `brakkFx`, `nerissaFx`, `zerithFx`, `vfx.js` (sera) đã dùng `textureView`.
+    - Căn khung `"align": "blob"` + `"blob": [[r,g,b thấp],[r,g,b cao]]`: trùng 1 vật có màu riêng (VD sư tử giữa Khiên Thần); `"pivot": "blob"`.
+    - `"holeMax"`: chỉ lấp lỗ nhỏ khi giữ đặc (khoảng tối lớn giữa cánh / hào quang vẫn trong suốt).
+    - Lưới B nhiều hình sát nhau: `"regionThr"` / `"regionDilate"` / `"keepGrow"` (theo tấm) để quầng sáng mờ không nối các hình lại.
+- **Nhân vật:** thêm `sprite: <TÊN>_SPRITE` + `spriteParam` / `spriteIdleParam` vào visual trong `registry.js` → `FrameSpriteView` tự dùng.
+  - `?<spriteParam>=cutout` xem lại bản khung xương.
+  - Mode clip: `strike` (khung chính = hitTime) · `clip` · `hold` · `once` · `loop` · `still` (1 khung + thở).
+- Bản khung xương cũ (`art/ignar/PROMPTS.md`, tấm bộ phận / tay / mắt) không cần vẽ nữa.
+
 ### 8.2 Công cụ xem thử (chạy `npm run dev`)
 - `/tools/preview-cutout.html?rig=../src/characters/cutout/rokRig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
+- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`.
+- `/tools/test-ignar.html?mode=idle` — Ignar đứng / thủ thế → đánh thường (cầu lửa thật như game), khung cố định 1/60s, console `stepTo(giây)`.
+- `/tools/test-ignar-sprite.html?mode=idle | ready | tour` — Ignar kiểu sprite (đúng view trong game), cầu lửa thật; `mode=tour` lần lượt mọi động tác; `&ignarIdle=A|B|C`, `&ignar=cutout` để so với khung xương, `&mode=none` rồi gọi `view.playAction('summon')`... trong console (mục 4.5). Bấm đúp `xem_thu_ignar.bat` = chạy `npm run dev` + mở trang này. **Không mở file html trực tiếp** (ra trang trắng).
 - `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
-- `/tools/fx-lion.html`, `/tools/fx-guardian.html` — xem hình linh hồn sư tử / Thần Hộ Vệ.
+- `/tools/fx-rok.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Rok bản 3 (s = attack | roar | push | guard | link).
+- `/tools/fx-jessica.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Jessica bản 3 (s = attack | throw | strike | stealth).
+- `/tools/fx-lion.html`, `/tools/fx-guardian.html` — hình linh hồn sư tử / Thần Hộ Vệ bản code cũ (không còn dùng).
+- `/tools/fx-ignar.html?s=all` — mọi kỹ năng / hiệu ứng Ignar (s = attack | meteor | pillar | god | ward).
 - `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
 
 ---

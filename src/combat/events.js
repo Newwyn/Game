@@ -13,13 +13,13 @@ import {
     spawnProjectile, spawnAoeExplosion, spawnSealVfx, spawnLandingDust,
     spawnSmokeBurst, spawnDashLine, spawnTalismanHit, spawnHandFlash,
     spawnRisingGlyph, spawnRisingSparkles, spawnGhost, spawnHitSpark, setVfxClock,
-    spawnLightning, spawnLightningBurst, spawnShockwave, spawnTauntMark, spawnImpact, spawnAtlasFx,
-    spawnLionRoar, spawnShieldPush, spawnGuardBurst, spawnShieldShatter, spawnRoarHit,
+    spawnLightning, spawnLightningBurst, spawnShockwave, spawnImpact, spawnAtlasFx,
+    spawnRoarHit,
     spawnArrow, spawnArcArrow, spawnMissileArrow, spawnWindHit, spawnLightOrb, spawnLightBurst, spawnHealLight, spawnAngel, spawnReviveLight, spawnPierceWind, spawnChargeWind, spawnBigArrowBlast,
 } from '../vfx/vfx.js';
 import { SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../config.js';
 import {
-    spawnFireball, spawnFireExplosion, spawnFireHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
+    spawnFireball, spawnFireExplosion, spawnFireHit, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
     spawnPillarHit, spawnSummonCircle, spawnFireWings, spawnPalmFlash,
     spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle,
 } from '../vfx/fireFx.js';
@@ -40,6 +40,11 @@ import {
 } from '../vfx/elemFx.js';
 import { onGemPicked } from './elemGems.js';
 import { spawnLinkPulse } from '../vfx/linkFx.js';
+import {
+    spawnTalismanShot, spawnTalismanImpact, spawnThunderSlash, spawnThunderX, spawnStealthBurst, spawnShadowRing,
+    spawnDashStreak, spawnSparkBurst, spawnDodgeIcon, spawnResetIcon,
+} from '../vfx/jessicaFx.js';
+import { spawnRokRoar, spawnTauntIcon, spawnRokBash, spawnRokQuake, spawnGoldRing, spawnBuffIcon, spawnHealCross } from '../vfx/rokFx.js';
 import {
     spawnWaterBolt, spawnSplash, spawnDanceStart, spawnHealRain, spawnNote, spawnNoteMark,
     spawnCleanseChains, spawnOrbDrain, spawnWaterShieldPop, spawnOrbGift,
@@ -94,9 +99,10 @@ function onAutoAttack(data) {
             const dir = attackerView.facingLeft ? -1 : 1;
             // Sát Thủ ĐANG TÀNG HÌNH (Kỹ năng 3): chém sấm tím đen; bình thường: nhát chém thường
             const isAssassin = attacker.squad?.[data.attackerIndex]?.classId === 'assassin';
-            if (isAssassin && attackerView.isStealthed) {
-                if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'voidCrit', size: 1.0 });
-                else spawnSlashVfx(target.position, { dir, style: 'void' });
+            if (isAssassin && (attackerView.isStealthed || data.isCrit)) {
+                // Jessica: tàng hình -> vệt chém sấm tím; chí mạng -> chém chữ X sấm (tranh jessicaFx)
+                if (data.isCrit) spawnThunderX(target.position, { dir, size: 1.7 });
+                else spawnThunderSlash(target.position, { dir, size: 1.5 });
             } else if (attacker.squad?.[data.attackerIndex]?.classId === 'warrior') {
                 // Rok: nhát BỔ DỌC bằng kiếm — vệt thép sáng gần thẳng đứng, to rõ
                 if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.1 });
@@ -133,7 +139,7 @@ function onAutoAttack(data) {
             if (!target) return;
             spawnFireball(palmPoint(attackerView), chestOf(target, 0.95), { duration: 0.23, size: 0.75, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
-                if (!data.dodged) spawnFireHit(target.position);
+                if (!data.dodged) spawnIgnarHit(target.position);
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -250,7 +256,7 @@ function onSkillExecuted(data) {
         spawnDamageNumber(target.position, effect.damage, damageType(effect, data.isBackstab));
         const dir = caster?.facingLeft ? -1 : 1;
         if (data.type === 'projectile') {
-            spawnTalismanHit(target.position);
+            spawnTalismanImpact(target.position);   // bùa trúng: loé -> vỡ -> hiện vòng Ấn (tranh jessicaFx)
             target.flashHit();
         } else if (data.type !== 'melee_strike') { // Đột Kích tự vẽ nhát chém của nó
             if (data.isBackstab || effect.isCrit) spawnBackstabVfx(target.position, { dir });
@@ -261,7 +267,7 @@ function onSkillExecuted(data) {
     };
 
     // Đột Kích chém chết -> hồi chiêu chỉ còn 1s
-    if (data.reset && caster) gameTimeout(() => spawnRisingGlyph(caster.position, '↺', '#e9d5ff', '#6d28d9'), 950);
+    if (data.reset && caster) gameTimeout(() => spawnResetIcon(caster), 950);
     // Brakk: chiêu tốn máu -> số cam "♥ -x" trên đầu
     if (data.hpCost > 0 && caster) spawnDamageNumber(caster.position, data.hpCost, 'hpcost');
     // Không tìm thấy nhân vật ra chiêu (hiếm) -> vẫn hiện sát thương
@@ -281,7 +287,7 @@ function onSkillExecuted(data) {
             warriorFortress(caster, data);
             break;
         case 'guard':
-            warriorGuard(caster);
+            warriorGuard(caster, data);
             break;
         case 'snipe':
             archerSnipe(caster, data, opponentId);
@@ -300,7 +306,7 @@ function onSkillExecuted(data) {
             // giơ tay gọi cầu lửa (0.35s) -> cầu lửa rơi, chạm đất đúng lúc server nổ (b.at); nổ + số do 'fireHits'
             caster.playAction('summon', { onHit: () => {
                 (data.balls ?? []).forEach(b => spawnSkyFireball(b.x, b.z, {
-                    duration: Math.max(0.2, (b.at - 350) / 1000), size: b.second ? 3.0 : 4.0,
+                    duration: Math.max(0.2, (b.at - 350) / 1000), size: b.second ? 3.0 : 4.0, radius: b.radius ?? 5.5,
                     onLand: () => spawnBurnField(b.x, b.z, { radius: b.radius ?? 5.5, life: ((b.burn?.ticks ?? 3) * (b.burn?.gap ?? 600) + 350) / 1000 }),
                 }));
             } });
@@ -322,7 +328,7 @@ function onSkillExecuted(data) {
             break;
         case 'fire_god':
             caster.playAction('summon');
-            spawnFireWings(caster.position);
+            spawnFireWings(caster.position, { dir: caster.facingLeft ? -1 : 1 });
             cameraRig.shake(0.2, 220);
             break;
         case 'heal':
@@ -409,9 +415,15 @@ function onSkillExecuted(data) {
                 caster.flashMagicCircle?.(0.55);
                 spawnRisingSparkles(caster.position);
                 const vanishFx = () => {
-                    spawnSmokeBurst(caster.position, 16, 1.0);
-                    spawnRisingGlyph(caster.position, '隠');
+                    spawnStealthBurst(caster.position, { size: 2.6 });   // khói sấm tím bùng (tranh jessicaFx)
                     done();
+                    // Sấm phù trợ: đồng đội khác +né -> cánh sét bật trên đầu
+                    const squad = game.roomData?.players?.[data.casterId]?.squad ?? [];
+                    squad.forEach((m, i) => {
+                        if (i === data.casterIdx || !m?.alive) return;
+                        const v = getView(data.casterId, i);
+                        if (v) spawnDodgeIcon(v, { delay: 0.05 + i * 0.05 });
+                    });
                 };
                 const hasAnim = caster.playAction('stealth', { onHit: vanishFx, onComplete: done });
                 if (!hasAnim) vanishFx();
@@ -436,7 +448,6 @@ const CHAIN_STEP_MS = 150;   // thời gian trận giữa hai nhát
 function meleeStrike(caster, data, hitFrame, processHit) {
     caster.teleport(caster.basePos.x, caster.basePos.z, true); // đứng yên, không trượt theo server
     const opponentId = opponentIdOf(data.casterId);
-    const chest = (p) => ({ x: p.x, y: 0.75, z: p.z ?? 0 });
     const hits = data.effects
         .map(effect => ({ effect, view: getView(opponentId, effect.targetIndex) }))
         .filter(h => h.view);
@@ -446,7 +457,7 @@ function meleeStrike(caster, data, hitFrame, processHit) {
     };
 
     const dashChain = () => {
-        spawnSmokeBurst(caster.position, 12, 0.6);
+        spawnStealthBurst(caster.position, { size: 2.0 });   // biến mất trong khói sấm
         // tư thế lướt chém (cho dư ảnh), rồi ẩn người thật
         caster.playAction('dashStrike');
         caster.opacityOverride = 0;
@@ -459,14 +470,13 @@ function meleeStrike(caster, data, hitFrame, processHit) {
                 const faceLeft = tp.x < from.x;
                 // chặng lướt: dừng TRƯỚC mục tiêu một chút để nhát chém nằm trên người nó
                 const stopX = tp.x + (faceLeft ? 0.9 : -0.9);
-                spawnLightning(chest(from), chest({ x: stopX, z: tp.z }), { width: 0.7, life: 0.28 });
-                spawnDashLine(chest(from), chest({ x: stopX, z: tp.z }));
+                spawnDashStreak(from, { x: stopX, z: tp.z });   // vệt lướt sấm (tranh jessicaFx)
                 for (let k = 1; k <= 3; k++) {
                     const f = k / 3;
                     gameTimeout(() => ghostAt(from.x + (stopX - from.x) * f, from.z + ((tp.z ?? 0) - from.z) * f, faceLeft, 0.25 + 0.15 * k), k * 18);
                 }
                 gameTimeout(() => {
-                    spawnSlashVfx(tp, { dir: faceLeft ? -1 : 1, style: 'void', size: 1.15 });
+                    spawnThunderSlash(tp, { dir: faceLeft ? -1 : 1, size: 1.6 });
                     h.view.flashHit();
                     processHit(h.effect);
                     cameraRig.shake(0.12, 90);
@@ -477,12 +487,11 @@ function meleeStrike(caster, data, hitFrame, processHit) {
 
         gameTimeout(() => {
             const last = hits[hits.length - 1]?.view;
-            spawnLightning(chest(from), chest({ x: data.newX, z: data.newZ }), { width: 0.7, life: 0.28 });
-            spawnDashLine(chest(from), chest({ x: data.newX, z: data.newZ }));
+            spawnDashStreak(from, { x: data.newX, z: data.newZ });
             caster.teleport(data.newX, data.newZ, false);
             caster.opacityOverride = null;
             caster.opacity = 1;
-            spawnSmokeBurst({ x: data.newX, z: data.newZ }, 8, 0.5);
+            spawnShadowRing({ x: data.newX, z: data.newZ }, { radius: 1.2, life: 0.6 });   // hiện ra từ bóng tối
             // Hiện ra SAU LƯNG mục tiêu cuối (máu ít nhất) -> quay lại chém kết liễu
             if (last) caster.facingLeft = last.position.x < data.newX;
             caster.playAction('appear', {
@@ -490,9 +499,9 @@ function meleeStrike(caster, data, hitFrame, processHit) {
                 onHit: () => {
                     if (!last) return;
                     const dir = caster.facingLeft ? -1 : 1;
-                    spawnLightningBurst(last.position, { count: 6, size: 1.4 });
-                    if (data.isBackstab) { spawnBackstabVfx(last.position, { dir, style: 'voidCrit', size: 1.35 }); cameraRig.shake(0.35, 280); }
-                    else { spawnSlashVfx(last.position, { dir, style: 'void', size: 1.3 }); cameraRig.shake(0.18, 150); }
+                    spawnSparkBurst(last.position, { size: 1.5 });
+                    if (data.isBackstab) { spawnThunderX(last.position, { dir, size: 2.1 }); cameraRig.shake(0.35, 280); }
+                    else { spawnThunderSlash(last.position, { dir, size: 1.8 }); cameraRig.shake(0.18, 150); }
                     last.flashHit();
                 },
             });
@@ -506,16 +515,16 @@ function meleeStrike(caster, data, hitFrame, processHit) {
 // ------------------------------------------------------------
 // Chiến Binh (Rok)
 // ------------------------------------------------------------
-/** Sư Tử Gầm: giơ kiếm hét lớn -> linh hồn sư tử vàng gầm lao ra, quái bị khiêu khích hiện dấu "!" (và -10% thủ) */
+/** Sư Tử Gầm: giơ kiếm hét lớn -> linh hồn sư tử vàng lao ra gầm (tranh rokFx), quái bị khiêu khích hiện dấu sư tử "!" (và -10% thủ) */
 function warriorTaunt(caster, data, opponentId) {
     caster.playAction('taunt', {
         onHit: () => {
-            spawnLionRoar(caster.position, caster.facingLeft ? -1 : 1, { radius: 9 });
-            cameraRig.shake(0.3, 420);
+            spawnRokRoar(caster, { radius: 9 });
+            cameraRig.shake(0.45, 520);   // sư tử khổng lồ: rung mạnh hơn
             data.effects.forEach(e => {
                 const v = getView(opponentId, e.targetIndex);
                 if (!v) return;
-                spawnTauntMark(v);
+                spawnTauntIcon(v);
                 // sóng gầm lan tới quái nào thì quái đó trúng đòn (xa trúng sau)
                 gameTimeout(() => {
                     spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
@@ -536,6 +545,7 @@ function warriorBash(caster, data, opponentId, hitFrame) {
     caster.playAction('bash', {
         hitFrame,
         onHit: () => {
+            spawnRokBash(caster);
             data.effects.forEach(e => {
                 const t = getView(opponentId, e.targetIndex);
                 if (!t) return;
@@ -573,7 +583,7 @@ function warriorPush(caster, data, opponentId, hitFrame) {
                     gameTimeout(() => { spawnLandingDust(t.position, 10); cameraRig.shake(0.12, 120); }, 420);
                 }
             });
-            spawnShieldPush(caster.position, caster.facingLeft ? -1 : 1);
+            spawnRokBash(caster);
             cameraRig.shake(0.35, 240);
         },
     });
@@ -670,6 +680,8 @@ function palmPoint(v) {
 
 /** Bàn tay cầm lụa của Nerissa (chỗ giọt nước bắn ra) */
 function ribbonPoint(v) {
+    const w = v.pointWorld?.('ribbon');
+    if (w) return { x: w.x, y: w.y, z: w.z + 0.2 };
     const h = v.parts?.handN;
     if (h) { const p = new THREE.Vector3(); h.getWorldPosition(p); return { x: p.x + (v.facingLeft ? -0.35 : 0.35), y: p.y, z: p.z + 0.2 }; }
     return { x: v.position.x + (v.facingLeft ? -0.7 : 0.7), y: 1.4 + (v._lift ?? 0), z: v.position.z };
@@ -691,6 +703,8 @@ function elemHits(effects, targetId, { fx = null, lift = 0 } = {}) {
 }
 /** Điểm thế giới của 1 khớp trên hình (VD bàn tay / Sách của Elarion); không có thì ước lượng trước ngực */
 function jointPoint(v, joint, { dx = 0, dy = 0 } = {}) {
+    const w = v.pointWorld?.(joint);   // nhân vật sprite: điểm gắn đánh dấu trên khung đang hiện
+    if (w) return { x: w.x + (v.facingLeft ? -dx : dx), y: w.y + dy, z: w.z };
     const j = v.parts?.[joint];
     if (j) { const p = new THREE.Vector3(); j.getWorldPosition(p); return { x: p.x + (v.facingLeft ? -dx : dx), y: p.y + dy, z: p.z + 0.2 }; }
     return { x: v.position.x + (v.facingLeft ? -0.6 : 0.6), y: 1.4 + (v._lift ?? 0), z: v.position.z };
@@ -1010,7 +1024,7 @@ function onFireHits(d) {
             const icon = now - (t._breakIconAt ?? -1e9) > 900;   // biểu tượng phá giáp: không chồng liên tục
             if (icon) t._breakIconAt = now;
             spawnPillarHit(t.position, { stackBreak: icon });
-        } else if (!e.isMiss) spawnFireHit(t.position, { size: d.kind === 'burn' ? 0.7 : 1.2 });
+        } else if (!e.isMiss) spawnIgnarHit(t.position, { size: d.kind === 'burn' ? 0.7 : 1.2 });
     });
 }
 
@@ -1042,7 +1056,7 @@ function onFireGod(d) {
                 if (!t) return;
                 gameTimeout(() => spawnFireball(palmPoint(caster), chestOf(t, 1.0), { duration: 0.28, size: 1.0, swirl: true, onHit: () => {
                     showHit(t, e, { fx: false });
-                    if (!e.isMiss) spawnFireHit(t.position, { size: 1.3 });
+                    if (!e.isMiss) spawnIgnarHit(t.position, { size: 1.3 });
                 } }), k * 50);
             });
         } });
@@ -1056,7 +1070,7 @@ function onFireGod(d) {
             spawnFireball(from, chestOf(t, 1.0), { duration: 0.3, size: 0.9, onHit: () => {
                 const e = d.effects[0];
                 showHit(t, e, { fx: false });
-                if (!e.isMiss) spawnFireHit(t.position);
+                if (!e.isMiss) spawnIgnarHit(t.position);
             } });
         }, 220);
     }
@@ -1271,12 +1285,12 @@ function onRokFx(d) {
             if (v) { spawnRisingGlyph(v.position, '鋼', '#fde68a', '#b45309'); spawnRisingSparkles(v.position, { count: 12, color: 0xfcd34d, radius: 0.9 }); }
             break;
         case 'ironHeal':
-            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); spawnHealLight(v.position); }
+            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); spawnHealLight(v.position); spawnHealCross(v); }
             break;
         case 'quake': {
             // đối thủ bị hất văng rơi xuống: địa chấn nhẹ, choáng xung quanh
             const at = { x: d.x, z: d.z };
-            spawnShockwave(at, { color: 0xfbbf24, radius: d.radius ?? 3, life: 0.5 });
+            spawnRokQuake(at, { radius: d.radius ?? 3 });
             spawnLandingDust(at, 14);
             cameraRig.shake(0.18, 200);
             break;
@@ -1289,14 +1303,14 @@ function onFireWard(d) {
     const v = getView(d.casterId, d.casterIdx);
     if (!v) return;
     if (d.kind === 'on') {
-        spawnFireWings(v.position);
+        spawnFireWings(v.position, { dir: v.facingLeft ? -1 : 1 });
         spawnShockwave(v.position, { color: 0xff7a1a, radius: 4, life: 0.5 });
         spawnDamageNumber(v.position, d.shield, 'shield');
         cameraRig.shake(0.2, 220);
         (d.pushed ?? []).forEach(e => {
             const t = getView(d.targetId, e.targetIndex);
             if (t?.leapTo) t.leapTo(e.toX, e.toZ, { duration: (d.knockTime ?? 350) / 1000, height: 1.0 });
-            if (t) spawnFireHit(t.position);
+            if (t) spawnIgnarHit(t.position);
         });
     } else {
         spawnFireExplosion(v.position, { size: 3.2 });
@@ -1581,10 +1595,10 @@ function onGuardBurst(data) {
     const rok = getView(data.casterId, data.casterIdx);
     if (!rok) return;
     const opponentId = opponentIdOf(data.casterId);
-    rok.onGuardBurst?.();
-    spawnGuardBurst(rok.position, { radius: 4.5 });
-    // lần nổ CUỐI (khiên hết giờ / vỡ / bị hạ): vỡ tung thành vụn lục giác, rung mạnh hơn
-    if (data.final) spawnShieldShatter(rok.position);
+    // Khiên Thần nổ sóng (lần CUỐI — khiên hết giờ / vỡ / bị hạ: vỡ tan) + sóng vàng loang tới bán kính nổ
+    rok.onGuardBurst?.(data.final);
+    spawnGoldRing(rok.position, { radius: 5.5, life: 0.5 });
+    spawnHitSpark(rok.position, { count: 8, color: 0xffe08a, size: 1.3 });
     cameraRig.shake(data.final ? 0.4 : 0.28, data.final ? 320 : 240);
     data.effects.forEach(e => {
         const v = getView(opponentId, e.targetIndex);
@@ -1602,18 +1616,27 @@ function onGuardBurst(data) {
         if (!v) return;
         gameTimeout(() => {
             spawnDamageNumber(v.position, h.heal, 'heal');
+            spawnHealCross(v);
             spawnRisingSparkles(v.position, { count: 4, color: 0xffe08a, radius: 0.5 });
         }, 140);
     });
 }
 
-/** Dựng Khiên: giơ khiên lên rồi dựng thế thủ; khiên ánh sáng lớn do view tự vẽ suốt 5 giây */
-function warriorGuard(caster) {
+/**
+ * Dựng Khiên: giơ khiên lên trời rồi cắm xuống (mốc 0,14s) -> KHIÊN THẦN hiện trước Rok (view tự vẽ suốt thời gian khiên,
+ * rokFx.makeDivineShield), sóng vàng trên đất, khiên nhỏ "+thủ" bật trên đầu cả đội
+ */
+function warriorGuard(caster, data) {
     caster.playAction('guardStart', {
         onHit: () => {
-            spawnShockwave(caster.position, { color: 0xffd25a, radius: 3, life: 0.45 });
+            caster.raiseDivineShield?.();
+            spawnGoldRing(caster.position, { radius: 3, life: 0.45 });
             spawnHitSpark(caster.position, { count: 10, color: 0xffe08a, size: 1.2 });
             cameraRig.shake(0.15, 160);
+            (data?.effects ?? []).filter(e => e.ally).forEach((e, i) => {
+                const v = getView(data.casterId, e.targetIndex);
+                if (v) spawnBuffIcon(v, { delay: 0.05 + i * 0.06 });
+            });
         },
     });
 }
@@ -1641,9 +1664,13 @@ function throwProjectiles(caster, data, opponentId, hitFrame, processHit) {
             const target = getView(opponentId, effect.targetIndex);
             if (!target) return;
             gameTimeout(() => {
-                const from = caster.position.clone().add(UP);
-                from.y += caster._lift ?? 0; // đang ở trên không
-                spawnProjectile(from, target.position.clone().add(UP), '#facc15', 0.2, caster.createProjectileMesh?.()); // bay nhanh
+                // bùa bay ra từ đúng bàn tay ném (khung ném của sprite có điểm "hand"); không có thì từ ngực
+                const hand = caster.pointWorld?.('hand');
+                const from = hand ? new THREE.Vector3(hand.x, hand.y, hand.z) : caster.position.clone().add(UP);
+                if (!hand) from.y += caster._lift ?? 0; // đang ở trên không
+                const to = target.position.clone().add(UP);
+                if (caster.def?.projectile === 'talisman') spawnTalismanShot(from, to, { duration: 0.2 });
+                else spawnProjectile(from, to, '#facc15', 0.2, caster.createProjectileMesh?.()); // bay nhanh
                 gameTimeout(() => processHit(effect), 200);
             }, idx * 120);
         });
@@ -1752,61 +1779,64 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('elemFx', onElemFx);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
-    socket.on('castStart', (data) => {
-        const v = getView(data.casterId, data.casterIdx);
-        const classId = game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.classId;
-        const def = game.classDefs?.[classId]?.skills?.[data.skillIdx];
-        if (v && (def?.type === 'sky_fireball' || def?.type === 'fire_pillar')) {
-            // Ignar niệm KN1 / KN2 (1s): gồng nhẹ, vòng lửa nhỏ dưới chân
-            v.playAction?.('charge', { hold: true });
-            spawnSummonCircle(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1, size: 2.6 });
-            return;
-        }
-        if (v && def?.type === 'reaper_scythe') {
-            // Zerith niệm Lưỡi Hái Hất Hồn: giơ liềm, vòng ấn tím dưới chân, LƯỠI HÁI KHỔNG LỒ hiện dần trước mặt
-            const castMs = data.castTime ?? 700;
-            v.playAction?.('charge', { hold: true });
-            spawnReaperSummon(v.position, { life: castMs / 1000 + 0.1, size: 2.6, aura: false });
-            const ph = spawnPhantomScythe(() => v.position, v.facingLeft ? -1 : 1, { formTime: castMs / 1000 });
-            v._phantom?.cancel();
-            v._phantom = ph;
-            gameTimeout(() => { if (v._phantom === ph) { ph.cancel(); v._phantom = null; } }, castMs + 700);   // bị ngắt niệm
-            return;
-        }
-        if (v && def?.type === 'reaper_night') {
-            // gồng Đêm Tử Thần (1s): vòng ấn tử thần + hào quang tím dưới chân
-            v.playAction?.('charge', { hold: true });
-            spawnReaperSummon(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1 });
-            return;
-        }
-        if (v && (def?.type === 'brakk_stomp' || def?.type === 'brakk_giant')) {
-            // Brakk niệm Chấn Địa (1s) / Thần Lực Khổng Lồ (0.5s): hạ trọng tâm gồng cơ, lửa bốc quanh chân
-            v.playAction?.('charge', { hold: true });
-            v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
-            spawnRisingSparkles(v.position, { count: 12, color: 0xff8c2a, radius: 1.0 });
-            return;
-        }
-        if (v && def?.type === 'fire_god') {
-            // gồng Hỏa Thần: hạ người, vòng triệu hồi + hào quang lửa dưới chân
-            v.playAction?.('charge', { hold: true });
-            spawnSummonCircle(v.position, { life: (data.castTime ?? 1500) / 1000 + 0.1 });
-            return;
-        }
-        // Elarion niệm Hơi Nước Bỏng (2s) · Golem hút khí lạnh (Bão Tuyết) / gồng sét (Hào Quang Sét)
-        const live = game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.skills?.[data.skillIdx];
-        if (v && live?.type === 'elem_spell') {
-            v.playAction?.('cast', { hold: true });   // niệm: kết ấn trước Sách đang mở
-            v.flashMagicCircle?.((data.castTime ?? 2000) / 1000);
-            spawnRisingSparkles(v.position, { count: 14, color: 0x94a3b8, radius: 1.2 });
-            return;
-        }
-        if (v && def?.type === 'golem_blizzard') { v.playAction?.('inhale', { hold: true }); spawnInhale(mouthOf(v), v.facingLeft ? -1 : 1, (data.castTime ?? 2000) / 1000); return; }
-        if (v && def?.type === 'golem_aura') { v.flashMagicCircle?.((data.castTime ?? 1000) / 1000); spawnRisingSparkles(v.position, { count: 10, color: 0xb784ff, radius: 1 }); return; }
-        if (!v || def?.type !== 'charged_shot') return;
-        v.playAction?.('cast', { hold: true });   // kéo căng dây, giữ nguyên tới lúc nhả
-        spawnChargeWind(v.position, (data.castTime ?? 2000) / 1000, { y: 1.1 + (v._hover ?? 0) });
-    });
+    socket.on('castStart', onCastStart);
 }
 
-/** Dùng cho công cụ xem thử hiệu ứng (tools/fx-brakk.html) — gọi thẳng hàm xử lý sự kiện với dữ liệu giả */
-export const __fxTest = { onSkillExecuted, onAutoAttack, onBrakkFx, onReaperFx, onRokFx, onFireWard, onWaterFx, onElemFx };
+/** Bắt đầu niệm / gồng: động tác giữ + vòng phép dưới chân */
+function onCastStart(data) {
+    const v = getView(data.casterId, data.casterIdx);
+    const classId = game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.classId;
+    const def = game.classDefs?.[classId]?.skills?.[data.skillIdx];
+    if (v && (def?.type === 'sky_fireball' || def?.type === 'fire_pillar')) {
+        // Ignar niệm KN1 / KN2 (1s): gồng nhẹ, vòng lửa nhỏ dưới chân
+        v.playAction?.('charge', { hold: true });
+        spawnSummonCircle(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1, size: 2.6 });
+        return;
+    }
+    if (v && def?.type === 'reaper_scythe') {
+        // Zerith niệm Lưỡi Hái Hất Hồn: giơ liềm, vòng ấn tím dưới chân, LƯỠI HÁI KHỔNG LỒ hiện dần trước mặt
+        const castMs = data.castTime ?? 700;
+        v.playAction?.('charge', { hold: true });
+        spawnReaperSummon(v.position, { life: castMs / 1000 + 0.1, size: 2.6, aura: false });
+        const ph = spawnPhantomScythe(() => v.position, v.facingLeft ? -1 : 1, { formTime: castMs / 1000 });
+        v._phantom?.cancel();
+        v._phantom = ph;
+        gameTimeout(() => { if (v._phantom === ph) { ph.cancel(); v._phantom = null; } }, castMs + 700);   // bị ngắt niệm
+        return;
+    }
+    if (v && def?.type === 'reaper_night') {
+        // gồng Đêm Tử Thần (1s): vòng ấn tử thần + hào quang tím dưới chân
+        v.playAction?.('charge', { hold: true });
+        spawnReaperSummon(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1 });
+        return;
+    }
+    if (v && (def?.type === 'brakk_stomp' || def?.type === 'brakk_giant')) {
+        // Brakk niệm Chấn Địa (1s) / Thần Lực Khổng Lồ (0.5s): hạ trọng tâm gồng cơ, lửa bốc quanh chân
+        v.playAction?.('charge', { hold: true });
+        v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
+        spawnRisingSparkles(v.position, { count: 12, color: 0xff8c2a, radius: 1.0 });
+        return;
+    }
+    if (v && def?.type === 'fire_god') {
+        // gồng Hỏa Thần: hạ người, vòng triệu hồi + hào quang lửa dưới chân
+        v.playAction?.('charge', { hold: true });
+        spawnSummonCircle(v.position, { life: (data.castTime ?? 1500) / 1000 + 0.1 });
+        return;
+    }
+    // Elarion niệm Hơi Nước Bỏng (2s) · Golem hút khí lạnh (Bão Tuyết) / gồng sét (Hào Quang Sét)
+    const live = game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.skills?.[data.skillIdx];
+    if (v && live?.type === 'elem_spell') {
+        v.playAction?.('cast', { hold: true });   // niệm: kết ấn trước Sách đang mở
+        v.flashMagicCircle?.((data.castTime ?? 2000) / 1000);
+        spawnRisingSparkles(v.position, { count: 14, color: 0x94a3b8, radius: 1.2 });
+        return;
+    }
+    if (v && def?.type === 'golem_blizzard') { v.playAction?.('inhale', { hold: true }); spawnInhale(mouthOf(v), v.facingLeft ? -1 : 1, (data.castTime ?? 2000) / 1000); return; }
+    if (v && def?.type === 'golem_aura') { v.flashMagicCircle?.((data.castTime ?? 1000) / 1000); spawnRisingSparkles(v.position, { count: 10, color: 0xb784ff, radius: 1 }); return; }
+    if (!v || def?.type !== 'charged_shot') return;
+    v.playAction?.('cast', { hold: true });   // kéo căng dây, giữ nguyên tới lúc nhả
+    spawnChargeWind(v.position, (data.castTime ?? 2000) / 1000, { y: 1.1 + (v._hover ?? 0) });
+}
+
+/** Dùng cho công cụ xem thử hiệu ứng (tools/fx-brakk.html, fx-ignar.html...) — gọi thẳng hàm xử lý sự kiện với dữ liệu giả */
+export const __fxTest = { onSkillExecuted, onAutoAttack, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onFireHits, onFireGod, onCastStart };

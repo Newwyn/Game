@@ -2,8 +2,8 @@
  "ref": "art/ignar/01-character.png",
  "out": "src/assets/sprites/ignar_atlas.png",
  "meta": "src/characters/cutout/ignarAtlas.json",
- "debug": "/tmp/claude-0/rk/ig/cut_debug.png",
  "width": 2048,
+ "pad": 24,
  "order": [
   "fireball",
   "handF",
@@ -110,7 +110,8 @@
      838,
      600
     ]
-   ]
+   ],
+   "grow": 4
   },
   "head": {
    "poly": [
@@ -194,7 +195,8 @@
      462,
      300
     ]
-   ]
+   ],
+   "grow": 4
   },
   "handN": {
    "poly": [
@@ -252,7 +254,8 @@
      530,
      650
     ]
-   ]
+   ],
+   "grow": 4
   },
   "foreN": {
    "poly": [
@@ -288,7 +291,8 @@
      455,
      640
     ]
-   ]
+   ],
+   "grow": 4
   },
   "capelet": {
    "poly": [
@@ -324,7 +328,8 @@
      462,
      485
     ]
-   ]
+   ],
+   "grow": 12
   },
   "shinN": {
    "poly": [
@@ -352,7 +357,8 @@
      566,
      960
     ]
-   ]
+   ],
+   "grow": 5
   },
   "shinF": {
    "poly": [
@@ -372,7 +378,8 @@
      702,
      1105
     ]
-   ]
+   ],
+   "grow": 5
   },
   "thighN": {
    "poly": [
@@ -399,7 +406,8 @@
      590,
      695
     ]
-   ]
+   ],
+   "grow": 10
   },
   "thighF": {
    "poly": [
@@ -426,7 +434,8 @@
      710,
      798
     ]
-   ]
+   ],
+   "grow": 10
   },
   "torso": {
    "poly": [
@@ -493,7 +502,8 @@
      650,
      700
     ]
-   ]
+   ],
+   "grow": 12
   }
  },
  "extra": {

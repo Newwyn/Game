@@ -1,0 +1,131 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 17px sans-serif;color:#ffe680;background:rgba(0,0,0,.6);padding:3px 9px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Thử Ignar kiểu SPRITE (mỗi khung 1 hình vẽ trọn thân) — dùng đúng view trong game (src/characters/FrameSpriteView.js).
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/test-ignar-sprite.html?auto=1 (bấm đúp file html sẽ ra trang trắng)
+       ?mode=idle  : đứng 1s → đánh → đứng        ?mode=ready : đánh ở 0,5s và 1,6s (nhịp 1,1s như trong trận)
+       ?mode=tour  : lần lượt MỌI động tác (đánh, chạy, 3 kỹ năng, gồng, Hỏa Chưởng, chưởng toàn thể, trúng đòn, choáng, rơi vào trận, thắng, gục)
+       &ignarIdle=A|B|C : cách đứng (A 8 khung · B 3 khung giống nhất · C 1 khung + thở bằng code, mặc định)
+       &ignar=cutout : xem bản khung xương để so
+       &left=1 quay trái · &speed=1.5 · &zoom=1.6 · &auto=1 tự chạy lặp
+     Đánh thường: khung 1-3 trải tới 0,25s, khung 4 (đẩy chưởng) đúng mốc ra đòn của game. -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { spawnFireball, spawnFireHit } from '../src/vfx/fireFx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const MODE = q.get('mode') || (q.get('auto') ? 'tour' : 'idle');   // ?auto=1 không ghi mode -> xem lần lượt mọi động tác
+const LEFT = q.get('left') === '1';
+const SPEED = +(q.get('speed') || 1);
+const W = +(q.get('w') || 640), H = +(q.get('h') || 480);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34 / +(q.get('zoom') || 1); camera.updateProjectionMatrix();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
+const sx = LEFT ? -1 : 1;
+const mk = (classId, x, side) => ({ classId, alive: true, statusEffects: [], x, z: 0, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const ig = mk('mage', -1.2 * sx, LEFT ? 'right' : 'left');
+const dummy = mk('monster_dummy', 3.0 * sx, LEFT ? 'left' : 'right');
+game.roomData = { players: { me: { squad: [ig] }, op: { squad: [dummy] } } };
+const v = createCharacterView(ig, { skills: [] }, true);
+const t = createCharacterView(dummy, { skills: [] }, false);
+v.facingLeft = LEFT; t.facingLeft = !LEFT;
+[v, t].forEach(o => scene.add(o.root));
+const CX = q.get('cx') != null ? +q.get('cx') : 0.6 * sx, CY = +(q.get('cy') || 1.05);
+camera.position.set(CX, CY + 0.25, 8.6); camera.lookAt(CX, CY, 0);
+window.view = v;
+
+window.sprite = v.sprite ? v : null;   // FrameSpriteView (bản trong game) — null nếu đang xem khung xương
+
+/** Lòng bàn tay (chỗ cầu lửa) — giống palmPoint() trong src/combat/events.js */
+function palmPoint(view) {
+  const p = new THREE.Vector3();
+  if (view.palmFire) { view.palmFire.group.getWorldPosition(p); return { x: p.x, y: p.y, z: p.z }; }
+  return { x: view.position.x + (view.facingLeft ? -0.8 : 0.8), y: 1.5, z: view.position.z };
+}
+window.hitAt = [];
+let time = 0;
+// đánh thường y như events.js: playAction('attack', { onHit }) -> cầu lửa 0,23s -> nổ (mốc onHit do hitTime 0,25s của game quyết định)
+function attack() {
+  v.playAction('attack', { onHit: () => {
+    window.hitAt.push(+window.__vt.toFixed(3));
+    const to = { x: t.position.x, y: t.position.y + 0.95, z: t.position.z };
+    spawnFireball(palmPoint(v), to, { duration: 0.23, size: 0.75, onHit: () => { spawnFireHit(t.position); t.flashHit?.(); } });
+  } });
+}
+const ev = [];
+const at = (s, fn) => ev.push([s, fn]);
+if (MODE === 'ready') {
+  at(0, () => { ig.state = 'attacking'; v.setLocomotion('ready'); });
+  at(0.5, attack); at(1.6, attack);
+} else if (MODE === 'none') {
+  at(0, () => v.setLocomotion('idle'));   // tự gọi view.playAction(...) trong console
+} else if (MODE === 'tour') {
+  // lần lượt mọi động tác (chữ góc trên = động tác đang xem). Hiệu ứng kỹ năng ở đây chỉ là cầu lửa / nổ đơn giản để thấy mốc ra đòn
+  const lbl = document.getElementById('lbl');
+  const say = (s) => { lbl.textContent = s; };
+  const strike = (name, label, ball = true) => () => { say(label); v.playAction(name, { onHit: () => {
+    window.hitAt.push(+window.__vt.toFixed(3));
+    const to = { x: t.position.x, y: t.position.y + 0.95, z: t.position.z };
+    if (ball) spawnFireball(palmPoint(v), to, { duration: 0.23, size: 0.75, onHit: () => { spawnFireHit(t.position); t.flashHit?.(); } });
+    else { spawnFireHit(t.position, { size: 1.4 }); t.flashHit?.(); }
+  } }); };
+  at(0, () => { say('Đứng'); v.setLocomotion('idle'); });
+  at(0.8, strike('attack', 'Đánh thường (ra đòn 0,25s)'));
+  at(1.6, () => { say('Chạy'); ig.state = 'moving'; window.__run = 3.2; v.setLocomotion('move'); });
+  at(2.6, () => { window.__run = 0; ig.state = 'idle'; v.setLocomotion('idle'); });
+  at(2.95, () => { say('Đứng'); v.teleport(ig.x, 0); });
+  at(3.3, strike('summon', 'Thiên Hỏa Cầu (ra đòn 0,35s)', false));
+  at(4.3, strike('bolt', 'Cột Lửa Phá Ma (ra đòn 0,25s)', false));
+  at(5.2, () => { say('Gồng Hỏa Thần (giữ)'); v.playAction('charge', { hold: true }); });
+  at(6.3, () => { v._interruptOneShot(); say('Đứng'); });
+  at(6.5, strike('palm', 'Hỏa Chưởng (ra đòn 0,2s)'));
+  at(7.2, strike('volley', 'Chưởng toàn thể (ra đòn 0,3s)'));
+  at(8.2, () => { say('Trúng đòn'); v.playHurt(); });
+  at(8.9, () => { say('Choáng'); ig.statusEffects = [{ type: 'stun', endTime: 1e12 }]; ig.state = 'stunned'; v.setLocomotion('stunned'); });
+  at(10.3, () => { ig.statusEffects = []; ig.state = 'idle'; v.setLocomotion('idle'); say('Đứng'); });
+  at(10.5, () => { say('Rơi vào trận → đáp đất'); v.playIntro({ height: 9, duration: 0.42 }); });
+  at(12.0, () => { say('Thắng'); v.celebrate(); });
+  at(13.4, () => { say('Gục'); v._victory = false; ig.alive = false; v.setLocomotion('dead'); });
+} else {
+  at(0, () => v.setLocomotion('idle'));
+  at(1.0, attack);
+}
+ev.sort((a, b) => a[0] - b[0]);
+window.attackStarts = ev.filter(e => e[1] === attack).map(e => e[0]);
+window.__run = 0;   // chạy liên tục (đơn vị/giây) — mode=tour
+const tick = (dt) => {
+  while (ev.length && ev[0][0] <= time + 1e-9) ev.shift()[1]();
+  time += dt; window.__vt = time; window.__runTimers();
+  if (window.__run) v.targetPos.x += window.__run * dt * sx;
+  updateVfx(dt);
+  v.update(dt, camera); t.update(dt, camera);
+};
+window.stepTo = (target) => {
+  while (time < target - 1e-9) tick(Math.min(1 / 60, target - time) * SPEED);
+  renderer.render(scene, camera);
+  return time;
+};
+window.stepTo(0.001);
+if (q.get('auto')) {
+  const total = MODE === 'ready' ? 2.8 : MODE === 'tour' ? 14.8 : 2.6;
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(time + Math.min(0.05, (now - last) / 1000)); last = now; if (time > total) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

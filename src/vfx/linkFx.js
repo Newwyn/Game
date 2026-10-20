@@ -2,12 +2,17 @@
 // DÂY LIÊN KẾT của Rok (thiên phú Ý Chí Thép): sợi xích ánh sáng vàng nối Rok với đồng đội ATK cao nhất
 // ============================================================
 // Vẽ bằng code: chuỗi đốm sáng dọc một đường cong võng nhẹ (ngang ngực 2 người), các đốm chạy từ Rok sang người được nối.
-// Tạm thời — khi có tranh hiệu ứng riêng sẽ thay.
+// Bản 3: thay bằng xích ánh sáng vẽ bằng tranh (art/rok/fx2/fx-rok-ground.png ô 7).
 import * as THREE from 'three';
 import { glowTexture, addAnim, fxPlane } from './vfx.js';
+import { makeChainTether } from './rokFx.js';
 
 const N = 18;
-export function makeRokTether() {
+/** Dây liên kết của Rok: XÍCH ÁNH SÁNG vẽ bằng tranh (rokFx.makeChainTether) */
+export function makeRokTether() { return makeChainTether(); }
+
+/** Bản cũ vẽ bằng code (chuỗi đốm sáng) — giữ để so */
+export function makeDotTether() {
     const g = new THREE.Group();
     const mat = () => new THREE.SpriteMaterial({ map: glowTexture(), color: 0xffd36b, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     const dots = Array.from({ length: N }, () => { const sp = new THREE.Sprite(mat()); g.add(sp); return sp; });

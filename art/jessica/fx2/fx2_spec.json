@@ -1,0 +1,182 @@
+{
+ "note": "Hieu ung Jessica ban 3 (tranh AI nen den cua nguoi dung, giu nguyen). Cat luoi 4x2, tach nen den, dong goi. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/jessica_fx2.webp",
+ "meta": "src/vfx/jessicaFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "talisman": {
+   "file": "art/jessica/fx2/fx-talisman.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "taliFly",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "taliHit",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "center",
+     "solid": 150,
+     "inset": 3,
+     "solidFrames": [
+      0
+     ],
+     "holeMax": 400
+    }
+   ],
+   "regionThr": 70,
+   "regionDilate": 2,
+   "keepGrow": 16
+  },
+  "slash": {
+   "file": "art/jessica/fx2/fx-thunder-slash.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.55,
+   "groups": [
+    {
+     "name": "thunderSlash",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "thunderX",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "center"
+    }
+   ]
+  },
+  "stealth": {
+   "file": "art/jessica/fx2/fx-stealth.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.55,
+   "groups": [
+    {
+     "name": "stealthBurst",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    },
+    {
+     "name": "stealthAura",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "center"
+    }
+   ]
+  },
+  "icons": {
+   "file": "art/jessica/fx2/fx-jessica-ground.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "regionThr": 60,
+   "regionDilate": 2,
+   "keepGrow": 14,
+   "groups": [
+    {
+     "name": "sealMark",
+     "cells": [
+      0
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "shadowRing",
+     "cells": [
+      1
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "dashStreak",
+     "cells": [
+      2
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "bolt",
+     "cells": [
+      3
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "dodgeWing",
+     "cells": [
+      4
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "resetIcon",
+     "cells": [
+      5
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "sparkBurst",
+     "cells": [
+      6
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "afterimage",
+     "cells": [
+      7
+     ],
+     "pivot": "center"
+    }
+   ]
+  }
+ }
+}

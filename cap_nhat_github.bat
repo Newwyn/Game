@@ -20,8 +20,15 @@ for %%F in (
   "tools\preview.html"
   "tools\preview.js"
   "tools\rig_character.py"
+  "src\assets\sprites\ignar_fx.png"
+  "src\vfx\ignarFx.json"
+  "src\assets\sprites\ignar_sprite.png"
+  "src\assets\sprites\ignar_fx2.png"
   "make_gdd_word.js"
   "PROJECT_PLAN.md"
+  "PHOI_HOP_AI.md"
+  "BAN_GIAO_CLAUDE.md"
+  "BAN_GIAO_CODEX.md"
 ) do if exist %%F del /q %%F
 for %%D in (
   "src\animation"
@@ -30,6 +37,7 @@ for %%D in (
   "public"
   "art\assassin"
   "tools\__pycache__"
+  "tools\sprite-test"
 ) do if exist %%D rmdir /s /q %%D
 
 echo.

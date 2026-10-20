@@ -6,7 +6,9 @@ export const BONES = {
     thighF: [[750, 780], [752, 893]], shinF: [[752, 893], [760, 1040]],
     waist: [700, 760], neck: [712, 392], cape: [600, 450],
     armN: [[600, 480], [580, 612]], foreN: [[580, 612], [556, 690]],     // tay gần thả lỏng
-    armF: [[812, 545], [905, 575]],                                        // tay xa đưa ra trước (cả ống tay = 1 mảnh)
+    // tay xa: bắp tay ẩn dưới vạt vai (không hình) -> khuỷu = gốc ống tay loe -> cổ tay. Khuỷu đặt đúng điểm xoay cũ (812, 545)
+    //   nên động tác cũ (xoay cả ống tay) giữ nguyên hình; động tác mới gập được khuỷu + cổ tay
+    armF: [[790, 470], [812, 545]], foreF: [[812, 545], [905, 575]],
     eye: [770, 326],
     palm: [985, 515],                                                      // lòng bàn tay (quả cầu lửa lơ lửng phía trên)
 };
@@ -17,5 +19,5 @@ export const REST = {
     thighN: tilt(...B.thighN), shinN: tilt(...B.shinN) - tilt(...B.thighN),
     thighF: tilt(...B.thighF), shinF: tilt(...B.shinF) - tilt(...B.thighF),
     armN: tilt(...B.armN), foreN: tilt(...B.foreN) - tilt(...B.armN), handN: 0,
-    armF: tilt(...B.armF), foreF: 0, handF: 0,
+    armF: tilt(...B.armF), foreF: tilt(...B.foreF) - tilt(...B.armF), handF: 0,
 };

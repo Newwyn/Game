@@ -3,6 +3,7 @@
 // ============================================================
 // Mọi hiệu ứng được cập nhật trong updateVfx(dt) mỗi frame — không dùng setInterval.
 import * as THREE from 'three';
+import { textureView } from './texView.js';
 import seraFxUrl from '../assets/sprites/sera_fx.png';
 import seraFxMeta from './seraFx.json';
 import { scene } from '../core/scene.js';
@@ -31,7 +32,8 @@ function canvasSprite(width, height, draw, materialOpts = {}) {
     canvas.width = width; canvas.height = height;
     draw(canvas.getContext('2d'));
     const texture = new THREE.CanvasTexture(canvas);
-    return new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, ...materialOpts }));
+    // depthWrite tắt: khung chữ (phần trong suốt) không che hiệu ứng lớn phía sau (VD sư tử khổng lồ của Rok)
+    return new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, ...materialOpts }));
 }
 
 // ------------------------------------------------------------
@@ -1211,14 +1213,18 @@ function sealRingTexture() {
 }
 
 /** @param view CharacterView mục tiêu  @param getRemaining () => [msCònLại, msTổng] */
+let sealIconFactory = null;
+/** Hình dấu Ấn trên đầu quái (mặc định: lá bùa vẽ bằng code) — jessicaFx.js thay bằng tranh */
+export function setSealIconFactory(fn) { sealIconFactory = fn; }
+
 export function spawnSealVfx(view, durationMs) {
     const existing = seals.find(s => s.view === view);
     if (existing) { existing.pop = 0; existing.t = 0; existing.total = durationMs; return; }
 
     const group = new THREE.Group();
     group.position.y = 3.25;
-    // lá bùa
-    const tali = new THREE.Mesh(
+    // lá bùa (Jessica bản 3: ấn sấm tím vẽ bằng tranh — jessicaFx đăng ký qua setSealIconFactory)
+    const tali = sealIconFactory ? sealIconFactory() : new THREE.Mesh(
         new THREE.PlaneGeometry(0.34, 0.68),
         new THREE.MeshBasicMaterial({ map: getTalismanTexture(), transparent: true, depthWrite: false, fog: false }),
     );
@@ -1385,10 +1391,9 @@ export function getSeraFxTexture(name) {
     seraFxBase.colorSpace = THREE.SRGBColorSpace;
     const [W, H] = seraFxMeta.atlasSize;
     const [x, y, w, h] = seraFxMeta.parts[name].rect;
-    const t = seraFxBase.clone();
+    const t = textureView(seraFxBase);   // không tải lại atlas lên GPU (xem texView.js)
     t.repeat.set(w / W, h / H);
     t.offset.set(x / W, 1 - (y + h) / H);
-    t.needsUpdate = true;
     return (TEX.seraFx[name] = { texture: t, aspect: w / h });
 }
 function seraSprite(name, height, { opacity = 1, additive = false } = {}) {

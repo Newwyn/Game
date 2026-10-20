@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { CharacterView } from './CharacterView.js';
 import { GROUND_Y, gameNow } from '../config.js';
 import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
+import { jessicaBoltTexture } from '../vfx/jessicaFx.js';
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
 import { makeWaterBubble, makeGoddessAura, makeNoteHalo, spawnManaRise } from '../vfx/nerissaFx.js';
@@ -250,7 +251,15 @@ export class CutoutCharacterView extends CharacterView {
         this.setBarHeight(GROUND_Y + height + 0.35);
 
         // Hào quang sấm tím khi tàng hình (Sát Thủ): quầng sau lưng + mắt phát sáng + tia sét nhỏ quanh người
-        if (visual.stealthAura) {
+        // Jessica bản 3: hào quang tàng hình vẽ bằng tranh (visual.stealthFx = jessicaFx.makeStealthAura) thay bản code
+        if (visual.stealthFx) {
+            this._sAura = visual.stealthFx(height);
+            this._sAura.group.visible = false;
+            this.root.add(this._sAura.group);
+            this._auraK = 0;
+            this._bigBoltTimer = 0.4;
+        }
+        if (visual.stealthAura && !visual.stealthFx) {
             this.aura = makeThunderAura(height);
             this.aura.visible = false;
             this.aura.position.y = 0;
@@ -568,6 +577,19 @@ export class CutoutCharacterView extends CharacterView {
     }
 
     _updateAura(dt) {
+        if (this._sAura) {
+            const on = this.isStealthed && this.root.visible;
+            this._auraK += ((on ? 1 : 0) - this._auraK) * Math.min(1, dt * 8);
+            const k = this._auraK;
+            this._sAura.group.visible = k > 0.02;
+            if (k <= 0.02) return;
+            this._sAura.update(dt, k, this._time, this._lift ?? 0);
+            if (on) {
+                this._bigBoltTimer -= dt;
+                if (this._bigBoltTimer <= 0) { this._bigBoltTimer = 0.5 + Math.random() * 0.5; this._sAura.surge(); }
+            }
+            return;
+        }
         if (!this.aura) return;
         const on = this.isStealthed && this.root.visible;
         this._auraK += ((on ? 1 : 0) - this._auraK) * Math.min(1, dt * 8);
@@ -714,6 +736,17 @@ export class CutoutCharacterView extends CharacterView {
      * Mờ vào / mờ ra theo trạng thái guard; trúng đòn thì cả vòm loé sáng (onGuardHit).
      */
     _updateIronGuard(dt, on) {
+        // Rok bản 3: KHIÊN THẦN vẽ bằng tranh (visual.guardFx = rokFx.makeDivineShield) thay Thần Hộ Vệ + vòm lục giác
+        if (this.def.guardFx) {
+            if (!this._guardFx && !on) return;
+            this._guardFx ??= this._makeGuardFx();
+            this._guardFx.update(dt, { on, frac: this._guardFrac ?? 1, dir: this.facingLeft ? -1 : 1 });
+            if (on) {
+                this._guardSpark = (this._guardSpark ?? 0) - dt;
+                if (this._guardSpark <= 0) { this._guardSpark = 0.5; spawnRisingSparkles(this.root.position, { count: 3, color: 0xffd36b, radius: 1.3 }); }
+            }
+            return;
+        }
         if (on && !this._ironDome) {
             const g = new THREE.Group();
             const domeMat = new THREE.MeshBasicMaterial({ map: getHexDomeTexture(), transparent: true, depthWrite: false,
@@ -1176,9 +1209,10 @@ export class CutoutCharacterView extends CharacterView {
         if (on && !this._thunder) {
             const g = new THREE.Group();
             for (let i = 0; i < 4; i++) {
-                const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: getBoltTexture(i % 3), transparent: true, depthWrite: false,
-                    fog: false, opacity: 0, blending: THREE.AdditiveBlending }));
-                sp.scale.set(0.32, 0.8, 1);
+                // tia sét tím vẽ bằng tranh (art/jessica/fx2, ô "bolt") — Sấm phù trợ của Jessica
+                const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: jessicaBoltTexture(), transparent: true, depthWrite: false,
+                    fog: false, opacity: 0 }));
+                sp.scale.set(0.36, 0.72, 1);
                 g.add(sp);
             }
             const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: getFortressTexture(),
@@ -1199,7 +1233,7 @@ export class CutoutCharacterView extends CharacterView {
             S.group.children.forEach((sp, i) => {
                 const show = Math.random() < 0.7;
                 const a = Math.random() * TAU;
-                sp.material.map = getBoltTexture(Math.floor(Math.random() * 3));
+                sp.scale.setScalar(1); sp.scale.set(0.36 * (0.8 + Math.random() * 0.5), 0.72 * (0.8 + Math.random() * 0.5), 1);
                 sp.position.set(Math.cos(a) * (0.55 + Math.random() * 0.35), GROUND_Y + lift + h * (0.15 + Math.random() * 0.7), Math.sin(a) * 0.35 + 0.1);
                 sp.material.rotation = (Math.random() - 0.5) * 1.2;
                 const s = 0.7 + Math.random() * 0.6;
@@ -1212,11 +1246,27 @@ export class CutoutCharacterView extends CharacterView {
         S.glow.rotation.z += dt * 2;
     }
 
-    /** Khiên Dựng Khiên phát nổ: thần hộ vệ + vòm loé sáng mạnh */
-    onGuardBurst() { this._guardPulse = 1.6; }
+    /** Khiên Dựng Khiên phát nổ: thần hộ vệ + vòm loé sáng mạnh (Khiên Thần: nổ sóng; lần cuối `final`: vỡ tan) */
+    onGuardBurst(final = false) {
+        this._guardPulse = 1.6;
+        if (this.def.guardFx) { this._guardFx ??= this._makeGuardFx(); if (final) this._guardFx.shatter(); else this._guardFx.pulse(); }
+    }
 
     /** Đòn đánh bị khiên ánh sáng đỡ: khiên bùng sáng một nhịp */
-    onGuardHit() { this._guardPulse = 1; }
+    onGuardHit() { this._guardPulse = 1; this._guardFx?.hit(); }
+
+    /** Dựng Khiên: Khiên Thần hiện ra đúng mốc cắm khiên (events.js gọi ở onHit của guardStart) */
+    raiseDivineShield() {
+        if (!this.def.guardFx) return;
+        this._guardFx ??= this._makeGuardFx();
+        this._guardFx.raise();
+    }
+
+    _makeGuardFx() {
+        const fx = this.def.guardFx();
+        this.root.add(fx.group);
+        return fx;
+    }
 
     setOpacity(value) {
         for (const m of this.materials) m.opacity = value;
