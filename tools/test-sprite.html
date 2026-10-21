@@ -85,6 +85,51 @@ for (const [name, a] of Object.entries(def.anims ?? {})) {
     tt0[name] = tt; tt += Math.max(1.0, durOf(clip) + 0.5);
   }
 }
+// Lyra: bay lơ lửng suốt Thần Phong (Vệ Thần Gió sau lưng) — bay chờ · bắn khi bay · gồng Thần Tiễn khi bay (&only=hover)
+if (CHAR === 'archer' && want('hover')) {
+  game.classDefs.archer.skills = [{ type: 'snipe' }, { type: 'wind_spirit' }, { type: 'charged_shot' }];
+  say(tt, 'Thần Phong: bay lơ lửng + Vệ Thần Gió');
+  at(tt, () => { hero.state = 'attacking'; v.setLocomotion('ready'); hero.statusEffects = [{ type: 'windspirit', endTime: 1e12 }]; });
+  tt += 1.6;
+  say(tt, 'Bắn khi bay (+ Vệ Thần bắn phụ)');
+  at(tt, () => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 212, isCrit: false }));
+  at(tt + 0.3, () => v.windSpiritShoot?.());
+  tt += 1.2;
+  say(tt, 'Gồng Thần Tiễn khi bay (Vệ Thần cùng kéo cung)');
+  at(tt, () => { hero.state = 'casting'; hero.castingSkillId = 2; v.playAction('cast', { hold: true }); });
+  at(tt + 1.4, () => { hero.state = 'attacking'; v._interruptOneShot?.(); });
+  tt += 1.7;
+  at(tt, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.0;
+}
+// Seraphine: Thánh Niệm — bay lơ lửng niệm + Hộ Vệ Thiên Sứ; hồi máu / khiên khi đang niệm (khiên cánh) (&only=pray)
+if (CHAR === 'priest' && want('pray')) {
+  say(tt, 'Thánh Niệm: giơ gậy → bay lên niệm + Hộ Vệ Thiên Sứ');
+  at(tt, () => v.playAction('raise'));
+  at(tt + 0.45, () => { hero.statusEffects = [{ type: 'praying', endTime: 1e12 }]; });
+  tt += 2.2;
+  say(tt, 'Đang niệm: hồi máu (ra phép bằng tay)');
+  at(tt, () => v.playAction('heal'));
+  tt += 1.0;
+  say(tt, 'Đang niệm: khiên ánh sáng có cánh');
+  at(tt, () => v.playAction('shield'));
+  at(tt + 0.28, () => { hero.statusEffects = [{ type: 'praying', endTime: 1e12 }, { type: 'holy_shield', endTime: 1e12, hp: 300, maxHp: 300, winged: true }]; });
+  tt += 1.8;
+  at(tt, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.0;
+}
+// Zerith: Đêm Tử Thần — bay lơ lửng + Hộ Vệ Thần Chết + hào quang; chém khi bay · trúng đòn khi bay (&only=hover)
+if (CHAR === 'reaper' && want('hover')) {
+  say(tt, 'Đêm Tử Thần: gọi Thần Chết → bay lên, Hộ Vệ hiện sau lưng');
+  at(tt, () => v.playAction('summon'));
+  at(tt + 0.45, () => { hero.state = 'attacking'; hero.statusEffects = [{ type: 'reaper_form', endTime: 1e12 }]; });
+  tt += 2.2;
+  say(tt, 'Chém khi bay (game)');
+  at(tt, () => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 212, isCrit: false }));
+  tt += 1.2;
+  say(tt, 'Trúng đòn khi bay');
+  at(tt, () => v.playHurt());
+  tt += 1.0;
+  at(tt, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.2;
+}
 // Nerissa: 7 điệu múa (trạng thái 'dancing' + danceKey, như server gửi) — &only=dance để chỉ xem múa, &dances=1,123 chọn điệu
 if (CHAR === 'dancer' && want('dance')) {
   const keys = (q.get('dances') || '1,2,3,12,13,23,123').split(',');

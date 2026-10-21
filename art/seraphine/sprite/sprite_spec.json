@@ -1,0 +1,32 @@
+{
+ "note": "Seraphine ban 3: tranh AI PNG trong suot cua nguoi dung (giu nguyen, chi bo quang mo alpha < 56 + can chan + co gian). scale: dua moi tam ve cung co idle (khop mat bang matchTemplate + so mat / tai). footBand 16 + footMin 25: dau gay duoi cach dat ~5px (hep ~21px), ngon toc / tua vang ru ~30px -> chi bat de giay. Moc ngang: 'heel' (got giay sau) cho dung / danh / trung don / phep; 'body' (giua dau) cho chay, bay, niem lo lung, ngoi dap dat (toc cham dat). Diem 'staff' = vien pha le giua vong mat troi dau gay o khung ra phep; 'palm' = long ban tay khung ra phep khi niem.",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "alpha",
+ "footBand": 16,
+ "footMin": 25,
+ "sheets": {
+  "idle": {"file": "art/seraphine/sprite/sprite-idle.png", "scale": 1.0,
+           "groups": [["idle", 4, "heel"], ["ready", 4, "heel"]]},
+  "attack": {"file": "art/seraphine/sprite/sprite-attack.png", "scale": 1.4, "anchor": "heel",
+             "points": {"4": {"staff": [1472, 302]}}},
+  "move": {"file": "art/seraphine/sprite/sprite-move.png", "scale": 1.07, "anchor": "body"},
+  "hurt-stun": {"file": "art/seraphine/sprite/sprite-hurt-stun.png", "scale": 0.97,
+                "groups": [["hurt", 4, "heel"], ["stun", 4, "heel"]]},
+  "heal-shield": {"file": "art/seraphine/sprite/sprite-heal-shield.png", "scale": 1.08,
+                  "groups": [["heal", 4, "heel"], ["shield", 4, "heel"]],
+                  "points": {"3": {"staff": [965, 77]}, "7": {"staff": [1090, 637]}}},
+  "raise-land": {"file": "art/seraphine/sprite/sprite-raise-land.png", "scale": 1.2,
+                 "groups": [["raise", 3, "heel"], ["raiseUp", 1, "body"], ["fall", 1, "body"], ["land", 1, "body"], ["landEnd", 2, "heel"]]},
+  "pray": {"file": "art/seraphine/sprite/sprite-pray.png", "scale": 1.01,
+           "groups": [["pray", 4, "body"], ["prayCast", 4, "body"]],
+           "points": {"7": {"palm": [1095, 707]}}},
+  "dead-victory": {"file": "art/seraphine/sprite/sprite-dead-victory.png", "scale": 1.08,
+                   "groups": [["dead", 4, "toe"], ["victory", 4, "body"]], "ground": ["victory"]}
+ },
+ "out": "src/assets/sprites/seraphine_sprite",
+ "meta": "src/characters/sprite/seraphineSprite.json",
+ "format": "webp"
+}

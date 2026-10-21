@@ -4,7 +4,8 @@
 
 Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
   1. Tách nền xanh #00FF00 -> trong suốt. Viền 1-3px còn ám xanh thì lấy màu điểm đặc gần nhất bên trong (làm sạch mép do tách nền).
-     "key" (cả spec hoặc từng tấm): "green" mặc định · "matte" giữ viền đen mảnh (Rok) · "alpha" tranh đã trong suốt sẵn.
+     "key" (cả spec hoặc từng tấm): "green" mặc định · "matte" giữ viền đen mảnh (Rok) · "jade" nhân vật mặc đồ xanh lá (Lyra:
+     vải xanh không bị trong suốt / mất màu) · "alpha" tranh đã trong suốt sẵn.
   2. Tách từng khung theo vùng liền (mảnh rời như ngọc / xích gom về khung gần nhất), xếp trên -> dưới, trái -> phải.
      "groups" đặt tên khung: [["hurt", 4, "toe"], ["stun", 4, "toe"]] -> hurt1..4, stun1..4; phần tử thứ 4 (tuỳ chọn) =
      hệ số cỡ riêng của nhóm (VD hàng dưới AI vẽ to hơn hàng trên 8%: ["land", 4, "body", 0.92]).
@@ -24,6 +25,11 @@ Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
        tua ngọc / dải lụa rủ gần đất (Nerissa) đặt nhỏ (VD 12) để chỉ bắt đế giày, không bắt tua.
      "footMin" (cả spec, px trên tấm gốc, mặc định 8): mảnh hẹp hơn trong dải đáy không tính là giày khi tìm tâm đứng
        (Nerissa 24: tua ngọc rủ ngang đế giày).
+     "face": [x0, y0, x1, y1] (cả spec, Zerith) + kiểu mốc "face": trùng KHUÔN MẶT (so mẫu khung mặt của khung chuẩn, xoay ±24°)
+       thay 'body' khi vũ khí giơ cao trên đầu (mốc 'body' đo hàng tóc đầu tiên -> bắt nhầm lưỡi hái). Cần opencv (cv2).
+     "footBand" theo tấm: ghi đè dải đáy tìm giày cho riêng tấm đó (VD tấm chém có chân sau nhấc gót).
+     "solidFeet": true (cả spec, Zerith): gót / mũi giày chỉ tính các mảnh rộng >= footMin trong dải đáy — bỏ mũi đuôi quỷ,
+       tua áo, mũi nhọn cán lưỡi hái chạm đất (không thì gót nhảy sang các mảnh đó, khung bị lệch ngang).
      "ground": "group" hoặc ["tên nhóm", ...] (theo tấm): trục dọc = đường đất CHUNG của cả nhóm (trung vị đáy các khung cùng hàng tấm trong nhóm, đo
        trên tấm gốc) thay vì đáy từng khung -> khung nhảy / bật / xoạc chân giữ đúng độ cao AI vẽ (không bị kéo xuống đất).
 """
@@ -67,8 +73,44 @@ def key_matte(rgb):
     return np.dstack([F, al * 255]).round().clip(0, 255).astype(np.uint8)
 
 
+def key_jade(rgb):
+    """Tách nền xanh cho nhân vật MẶC ĐỒ XANH LÁ (Lyra: áo choàng, váy, ruy băng xanh ngọc). key_matte / key_green
+    tính alpha theo độ xanh nên vải xanh lá bị trong suốt một phần + mất màu khi khử ám xanh. Ở đây:
+      - nền = điểm xanh thuần (G - max(R, B) > 170 và G > 170, nền AI vẽ ~ (4, 249, 4)), kể cả lỗ kín (giữa dây cung và thân cung);
+      - điểm cách nền > 2,5px: giữ nguyên 100% (vải xanh không bị đụng tới);
+      - dải mép 2–3px: alpha = lớn hơn của (a) tách theo màu điểm đặc gần nhất bên trong C = a*F + (1-a)*nền (mép vải xanh)
+        và (b) tách theo độ xanh như matte (dây cung mảnh, không có điểm đặc bên trong); màu = gỡ phần nền trộn vào, khử ám xanh
+        nhưng cho phép xanh bằng điểm đặc gần nhất (mép vải xanh giữ màu).
+    Không tô / vẽ lại tranh."""
+    a = rgb.astype(np.float32)
+    d = a[..., 1] - np.maximum(a[..., 0], a[..., 2])
+    bd = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
+    bdd = bd[:, 1] - np.maximum(bd[:, 0], bd[:, 2])
+    bg = np.median(bd[bdd > 150], axis=0)
+    dbg = bg[1] - max(bg[0], bg[2])
+    bgm = (d > 170) & (a[..., 1] > 170)
+    dist = ndi.distance_transform_edt(~bgm)
+    inner = dist > 2.5
+    band = ~bgm & ~inner
+    _, (iy, ix) = ndi.distance_transform_edt(~inner, return_indices=True)
+    F = a[iy, ix]
+    dF = F[..., 1] - np.maximum(F[..., 0], F[..., 2])
+    num = ((a - bg) * (F - bg)).sum(-1)
+    den = ((F - bg) ** 2).sum(-1) + 1e-3
+    al_f = np.clip(num / den, 0, 1)
+    al_d = np.clip(1 - d / dbg, 0, 1)
+    al = np.where(bgm, 0.0, np.where(inner, 1.0, np.maximum(al_f, al_d)))
+    al[(al < 0.06)] = 0
+    k = np.maximum(al, 1e-3)[..., None]
+    U = np.clip((a - (1 - k) * bg[None, None, :]) / k, 0, 255)
+    U = np.where((al < 0.25)[..., None], F, U)                       # gần như trong suốt: lấy màu điểm đặc bên trong
+    U[..., 1] = np.minimum(U[..., 1], np.maximum(U[..., 0], U[..., 2]) + np.maximum(6, dF))   # khử ám xanh, giữ độ xanh của vải
+    out = np.where(band[..., None], U, a)
+    return np.dstack([out, al * 255]).round().clip(0, 255).astype(np.uint8)
+
+
 def load_sheet(path, key=None):
-    """key: 'green' (mặc định, như Ignar) · 'matte' (nền xanh, giữ viền đen mảnh) · 'alpha' (PNG đã trong suốt sẵn:
+    """key: 'green' (mặc định, như Ignar) · 'matte' (nền xanh, giữ viền đen mảnh) · 'jade' (đồ xanh lá: Lyra) · 'alpha' (PNG đã trong suốt sẵn:
     bỏ quầng sáng mờ alpha < 56). Không ghi key: PNG có trong suốt -> 'alpha', còn lại -> 'green'."""
     im = Image.open(path)
     if key is None:
@@ -79,7 +121,7 @@ def load_sheet(path, key=None):
         a[..., 3] = np.where(A < 56, 0, np.where(A >= 250, 255, A))
         return a
     rgb = np.asarray(im.convert('RGB'))
-    return key_matte(rgb) if key == 'matte' else key_green(rgb)
+    return key_matte(rgb) if key == 'matte' else key_jade(rgb) if key == 'jade' else key_green(rgb)
 
 
 def split_frames(rgba, min_size=20000, attach=60):
@@ -117,14 +159,20 @@ def split_frames(rgba, min_size=20000, attach=60):
 
 class Feet:
     """Đo mốc trên 1 khung (đã co giãn): mũi giày trước, gót giày sau, giữa đầu, đáy"""
-    def __init__(self, im, off, hair_min, band_h, foot_band=30):
+    def __init__(self, im, off, hair_min, band_h, foot_band=30, run_min=0):
         a = np.asarray(im)[..., 3] > 128
         self.a = a
         h = a.shape[0]
         rows = np.where(a.any(1))[0]
         self.bottom = int(rows[-1]) + 1
         self.top = int(rows[0])
-        xs = np.where(a[self.bottom - max(2, int(foot_band * off / 40)):self.bottom].any(0))[0]
+        cols = a[self.bottom - max(2, int(foot_band * off / 40)):self.bottom].any(0)
+        xs = np.where(cols)[0]
+        if run_min > 0:
+            # "solidFeet": bỏ mảnh hẹp trong dải đáy (mũi đuôi, tua áo, mũi nhọn cán vũ khí chạm đất) khi tìm gót / mũi giày
+            lab, n = ndi.label(cols)
+            keep = [k for k in range(1, n + 1) if (lab == k).sum() >= run_min]
+            if keep: xs = np.where(np.isin(lab, keep))[0]
         self.toe = xs[-1] - off
         self.heel = xs[0] + off
         cnt = a.sum(1)
@@ -184,6 +232,7 @@ def main(spec_path, debug=None):
     frames = []                                     # (tên, ảnh, kiểu mốc)
     gy = {}                                         # tên khung -> đường đất chung của nhóm (None: đáy khung)
     FB = spec.get('footBand', 30)                   # dải đáy tìm giày (px tấm gốc)
+    fsrc, fband = {}, {}                            # tên khung -> (x, y gốc trên tấm, hệ số cỡ, tên tấm) · dải đáy riêng của tấm
     for sname, sh in spec['sheets'].items():
         rgba = load_sheet(os.path.join(ROOT, sh['file']), sh.get('key', spec.get('key')))
         imgs, offs = split_frames(rgba)
@@ -213,6 +262,8 @@ def main(spec_path, debug=None):
                 if s != 1: im = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
                 fp = {n: ((x - ox) * s, (y - oy) * s) for n, (x, y) in pts.get(str(k), {}).items()}
                 gy[f'{prefix}{i + 1}'] = (gnd[hrow] - oy) * s if hrow in gnd else None
+                fsrc[f'{prefix}{i + 1}'] = (ox, oy, s, sname)
+                fband[f'{prefix}{i + 1}'] = sh.get('footBand', FB)
                 frames.append((f'{prefix}{i + 1}', im, mode, fp))
         print(sname, len(imgs), 'khung · scale', round(s0, 4))
     names = [f[0] for f in frames]
@@ -226,9 +277,33 @@ def main(spec_path, debug=None):
     hair_w = np.where(a0[top0 + int(25 * AS):top0 + int(95 * AS)].any(0))[0]
     hair_min = 0.5 * (hair_w[-1] - hair_w[0])       # hàng "tóc" = rộng >= nửa bề ngang tóc (tay giơ lên đầu hẹp hơn)
     band_h = int(70 * AS)
-    C = Feet(cim, off, hair_min, band_h, FB)
+    RM = spec.get('footMin', 8) * AS if spec.get('solidFeet') else 0   # "solidFeet": gót / mũi giày chỉ tính mảnh rộng >= footMin
+    C = Feet(cim, off, hair_min, band_h, FB, RM)
     d_heel, d_head = C.toe - C.heel, C.toe - C.head
     d_hip = C.toe - C.hip
+    # mốc 'face' (Zerith): trùng KHUÔN MẶT bằng so mẫu (xoay ±24°) — vũ khí giơ cao trên đầu không làm lệch như mốc 'body'
+    face_find = None
+    if spec.get('face'):
+        import cv2
+        fx0, fy0, fx1, fy1 = spec['face']             # khung mặt trên tấm của khung chuẩn (px tấm gốc)
+        cox, coy, cs, _ = fsrc[calib]
+        def gray(im):
+            a = np.asarray(im).astype(np.float32); al = a[..., 3:4] / 255
+            return cv2.cvtColor((a[..., :3] * al + 128 * (1 - al)).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+        g0 = gray(cim)
+        T0 = g0[int((fy0 - coy) * cs):int((fy1 - coy) * cs), int((fx0 - cox) * cs):int((fx1 - cox) * cs)]
+        d_face = C.toe - ((fx0 + fx1) / 2 - cox) * cs
+        def face_find(im):
+            G = gray(im); best = (-2, 0.0)
+            for ang in range(-24, 25, 6):
+                M = cv2.getRotationMatrix2D((T0.shape[1] / 2, T0.shape[0] / 2), ang, 1.0)
+                T = cv2.warpAffine(T0, M, (T0.shape[1], T0.shape[0]), borderValue=128)
+                for sc in np.arange(0.9, 1.11, 0.02):
+                    t = cv2.resize(T, None, fx=sc, fy=sc, interpolation=cv2.INTER_AREA)
+                    if t.shape[0] >= G.shape[0] or t.shape[1] >= G.shape[1]: continue
+                    r = cv2.matchTemplate(G, t, cv2.TM_CCOEFF_NORMED); _, m, _, (x, y) = cv2.minMaxLoc(r)
+                    if m > best[0]: best = (m, x + t.shape[1] / 2)
+            return best
     # tâm đứng (gốc nhân vật trong game) = giữa 2 giày ở khung chuẩn
     band = a0[C.bottom - max(2, int(FB * AS)):C.bottom]
     lab, _ = ndi.label(band)
@@ -239,8 +314,14 @@ def main(spec_path, debug=None):
     pad = spec.get('pad', 6)
     trims, sizes, meta_f = [], [], {}
     for nm, im, mode in frames:
-        F = Feet(im, off, hair_min, band_h, FB)
-        ax = F.toe if mode == 'toe' else F.heel + d_heel if mode == 'heel' else F.hip + d_hip if mode == 'hip' else F.head + d_head
+        F = Feet(im, off, hair_min, band_h, fband.get(nm, FB), RM)
+        if mode == 'face':
+            if not face_find: raise SystemExit(f'{nm}: mốc "face" cần "face": [x0, y0, x1, y1] (khung mặt trên tấm của khung chuẩn)')
+            fm, fx = face_find(im)
+            if fm < 0.45: print(f'  ! {nm}: khớp mặt yếu ({fm:.2f}) — xem lại ảnh soi')
+            ax = fx + d_face
+        else:
+            ax = F.toe if mode == 'toe' else F.heel + d_heel if mode == 'heel' else F.hip + d_hip if mode == 'hip' else F.head + d_head
         ax += origin_dx                              # gốc = tâm đứng
         ay = F.bottom if gy.get(nm) is None else gy[nm]
         hp = hand_points(F.a, ax - origin_dx, ay, F.top)

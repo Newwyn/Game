@@ -27,6 +27,7 @@ import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/ze
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
 import { makeWaterBubble, makeGoddessAura, makeNoteHalo, makeDanceRing, spawnManaRise } from '../vfx/nerissaFx.js';
 import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
+import { makeLightShield } from '../vfx/seraphineFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -654,7 +655,7 @@ export class CutoutCharacterView extends CharacterView {
         const charging = alive && this.member.state === 'casting' && this.classDef?.skills?.[this.member.castingSkillId]?.type === 'charged_shot';
         // Thánh Niệm (Tu Sĩ): bay lên niệm + Hộ vệ ánh sáng sau lưng
         const praying = alive && effs.some(e => e.type === 'praying' && e.endTime > now);
-        // Đêm Tử Thần (Zerith): bay lơ lửng + Hộ Vệ Thần Chết sau lưng + hào quang tím
+        // Đêm Tử Thần (Zerith): bay lơ lửng + Hộ Vệ Thần Chết sau lưng + hào quang đỏ thẫm
         const night = alive && effs.some(e => e.type === 'reaper_form' && e.endTime > now);
         this._updateWindSpirit(dt, wind || praying || night, charging);
         this._updateReaperNight(dt, night);
@@ -799,7 +800,20 @@ export class CutoutCharacterView extends CharacterView {
 
     _updateWindSpirit(dt, on, charging) {
         this._hover = (this._hover ?? 0) + ((on ? 0.75 : 0) - (this._hover ?? 0)) * Math.min(1, dt * 7); // bay lên ~0.5s (khớp lock của server)
+        // thanh máu bay lên theo (không đè lên đầu lúc lơ lửng)
+        if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.01) { this._barHover = this._hover; this.setBarHeight(GROUND_Y + this.height + 0.35 + this._hover); }
         on = on && this.member.statusEffects?.some(e => e.type === 'windspirit' && e.endTime > gameNow()); // Vệ Thần Gió chỉ khi có windspirit
+        // Lyra bản 3: Vệ Thần Gió + vòng gió dưới chân vẽ bằng tranh (visual.windFx = lyraFx.makeWindSpirit) thay bản canvas
+        if (this.def.windFx) {
+            if (!this._windFx && !on) return;
+            if (!this._windFx) {
+                this._windFx = this.def.windFx(this.height);
+                this.flip.add(this._windFx.group);
+                this.root.add(this._windFx.ground);
+            }
+            this._windFx.update(dt, { on, charging, lift: this._hover ?? 0, time: this._time });
+            return;
+        }
         if (on && !this._wind) {
             const g = new THREE.Group();
             const mk = (drawn, additive) => new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3.3), new THREE.MeshBasicMaterial({
@@ -843,6 +857,17 @@ export class CutoutCharacterView extends CharacterView {
 
     /** Hộ vệ ánh sáng: tu sĩ thiên thần trong suốt chắp tay niệm sau lưng + cột sáng mờ */
     _updatePrayGuardian(dt, on) {
+        // Seraphine bản 3: Hộ Vệ Thiên Sứ + vòng thánh vẽ bằng tranh (visual.prayFx = seraphineFx.makeSeraphGuardian)
+        if (this.def.prayFx) {
+            if (!this._prayFx && !on) return;
+            if (!this._prayFx) {
+                this._prayFx = this.def.prayFx(this.height);
+                this.flip.add(this._prayFx.group);
+                this.root.add(this._prayFx.ground);
+            }
+            this._prayFx.update(dt, { on, lift: this._hover ?? 0, time: this._time });
+            return;
+        }
         if (on && !this._prayG) {
             const g = new THREE.Group();
             const body = seraSprite('guardian', this.height * 1.25, { opacity: 0 });
@@ -868,6 +893,16 @@ export class CutoutCharacterView extends CharacterView {
 
     /** Khiên Ánh Sáng: bong bóng vàng bao quanh người; khiên lúc niệm có thêm đôi cánh. Mờ dần theo máu khiên còn lại */
     _updateHolyShield(dt, ef) {
+        // Seraphine bản 3: bong bóng khiên + đôi cánh vẽ bằng tranh (art/seraphine/fx2) — trên MỌI đồng đội được che
+        if (ef && !this._holyFx) { this._holyFx = makeLightShield(this.height); this.root.add(this._holyFx.group); }
+        if (this._holyFx) {
+            const L = this._holyFx;
+            L.k = (L.k ?? 0) + ((ef ? 1 : 0) - (L.k ?? 0)) * Math.min(1, dt * 6);
+            L.w = (L.w ?? 0) + ((ef?.winged ? 1 : 0) - (L.w ?? 0)) * Math.min(1, dt * 5);
+            const frac = ef?.maxHp ? Math.max(0.25, ef.hp / ef.maxHp) : 0.5;
+            L.update(dt, { k: L.k, w: L.w, frac, lift: (this._hover ?? 0) + (this._lift ?? 0), time: this._time });
+            return;
+        }
         if (ef && !this._holy) {
             const g = new THREE.Group();
             const bubble = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.9), new THREE.MeshBasicMaterial({ map: getHolyBubbleTexture(),
@@ -1082,7 +1117,7 @@ export class CutoutCharacterView extends CharacterView {
         if (on && !this.reaperGuardian) {
             this.reaperGuardian = makeReaperGuardian();
             this.root.add(this.reaperGuardian.group);
-            this._reaperAura = makeReaperAura();
+            this._reaperAura = makeReaperAura(this.height);
             this.root.add(this._reaperAura.group);
             this._reaperK = 0;
         }
@@ -1095,9 +1130,12 @@ export class CutoutCharacterView extends CharacterView {
         }
         const back = this.facingLeft ? 1 : -1;
         this.reaperGuardian.update(dt, this.facingLeft, { alpha: this._reaperK });
-        this.reaperGuardian.group.position.set(back * 1.35, GROUND_Y + 0.15 + (this._hover ?? 0) + (this._lift ?? 0), -0.4);
+        // bản tranh (sprite): Thần Chết đầy đủ áo choàng -> lùi xa + bay cao hơn để không bị Zerith che khuất
+        const far = this.sprite ? 1.95 : 1.35, up = this.sprite ? 0.55 : 0.15;
+        this.reaperGuardian.group.position.set(back * far, GROUND_Y + up + (this._hover ?? 0) + (this._lift ?? 0), -0.4);
         this._reaperAura.update(dt, this._reaperK);
-        this._reaperAura.group.position.set(0, GROUND_Y, 0);
+        // hào quang (đáy = lửa hồn dưới chân) nâng theo nửa độ bay: vẫn bao quanh người mà không rời hẳn mặt đất
+        this._reaperAura.group.position.set(0, GROUND_Y + (this._hover ?? 0) * 0.5, 0);
     }
 
     /** Linh Hồn Báo Thù: Zerith đã gục, linh hồn Thần Chết (mờ, tím nhạt) bay tới chém địch */
@@ -1135,7 +1173,11 @@ export class CutoutCharacterView extends CharacterView {
         this._deathMark.group.position.set(0, GROUND_Y + this.height + 0.55 + (this._lift ?? 0) + (this._hover ?? 0), 0.5);
     }
 
+    /** Vệ Thần Gió (bản tranh) kéo cung bắn phụ một nhịp */
+    windSpiritShoot() { this._windFx?.shoot(); }
+
     windSpiritPos() {
+        if (this._windFx) return this._windFx.shotPoint();
         if (!this._wind?.g.visible) return null;
         const v = new THREE.Vector3(); this._wind.g.getWorldPosition(v); v.x += (this.facingLeft ? -1 : 1) * 0.8; return v;
     }

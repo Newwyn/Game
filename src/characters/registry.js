@@ -15,8 +15,13 @@ import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
 import { ROK_SPRITE } from './sprite/rokSprite.js';
 import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
 import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
+import { LYRA_SPRITE } from './sprite/lyraSprite.js';
+import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
+import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
 import { makeDivineShield } from '../vfx/rokFx.js';
 import { makeStealthAura } from '../vfx/jessicaFx.js';
+import { makeWindSpirit } from '../vfx/lyraFx.js';
+import { makeSeraphGuardian } from '../vfx/seraphineFx.js';
 import { PlaceholderCharacterView } from './PlaceholderCharacterView.js';
 import { ASSASSIN2_RIG } from './cutout/assassin2Rig.js';
 import {
@@ -142,6 +147,12 @@ const ARCHER = {
     blink: true,
     ghostTint: 0x99f6e4,
     circleTint: 0x5eead4,
+    // Kiểu sprite (bản 3: nữ xạ thủ tiên tộc của gió) — ?lyra=cutout về bản khung xương, ?lyraIdle=A|B|C đổi cách đứng
+    sprite: LYRA_SPRITE,
+    spriteParam: 'lyra',
+    spriteIdleParam: 'lyraIdle',
+    // Thần Phong: Vệ Thần Gió cánh chim ưng + vòng gió dưới chân vẽ bằng tranh (art/lyra/fx2) thay bản canvas
+    windFx: makeWindSpirit,
     anims: {
         attack:   { clip: 'attack',   hitTime: 0.2 },   // kéo căng -> nhả tên
         snipe:    { clip: 'snipe',    hitTime: 0.42 },  // bật nhảy lộn, bắn giữa không trung
@@ -164,6 +175,12 @@ const PRIEST = {
     blink: true,
     ghostTint: 0xfde68a,
     circleTint: 0xfacc15,
+    // Kiểu sprite (bản 3: nữ tu sĩ ánh mặt trời) — ?seraphine=cutout về bản khung xương, ?seraphineIdle=A|B|C đổi cách đứng
+    sprite: SERAPHINE_SPRITE,
+    spriteParam: 'seraphine',
+    spriteIdleParam: 'seraphineIdle',
+    // Thánh Niệm: Hộ Vệ Thiên Sứ sáu cánh + vòng thánh vẽ bằng tranh (art/seraphine/fx2) thay Hộ vệ ánh sáng cũ
+    prayFx: makeSeraphGuardian,
     anims: {
         attack: { clip: 'attack', hitTime: 0.22 },  // giơ gậy -> phóng cầu sáng
         heal:   { clip: 'heal',   hitTime: 0.3 },
@@ -212,8 +229,12 @@ const REAPER = {
     secondary: ZERITH_SECONDARY,
     locomotion: ZERITH_LOCOMOTION,
     blink: true,
-    ghostTint: 0xc084fc,     // dư ảnh tím
-    circleTint: 0xa855f7,
+    ghostTint: 0xfb7185,     // dư ảnh đỏ hồng (bản 3: đỏ thẫm · đen khói · trắng xương — tím là màu của Jessica)
+    circleTint: 0xe11d48,
+    // Kiểu sprite (bản 3: thiếu niên quỷ tộc dẫn hồn) — ?zerith=cutout về bản khung xương, ?zerithIdle=A|B|C đổi cách đứng
+    sprite: ZERITH_SPRITE,
+    spriteParam: 'zerith',
+    spriteIdleParam: 'zerithIdle',
     anims: {
         attack: { clip: 'attack', hitTime: 0.22 },   // vung liềm ra sau -> bổ xuống
         dash:   { clip: 'dash' },                     // lướt (giữ tư thế)

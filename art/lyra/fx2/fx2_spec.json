@@ -1,0 +1,29 @@
+{
+ "note": "Hieu ung Lyra ban 3 (tranh AI nen den cua nguoi dung, giu nguyen). Cat luoi 4x2 (icons: 2x4), tach nen den, dong goi. Ve Than Gio: 2 nhom (hien ra / giu) dung CHUNG 1 diem goc trong o (pivot [x, y]) de doi nhom khong nhay. Cot sang cua no lon (sky, hang duoi) AI ve lan len hang tren ~60px -> gom theo vung lien (le M) van du. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/lyra_fx2.webp",
+ "meta": "src/vfx/lyraFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "arrow": {"file": "art/lyra/fx2/fx-arrow.png", "grid": [4, 2], "scale": 0.5, "regionThr": 40, "regionDilate": 3, "keepGrow": 10,
+            "groups": [{"name": "arrowFly", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                       {"name": "arrowHit", "cells": [4, 5, 6, 7], "align": "cell", "pivot": "core"}]},
+  "gale": {"file": "art/lyra/fx2/fx-gale.png", "grid": [4, 2], "scale": 0.5, "regionThr": 40, "regionDilate": 3, "keepGrow": 10,
+           "groups": [{"name": "galeFly", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                      {"name": "galeBlast", "cells": [4, 5, 6, 7], "align": "cell", "pivot": "core"}]},
+  "spirit": {"file": "art/lyra/fx2/fx-wind-spirit.png", "grid": [4, 2], "scale": 0.6,
+             "groups": [{"name": "spiritIn", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [190, 300]},
+                        {"name": "spiritHold", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [190, 300]}]},
+  "sky": {"file": "art/lyra/fx2/fx-sky-arrows.png", "grid": [4, 2], "scale": 0.5, "regionThr": 70, "regionDilate": 2, "keepGrow": 12,
+          "groups": [{"name": "skyArrow", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [190, 240]},
+                     {"name": "skyBlast", "cells": [4, 5, 6, 7], "align": "cell", "pivot": "bottom"}]},
+  "icons": {"file": "art/lyra/fx2/fx-lyra-icons.png", "grid": [2, 4], "scale": 0.5, "regionThr": 60, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "windCircle", "cells": [0], "pivot": "center"},
+                       {"name": "gustPuff", "cells": [1], "pivot": "bottom"},
+                       {"name": "windLance", "cells": [2], "pivot": "center"},
+                       {"name": "windStreak", "cells": [3], "pivot": "center"},
+                       {"name": "reticle", "cells": [4], "pivot": "center"},
+                       {"name": "resetIcon", "cells": [5], "pivot": "center"},
+                       {"name": "accUp", "cells": [6], "pivot": "center"},
+                       {"name": "featherBurst", "cells": [7], "pivot": "center"}]}
+ }
+}

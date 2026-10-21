@@ -229,7 +229,7 @@ const CLASS_DEFS = {
     },
     // Zerith (U Minh) — class SÁT THỦ (nhánh PHÉP), tộc Devil: lưỡi hái tử thần, sát thương PHÉP, lướt xuyên / hất tung / hóa Thần Chết
     reaper: {
-        name: 'Zerith', title: 'U Minh', className: 'Sát Thủ', emoji: '💀', color: '#6d28d9', dmgType: 'magic',
+        name: 'Zerith', title: 'U Minh', className: 'Sát Thủ', emoji: '💀', color: '#9f1239', dmgType: 'magic',   // bản 3: đỏ thẫm
         classGroup: 'assassin', race: 'devil',
         maxHp: 1150, maxMp: 5000, pAtk: 0, mAtk: 210, pDef: 50, mDef: 60,
         crit: 250, critDmg: 500, acc: 1000, dodge: 160, pen: 120, block: 30, lifesteal: 0,

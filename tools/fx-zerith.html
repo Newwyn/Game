@@ -1,37 +1,167 @@
-<!doctype html><html><body style="margin:0;background:#3c5a30">
-<!-- Xem thử hiệu ứng Zerith theo từng mốc thời gian: npm run dev rồi mở /tools/fx-zerith.html (window.stepTo(giây) để tua) -->
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2b2230;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 18px sans-serif;color:#ffd0d8;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem thử MỌI kỹ năng + hiệu ứng của Zerith bản 3 (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả, mốc thời gian như server).
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/fx-zerith.html?s=all&auto=1
+     s = all (lần lượt tất cả) | attack | dash | scythe | night | mark | ghost
+     &w=1280&h=720 cỡ khung · &auto=1 tự chạy lặp · &zerith=cutout bản khung xương · console: stepTo(giây) -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { scene, camera, renderer } from '../src/core/scene.js';
 import { updateVfx } from '../src/vfx/vfx.js';
+import { timeState, gameNow } from '../src/config.js';
+import { game } from '../src/state.js';
 import { createCharacterView } from '../src/characters/registry.js';
-import { spawnPhantomScythe, spawnReapUp, spawnReapSlam } from '../src/vfx/zerithFx.js';
+import { __fxTest as T } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'all';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
 document.body.appendChild(renderer.domElement);
-renderer.setSize(800, 450); camera.aspect = 800 / 450; camera.updateProjectionMatrix();
-camera.position.set(1.2, 2.4, 9); camera.lookAt(1.2, 1.3, 0);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 30), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34; camera.updateProjectionMatrix();
+const CX = +(q.get('cx') ?? 1.6), CY = +(q.get('cy') ?? 2.0), CZ = +(q.get('cz') ?? 16);
+camera.position.set(CX, CY + 2.7, CZ); camera.lookAt(CX, CY, 0);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
-const member = { classId: 'reaper', alive: true, statusEffects: [], x: 0, z: 0, hp: 1, maxHp: 1, state: 'idle', skillCooldowns: [0, 0, 0], queuedSkills: [] };
-const view = createCharacterView(member, { skills: [] }, true);
-scene.add(view.root);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const ZX = -1.6;
+const zer = mk('reaper', ZX, 'left');
+const rok = mk('warrior', -5.2, 'left', -1.0);
+const allies = [zer, rok];
+const foes = [mk('monster_tank', 2.6, 'right'), mk('monster_archer', 5.0, 'right', -1), mk('monster_supporter', 7.2, 'right', 1)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+game.classDefs = { reaper: { skills: [{ type: 'reaper_dash' }, { type: 'reaper_scythe', castTime: 700 }, { type: 'reaper_night', castTime: 1000 }] },
+  warrior: { skills: [] }, monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
+const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
+vF.forEach(v => { v.facingLeft = true; });
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+const Z = vA[0];
+window.view = Z;
+
+const lbl = document.getElementById('lbl');
+const ev = [];
+const at = (t, fn) => ev.push([t, fn]);
+const say = (t, s) => at(t, () => { lbl.textContent = s; });
+const BIG = 1e12;
+const exec = (skillIdx, type, payload = {}) => T.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx, type, effects: [], ...payload });
+const cast = (skillIdx, castTime) => T.onCastStart({ casterId: 'me', casterIdx: 0, skillIdx, castTime });
+const attack = (ti = 0, crit = false) => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: ti, damage: crit ? 520 : 236, isCrit: crit });
+const fx = (d) => T.onReaperFx({ casterId: 'me', casterIdx: 0, targetId: 'op', ...d });
+const home = () => { Z.teleport(ZX, 0); zer.x = ZX; zer.z = 0; Z.facingLeft = false; };
+const die = (v, m) => { m.alive = false; v.setLocomotion?.('dead'); };
+const live = (v, m) => { m.alive = true; v.setLocomotion?.('idle'); };
+
+function seqAttack(t0) {
+  say(t0, 'Đánh thường: vung liềm bổ xuống — vệt chém đỏ thẫm (nhát 2: chí mạng)');
+  at(t0, () => attack(0));
+  at(t0 + 1.1, () => attack(0, true));
+  return t0 + 2.3;
+}
+function seqDash(t0) {
+  say(t0, 'Lưỡi Hái Xuyên Hồn: lướt xuyên cả hàng quái — vệt khói đỏ + xé hồn từng con');
+  const from = ZX, to = 8.7, len = to - from;
+  at(t0, () => exec(0, 'reaper_dash', {
+    path: [{ fromX: from, fromZ: 0, toX: to, toZ: 0, at: 120, time: 380 }], newX: to, newZ: 0,
+    effects: foes.map((f, i) => ({ targetIndex: i, damage: 310, delay: Math.round(120 + 380 * (f.x - from) / len), seg: 0 })),
+    echo: true,
+  }));
+  say(t0 + 0.55, 'Lưỡi Hái Xuyên Hồn — biểu tượng "lướt lần 2 miễn phí" (Đêm Tử Thần) bật trên đầu');
+  at(t0 + 1.9, home);
+  return t0 + 2.4;
+}
+function seqScythe(t0) {
+  say(t0, 'Lưỡi Hái Hất Hồn: gồng 0,7s — LƯỠI HÁI KHỔNG LỒ hiện dần sau lưng, vòng ấn dưới chân');
+  at(t0, () => cast(1, 700));
+  say(t0 + 0.7, 'Lưỡi Hái Hất Hồn: quét từ dưới lên — quái phía trước bị HẤT TUNG');
+  at(t0 + 0.7, () => exec(1, 'reaper_scythe', { dir: 1, form: false, impact: 150, slamAt: 700, radius: 3.5,
+    effects: [{ targetIndex: 0, damage: 480, knockup: true }, { targetIndex: 1, damage: 470, knockup: true }] }));
+  return t0 + 2.6;
+}
+function seqNight(t0) {
+  say(t0, 'Đêm Tử Thần: gồng 1s — vòng ấn tử thần + hào quang dưới chân');
+  at(t0, () => cast(2, 1000));
+  say(t0 + 1.0, 'Đêm Tử Thần: gọi Thần Chết — cánh bóng tối bung ra, Zerith bay lên, Hộ Vệ hiện sau lưng');
+  at(t0 + 1.0, () => exec(2, 'reaper_night', { effects: [{ targetIndex: 0, ally: true }] }));
+  at(t0 + 1.25, () => { zer.statusEffects = [{ type: 'reaper_form', endTime: BIG, dmgUp: 0.2, atkSpeedUp: 0.3, ccResist: 0.4 }]; });
+  say(t0 + 2.6, 'Đêm Tử Thần: đánh thường lúc bay — chém lan quái quanh mục tiêu');
+  at(t0 + 2.6, () => { attack(0); fx({ kind: 'cleave', targetIndex: 0, effects: [{ targetIndex: 1, damage: 120 }] }); });
+  say(t0 + 3.6, 'Hộ Vệ Thần Chết: giương liềm → chém ngang / chém bổ');
+  at(t0 + 3.6, () => fx({ kind: 'guardian', targetIndex: 0, pose: 0, effects: [{ targetIndex: 0, damage: 150 }] }));
+  at(t0 + 4.5, () => fx({ kind: 'guardian', targetIndex: 0, pose: 2, effects: [{ targetIndex: 0, damage: 150 }] }));
+  say(t0 + 5.5, 'Lưỡi Hái Hất Hồn lúc Đêm Tử Thần: hiện ngay — quét lên rồi BỔ XUỐNG, nứt đất');
+  at(t0 + 5.5, () => exec(1, 'reaper_scythe', { dir: 1, form: true, impact: 300, slamAt: 850, radius: 6,
+    effects: [{ targetIndex: 0, damage: 600, knockup: true }, { targetIndex: 1, damage: 580, knockup: true },
+              { targetIndex: 0, damage: 330, slam: true }, { targetIndex: 1, damage: 320, slam: true }] }));
+  say(t0 + 7.4, 'Hộ Vệ tự dùng Lưỡi Hái Hất Hồn (quanh mục tiêu)');
+  at(t0 + 7.4, () => fx({ kind: 'guardianReap', targetIndex: 1, x: foes[1].x, z: foes[1].z, radius: 4.5, impact: 420, slamAt: 980,
+    effects: [{ targetIndex: 1, damage: 260, knockup: true }, { targetIndex: 2, damage: 250, knockup: true },
+              { targetIndex: 1, damage: 140, slam: true }, { targetIndex: 2, damage: 130, slam: true }] }));
+  say(t0 + 9.0, 'Đêm Tử Thần chặn đòn chí tử: đồng hồ cát tử thần');
+  at(t0 + 9.0, () => fx({ kind: 'undying' }));
+  say(t0 + 10.2, 'Hết Đêm Tử Thần: đáp xuống, Hộ Vệ tan');
+  at(t0 + 10.2, () => { zer.statusEffects = []; });
+  return t0 + 11.4;
+}
+function seqMark(t0) {
+  say(t0, 'Phán Quyết Tử Thần: chỉ tay — Ấn Tử bay lên đầu TẤT CẢ đối thủ');
+  at(t0, () => fx({ kind: 'mark', targetIndices: [0, 1, 2] }));
+  at(t0 + 0.45, () => foes.forEach(f => { f.statusEffects = [{ type: 'death_mark', endTime: BIG, healCut: 0.2, execute: 0.1 }]; }));
+  say(t0 + 1.6, 'Máu chạm ngưỡng tử: Thần Chết nhấc lên không trung → chém (không khiên → chết)');
+  at(t0 + 1.6, () => { foes[0].state = 'judged'; fx({ kind: 'judgeStart', targetIndex: 0, lift: 1100, fall: 500 }); });
+  at(t0 + 2.7, () => fx({ kind: 'judgeSlash', targetIndex: 0, shielded: false, killed: true, damage: 999 }));
+  at(t0 + 3.2, () => { foes[0].state = 'idle'; foes[0].statusEffects = []; die(vF[0], foes[0]); });
+  say(t0 + 3.9, 'Phán quyết lên mục tiêu có khiên → khiên vỡ, rơi xuống');
+  at(t0 + 3.9, () => { foes[1].state = 'judged'; fx({ kind: 'judgeStart', targetIndex: 1, lift: 1100, fall: 500 }); });
+  at(t0 + 5.0, () => fx({ kind: 'judgeSlash', targetIndex: 1, shielded: true, killed: false }));
+  at(t0 + 5.6, () => { foes[1].state = 'idle'; foes[1].statusEffects = []; });
+  at(t0 + 6.4, () => { foes.forEach(f => { f.statusEffects = []; }); live(vF[0], foes[0]); });
+  return t0 + 6.8;
+}
+function seqGhost(t0) {
+  say(t0, 'Linh Hồn Báo Thù: Zerith gục — linh hồn Thần Chết hiện ra chiến đấu tiếp');
+  at(t0, () => die(Z, zer));
+  at(t0 + 0.9, () => { zer.ghostUntil = gameNow() + 4200; zer.ghostX = ZX; zer.ghostZ = 0; fx({ kind: 'ghostStart', x: ZX, z: 0, duration: 4200 }); });
+  at(t0 + 1.5, () => { zer.ghostX = foes[0].x - 1.7; });
+  at(t0 + 2.2, () => fx({ kind: 'ghost', targetIndex: 0, x: zer.ghostX, z: 0, effects: [{ targetIndex: 0, damage: 280 }] }));
+  at(t0 + 3.2, () => fx({ kind: 'ghost', targetIndex: 0, x: zer.ghostX, z: 0, effects: [{ targetIndex: 0, damage: 280 }] }));
+  at(t0 + 5.1, () => fx({ kind: 'ghostEnd' }));
+  at(t0 + 5.6, () => { zer.ghostUntil = 0; live(Z, zer); });
+  return t0 + 6.4;
+}
+const SEQ = { attack: seqAttack, dash: seqDash, scythe: seqScythe, night: seqNight, mark: seqMark, ghost: seqGhost };
+let end = 0.2;
+if (S === 'all') for (const k of Object.keys(SEQ)) end = SEQ[k](end);
+else end = SEQ[S](end);
+say(end, '');
+window.TOTAL = end + 0.3;
+ev.sort((a, b) => a[0] - b[0]);
 let t = 0;
-const pos = () => view.position ?? view.root.position;
-let ph = null;
-const events = [
-  [0.0, () => { view.playAction('charge', { hold: true }); ph = spawnPhantomScythe(pos, 1, { formTime: 0.7 }); ph.expectSlam(); }],
-  [0.66, () => ph.swing()],
-  [0.62, () => view.playAction('reap', { onHit: () => spawnReapUp({ x: 1.6, z: 0 }, 1, { size: 3.2 }) })],
-  [1.21, () => ph.slam()],
-  [1.12, () => view.playAction('slam', { onHit: () => spawnReapSlam({ x: 1.6, z: 0 }, 1, { size: 3.2 }) })],
-].sort((a, b) => a[0] - b[0]);
 window.stepTo = (target) => {
-  while (t < target) {
+  while (t < target - 1e-9) {
     const dt = Math.min(1 / 60, target - t);
-    while (events.length && events[0][0] <= t) events.shift()[1]();
-    t += dt; updateVfx(dt); view.updateVisual(dt, camera);
+    while (ev.length && ev[0][0] <= t + 1e-9) ev.shift()[1]();
+    t += dt; window.__vt = t; window.__runTimers();
+    updateVfx(dt);
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
   }
   renderer.render(scene, camera);
   return t;
 };
-window.stepTo(0.05); window.__ready = true;
+window.stepTo(0.02);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(t + Math.min(0.05, (now - last) / 1000)); last = now; if (t > window.TOTAL) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
 </script></body></html>

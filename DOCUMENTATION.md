@@ -357,6 +357,39 @@ Máu khiên 600 ≈ 19% máu Rok: bị 3 quái đánh dồn thì vỡ sau ~3 gi�
 ### 4.3 Lyra (Phong Tiễn) — Cung Thủ 🏹 · tộc Elf
 *Lối chơi: bắn xa hàng sau, sát thương VẬT LÝ đều tay, mỏng máu. Màu chủ đạo: gió xanh ngọc. Hình: bộ tranh riêng `art/lyra/` (rig `lyraRig.js`); dây cung + mũi tên trên dây vẽ bằng code nên kéo căng / bật lại thật.*
 
+**Lyra bản 3 — kiểu SPRITE + hiệu ứng tranh (21/10/2026, mặc định bật):**
+- **Tạo hình mới:** nữ xạ thủ tiên tộc (Elf) của gió, chủ đề chim ưng (hợp Ưng Nhãn). Tai elf, bím tóc nâu hạt dẻ dài cài lông chim ưng, áo choàng xanh ngọc viền lông vũ, áo trắng thêu xoáy gió vàng, 2 dải thắt lưng bạc hà, cung trắng vàng hình đôi cánh chim ưng.
+- **Prompt:** `art/lyra/sprite/PROMPTS_SPRITE.md` (tạo hình + 9 tấm sprite, có **đoạn luật cung tên**) và `art/lyra/fx2/PROMPTS_FX.md` (5 tấm hiệu ứng).
+- **Tranh của người dùng** (giữ nguyên) trong `art/lyra/`: `01-character-v3.png`, `01b-portrait-v3.png` (→ ảnh màn chọn đội `src/assets/portraits/archer.png`), `sprite/` 9 tấm nền xanh (72 khung), `fx2/` 5 tấm hiệu ứng.
+- **Đóng gói sprite:** `tools/sprite_pack.py art/lyra/sprite/sprite_spec.json` → `src/assets/sprites/lyra_sprite.webp` (4,5 MB) + `src/characters/sprite/lyraSprite.json`.
+  - **Tách nền `jade`** (mới): áo choàng / váy / ruy băng xanh lá → `matte` làm vải trong suốt một phần + mất màu; `jade` chỉ tách điểm xanh thuần + dải mép 2–3px (xem mục 8.1b).
+  - Cỡ từng tấm: chồng hình dáng thủ thế + so tai / mắt với `sprite-idle` (attack 1,03 · move 1,04 · snipe 1,12 · call-land 1,08 · charge 1,09 · hover 1,05 · dead-victory 1,1).
+  - `footBand` 16 + `footMin` 25: đầu cung dưới cách đất ~7px, bím tóc / dải lưng rủ sát đất → chỉ bắt đế giày.
+  - Mốc ngang: `heel` (gót giày sau) cho đứng / bắn / trúng đòn; `body` (giữa đầu) cho chạy, bay, khung trên không, ngồi lấy đà.
+  - Điểm gắn `bow` (chỗ tên rời cung) ở khung nhả: attack5, snipeB5, hoverShot3 → `events.js` `bowPoint()` (`pointWorld('bow', { sticky: true })`: mũi tên phụ bắn ngay sau vẫn ra từ cung).
+- **Khung ↔ động tác** (`src/characters/sprite/lyraSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?lyraIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 (kéo cung → nhả → rút tên mới) | khung 5 = 0,2s |
+  | Tiễn Gió Chớp | snipeA1 → snipeB1–6 → snipeC1 (nhảy lùi do `leapTo` 0,62s, `noLift`) | khung 6 = 0,42s |
+  | Thần Phong (gọi gió) | call1–4 | khung 3 = 0,38s |
+  | gồng Thần Tiễn (2s) | charge1–2 vào thế → charge3–4 lặp | — |
+  | nhả Thần Tiễn | release1–4 | khung 2 = 0,16s |
+  | **bay (Thần Phong 8s)** | hover1–4 lặp (thay đứng / thủ thế / chạy) · hoverShot1–4 (thay đánh thường) | bắn khi bay: khung 3 = 0,2s |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận / gục / thắng | fall1 → land1–2, landEnd1 / dead1–4 / victory1–4 | — |
+  - Bay: bảng `hover` của sprite (`{ idle, ready, move: 'hover', attack: 'hoverShot' }`) — `FrameSpriteView` đổi clip khi nhân vật lơ lửng (`_hover` > 0,35), mốc ra đòn vẫn theo clip khung xương gốc.
+- **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/lyra/fx2/fx2_spec.json` → `src/assets/sprites/lyra_fx2.webp` (1,4 MB) + `src/vfx/lyraFx2.json`; code `src/vfx/lyraFx.js`:
+  - **Đánh thường:** mũi tên gió bay (`spawnLyraArrow`) → trúng: loé ngọc, gió xoáy, lông vũ (`spawnLyraArrowHit`, mọi mũi tên của Lyra / Vệ Thần qua `showHit`).
+  - **Phong Tiễn** (cứ 3 phát): ngọn giáo gió quét ngang (`spawnWindLance`).
+  - **Tiễn Gió Chớp:** gió bật dưới chân lúc nhảy + đáp (`spawnGust`), dấu ngắm khoá mục tiêu (`spawnReticle`), tên gió chớp (`spawnGaleShot`) → nổ gió đẩy lùi theo hướng bắn (`spawnGaleBlast`); hạ gục → biểu tượng hồi chiêu (`spawnLyraReset`).
+  - **Thần Phong Giáng Thế:** giơ cung (0,38s) → gió bật + vòng gió + lông vũ bung; **Vệ Thần Gió** cánh chim ưng (`makeWindSpirit`, gắn qua `visual.windFx`, thay bản canvas): hiện ra 4 khung → bay chờ lặp, sau lưng + cao hơn Lyra; Lyra bắn thì Vệ Thần kéo cung bắn phụ (`windSpiritShoot()`), gồng Thần Tiễn thì Vệ Thần cùng kéo căng; vòng gió xoáy dưới chân suốt lúc bay; cả đội hiện mắt chim ưng +chính xác (`spawnAccUp`).
+  - **Thần Tiễn Phá Thiên:** gồng 2s: vệt gió (tranh) xoáy hút vào + vòng gió dưới chân (`spawnLyraCharge`); nhả: mũi tên ánh sáng thành hình sau lưng xếp vòng cung → phóng như tên lửa (`spawnSkyArrow`, cùng đường bay cũ); mũi cuối nổ lớn: cột sáng + nổ gió hình vòm (`spawnSkyBlast`).
+  - Lúc bay, thanh máu bay lên theo (không đè lên đầu) — áp dụng cho mọi nhân vật lơ lửng.
+- **Xem:** `/tools/test-sprite.html?char=archer&auto=1` (động tác, có cả bay: `&only=hover`) · `/tools/fx-lyra.html?s=all&auto=1` (s = attack | snipe | wind | arrows | windarrows); `?lyra=cutout` về bản khung xương.
+
 | HP | MP | P.ATK | P.DEF | M.DEF | Crit | Crit DMG | Acc | Dodge | Pen | Tốc đánh | Tầm |
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
 | 1000 | 5000 | 200 | 40 | 60 | 25% | ×2.0 | 110% | 12% | 0% (+50% thiên phú) | 900ms | 9 |
@@ -381,6 +414,37 @@ Khiêu khích: **100** (như mọi nhân vật).
 
 ### 4.4 Seraphine (Thánh Quang) — Tu Sĩ ✨ · tộc Human
 *Lối chơi: hỗ trợ hàng sau — hồi máu, khiên, niệm buff cả đội; sát thương PHÉP (cầu ánh sáng). Màu chủ đạo: vàng kim – trắng. Tranh: `art/seraphine/` (rig `seraRig.js`, hiệu ứng thiên thần / Hộ vệ ánh sáng: `sera_fx.png`).*
+
+**Seraphine bản 3 — kiểu SPRITE + hiệu ứng tranh (21/10/2026, mặc định bật):**
+- **Tạo hình mới:** nữ tu sĩ trẻ của ánh mặt trời. Tóc vàng mật ong rất dài, vương miện tia nắng, mắt hổ phách; váy tu sĩ trắng thêu mặt trời vàng, tay áo lót hồng phấn, khăn choàng cầu nguyện hồng phấn; gậy trắng vàng đầu vòng mặt trời + pha lê.
+- **Prompt:** `art/seraphine/sprite/PROMPTS_SPRITE.md` (tạo hình + 8 tấm sprite, có **đoạn luật gậy phép**) và `art/seraphine/fx2/PROMPTS_FX.md` (5 tấm hiệu ứng).
+- **Tranh của người dùng** (giữ nguyên) trong `art/seraphine/`: `01-character-v3.png`, `01b-portrait-v3.png` (→ ảnh màn chọn đội `src/assets/portraits/priest.png`), `sprite/` 8 tấm PNG trong suốt (64 khung), `fx2/` 5 tấm hiệu ứng (PNG trong suốt).
+- **Đóng gói sprite:** `tools/sprite_pack.py art/seraphine/sprite/sprite_spec.json` → `src/assets/sprites/seraphine_sprite.webp` (4,6 MB) + `src/characters/sprite/seraphineSprite.json`.
+  - Tách nền `alpha` (tranh trong suốt sẵn); cỡ từng tấm đo bằng khớp mặt (attack vẽ nhỏ → ×1,4).
+  - `footBand` 16 + `footMin` 25: đầu gậy dưới cách đất ~5px, ngọn tóc / tua vàng rủ sát đất → chỉ bắt đế giày.
+  - Mốc ngang: `heel` cho đứng / phép / trúng đòn; `body` cho chạy, bay, niệm lơ lửng.
+  - Điểm gắn `staff` (pha lê giữa vòng mặt trời): attack4, heal3, shield3; `palm` (lòng bàn tay): prayCast3 → `events.js` `staffPoint()` — cầu sáng / thiên thần bay ra đúng đầu gậy (đang niệm: từ bàn tay).
+  - `topScale: 0.89` (mới, `FrameSpriteView`): đầu gậy cao hơn tóc ~11% → chiều cao nhân vật tính tới đỉnh tóc (không bị vẽ nhỏ).
+- **Khung ↔ động tác** (`src/characters/sprite/seraphineSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?seraphineIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 (chĩa gậy) | khung 4 = 0,22s |
+  | Thánh Quang Trị Liệu | heal1–4 (giơ gậy lên trời) | khung 3 = 0,3s |
+  | Khiên Ánh Sáng | shield1–4 (đẩy tay dựng khiên) | khung 3 = 0,28s |
+  | Thánh Niệm (giơ gậy) | raise1–3 → raiseUp1 (bay lên) | khung 3 = 0,45s |
+  | **niệm lơ lửng (10s)** | pray1–4 lặp (thay đứng / thủ thế / chạy / trúng đòn) · prayCast1–4 (thay hồi máu / khiên khi đang niệm) | ra phép: khung 3 |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận / gục / thắng | fall1 → land1, landEnd1–2 / dead1–4 / victory1–4 | — |
+- **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/seraphine/fx2/fx2_spec.json` → `src/assets/sprites/seraphine_fx2.webp` (1,2 MB) + `src/vfx/seraphineFx2.json`; code `src/vfx/seraphineFx.js`:
+  - **Đánh thường:** cầu ánh sáng bay (`spawnSunOrb`) → nổ sáng (`spawnSunBurst`).
+  - **Thánh Quang Trị Liệu:** tia nắng rọi xuống người được hồi (`spawnSunlight`) + dấu cộng; đang choáng thì xích vỡ (`cleanse`).
+  - **Khiên Ánh Sáng:** loé mặt trời lúc dựng (`spawnSunFlare`); bong bóng khiên quanh MỌI người được che (`makeLightShield` trong `CutoutCharacterView._updateHolyShield`, thay bong bóng code): lớp sau người + lớp ánh bóng cộng sáng nhẹ phía trước (người bên trong vẫn rõ), mờ theo máu khiên; khiên lúc niệm có đôi cánh.
+  - **Thánh Niệm:** giơ gậy → loé mặt trời + vòng thánh bùng (`spawnPrayStart`); **Hộ Vệ Thiên Sứ** sáu cánh sau lưng + vòng thánh nghiêng quanh chân suốt 10s (`makeSeraphGuardian`, gắn qua `visual.prayFx`); cả đội hiện biểu tượng +sát thương (Ân Điển: thêm +thủ); hồi máu mỗi giây: dấu cộng nhỏ (`onPrayHeal`).
+  - **Đang niệm dùng KN1 / KN2:** thiên thần nhỏ bay tới từng người rồi trao ánh sáng (`spawnLittleAngel`).
+  - **Thiên Thần Hộ Mệnh:** thiên thần bay tới xác (1,2s) → vòng hồi sinh + tia nắng lớn + loé mặt trời (`spawnReviveFx`).
+- **Xem:** `/tools/test-sprite.html?char=priest&auto=1` (động tác, có cả niệm: `&only=pray`) · `/tools/fx-seraphine.html?s=all&auto=1` (s = attack | heal | shield | pray | revive); `?seraphine=cutout` về bản khung xương.
 
 | HP | MP | M.ATK | P.DEF | M.DEF | Crit | Né | Tốc đánh | Tầm | Hồi MP (đòn / giây) |
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
@@ -488,7 +552,7 @@ Lv1: HP 1.725 · M.ATK ~235 · P.DEF/M.DEF 46/55 · chí mạng 25% · né 16% �
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
 | Đánh thường | — | Bổ liềm ×1.0 (phép): giơ liềm ra sau đầu → quét qua đỉnh đầu → lưỡi móc bổ xuống trước mặt |
-| **1. Lưỡi Hái Xuyên Hồn** | **0 (miễn phí)** / 7s · chỉ dùng khi quái **trong tầm đánh** | Lướt tối đa **15 đơn vị**, chém **mọi quái trên đường lướt** ×1.6. **Tự chọn đường lướt**: thử lướt về phía từng đối thủ trong tầm lướt, chọn đường xuyên được nhiều quái nhất, ưu tiên đích là tướng đánh xa / yếu máu ở hàng sau (vd Lyra); **dừng ngay sau lưng** con xa nhất trên đường (không lướt lố). Lướt xong tự đánh con gần nhất. AI chỉ lướt khi đáng (xuyên ≥ 2 quái hoặc tới được tướng đánh xa / con dưới 40% máu). Lúc Đêm Tử Thần: lướt lần 1 (tốn Orb) → **hồi chiêu ngay** + trong **5s** được lướt lần 2 **miễn phí** (tự bấm, nút nháy tím "MIỄN PHÍ"); lướt lần 2 xong mới hồi chiêu bình thường |
+| **1. Lưỡi Hái Xuyên Hồn** | **0 (miễn phí)** / 7s · chỉ dùng khi quái **trong tầm đánh** | Lướt tối đa **15 đơn vị**, chém **mọi quái trên đường lướt** ×1.6. **Tự chọn đường lướt**: thử lướt về phía từng đối thủ trong tầm lướt, chọn đường xuyên được nhiều quái nhất, ưu tiên đích là tướng đánh xa / yếu máu ở hàng sau (vd Lyra); **dừng ngay sau lưng** con xa nhất trên đường (không lướt lố). Lướt xong tự đánh con gần nhất. AI chỉ lướt khi đáng (xuyên ≥ 2 quái hoặc tới được tướng đánh xa / con dưới 40% máu). Lúc Đêm Tử Thần (thiết kế): lướt lần 1 → **hồi chiêu ngay** + trong **5s** được lướt lần 2 **miễn phí** (tự bấm, nút "MIỄN PHÍ"); lướt lần 2 xong mới hồi chiêu bình thường. ⚠ *21/10/2026: server chưa tạo trạng thái `reaper_echo` nên lướt lần 2 chưa chạy (AI / nút / biểu tượng đã sẵn, chỉ thiếu chỗ tạo) — chờ người dùng quyết* |
 | **2. Lưỡi Hái Hất Hồn** | 2 / 10s · niệm 0,7s | Niệm: **lưỡi hái khổng lồ** hiện dần sau lưng, lưỡi trên đầu → vọt ra trước quét từ dưới lên: quái phía trước trong 3,5 đơn vị trúng ×2.2 và bị **hất tung 1s**. Lúc Đêm Tử Thần: **không cần niệm** (lưỡi hái hiện ngay), phạm vi **rộng 6 đơn vị**, quét lên rồi **bổ xuống** thêm ×1.2 |
 | **3. Đêm Tử Thần** | 3 / 25s · niệm 1s | 10s: **Hộ Vệ Thần Chết** chiến đấu cùng (chém ×0.6 mỗi 1,2s; cứ chém đủ 2 nhát → 50% **tự dùng Lưỡi Hái Hất Hồn** miễn phí: hất tung quái quanh mục tiêu (4,5 đơn vị) ×2.2 rồi chém bổ xuống ×1.2), Zerith bay lơ lửng · +20% sát thương · +30% tốc đánh · −40% thời gian bị khống chế · **không thể chết** (máu tối thiểu 1, hiện đồng hồ cát). Đánh thường **chém lan** ×0.5 lên quái quanh mục tiêu (3 đơn vị) |
 
@@ -496,7 +560,40 @@ Thiên phú 1 (Lv20) **Phán Quyết Tử Thần**: vào giao tranh (có địch
 Thiên phú 2 (Lv40) **Linh Hồn Báo Thù**: lần đầu gục ngã → hóa **linh hồn Thần Chết** chiến đấu tiếp 7s với **60/80%** sức mạnh (bay tới chém ×1.2, lan ×0.5 bán kính 2,5 mỗi 0,9s). Linh hồn **bất tử**: không có máu, không bị chọn làm mục tiêu, không bị khống chế. Được Tu Sĩ hồi sinh thì Zerith **đánh chung** với linh hồn tới hết 7s. Chỉ 1 lần mỗi trận (gục lần sau không có linh hồn nữa). Linh hồn **không giữ trận**: cả đội gục là thua ngay.
 AI: áp sát → bật Đêm Tử Thần → Lưỡi Hái Hất Hồn khi có cụm quái trước mặt → Lưỡi Hái Xuyên Hồn (có lượt miễn phí thì lướt luôn).
 Động tác: cán liềm xoay quanh nắm tay bằng khớp riêng `scy` (bàn tay giữ nguyên) — tư thế viết theo góc cán liềm ngoài thế giới (`zerithClips.js`). Xem thử hiệu ứng: `/tools/fx-zerith.html`.
-Hình: `art/zerith/` (tranh toàn thân nền trong suốt, tấm bộ phận, tay & mắt, hộ vệ 4 tư thế, 2 tấm hiệu ứng nền đen) → `tools/cut_reference.py art/zerith/ref_spec.json` (nhân vật) và `tools/build_fx_atlas.py art/zerith/fx_spec.json` (hiệu ứng → `zerith_fx.png`, vẽ ở `src/vfx/zerithFx.js`).
+Hình bản 2 (khung xương, `?zerith=cutout`): `art/zerith/` (tranh toàn thân nền trong suốt, tấm bộ phận, tay & mắt, hộ vệ 4 tư thế) → `tools/cut_reference.py art/zerith/ref_spec.json`. Atlas hiệu ứng bản 2 (`zerith_fx.png` + `src/vfx/zerithFx.json`, từ `fx-a/fx-b.png`) **không còn dùng** — hiệu ứng mọi bản lấy từ atlas bản 3 (bên dưới); 2 file cũ nằm trong danh sách dọn của `cap_nhat_github.bat`.
+
+**Zerith bản 3 — kiểu SPRITE + hiệu ứng tranh (21/10/2026, mặc định bật):**
+- **Tạo hình mới:** thiếu niên quỷ tộc dẫn hồn của U Minh giới. Tóc trắng xương đuôi nhuộm đỏ thẫm, mắt đỏ thẫm, sừng đen vân nứt đỏ, đuôi quỷ; áo khoác thần chết đen rách tua lót đỏ thẫm, giáp vai đầu lâu, đèn lồng hồn + đồng hồ cát ở thắt lưng; lưỡi hái lưỡi trắng xương mép đỏ thẫm. Phối màu **đen khói · trắng xương · đỏ thẫm · bạc** (bỏ tím để khỏi trùng Jessica): dư ảnh, vòng chọn, biểu tượng trạng thái, màu class (`#9f1239`) đều đổi sang đỏ thẫm.
+- **Prompt:** `art/zerith/sprite/PROMPTS_SPRITE.md` (tạo hình + 9 tấm sprite, có **đoạn luật lưỡi hái**) và `art/zerith/fx2/PROMPTS_FX.md` (6 tấm hiệu ứng).
+- **Tranh của người dùng** (giữ nguyên) trong `art/zerith/`: `01-character-v3.png`, `01b-portrait-v3.png` (→ ảnh màn chọn đội `src/assets/portraits/reaper.png`), `sprite/` 9 tấm nền xanh (72 khung), `fx2/` 6 tấm hiệu ứng (PNG trong suốt thật).
+- **Đóng gói sprite:** `tools/sprite_pack.py art/zerith/sprite/sprite_spec.json` → `src/assets/sprites/zerith_sprite.webp` (3,2 MB) + `src/characters/sprite/zerithSprite.json`.
+  - Tách nền `matte`; cỡ từng tấm đo bằng **khớp khuôn mặt có xoay ±24°** (đầu lâu trên giáp vai làm khớp thường bắt nhầm); hàng trong cùng tấm vẽ lệch cỡ → hệ số nhóm (choáng ×0,92, lướt ×1,15, thủ thế ×0,98).
+  - `footBand` 16 + `footMin` 25 + **`solidFeet`** (mới): mũi đuôi quỷ, tua áo, mũi nhọn cán lưỡi hái chạm đất bị bỏ khi tìm gót / mũi giày (chỉ bắt khúc liền ≥ 25px). Tấm chém: `footBand` 30 (chân sau nhấc gót).
+  - Mốc ngang: `heel` cho đứng / đánh / trúng đòn / chỉ tay; **`face`** (mới: trùng khuôn mặt, so mẫu khung mặt của idle1 — lưỡi hái giơ cao trên đầu làm mốc `body` bắt nhầm) cho chạy, lướt, quét hất / bổ xuống, gồng / gọi Thần Chết, bay, thắng. `ground: group`: khung nhảy / bay giữ độ cao AI vẽ.
+  - Điểm gắn `finger` (đầu ngón tay chỉ): mark3 → loé ở đầu ngón tay lúc gắn Ấn Tử.
+  - `topScale: 0.87`: lưỡi hái dựng cao hơn tóc ~14% → chiều cao nhân vật tính tới đỉnh tóc.
+- **Khung ↔ động tác** (`src/characters/sprite/zerithSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?zerithIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 (bổ liềm) | khung 4 = 0,22s |
+  | Lưỡi Hái Xuyên Hồn | dash1–4 lặp (lướt, dư ảnh) | — |
+  | gắn Ấn Tử (Phán Quyết) | mark1–4 (chỉ tay) | khung 3 = 0,15s |
+  | Lưỡi Hái Hất Hồn | gồng charge1–2 → giữ charge3–4 · quét reap1–4 · Đêm Tử Thần bổ xuống slam1–4 | quét: khung 3 = 0,15s · bổ: khung 3 = 0,2s |
+  | Đêm Tử Thần | gồng (như trên) → gọi summon1–4 (khung 4 bắt đầu bay) | khung 3 = 0,2s |
+  | **bay lơ lửng (10s)** | hover1–4 lặp (thay đứng / thủ thế / chạy / trúng đòn) · hoverAtk1–4 (chém khi bay) | chém: khung 3 |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận / gục / thắng | hover1 → charge1–2, ready1 / dead1–4 / victory1–4 | — |
+- **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/zerith/fx2/fx2_spec.json` → `src/assets/sprites/zerith_fx2.webp` (1,9 MB, 48 khung) + `src/vfx/zerithFx2.json`; code `src/vfx/zerithFx.js` (giữ nguyên tên hàm cũ):
+  - **`keepAlpha`** (mới trong `fx_grid_pack.py`): 6 tấm là PNG trong suốt THẬT (khói đen, áo choàng tối của Thần Chết) → giữ nguyên kênh trong suốt. Cách cũ (đặt lên nền đen rồi tách đen) làm mất mọi phần tối: Hộ Vệ Thần Chết gần như vô hình. Tranh nền đen giả trong suốt (VD Jessica: quầng đen vuông quanh hình) vẫn dùng cách cũ.
+  - **Đánh thường:** vệt chém lưỡi liềm đỏ thẫm (`spawnScytheSlash`; chí mạng to hơn + loé). Đêm Tử Thần: chém lan (`spawnCleave`).
+  - **Lưỡi Hái Xuyên Hồn:** vệt khói đỏ dài (`spawnReaperDashTrail`) + dư ảnh đỏ hồng; mỗi con trúng: loé → chém + linh hồn bị xé bay lên (`spawnReaperDashHit`). Biểu tượng lướt lần 2 miễn phí (`spawnFreeDash`) bật khi server gửi `echo` — *server hiện chưa tạo trạng thái `reaper_echo` (xem dòng kỹ năng 1 bên dưới)*.
+  - **Lưỡi Hái Hất Hồn:** niệm → vòng ấn tử thần vẽ nghiêng quanh chân (vành trước đặt trước người) + **lưỡi hái khổng lồ** hiện dần sau lưng (`spawnPhantomScythe`: hiện ra 4 khung → giữ lặp) → vọt ra trước quét lên (`spawnReapUp`); Đêm Tử Thần: bổ xuống (`spawnReapSlam`) + vết nứt đất đọng lại (`spawnGroundCrack`).
+  - **Đêm Tử Thần:** gồng: vòng ấn + hào quang; gọi: cánh bóng tối bung + sóng + linh hồn (`spawnReaperWings`); suốt 10s: hào quang cánh bóng tối lặp (`makeReaperAura`, nâng theo nửa độ bay, hơi trong để Zerith vẫn rõ) + **Hộ Vệ Thần Chết** sau lưng (`makeReaperGuardian`: hiện ra 4 khung → đứng / giương liềm / chém ngang / chém bổ; bản sprite lùi xa 1,95 + bay cao 0,55 để không bị Zerith che); chặn đòn chí tử: đồng hồ cát (`spawnHourglass`).
+  - **Phán Quyết Tử Thần:** chỉ tay → loé đầu ngón tay (`spawnFingerFlare`) + Ấn Tử bay lên đầu mọi đối thủ (`spawnDeathMarkCast`) → lơ lửng trên đầu (`makeDeathMarkIcon`); chạm ngưỡng tử: Thần Chết hiện sau lưng mục tiêu + vòng ấn + hồn xoáy, nhấc lên rồi chém bổ (`spawnJudgement`) → nhát chém phán quyết (`spawnExecution`); có khiên: mảnh khiên vỡ (`spawnShieldShatterZ`).
+  - **Linh Hồn Báo Thù:** Thần Chết trong mờ 62% + ánh hồng (`makeReaperGuardian({ ghost: true })`).
+- **Xem:** `/tools/test-sprite.html?char=reaper&auto=1` (động tác, có cả bay: `&only=hover`) · `/tools/fx-zerith.html?s=all&auto=1` (s = attack | dash | scythe | night | mark | ghost); `?zerith=cutout` về bản khung xương.
 
 ### 4.7 Brakk (Cuồng Đấu) — Chiến Binh đô vật 🐉 · tộc Dragon
 Đô vật cơ bắp cởi trần, **máu trâu bò**, đánh tay không. Mọi kỹ năng tốn **Orb + MÁU** (% máu tối đa, hiện số cam "♥ −x"; không bao giờ tự làm chết — tối thiểu còn 1 máu). AI không dùng chiêu khi máu < 15%.
@@ -638,7 +735,7 @@ Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có 
 | **Thành Trì** (fortress) | (dự phòng) | Giảm sát thương nhận theo % |
 | **Bị hất tung** (knockup) | Lưỡi Hái Hất Hồn, Chấn Địa, móc ngược của Brakk | 1s bay lên không (kèm choáng), không hành động |
 | **Ấn Tử** (death_mark) | Phán Quyết Tử Thần (Zerith) | 15s, đầu lâu trên đầu; −20/27,5/35% hồi máu nhận được; Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên, máu dưới 5/7/10% → kết liễu |
-| **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí |
+| **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí (⚠ server chưa tạo — xem §4.6) |
 | **Đêm Tử Thần** (reaper_form) | Đêm Tử Thần | 10s, bay, Hộ Vệ Thần Chết, +20% sát thương, +30% tốc đánh, −40% khống chế, không thể chết |
 | **Bị túm** (grabbed) | Bá Vương Quật (Brakk) | Bị nhấc bổng qua đầu tới lúc bị quật (~0,85s) rồi choáng 1s |
 | **Thần Lực Khổng Lồ** (giant_form) | Thần Lực Khổng Lồ | 10s, +50% máu tối đa, +40% thủ, +25% sát thương, 5s đầu miễn mọi hiệu ứng bất lợi, móc ngược hất tung |
@@ -736,8 +833,8 @@ src/
   characters/
     CharacterView.js          lớp cơ sở (vị trí, máu, hướng mặt, đồng bộ server)
     CutoutCharacterView.js    nhân vật 2D ghép mảnh + hiệu ứng trạng thái
-    FrameSpriteView.js        nhân vật kiểu sprite (mỗi khung 1 hình): khung xương chạy ẩn giữ mốc, hình = khung trong atlas (Ignar, Rok, Jessica)
-    sprite/                   cấu hình + json khung sprite từng nhân vật (ignarSprite, rokSprite, jessicaSprite .js / .json)
+    FrameSpriteView.js        nhân vật kiểu sprite (mỗi khung 1 hình): khung xương chạy ẩn giữ mốc, hình = khung trong atlas (Ignar, Rok, Jessica, Nerissa, Lyra, Seraphine)
+    sprite/                   cấu hình + json khung sprite từng nhân vật (ignarSprite, rokSprite, jessicaSprite, nerissaSprite, lyraSprite, seraphineSprite .js / .json)
     registry.js               classId -> cách vẽ + bảng hành động
     cutout/                   rig, clips, atlas của từng nhân vật + poseClip.js; creatureRig.js (quái)
   combat/                 dựng trận, xử lý sự kiện chiến đấu -> động tác + VFX
@@ -754,14 +851,15 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
   - Sprite: nền xanh #00FF00, lưới 4×2, 3/4 nghiêng nhìn phải.
   - Hiệu ứng: nền đen, lưới A 4×2 / lưới B 2×4.
   - Khung chính = mốc ra đòn.
-- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (xong: vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng).
+- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (xong: vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng), Lyra bản 3 (xong: tạo hình mới + 9 tấm sprite + 5 tấm hiệu ứng), Seraphine bản 3 (xong: tạo hình mới + 8 tấm sprite + 5 tấm hiệu ứng), Zerith bản 3 (xong: tạo hình mới + 9 tấm sprite + 6 tấm hiệu ứng).
+  - Cung thủ: thêm **đoạn luật cung tên** sau đoạn chung sprite (cung ở tay xa, dây 1 sợi, khung nhả không vẽ mũi tên).
   - App vẽ xuất sẵn PNG trong suốt cũng dùng được (`key: "alpha"`).
 - **Hiệu ứng dùng chung cả đội** (trúng đòn, vệt chém, bụi, khói, sao choáng, lấp lánh, sóng xung kích, vòng niệm...): `art/common/PROMPTS_FX_CHUNG.md`, chờ tranh. Phần trắng được nhuộm theo màu từng nhân vật.
 - **Ráp (không tô sửa):**
   - Sprite: `tools/sprite_pack.py art/<tên>/sprite/sprite_spec.json --debug soi.png` → `src/assets/sprites/<tên>_sprite.webp` + `src/characters/sprite/<tên>Sprite.json`.
-    - Tách nền `"key"` (cả spec hoặc từng tấm): `green` (mặc định, Ignar) · `matte` (giữ viền đen mảnh — dùng cho nhân vật mới) · `alpha` (PNG đã trong suốt).
-    - Mốc căn `toe / heel / body / hip` (`hip` = giữa váy trắng — múa tại chỗ của Nerissa); nhiều tấm đưa về cùng cỡ ("scale").
-    - `"footBand"` / `"footMin"` (cả spec): dải đáy tìm giày + bề ngang tối thiểu của 1 chiếc giày — nhân vật có tua / lụa rủ sát đất (Nerissa 12 / 24) để tâm đứng không lệch theo tua.
+    - Tách nền `"key"` (cả spec hoặc từng tấm): `green` (mặc định, Ignar) · `matte` (giữ viền đen mảnh — dùng cho nhân vật mới) · `jade` (nhân vật **mặc đồ xanh lá**, Lyra: chỉ tách nền xanh thuần kể cả lỗ kín giữa dây cung và thân cung, điểm cách nền > 2,5px giữ nguyên 100%, dải mép tách theo màu điểm đặc gần nhất → vải xanh không bị trong suốt / mất màu) · `alpha` (PNG đã trong suốt).
+    - Mốc căn `toe / heel / body / hip / face` (`hip` = giữa váy trắng — múa tại chỗ của Nerissa; `face` = trùng khuôn mặt: so mẫu ô `"face": [x0, y0, x1, y1]` của khung `calib`, có xoay ±24° / co giãn 0,9–1,1 — dùng khi vũ khí giơ cao làm mốc `body` bắt nhầm, Zerith); nhiều tấm đưa về cùng cỡ ("scale"), nhóm trong tấm có hệ số riêng (phần tử thứ 4 của nhóm).
+    - `"footBand"` / `"footMin"` (cả spec; `footBand` đặt riêng từng tấm được): dải đáy tìm giày + bề ngang tối thiểu của 1 chiếc giày — nhân vật có tua / lụa rủ sát đất (Nerissa 12 / 24) để tâm đứng không lệch theo tua. `"solidFeet": true`: khi tìm gót / mũi giày bỏ hẳn các khúc hẹp hơn `footMin` (mũi đuôi, tua áo, mũi nhọn cán vũ khí chạm đất — Zerith).
     - `"ground": "group"` hoặc `["tên nhóm"]` (theo tấm): đường đất chung từng hàng tấm (trung vị đáy các khung) → khung bật nhảy / xoạc chân giữ độ cao.
     - Điểm gắn đánh dấu tay `"points"` → `view.pointWorld(tên)`; `events.js` `jointPoint()` / `ribbonPoint()` tự dùng khi có.
     - `"format": "webp"`.
@@ -771,22 +869,40 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
     - `"holeMax"`: chỉ lấp lỗ nhỏ khi giữ đặc (khoảng tối lớn giữa cánh / hào quang vẫn trong suốt).
     - Lưới B nhiều hình sát nhau: `"regionThr"` / `"regionDilate"` / `"keepGrow"` (theo tấm) để quầng sáng mờ không nối các hình lại.
     - Hình AI vẽ tràn hẳn sang ô bên cạnh và chạm hình bên cạnh: nhóm dùng `"rect": [x0, y0, x1, y1]` thay `"cells"`; hình bị cắt cụt ở mép tấm: `"feather": [trái, phải]` làm mờ mép (VD vòng thủy triều Nerissa).
-    - Tranh hiệu ứng xuất trong suốt nhưng có quầng tối vẽ sẵn (Nerissa): cứ để tool đặt lên nền đen rồi tách nền đen như thường (bỏ được quầng tối).
+    - Tranh hiệu ứng xuất trong suốt nhưng có quầng tối vẽ sẵn (Nerissa, Jessica): cứ để tool đặt lên nền đen rồi tách nền đen như thường (bỏ được quầng tối).
+    - Tranh hiệu ứng trong suốt THẬT có phần tối cố ý (khói đen, áo choàng đen — Zerith): `"keepAlpha": true` (theo tấm) giữ nguyên kênh trong suốt gốc; `regionThr` khi đó là ngưỡng độ đục. Cách nhận: đặt tấm lên nền cỏ — khói / áo tối trông đúng, không có quầng đen vuông → `keepAlpha`.
 - **Nhân vật:** thêm `sprite: <TÊN>_SPRITE` + `spriteParam` / `spriteIdleParam` vào visual trong `registry.js` → `FrameSpriteView` tự dùng.
   - `?<spriteParam>=cutout` xem lại bản khung xương.
   - Mode clip: `strike` (khung chính = hitTime) · `clip` · `hold` · `once` · `loop` · `still` (1 khung + thở).
+  - `topScale` (tuỳ chọn, Seraphine, Zerith): đỉnh hình khung đứng cao hơn đỉnh tóc (đầu gậy) → tỉ lệ đỉnh tóc / đỉnh hình, để chiều cao nhân vật tính tới tóc.
+  - Bảng `hover` (tuỳ chọn, Lyra, Seraphine, Zerith): `{ tên clip khung xương: tên clip tranh }` dùng khi nhân vật đang lơ lửng (VD Thần Phong) — mốc ra đòn vẫn theo clip gốc.
+  - `pointWorld(tên, { sticky: true })`: khung đang hiện không đánh dấu điểm → dùng điểm của khung gần nhất có đánh dấu.
 - Bản khung xương cũ (`art/ignar/PROMPTS.md`, tấm bộ phận / tay / mắt) không cần vẽ nữa.
 
 ### 8.2 Công cụ xem thử (chạy `npm run dev`)
 - `/tools/preview-cutout.html?rig=../src/characters/cutout/rok2Rig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
-- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`; Nerissa có thêm 7 điệu múa (`&only=dance`, `&dances=1,123`, `&dancefor=3`).
+- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`; Lyra / Seraphine / Zerith có thêm đoạn bay lơ lửng (`&only=hover` / `pray` / `hover`); Nerissa có thêm 7 điệu múa (`&only=dance`, `&dances=1,123`, `&dancefor=3`).
 - `/tools/test-ignar.html?mode=idle` — Ignar đứng / thủ thế → đánh thường (cầu lửa thật như game), khung cố định 1/60s, console `stepTo(giây)`.
 - `/tools/test-ignar-sprite.html?mode=idle | ready | tour` — Ignar kiểu sprite (đúng view trong game), cầu lửa thật; `mode=tour` lần lượt mọi động tác; `&ignarIdle=A|B|C`, `&ignar=cutout` để so với khung xương, `&mode=none` rồi gọi `view.playAction('summon')`... trong console (mục 4.5). Bấm đúp `xem_thu_ignar.bat` = chạy `npm run dev` + mở trang này. **Không mở file html trực tiếp** (ra trang trắng).
 - `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
 - `/tools/fx-rok.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Rok bản 3 (s = attack | roar | push | guard | link).
 - `/tools/fx-jessica.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Jessica bản 3 (s = attack | throw | strike | stealth).
+- `/tools/fx-lyra.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Lyra bản 3 (s = attack | snipe | wind | arrows | windarrows).
+- `/tools/fx-seraphine.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Seraphine bản 3 (s = attack | heal | shield | pray | revive).
+- `/tools/fx-zerith.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Zerith bản 3 (s = attack | dash | scythe | night | mark | ghost).
 - `/tools/fx-ignar.html?s=all` — mọi kỹ năng / hiệu ứng Ignar (s = attack | meteor | pillar | god | ward).
 - `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
+
+### 8.3 Đồng bộ với GitHub (2 file .bat — người dùng tự bấm)
+| File | Chiều | Khi nào bấm |
+| :--- | :--- | :--- |
+| `lay_ve_tu_github.bat` | GitHub → máy | **Đầu ngày**, trước khi làm, nếu GitHub có bản mới hơn máy (VD bản được đẩy từ máy / phiên khác) |
+| `cap_nhat_github.bat` | Máy → GitHub | **Cuối ngày**, làm xong: dọn file cũ → commit (mô tả lấy từ `mo_ta_cap_nhat.txt`) → push |
+
+- **Thứ tự: kéo về trước, đẩy lên sau.** GitHub có bản mới mà đẩy trước → push báo lỗi; lúc đó lịch sử 2 bên đã tách nhánh, `lay_ve_tu_github.bat` không tự gộp được → chụp màn hình gửi Claude.
+- `lay_ve_tu_github.bat`: `git fetch` → liệt kê commit mới → `git merge --ff-only`. Chỉ kéo về khi máy không sửa trùng file với bản mới; có trùng thì dừng, **không ghi đè file nào**. Không có gì mới thì báo máy đã giống GitHub.
+- Chỉ làm trên 1 máy và không ai đẩy lên GitHub từ chỗ khác → cuối ngày bấm `cap_nhat_github.bat` là đủ.
+- Claude / AI khác **không tự chạy** 2 file này (không tự commit / push trên máy người dùng).
 
 ---
 
@@ -866,7 +982,16 @@ Mọi bảng **kéo thả được**, bấm tiêu đề để thu gọn, nút **
 | Giai đoạn | Nội dung | Trạng thái |
 | :--- | :--- | :--- |
 | **1. Lõi chiến đấu** | Server tick 50ms, sát thương 7 bước, Orb, hàng đợi kỹ năng, AUTO, tốc độ trận x1/x1.5/x2 | ✅ Xong |
-| **2. Nhân vật cơ bản** | Hệ 2D ghép mảnh; Jessica (Sát Thủ); Rok (Chiến Binh); công cụ đánh thử | 🔄 Đang hoàn thiện động tác & hiệu ứng |
-| **3. Mở rộng đội hình** | Thêm class (Phù Thủy, Tu Sĩ...), đội 4 người, xếp đội hình tránh chồng nhau, quái 5–6 con có tranh riêng | ⏳ Tiếp theo |
-| **4. Hệ thống ngoài trận** | Skin, trang bị, nâng cấp nhân vật, bản đồ thế giới (góc camera chéo) | ⏳ |
+| **2. Nhân vật cơ bản** | Hệ 2D ghép mảnh; Jessica (Sát Thủ); Rok (Chiến Binh); công cụ đánh thử | ✅ Xong |
+| **3. Mở rộng đội hình** | Thêm class (Phù Thủy, Tu Sĩ...), đội 4 người, xếp đội hình tránh chồng nhau, quái 5–6 con có tranh riêng | ✅ 9 nhân vật + Golem triệu hồi |
+| **3b. Đồng bộ cả đội sang SPRITE** | Mỗi nhân vật: tạo hình + tấm sprite + tấm hiệu ứng tranh (mục 8.1b). Xong: Ignar, Rok, Jessica, Nerissa, Lyra, Seraphine, Zerith · còn: Brakk, Elarion + Golem · 4 tấm hiệu ứng chung cả đội | 🔄 Đang làm |
+| **3c. Đủ 20 nhân vật** | Thêm ~11 nhân vật mới, làm thẳng theo quy trình sprite | ⏳ Tiếp theo |
+| **4. Thế giới + cốt truyện + cách chơi chính** | Xây thế giới game, cốt truyện, vòng chơi chính; bản đồ thế giới (góc camera chéo) | ⏳ Sau khi đủ 20 nhân vật |
+| **4b. Hệ thống ngoài trận** | Skin, trang bị, **Unique Weapon**, nâng cấp nhân vật (hướng làm skin / Unique Weapon: ghi chú dưới bảng) | ⏳ |
 | **5. Trực tuyến** | Tài khoản, lưu dữ liệu, PvP | ⏳ |
+
+**Ghi chú cho sau — skin & Unique Weapon (chưa làm, chốt lại khi xong đủ nhân vật):** sprite vẽ liền vũ khí trong từng khung, nên không ghép "mọi skin × mọi vũ khí" bằng cách vẽ lại cả bộ (số bộ nhân lên). Hướng đã bàn (21/10/2026):
+- **Skin** = 1 bộ sprite riêng (trang phục + vũ khí gốc của skin đó).
+- **Unique Weapon** = hiệu ứng đi theo vũ khí, dùng được trên MỌI skin: đổi màu / phát sáng đúng vùng vũ khí (mặt nạ vùng vũ khí từng khung, không sửa tranh gốc) + hào quang, vệt chém, hiệu ứng kỹ năng mới.
+- Muốn đổi cả **hình dáng** vũ khí: nhờ app vẽ sửa bỏ vũ khí (`Keep everything identical, only remove the weapon, keep the hands in the same grip`) → so 2 tấm đo vị trí + góc vũ khí từng khung → mỗi Unique Weapon chỉ cần 1 hình, game gắn vào tay. Hợp vũ khí cứng cầm 1 tay (dao Jessica, kiếm Rok, gậy Seraphine); khó với cung, lụa Nerissa, lưỡi hái cầm 2 tay.
+- Làm thử trước trên Jessica (dao găm) rồi mới chọn hướng cho cả đội. Prompt sprite đã dặn "không vẽ hiệu ứng quanh vũ khí" → vũ khí luôn tách bạch, dễ đánh dấu về sau.

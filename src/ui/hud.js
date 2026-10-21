@@ -369,8 +369,8 @@ function effectInfo(ef, m) {
         case 'knocked': return ['💥', '#fb923c', 'Bị hất văng', 'Đang bay ra sau', true];
         case 'knockup': return ['🌀', '#c084fc', 'Bị hất tung', 'Bay lên không, không thể làm gì', true];
         case 'death_mark': return ['☠️', '#fb7185', 'Ấn Tử', `−${pc(ef.healCut)}% hồi máu nhận được · Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên · máu chạm ngưỡng tử ${pc(ef.execute)}% (vạch đỏ trên thanh máu) -> Thần Chết phán quyết`, true];
-        case 'reaper_echo': return ['↺', '#c084fc', 'Lướt lần 2', 'Lưỡi Hái Xuyên Hồn đã hồi — lướt thêm 1 lần MIỄN PHÍ'];
-        case 'reaper_form': return ['💀', '#a855f7', 'Đêm Tử Thần',
+        case 'reaper_echo': return ['↺', '#fb7185', 'Lướt lần 2', 'Lưỡi Hái Xuyên Hồn đã hồi — lướt thêm 1 lần MIỄN PHÍ'];
+        case 'reaper_form': return ['💀', '#e11d48', 'Đêm Tử Thần',
             `Hộ Vệ Thần Chết chiến đấu cùng · bay · +${pc(ef.dmgUp)}% sát thương · +${pc(ef.atkSpeedUp)}% tốc đánh · −${pc(ef.ccResist)}% khống chế · KHÔNG THỂ CHẾT`];
         case 'fortress': return ['🏰', '#fcd34d', 'Thành Trì', 'Giảm sát thương nhận'];
         case 'giant_form': {

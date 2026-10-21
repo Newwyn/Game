@@ -1,0 +1,29 @@
+{
+ "note": "Hieu ung Seraphine ban 3 (tranh AI PNG trong suot cua nguoi dung, giu nguyen: tool dat len nen den roi tach nen den nhu cac tam khac). Cat luoi 4x2 (ca tam icons: AI ve luoi 4x2 thay vi 2x4), dong goi. Ho Ve Thien Su: 2 nhom (hien ra / giu) dung CHUNG 1 diem goc trong o (pivot [x, y] = day giua) de doi nhom khong nhay. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/seraphine_fx2.webp",
+ "meta": "src/vfx/seraphineFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "orb": {"file": "art/seraphine/fx2/fx-light-orb.png", "grid": [4, 2], "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+          "groups": [{"name": "orbFly", "cells": [0, 1, 2, 3], "align": "core", "pivot": "core"},
+                     {"name": "orbHit", "cells": [4, 5, 6, 7], "align": "cell", "pivot": "center"}]},
+  "healShield": {"file": "art/seraphine/fx2/fx-heal-shield.png", "grid": [4, 2], "scale": 0.55, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+                 "groups": [{"name": "sunlight", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 470]},
+                            {"name": "bubble", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 470]}]},
+  "guardian": {"file": "art/seraphine/fx2/fx-guardian.png", "grid": [4, 2], "scale": 0.6, "regionThr": 60, "regionDilate": 2, "keepGrow": 12,
+               "groups": [{"name": "guardIn", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 480]},
+                          {"name": "guardHold", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 480]}]},
+  "angel": {"file": "art/seraphine/fx2/fx-angel.png", "grid": [4, 2], "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "angelFly", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                       {"name": "angelGive", "cells": [4, 5, 6, 7], "align": "cell", "pivot": "center"}]},
+  "icons": {"file": "art/seraphine/fx2/fx-sera-icons.png", "grid": [4, 2], "scale": 0.5, "regionThr": 60, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "holyCircle", "cells": [0], "pivot": "bottom"},
+                       {"name": "reviveCircle", "cells": [1], "pivot": "bottom"},
+                       {"name": "shieldWings", "cells": [2], "pivot": "center"},
+                       {"name": "dmgUp", "cells": [3], "pivot": "center"},
+                       {"name": "defUp", "cells": [4], "pivot": "center"},
+                       {"name": "cleanse", "cells": [5], "pivot": "center"},
+                       {"name": "healPlus", "cells": [6], "pivot": "center"},
+                       {"name": "sunFlare", "cells": [7], "pivot": "center"}]}
+ }
+}

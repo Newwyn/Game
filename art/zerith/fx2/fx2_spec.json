@@ -1,0 +1,32 @@
+{
+ "note": "Hieu ung Zerith ban 3 (tranh AI PNG trong suot THAT cua nguoi dung, giu nguyen: keepAlpha = giu kenh trong suot goc - khoi den, ao choang toi, lien xuong trang khong bi mat nhu khi tach nen den; regionThr = nguong do duc khi gom vung). Cat luoi 4x2 (ca tam icons), dong goi. Luoi hai khong lo / Ho Ve Than Chet / hao quang: 2 nhom cung tam dung CHUNG 1 diem goc trong o (pivot [x, y]) de doi nhom khong nhay. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/zerith_fx2.webp",
+ "meta": "src/vfx/zerithFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "slash": {"file": "art/zerith/fx2/fx-slash.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "slash", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                       {"name": "rend", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 250]}]},
+  "reap": {"file": "art/zerith/fx2/fx-reap.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.55, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+           "groups": [{"name": "reapUp", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 495]},
+                      {"name": "slamDown", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 470]}]},
+  "phantom": {"file": "art/zerith/fx2/fx-phantom-scythe.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.6, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+              "groups": [{"name": "phForm", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [152, 340]},
+                         {"name": "phHold", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [152, 340]}]},
+  "guardian": {"file": "art/zerith/fx2/fx-death-guardian.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.6, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+               "groups": [{"name": "gIn", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [180, 470]},
+                          {"name": "gPose", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [180, 470]}]},
+  "night": {"file": "art/zerith/fx2/fx-death-night.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.55, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "exec", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                       {"name": "nightAura", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 470]}]},
+  "icons": {"file": "art/zerith/fx2/fx-zerith-icons.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 60, "regionDilate": 2, "keepGrow": 12,
+            "groups": [{"name": "deathMark", "cells": [0], "pivot": "center"},
+                       {"name": "summonCircle", "cells": [1], "pivot": "bottom"},
+                       {"name": "dashTrail", "cells": [2], "pivot": "center"},
+                       {"name": "souls", "cells": [3], "pivot": "center"},
+                       {"name": "hourglass", "cells": [4], "pivot": "center"},
+                       {"name": "shatter", "cells": [5], "pivot": "center"},
+                       {"name": "freeDash", "cells": [6], "pivot": "center"},
+                       {"name": "groundCrack", "cells": [7], "pivot": "bottom"}]}
+ }
+}

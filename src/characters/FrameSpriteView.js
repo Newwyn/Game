@@ -56,7 +56,8 @@ export class FrameSpriteView extends CutoutCharacterView {
 
         // Chiều cao như bản khung xương: chân -> đỉnh tóc của khung đứng (trung vị)
         const tops = Object.keys(meta.frames).filter(k => /^idle\d/.test(k)).map(k => meta.frames[k].top).sort((a, b) => a - b);
-        this._u = this.height / tops[tops.length >> 1];
+        // topScale (tuỳ chọn): đỉnh hình khung đứng không phải đỉnh tóc (VD đầu gậy Seraphine cao hơn tóc) -> tỉ lệ đỉnh tóc / đỉnh hình
+        this._u = this.height / (tops[tops.length >> 1] * (sp.topScale ?? 1));
 
         // cutoutRoot (ngã khi chết) -> spin (ở độ cao hông: lộn nhào lúc rơi vào trận, nhún / nhảy) -> lean (quanh chân) -> mặt phẳng
         const hips = this.parts.hips;
@@ -113,6 +114,10 @@ export class FrameSpriteView extends CutoutCharacterView {
         const loco = LOCO_CLIP[this._locomotion];
         const sub = !this._oneShot && loco && loco !== name && !this.actions[loco] && this.sprite.clips?.[loco];
         if (sub) name = loco;
+        // đang bay lơ lửng (Lyra — Thần Phong): đổi sang clip tranh bay; mốc ra đòn vẫn lấy theo clip khung xương gốc
+        const src = name;
+        const hv = this.sprite.hover?.[name];
+        if (hv && (this._hover ?? 0) > 0.35 && this.sprite.clips?.[hv]) name = hv;
         if (name !== this._clipName) { this._clipName = name; this._clipT = 0; } else this._clipT += dt;
         if (sub) time = this._clipT;
         const cfg = this.sprite.clips?.[name];
@@ -120,8 +125,8 @@ export class FrameSpriteView extends CutoutCharacterView {
             const fr = cfg.frames, n = fr.length, t = this._clipT;
             let k = 0;
             if (cfg.mode === 'strike') {
-                const dur = this.actions[name]?.getClip().duration ?? 0.6;
-                const h = Math.min(this._hitOf[name] ?? dur * 0.4, dur * 0.9);
+                const dur = this.actions[src]?.getClip().duration ?? 0.6;
+                const h = Math.min(this._hitOf[src] ?? dur * 0.4, dur * 0.9);
                 const pre = cfg.release - 1, post = n - pre;
                 k = time < h ? Math.min(pre - 1, Math.floor(time / (h / pre)))
                     : pre + Math.min(post - 1, Math.floor((time - h) / ((dur - h) / post)));
@@ -192,10 +197,17 @@ export class FrameSpriteView extends CutoutCharacterView {
         }
     }
 
-    /** Điểm gắn `name` của khung đang hiện (đánh dấu trong sprite_spec "points") -> toạ độ thế giới; null nếu không có */
-    pointWorld(name) {
+    /**
+     * Điểm gắn `name` của khung đang hiện (đánh dấu trong sprite_spec "points") -> toạ độ thế giới; null nếu không có.
+     * sticky: khung đang hiện không đánh dấu -> dùng điểm của khung gần nhất có đánh dấu (VD mũi tên phụ của Lyra bắn
+     * ngay sau khung nhả: vẫn bay ra từ cung thay vì 1 điểm ước lượng).
+     */
+    pointWorld(name, { sticky = false } = {}) {
         const f = this.sprite.meta.frames[this._frame];
-        const p = f?.pts?.[name];
+        let p = f?.pts?.[name];
+        this._lastPts ??= {};
+        if (p) this._lastPts[name] = p;
+        else if (sticky) p = this._lastPts[name] ?? Object.values(this.sprite.meta.frames).find(fr => fr.pts?.[name])?.pts[name];
         if (!p) return null;
         const s = this._spMesh.scale, u = this._u;
         const v = new THREE.Vector3(p[0] * u * s.x, -p[1] * u * s.y, 0.2);

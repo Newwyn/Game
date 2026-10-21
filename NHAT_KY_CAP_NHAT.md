@@ -5,6 +5,126 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 21/10/2026 — Zerith bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 9 tấm sprite (72 khung) + 6 tấm hiệu ứng + ảnh chân dung màn chọn đội.
+- **Động tác:** đứng, thủ thế, bổ liềm, chạy, trúng đòn, choáng, lướt chém, chỉ tay gắn Ấn Tử, gồng, quét hất lên, bổ xuống, gọi Thần Chết, rơi vào trận, gục, thắng.
+- **Bay lơ lửng suốt 10s Đêm Tử Thần:** dùng tấm bay riêng — bay chờ lặp, đánh thường thì chém khi bay.
+- **Khớp mốc cũ:** bổ liềm 0,22s · quét hất 0,15s · bổ xuống 0,2s · gọi Thần Chết 0,2s · gắn Ấn Tử 0,15s (loé đúng **đầu ngón tay** trên tranh). Sát thương, thời gian, cơ chế không đổi.
+- **Hiệu ứng mới** (đỏ thẫm · khói đen · trắng xương, bỏ hẳn tím):
+  - Đánh thường: vệt chém lưỡi liềm đỏ thẫm; lúc Đêm Tử Thần chém lan.
+  - Lưỡi Hái Xuyên Hồn: vệt khói đỏ dài + dư ảnh; mỗi con trúng bị **xé hồn** (linh hồn bay lên).
+  - Lưỡi Hái Hất Hồn: vòng ấn tử thần quanh chân + **lưỡi hái khổng lồ** hiện dần sau lưng → quét hất lên; Đêm Tử Thần: bổ xuống + **nứt đất**.
+  - Đêm Tử Thần: cánh bóng tối bung ra → hào quang cánh bóng tối quanh Zerith + **Hộ Vệ Thần Chết** (áo choàng đen, lưỡi hái trắng xương) bay sau lưng, giương liềm / chém ngang / chém bổ; chặn đòn chí tử: đồng hồ cát.
+  - Phán Quyết Tử Thần: Ấn Tử đầu lâu bay lên đầu mọi đối thủ; Thần Chết hiện sau lưng mục tiêu, nhấc lên rồi chém phán quyết; có khiên thì khiên vỡ.
+  - Linh Hồn Báo Thù: Thần Chết trong mờ, ánh hồng.
+- **Giữ khói đen trong tranh:** 6 tấm hiệu ứng của bạn là PNG trong suốt thật (khói đen, áo choàng tối) → tool giữ nguyên độ trong suốt gốc. Cách cũ (đặt lên nền đen rồi tách đen) làm mất hết phần tối — Hộ Vệ Thần Chết gần như vô hình.
+- **Màu đỏ thẫm khắp nơi:** dư ảnh, vòng chọn, biểu tượng trạng thái (Đêm Tử Thần, Lướt lần 2), màu thẻ nhân vật ở màn chọn đội.
+- **Phát hiện (chưa sửa, chờ bạn quyết):** lướt lần 2 miễn phí lúc Đêm Tử Thần ghi trong tài liệu nhưng server chưa bao giờ bật (thiếu chỗ tạo trạng thái `reaper_echo`; AI, nút "MIỄN PHÍ", biểu tượng đều đã sẵn).
+- Xem thử: `/tools/test-sprite.html?char=reaper&auto=1` · `/tools/fx-zerith.html?s=all&auto=1`. Bản khung xương cũ: thêm `?zerith=cutout`.
+- 2 file hiệu ứng bản 2 không còn dùng (`zerith_fx.png`, `src/vfx/zerithFx.json`) được thêm vào danh sách dọn của `cap_nhat_github.bat`.
+
+## 21/10/2026 — Zerith bản 3: tạo hình mới + prompt 9 tấm sprite + 6 tấm hiệu ứng
+- **Tạo hình mới** (bạn chọn): thiếu niên **quỷ tộc dẫn hồn của U Minh giới** (chủ đề thần chết · linh hồn · đồng hồ cát).
+  - Tóc trắng xương rối, đuôi tóc nhuộm đỏ thẫm, mắt đỏ thẫm đồng tử dọc; sừng đen vân nứt đỏ, tai nhọn, đuôi quỷ.
+  - Áo khoác thần chết đen cổ dựng, vạt rách tua, lót đỏ thẫm; giáp vai đầu lâu; xích bạc; **đèn lồng hồn** + **đồng hồ cát** ở thắt lưng.
+  - **Lưỡi hái** cán đen quấn xích, lưỡi trắng xương mép đỏ thẫm.
+  - Phối màu đen · trắng xương · **đỏ thẫm** · bạc: bỏ tím để khỏi trùng tông với Jessica.
+- **Prompt sprite** `art/zerith/sprite/PROMPTS_SPRITE.md`: prompt tạo hình (01-character-v3, ảnh chân dung 01b) + 9 tấm:
+  - đứng / thủ thế, bổ liềm (khung 4), chạy, trúng đòn / choáng;
+  - **lướt chém** (Lưỡi Hái Xuyên Hồn) + **chỉ tay gắn Ấn Tử**;
+  - **quét hất lên** + **bổ xuống**;
+  - **gồng** + **gọi Thần Chết** → bay lên;
+  - **bay** suốt Đêm Tử Thần (bay chờ + chém khi bay);
+  - gục (mặt đau) / thắng.
+  - Có **đoạn luật lưỡi hái** dán vào mọi tấm; dặn AI vẽ cùng cỡ với `sprite-idle` (rút kinh nghiệm tấm đánh thường của Seraphine).
+- **Prompt hiệu ứng** `art/zerith/fx2/PROMPTS_FX.md` (6 tấm):
+  - vệt chém lưỡi hái + xé hồn;
+  - quét hất lên + bổ xuống (nứt đất);
+  - lưỡi hái khổng lồ (hiện ra + giữ);
+  - **Hộ Vệ Thần Chết** (hiện ra + đứng / giương liềm / chém ngang / chém bổ) — dùng cả cho Phán Quyết và Linh Hồn Báo Thù;
+  - nhát chém phán quyết + hào quang cánh bóng tối Đêm Tử Thần;
+  - 8 hình nhỏ: Ấn Tử, vòng triệu hồi, vệt lướt, linh hồn bay, đồng hồ cát, khiên vỡ, lướt miễn phí, nứt đất.
+- Chưa đổi game (chờ tranh).
+
+## 21/10/2026 — Seraphine bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ bỏ quầng mờ + căn chân + chỉnh cỡ): 8 tấm sprite (64 khung) + 5 tấm hiệu ứng + ảnh chân dung màn chọn đội.
+- **Động tác:** đứng, thủ thế, chĩa gậy phóng cầu sáng, chạy, trúng đòn, choáng, giơ gậy hồi máu, đẩy tay dựng khiên, giơ gậy vào Thánh Niệm, rơi vào trận, gục (mặt đau), thắng.
+- **Niệm lơ lửng suốt 10s Thánh Niệm:** dùng tấm niệm riêng — chắp tay niệm, khi hồi máu / khiên thì đưa tay ra phép (cầu sáng / thiên thần bay ra từ bàn tay).
+- **Khớp mốc cũ:** cầu sáng 0,22s (bay ra đúng **pha lê đầu gậy**) · hồi máu 0,3s · khiên 0,28s · vào niệm 0,45s. Hồi máu, khiên, thời gian, cơ chế không đổi.
+- **Hiệu ứng mới:**
+  - Đánh thường: cầu ánh sáng có vòng vàng xoay → nổ sáng + cánh hoa.
+  - Hồi máu: **tia nắng rọi xuống** người được hồi + dấu cộng; đang bị choáng thì hiện xích vỡ.
+  - Khiên: loé mặt trời + **bong bóng ánh sáng** quanh người được che (người bên trong vẫn nhìn rõ), mờ dần theo máu khiên; khiên lúc niệm mọc **đôi cánh**.
+  - Thánh Niệm: loé mặt trời + vòng thánh bùng → **Hộ Vệ Thiên Sứ sáu cánh** chắp tay niệm sau lưng suốt 10s, vòng thánh quanh chân; cả đội hiện +sát thương (+thủ nếu có Ân Điển); mỗi giây hồi máu: dấu cộng nhỏ.
+  - Đang niệm dùng hồi máu / khiên: **thiên thần nhỏ** bay tới từng người rồi trao ánh sáng.
+  - Thiên Thần Hộ Mệnh: thiên thần bay tới xác → vòng hồi sinh + tia nắng lớn.
+- **Xem:** `/tools/test-sprite.html?char=priest&auto=1` · `/tools/fx-seraphine.html?s=all&auto=1`. Video: `Claude outputs/seraphine_sprite_moi_dong_tac.mp4`, `Claude outputs/seraphine_hieu_ung_moi.mp4`. Bản cũ: `?seraphine=cutout`.
+- Đã chơi thử trận AUTO (Seraphine + Rok + Jessica + Lyra) + build: không lỗi.
+- **Cần xem lại (tranh, không bắt buộc):** tấm `sprite-attack` AI vẽ Seraphine **nhỏ hơn các tấm khác ~30%** — mình đã phóng to cho bằng, nhưng nét hơi mềm hơn khi chơi; muốn sắc hẳn thì tạo lại tấm đó (dặn AI vẽ cùng cỡ với `sprite-idle`).
+
+## 21/10/2026 — Seraphine bản 3: tạo hình mới + prompt 8 tấm sprite + 5 tấm hiệu ứng
+- **Tạo hình mới** (bạn chọn): nữ tu sĩ trẻ của **ánh mặt trời** (chủ đề mặt trời mọc, hợp Thánh Quang).
+  - Tóc vàng mật ong rất dài, **vương miện tia nắng**, mắt hổ phách.
+  - Váy tu sĩ trắng thêu mặt trời vàng, tay áo lót hồng phấn, **khăn choàng cầu nguyện hồng phấn** bay theo gió.
+  - **Gậy trắng vàng đầu vòng mặt trời**, pha lê lơ lửng giữa vòng.
+  - Phối màu trắng · vàng kim · hồng phấn: khác hẳn Rok (trắng xanh hoàng gia), Nerissa (trắng xanh ngọc), Lyra (xanh ngọc nâu).
+- **Prompt sprite** `art/seraphine/sprite/PROMPTS_SPRITE.md`: prompt tạo hình (01-character-v3, ảnh chân dung 01b) + 8 tấm:
+  - đứng / thủ thế, đánh thường (phóng cầu sáng khung 4), chạy, trúng đòn / choáng;
+  - **hồi máu + khiên** chung 1 tấm;
+  - **giơ gậy vào Thánh Niệm** + rơi vào trận;
+  - **niệm lơ lửng** suốt 10s (chắp tay niệm + ra phép khi đang niệm);
+  - gục / thắng (đã ghi rõ mặt đau, không cười — rút kinh nghiệm từ Lyra).
+  - Có **đoạn luật gậy phép** dán vào mọi tấm (gậy luôn ở tay xa, cùng 1 cây, không vẽ phép).
+- **Prompt hiệu ứng** `art/seraphine/fx2/PROMPTS_FX.md` (5 tấm):
+  - cầu ánh sáng bay + nổ sáng;
+  - tia nắng hồi máu + khiên ánh sáng (bong bóng);
+  - **Hộ Vệ Thiên Sứ** sáu cánh, hào quang mặt trời (hiện ra + giữ lặp);
+  - thiên thần nhỏ (bay + trao ánh sáng) cho hồi máu lúc niệm và hồi sinh;
+  - 8 hình nhỏ: vòng thánh, vòng hồi sinh, đôi cánh khiên, +sát thương, +thủ, xích vỡ, dấu cộng hồi máu, loé mặt trời.
+- Chưa đổi game (chờ tranh).
+
+## 21/10/2026 — Lyra bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 9 tấm sprite (72 khung) + 5 tấm hiệu ứng + ảnh chân dung màn chọn đội.
+- **Động tác:** đứng, thủ thế (tên đặt sẵn trên dây), bắn cung, chạy, trúng đòn, choáng, Tiễn Gió Chớp nhảy lùi bắn trên không, giơ cung gọi gió, gồng + nhả Thần Tiễn, rơi vào trận, gục, thắng.
+- **Bay suốt Thần Phong (8s):** dùng tấm bay riêng — lơ lửng nhấp nhô, bắn khi bay (trước đây là khung đứng nâng lên). Thanh máu bay lên theo, không đè lên đầu.
+- **Khớp mốc cũ:** nhả tên 0,2s (mũi tên bay ra đúng **dây cung trên tranh**) · Tiễn Gió Chớp 0,42s · gọi gió 0,38s · nhả Thần Tiễn 0,16s. Sát thương, thời gian, cơ chế không đổi.
+- **Tách nền kiểu mới cho đồ xanh lá:** kiểu cũ làm áo choàng / váy xanh ngọc của Lyra trong suốt một phần và bạc màu; kiểu mới (`jade`) chỉ bỏ nền xanh thuần, vải xanh giữ nguyên 100%.
+- **Hiệu ứng mới:**
+  - Đánh thường: mũi tên gió bay → trúng thì gió xoáy + lông vũ. Phong Tiễn: ngọn giáo gió quét ngang cả hàng quái.
+  - Tiễn Gió Chớp: dấu ngắm khoá mục tiêu, gió bật dưới chân lúc nhảy / đáp, tên gió chớp → nổ gió đẩy lùi; hạ gục → biểu tượng hồi chiêu.
+  - Thần Phong: **Vệ Thần Gió cánh chim ưng** hiện ra sau lưng (cao hơn Lyra), kéo cung bắn phụ mỗi khi Lyra bắn, cùng kéo căng khi gồng Thần Tiễn; vòng gió xoáy dưới chân; cả đội hiện mắt chim ưng (+chính xác).
+  - Thần Tiễn Phá Thiên: gió xoáy hút vào lúc gồng → mũi tên ánh sáng thành hình sau lưng → phóng như tên lửa → mũi cuối nổ lớn (cột sáng + nổ gió).
+- **Xem:** `/tools/test-sprite.html?char=archer&auto=1` · `/tools/fx-lyra.html?s=all&auto=1`. Video: `Claude outputs/lyra_sprite_moi_dong_tac.mp4`, `Claude outputs/lyra_hieu_ung_moi.mp4`. Bản cũ: `?lyra=cutout`.
+- Đã chơi thử trận AUTO (Lyra + Rok + Jessica + Nerissa) + build: không lỗi.
+- **Cần xem lại (tranh, không bắt buộc):** tấm `sprite-dead-victory` hàng trên (gục) khung 1–3 Lyra **nhắm mắt há miệng như đang cười** → lúc gục trông vui; muốn đẹp hẳn thì tạo lại hàng gục (mặt đau, nhăn).
+
+## 21/10/2026 — Lyra bản 3: tạo hình mới + prompt 9 tấm sprite + 5 tấm hiệu ứng
+- **Tạo hình mới** (bạn chọn): nữ xạ thủ **tiên tộc (Elf) của gió**, chủ đề **chim ưng** (hợp thiên phú Ưng Nhãn).
+  - Tai nhọn, mắt lục bảo, **bím tóc nâu hạt dẻ dài** cài lông chim ưng trắng. Màu tóc này chưa ai trong đội có.
+  - Áo choàng ngắn xanh ngọc viền lông vũ, áo trắng thêu xoáy gió vàng, 2 dải thắt lưng bạc hà bay theo gió.
+  - **Cung trắng vàng hình đôi cánh chim ưng**, ngọc xanh ở tay cầm.
+- **Prompt sprite** `art/lyra/sprite/PROMPTS_SPRITE.md`: prompt tạo hình (01-character-v3, ảnh chân dung 01b) + 9 tấm:
+  - đứng / thủ thế, đánh thường (nhả tên khung 5), chạy, trúng đòn / choáng;
+  - **Tiễn Gió Chớp** nhảy lùi bắn giữa không trung (khung 6);
+  - **gọi gió** + rơi vào trận;
+  - **gồng + nhả Thần Tiễn**;
+  - **bay** suốt Thần Phong (bay chờ + bắn khi bay);
+  - gục / thắng.
+  - Có **đoạn luật cung tên** dán vào mọi tấm (cung ở tay xa, dây 1 sợi, khung nhả không vẽ mũi tên) vì AI hay vẽ sai dây cung.
+- **Prompt hiệu ứng** `art/lyra/fx2/PROMPTS_FX.md` (5 tấm):
+  - mũi tên gió bay + trúng;
+  - tên gió chớp + nổ gió đẩy lùi;
+  - **Vệ Thần Gió** cánh chim ưng (hiện ra, bay chờ, kéo cung);
+  - mũi tên ánh sáng Thần Tiễn + nổ lớn;
+  - 8 hình nhỏ: vòng gió dưới chân, gió bật, mũi gió xuyên, vệt gió, dấu ngắm, hồi chiêu, +chính xác, lông vũ bung.
+- Chưa đổi game (chờ tranh).
+
+## 21/10/2026 — Thêm `lay_ve_tu_github.bat` (kéo bản mới từ GitHub về máy)
+- **File mới** `lay_ve_tu_github.bat`: bấm đúp → tải bản mới nhất trên GitHub về máy, liệt kê các lần cập nhật mới, rồi kéo về.
+- **An toàn:** chỉ kéo về khi trên máy không sửa trùng file với bản mới; có trùng thì dừng lại và báo, **không ghi đè file nào**.
+- **Cách dùng 2 file:** đầu ngày bấm `lay_ve_tu_github.bat` (nếu GitHub có bản mới hơn máy) · cuối ngày bấm `cap_nhat_github.bat` (đẩy lên). Kéo về trước, đẩy lên sau (chi tiết: `DOCUMENTATION.md` mục 8.3).
+- Đã dùng lần đầu: máy kéo về bản "Nerissa bản 3 vào game + giảm lag" (3409bf8). Game không đổi.
+
 ## 20/10/2026 — Giảm lag / tụt FPS + dọn file cũ
 - **Cảnh nền:** cây, đá, bụi gộp lại → từ ~660 xuống ~24 lần vẽ mỗi khung (nhìn y hệt).
 - **Màn hình độ phân giải cao** (laptop chỉnh 150–200%): vẽ tối đa 1,5 điểm ảnh / điểm → bớt tới ~44% điểm ảnh phải tô.

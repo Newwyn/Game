@@ -1,0 +1,126 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 18px sans-serif;color:#ffe680;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem thử MỌI kỹ năng + hiệu ứng của Seraphine bản 3 (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả, mốc thời gian như server).
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/fx-seraphine.html?s=all&auto=1
+     s = all (lần lượt tất cả) | attack | heal | shield | pray | revive
+     &w=1280&h=720 cỡ khung · &auto=1 tự chạy lặp · &seraphine=cutout bản khung xương · console: stepTo(giây) -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+import { __fxTest as T } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'all';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34; camera.updateProjectionMatrix();
+const CX = +(q.get('cx') ?? 0.6), CY = +(q.get('cy') ?? 2.0), CZ = +(q.get('cz') ?? 16);
+camera.position.set(CX, CY + 2.7, CZ); camera.lookAt(CX, CY, 0);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const sera = mk('priest', -4.4, 'left');
+const rok = mk('warrior', -0.4, 'left', -1.0);
+const jes = mk('assassin', 1.6, 'left', 1.0);
+const allies = [sera, rok, jes];
+const foes = [mk('monster_tank', 5.2, 'right'), mk('monster_archer', 7.6, 'right', -1)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+game.classDefs = { priest: { skills: [{ type: 'heal', hitFrame: 2 }, { type: 'holy_shield', hitFrame: 2 }, { type: 'pray', hitFrame: 2 }] },
+  warrior: { skills: [] }, assassin: { skills: [] }, monster_tank: { skills: [] }, monster_archer: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
+const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
+vF.forEach(v => { v.facingLeft = true; });
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+window.view = vA[0];
+
+const lbl = document.getElementById('lbl');
+const ev = [];
+const at = (t, fn) => ev.push([t, fn]);
+const say = (t, s) => at(t, () => { lbl.textContent = s; });
+const BIG = 1e12;
+const exec = (skillIdx, type, payload = {}) => T.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx, type, effects: [], ...payload });
+const attack = (ti = 0) => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: ti, damage: 236, isCrit: false });
+const shieldOn = (m, winged, s) => at(s, () => { m.statusEffects = m.statusEffects.filter(e => e.type !== 'holy_shield').concat([{ type: 'holy_shield', endTime: BIG, hp: 300, maxHp: 300, winged }]); });
+const clearAll = () => allies.forEach(m => { m.statusEffects = []; });
+
+function seqAttack(t0) {
+  say(t0, 'Đánh thường: chĩa gậy → cầu ánh sáng → nổ sáng'); at(t0, () => attack(0));
+  at(t0 + 1.1, () => attack(1));
+  return t0 + 2.2;
+}
+function seqHeal(t0) {
+  say(t0, 'Thánh Quang Trị Liệu: tia nắng rọi xuống người yếu máu nhất (đang choáng → xích vỡ)');
+  at(t0, () => { rok.statusEffects = [{ type: 'stun', endTime: BIG }]; exec(0, 'heal', { effects: [{ targetIndex: 1, ally: true, heal: 360 }] }); });
+  at(t0 + 0.45, () => { rok.statusEffects = []; });
+  return t0 + 1.6;
+}
+function seqShield(t0) {
+  say(t0, 'Khiên Ánh Sáng: dựng khiên → bong bóng ánh sáng quanh người được che (5s)');
+  at(t0, () => exec(1, 'holy_shield', { effects: [{ targetIndex: 2, ally: true, shield: 360 }] }));
+  shieldOn(jes, false, t0 + 0.3);
+  at(t0 + 2.2, () => { jes.statusEffects = []; });
+  return t0 + 2.8;
+}
+function seqPray(t0) {
+  say(t0, 'Thánh Niệm: giơ gậy → bay lên niệm, Hộ Vệ Thiên Sứ sau lưng; cả đội +sát thương');
+  at(t0, () => exec(2, 'pray', { effects: [{ targetIndex: 0, ally: true, pray: true }] }));
+  at(t0 + 0.45, () => {
+    sera.statusEffects = [{ type: 'praying', endTime: BIG }];
+    allies.forEach(m => { m.statusEffects = m.statusEffects.concat([{ type: 'pray_blessing', endTime: BIG, dmgUp: 0.2, defUp: 0.1 }]); });
+  });
+  at(t0 + 1.6, () => T.onPrayHeal?.({ casterId: 'me', heals: [{ targetIndex: 0, heal: 36 }, { targetIndex: 1, heal: 36 }, { targetIndex: 2, heal: 36 }] }));
+  say(t0 + 2.0, 'Đang niệm: hồi máu cả đội — thiên thần nhỏ bay tới từng người');
+  at(t0 + 2.0, () => exec(0, 'heal', { effects: [0, 1, 2].map(i => ({ targetIndex: i, ally: true, heal: 720, angel: true })) }));
+  say(t0 + 3.4, 'Đang niệm: khiên cả đội có cánh');
+  at(t0 + 3.4, () => exec(1, 'holy_shield', { effects: [0, 1, 2].map(i => ({ targetIndex: i, ally: true, shield: 720, winged: true })) }));
+  [0, 1, 2].forEach(i => shieldOn(allies[i], true, t0 + 3.4 + 0.28 + 0.45 + i * 0.09));
+  at(t0 + 6.0, () => clearAll());
+  return t0 + 6.8;
+}
+function seqRevive(t0) {
+  say(t0, 'Thiên Thần Hộ Mệnh: thiên thần bay tới hồi sinh đồng đội');
+  at(t0 - 0.01, () => { jes.alive = false; vA[2].setLocomotion?.('dead'); });
+  at(t0, () => T.onReviveStart?.({ casterId: 'me', casterIdx: 0, targetIdx: 2, flight: 1200 }));
+  at(t0 + 1.2, () => { jes.alive = true; vA[2].setLocomotion?.('idle'); T.onRevived?.({ casterId: 'me', targetIdx: 2, hp: 600 }); });
+  return t0 + 2.6;
+}
+let end = 0.2;
+if (S === 'all') { end = seqAttack(end); end = seqHeal(end); end = seqShield(end); end = seqPray(end); end = seqRevive(end); }
+else end = ({ attack: seqAttack, heal: seqHeal, shield: seqShield, pray: seqPray, revive: seqRevive })[S](end);
+say(end, '');
+window.TOTAL = end + 0.3;
+ev.sort((a, b) => a[0] - b[0]);
+let t = 0;
+window.stepTo = (target) => {
+  while (t < target - 1e-9) {
+    const dt = Math.min(1 / 60, target - t);
+    while (ev.length && ev[0][0] <= t + 1e-9) ev.shift()[1]();
+    t += dt; window.__vt = t; window.__runTimers();
+    updateVfx(dt);
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
+  }
+  renderer.render(scene, camera);
+  return t;
+};
+window.stepTo(0.02);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(t + Math.min(0.05, (now - last) / 1000)); last = now; if (t > window.TOTAL) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

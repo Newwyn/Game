@@ -5,7 +5,7 @@
 Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
   1. Cắt theo ô lưới ("grid": [cột, hàng]); ô đánh số trái -> phải, trên -> dưới (0..).
      Hình lấn sang ô bên cạnh vẫn đủ: gom theo vùng liền, vùng thuộc ô chứa phần lớn diện tích của nó.
-  2. Tách nền đen -> trong suốt:
+  2. Tách nền đen -> trong suốt ("keepAlpha": true ở tấm = tranh PNG đã trong suốt thật -> giữ nguyên kênh trong suốt, bỏ bước này):
        fire  (mặc định): alpha = độ sáng lớn nhất, màu "gỡ đen" -> lửa giữ độ rực, viền mờ dần, không viền đục.
        solid: ngưỡng: vật THẬT màu tối (đá, giáp, đất cháy, khiên tím): phần ruột (sáng hơn ngưỡng, lấp lỗ, lùi vào trong
               "inset" px) giữ ĐẶC màu gốc; viền ngoài vẫn mờ như lửa. "holeMax": chỉ lấp lỗ <= N px (giữ khoảng tối lớn trong suốt).
@@ -109,16 +109,26 @@ def main(spec_path, preview=None):
     groups = []                       # (tên, [ảnh RGBA đã căn], pivot (x, y) trong ảnh, tip?)
     for sname, sh in spec['sheets'].items():
         src = Image.open(os.path.join(ROOT, sh['file']))
-        if src.mode in ('RGBA', 'LA', 'P'):   # tranh xuất sẵn trong suốt: đặt lên nền đen trước (như tranh nền đen)
-            bg = Image.new('RGBA', src.size, (0, 0, 0, 255)); bg.alpha_composite(src.convert('RGBA')); src = bg
-        raw = np.asarray(src.convert('RGB')).astype(np.float32)
+        # "keepAlpha": tranh xuất sẵn trong suốt có kênh trong suốt THẬT (khói đen, áo choàng tối...): giữ nguyên kênh đó,
+        # không đặt lên nền đen rồi tách đen (tách đen làm mất mọi phần tối). Mặc định: đặt lên nền đen (như tranh nền đen)
+        keep_alpha = bool(sh.get('keepAlpha')) and src.mode in ('RGBA', 'LA', 'P')
+        if keep_alpha:
+            raw = np.asarray(src.convert('RGBA')).astype(np.float32)
+            raw[..., :3] *= raw[..., 3:] / 255          # nhân sẵn độ trong (điểm trong suốt không mang màu quầng)
+            lum = raw[..., 3]
+        else:
+            if src.mode in ('RGBA', 'LA', 'P'):
+                bg = Image.new('RGBA', src.size, (0, 0, 0, 255)); bg.alpha_composite(src.convert('RGBA')); src = bg
+            raw = np.asarray(src.convert('RGB')).astype(np.float32)
+            lum = raw.max(-1)
         H, W = raw.shape[:2]
+        NC = raw.shape[2]
         gc, gr = sh['grid']; cw, ch = W // gc, H // gr
         # hình vẽ lấn sang ô bên cạnh: gom theo VÙNG LIỀN, vùng thuộc ô chứa phần lớn diện tích của nó
         M = 96
-        # "regionThr" / "regionDilate": ngưỡng sáng + độ nở khi gom vùng liền (lưới B nhiều hình sát nhau: tăng ngưỡng
-        # để quầng sáng mờ không nối các hình lại); "keepGrow": nở thêm quanh vùng để giữ quầng sáng mờ
-        lab, n = ndi.label(ndi.binary_dilation(raw.max(-1) > sh.get('regionThr', 20), iterations=sh.get('regionDilate', 4)))
+        # "regionThr" / "regionDilate": ngưỡng sáng (keepAlpha: ngưỡng độ đục) + độ nở khi gom vùng liền (lưới B nhiều hình
+        # sát nhau: tăng ngưỡng để quầng sáng mờ không nối các hình lại); "keepGrow": nở thêm quanh vùng để giữ quầng sáng mờ
+        lab, n = ndi.label(ndi.binary_dilation(lum > sh.get('regionThr', 20), iterations=sh.get('regionDilate', 4)))
         owner = np.zeros(n + 1, int) - 1
         if n:
             cell_of = (np.arange(H)[:, None] // ch).clip(0, gr - 1) * gc + (np.arange(W)[None, :] // cw).clip(0, gc - 1)
@@ -129,7 +139,7 @@ def main(spec_path, preview=None):
             cy, cx = (i // gc) * ch, (i % gc) * cw
             y0, y1, x0, x1 = max(0, cy - M), min(H, cy + ch + M), max(0, cx - M), min(W, cx + cw + M)
             keep = ndi.binary_dilation(owner[lab[y0:y1, x0:x1]] == i, iterations=sh.get('keepGrow', 3))
-            c = np.zeros((ch + 2 * M, cw + 2 * M, 3), np.float32)
+            c = np.zeros((ch + 2 * M, cw + 2 * M, NC), np.float32)
             c[y0 - cy + M:y1 - cy + M, x0 - cx + M:x1 - cx + M] = raw[y0:y1, x0:x1] * keep[..., None]
             return c
         cells = [cell_img(i) for i in range(gc * gr)]
@@ -140,8 +150,8 @@ def main(spec_path, preview=None):
             ramp = np.ones_like(xs)
             if fl: ramp = np.minimum(ramp, np.clip(xs / fl, 0, 1))
             if fr: ramp = np.minimum(ramp, np.clip((x1 - x0 - 1 - xs) / fr, 0, 1))
-            part *= (ramp ** 1.5)[None, :, None]   # nền đen: tối đi = trong suốt dần
-            c = np.zeros((ch + 2 * M, cw + 2 * M, 3), np.float32)
+            part *= (ramp ** 1.5)[None, :, None]   # nền đen: tối đi = trong suốt dần (keepAlpha: màu đã nhân sẵn -> mờ cả độ đục)
+            c = np.zeros((ch + 2 * M, cw + 2 * M, NC), np.float32)
             c[M:M + (y1 - y0), M:M + (x1 - x0)] = part
             return c
         for g in sh['groups']:
@@ -150,7 +160,10 @@ def main(spec_path, preview=None):
             idx = g['cells']
             smoke = set(g.get('smoke', []))
             sf = set(g.get('solidFrames', range(len(idx))))
-            imgs = [key_black(cells[i], g.get('solid') if k in sf else None, g.get('inset', 6), k in smoke, g.get('holeMax')) for k, i in enumerate(idx)]
+            if keep_alpha:   # bỏ nhân sẵn độ trong (màu thật để ghép atlas)
+                imgs = [np.dstack([cells[i][..., :3] / np.maximum(cells[i][..., 3:], 1) * 255, cells[i][..., 3]]) for i in idx]
+            else:
+                imgs = [key_black(cells[i], g.get('solid') if k in sf else None, g.get('inset', 6), k in smoke, g.get('holeMax')) for k, i in enumerate(idx)]
             # căn khung trong nhóm
             al = g.get('align', 'cell')
             offs = []
