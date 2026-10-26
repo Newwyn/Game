@@ -130,6 +130,38 @@ if (CHAR === 'reaper' && want('hover')) {
   tt += 1.0;
   at(tt, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.2;
 }
+// Brakk: Thần Lực Khổng Lồ — gầm → tranh khổng lồ (thủ thế · đấm · móc ngược · chạy), trúng đòn lúc khổng lồ = tranh thường ám dung nham (&only=giant)
+if (CHAR === 'wrestler' && want('giant')) {
+  say(tt, 'Thần Lực Khổng Lồ: gầm → hoá khổng lồ');
+  at(tt, () => v.playAction('roar'));
+  at(tt + 0.3, () => { hero.state = 'attacking'; v.setLocomotion('ready'); hero.statusEffects = [{ type: 'giant_form', endTime: 1e12, immuneUntil: 1e12 }]; });
+  tt += 1.8;
+  say(tt, 'Khổng Lồ: đấm (game)');
+  at(tt, () => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: 0, damage: 212, isCrit: false }));
+  tt += 1.2;
+  say(tt, 'Khổng Lồ: móc ngược');
+  at(tt, () => v.playAction('uplift'));
+  tt += 1.2;
+  say(tt, 'Khổng Lồ: chạy');
+  at(tt, () => { hero.state = 'moving'; window.__run = 3.2; v.setLocomotion('move'); });
+  at(tt + 1.0, () => { window.__run = 0; hero.state = 'attacking'; v.setLocomotion('ready'); });
+  at(tt + 1.35, () => { v.teleport(hero.x, 0); }); tt += 1.6;
+  say(tt, 'Khổng Lồ: trúng đòn (tranh thường ám dung nham)');
+  at(tt, () => v.playHurt());
+  tt += 1.0;
+  at(tt, () => { hero.statusEffects = []; hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 1.2;
+}
+// Elarion: Băng Hoại Hỏa Thiên (dồn lực 0,7s → chưởng giữ tia) · đứng thi triển Mưa Giông (&only=beam,channel)
+if (CHAR === 'elementalist' && want('beam')) {
+  say(tt, 'Băng Hoại Hỏa Thiên: khum tay dồn lực 0,7s → chưởng giữ tia');
+  at(tt, () => v.playAction('beamCharge', { onComplete: () => v.playAction('beam', { hold: true }) }));
+  at(tt + 2.4, () => v._interruptOneShot?.()); tt += 2.8;
+}
+if (CHAR === 'elementalist' && want('channel')) {
+  say(tt, 'Hơi Nước Bỏng: đứng thi triển Mưa Giông');
+  at(tt, () => { hero.state = 'channeling'; v.setLocomotion('channel'); });
+  at(tt + 1.8, () => { hero.state = 'idle'; v.setLocomotion('idle'); }); tt += 2.2;
+}
 // Nerissa: 7 điệu múa (trạng thái 'dancing' + danceKey, như server gửi) — &only=dance để chỉ xem múa, &dances=1,123 chọn điệu
 if (CHAR === 'dancer' && want('dance')) {
   const keys = (q.get('dances') || '1,2,3,12,13,23,123').split(',');

@@ -9,6 +9,7 @@
 // Hình vẽ chế độ THƯỜNG (giữ màu đậm trên nền cỏ sáng); quầng sáng phụ vẽ cộng sáng bằng fxPlane() của vfx.js.
 import * as THREE from 'three';
 import { textureView } from './texView.js';
+import { camera } from '../core/scene.js';
 
 export const FLOOR = -0.45;
 
@@ -72,6 +73,17 @@ export function warmFlipbooks(renderer) {
         const b = fb.base();
         if (b?.image?.complete !== false && b?.image) renderer.initTexture(b);
     }
+}
+
+const _dir = new THREE.Vector3();
+/**
+ * Góc nghiêng (rotation.x) cho mặt phẳng hiệu ứng SONG SONG mặt phẳng nhân vật: nhân vật ngửa ra sau đúng góc chúc của camera
+ * (CutoutCharacterView.updateVisual: stand.rotation.x = -pitch) -> đầu cao 3 đơn vị lùi ra sau ~0,75.
+ * Lớp đặt SAU lưng (z âm) mà đứng thẳng thì phần trên chồi ra TRƯỚC đầu / ngực nhân vật -> nghiêng cùng góc: mesh.rotation.x = camTilt()
+ */
+export function camTilt() {
+    camera.getWorldDirection(_dir);
+    return -Math.asin(THREE.MathUtils.clamp(-_dir.y, -1, 1));
 }
 
 /** Khung lặp theo thời gian t (giây), `fps` khung/giây, n khung, lệch pha `phase` khung */

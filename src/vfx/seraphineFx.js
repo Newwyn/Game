@@ -13,7 +13,7 @@ import fxUrl from '../assets/sprites/seraphine_fx2.webp';
 import FX from './seraphineFx2.json';
 import { textureView } from './texView.js';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, fxBudget } from './vfx.js';
-import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR } from './flipbook.js';
+import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR, camTilt } from './flipbook.js';
 
 const FB = makeFlipbook(fxUrl, FX);
 FB.tex('holyCircle');   // tải atlas ngay khi vào game (khung đầu không bị trống)
@@ -186,7 +186,9 @@ export function spawnLittleAngel(from, getTo, { duration = 0.45, size = 1.1, onA
 export function makeLightShield(height = 2.9) {
     const g = new THREE.Group();
     // bong bóng: lớp SAU người (đủ màu, viền + quầng sáng quanh dáng) + lớp TRƯỚC cộng sáng nhẹ (ánh bóng phủ lên người)
-    //   -> người bên trong vẫn rõ (lớp sương sáng trong lòng bong bóng không phủ đục lên nhân vật)
+    //   -> người bên trong vẫn rõ (lớp sương sáng trong lòng bong bóng không phủ đục lên nhân vật).
+    //   Cả nhóm nghiêng theo camera (camTilt) như mặt phẳng nhân vật: đứng thẳng thì nửa trên lớp SAU chồi ra TRƯỚC đầu / vai
+    //   (nhân vật ngửa ra sau theo góc chúc camera) -> đầu người được che bị phủ mờ.
     const bubble = seraFrames('bubble', height * 1.32, { opacity: 0 });
     bubble.position.z = -0.3;
     const sheen = seraFrames('bubble', height * 1.32, { opacity: 0, additive: true });
@@ -208,6 +210,7 @@ export function makeLightShield(height = 2.9) {
             const f = shown < 0.14 ? 0 : 1 + loopFrame(time, 6, 3);
             setFx(bubble, f); setFx(sheen, f);
             g.position.set(0, FLOOR + lift, 0);
+            g.rotation.x = camTilt();
             const op = k * (0.55 + 0.4 * Math.max(0.25, frac)) * (0.92 + 0.08 * Math.sin(time * 4));
             bubble.material.opacity = op;
             sheen.material.opacity = op * 0.22;

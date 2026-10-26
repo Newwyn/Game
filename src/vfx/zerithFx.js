@@ -16,7 +16,7 @@ import FX from './zerithFx2.json';
 import { textureView } from './texView.js';
 import { gameTimeout } from '../config.js';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, spawnShockwave, spawnRisingSparkles, fxBudget } from './vfx.js';
-import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR } from './flipbook.js';
+import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR, camTilt } from './flipbook.js';
 
 const FB = makeFlipbook(fxUrl, FX);
 FB.tex('deathMark');   // tải atlas ngay khi vào game (khung đầu không bị trống)
@@ -245,6 +245,7 @@ export function spawnReaperSummon(pos, { life = 1.1, size = 3.6, aura = true } =
     const H = 3.5;
     const a = zerithFrames('nightAura', H, { opacity: 0 });
     a.position.set(pos.x, FLOOR + 0.02, (pos.z ?? 0) - 0.3);
+    a.rotation.x = camTilt();   // lớp sau lưng: song song mặt phẳng nhân vật (không chồi ra trước đầu)
     addAnim(a, life, (p, fx) => {
         setFx(fx.mesh, loopFrame(p * life, 9, 4));
         const k = 0.6 + 0.4 * easeOut(Math.min(1, p * 2));
@@ -256,6 +257,7 @@ export function spawnReaperSummon(pos, { life = 1.1, size = 3.6, aura = true } =
 export function spawnReaperWings(pos, dir = 1) {
     const a = zerithFrames('nightAura', 3.6, { opacity: 0 });
     a.position.set(pos.x, FLOOR + 0.02, (pos.z ?? 0) - 0.35);
+    a.rotation.x = camTilt();
     addAnim(a, 0.9, (p, fx) => {
         setFx(fx.mesh, loopFrame(p * 0.9, 10, 4));
         const k = 0.5 + 0.75 * easeOut(Math.min(1, p * 2.5));
@@ -282,6 +284,7 @@ export function makeReaperAura(height = 2.9) {
         update(dt, k) {
             t += dt;
             setFx(aura, loopFrame(t, 8, 4));
+            g.rotation.x = camTilt();   // nhóm gốc ở chân: nghiêng theo camera như nhân vật -> khói sau lưng không phủ lên đầu
             aura.material.opacity = 0.7 * k * (0.9 + 0.1 * Math.sin(t * 4));   // khói đen giữ 10s: hơi trong để Zerith + Hộ Vệ vẫn rõ
             glow.material.opacity = 0.12 * k;
         },

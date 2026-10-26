@@ -62,6 +62,8 @@ for %%F in (
   "src\vfx\nerissaFx.json"
   "src\assets\sprites\zerith_fx.png"
   "src\vfx\zerithFx.json"
+  "src\assets\sprites\brakk_fx.png"
+  "src\vfx\brakkFx.json"
   "src\characters\cutout\rokRig.js"
   "src\characters\cutout\rokAtlas.json"
   "src\assets\sprites\rok_atlas.png"

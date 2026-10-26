@@ -1,0 +1,30 @@
+{
+ "note": "Hieu ung Elarion + Golem ban 3 (tranh AI PNG trong suot THAT cua nguoi dung, giu nguyen: keepAlpha). Luoi A 4x2 (6 tam) + luoi B 2x4 (fx-golem-fire-frost: vet dam lua 1-4, luong bao tuyet 5-8, nhin ngang). Moi nhom dung CHUNG 1 diem goc trong o (pivot [x, y] theo o goc cua khung 1). Thien thach 1-3 + khoi bang 5-6: quang sat dat CHONG nhau qua mep o -> cuts + cutFeather (mo dan mep cat). AI ve lech tam giua cac khung (no trung don, loc xoay troi trai, dau vet dam / mui bao tuyet hang duoi cao hon) -> offsets doi ca khung. Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/elarion_fx2.webp",
+ "meta": "src/vfx/elarionFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "hits": {"file": "art/elarion/fx2/fx-elem-hits.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+           "groups": [{"name": "fireHit", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [200, 290], "offsets": [[0, 0], [20, 0], [22, 0], [8, 0]]},
+                      {"name": "iceHit", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [197, 280], "offsets": [[0, 0], [21, 0], [24, 0], [0, 0]]}]},
+  "zap": {"file": "art/elarion/fx2/fx-zap-storm.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12, "cuts": [[900, 496, 930, 512]],
+          "groups": [{"name": "zapHit", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [198, 282], "offsets": [[0, 0], [13, 10], [13, 17], [0, 0]]},
+                     {"name": "storm", "cells": [4, 5, 6, 7], "scale": 0.56, "align": "cell", "pivot": [200, 420]}]},
+  "meteor": {"file": "art/elarion/fx2/fx-meteor-frost.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.55, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+             "cuts": [[389, 0, 393, 512], [766, 0, 770, 512], [388, 512, 392, 1024]], "cutFeather": 20,
+             "groups": [{"name": "meteorBoom", "cells": [0, 1, 2, 3], "scale": 0.6, "align": "cell", "pivot": [205, 440]},
+                        {"name": "iceShatter", "cells": [4, 5, 6, 7], "scale": 0.6, "align": "cell", "pivot": [200, 405]}]},
+  "orb": {"file": "art/elarion/fx2/fx-orb-tornado.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+          "groups": [{"name": "orb", "cells": [0, 1, 2, 3], "align": "core", "pivot": "core"},
+                     {"name": "tornado", "cells": [4, 5, 6, 7], "scale": 0.56, "align": "cell", "pivot": [232, 408], "offsets": [[0, 0], [12, 0], [21, 0], [41, 0]]}]},
+  "book": {"file": "art/elarion/fx2/fx-book-ward.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+           "groups": [{"name": "bookFlash", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [200, 488]},
+                      {"name": "ward", "cells": [4, 5, 6, 7], "scale": 0.55, "align": "cell", "pivot": [198, 408]}]},
+  "golemSky": {"file": "art/elarion/fx2/fx-golem-storm-summon.png", "grid": [4, 2], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+               "groups": [{"name": "skyStrike", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [200, 475]},
+                          {"name": "summon", "cells": [4, 5, 6, 7], "scale": 0.56, "align": "cell", "pivot": [200, 360]}]},
+  "golemFist": {"file": "art/elarion/fx2/fx-golem-fire-frost.png", "grid": [2, 4], "keepAlpha": true, "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 12,
+                "groups": [{"name": "fistTrail", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [690, 152], "offsets": [[0, 0], [1, 2], [0, 16], [1, 13]]},
+                           {"name": "blizzard", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [50, 128], "offsets": [[0, 0], [18, 0], [0, 16], [22, 16]]}]}
+ }
+}

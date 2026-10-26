@@ -1,28 +1,42 @@
 // ============================================================
 // HIỆU ỨNG TAM NGUYÊN — Elarion (pháp sư nguyên tố) + Golem Nguyên Tố
 // ============================================================
-// Hình lấy từ atlas elarion_fx.png (tools/build_fx_atlas.py art/elarion/fx_spec.json), 5 tấm + ngọc:
+// BẢN 3 — CHẠY KHUNG (flipbook), atlas elarion_fx2.webp (tools/fx_grid_pack.py art/elarion/fx2/fx2_spec.json — 7 tấm tranh AI của
+// người dùng, nền trong suốt thật), mỗi nhóm 4 khung:
+//   fireHit · iceHit · zapHit (trúng Hỏa / Băng / Lôi, giữa = điểm trúng) · storm (lốc 3 nguyên tố lặp, quanh chỗ trống cỡ 1 người)
+//   meteorBoom (thiên thạch nổ) · iceShatter (khối băng vỡ) — đáy = mặt đất · orb (Hỏa Lôi Cầu lặp, giữa = lõi) · tornado (lốc xoáy lặp,
+//   gốc = chóp dưới chạm đất) · bookFlash (ánh vàng bốc lên từ trang Sách, gốc = vòng chữ dưới đáy) · ward (Giáp Băng Sét: hiện ra 2 +
+//   giữ lặp 2) · skyStrike (sét trời giáng, gốc = điểm trúng dưới đáy) · summon (vòng 3 màu -> 3 cột sáng -> nổ đá -> bụi)
+//   fistTrail (vệt đấm lửa lặp, gốc = đầu lửa bên phải) · blizzard (luồng bão tuyết lặp, gốc = mũi nhọn bên trái = miệng Golem)
+// Hình lẻ BẢN 2 vẫn giữ (atlas elarion_fx.png, tools/build_fx_atlas.py art/elarion/fx_spec.json), 5 tấm + ngọc:
 //   fx-a ngọc / sách / bão : vòng lửa · vòng băng · vòng sét · vòng vàng rê chuột · bùng sáng · vệt bay · ngọc tan · ấn chữ trên sách · lốc 3 nguyên tố
 //   fx-b hỏa               : thiên thạch rơi · tảng đá lửa lăn · nổ thiên thạch · dải lửa · cầu hỏa lôi nhỏ / lớn · nổ hỏa lôi · tia lửa · hàng nổ lửa
 //   fx-c băng              : khối băng · băng vỡ · mảnh băng bay · tia băng · hàng gai băng · ngục băng · băng nổ tung · biểu tượng Hàn Khí · vòm băng sét
 //   fx-d lôi / mưa         : 2 tia sét xích · tia sét nổ · 2 khung lốc xoáy · mây giông · sét từ mây · giọt mưa hồi máu · tia sét nhỏ
 //   fx-e Golem / Tốc Lôi   : cột triệu hồi · đáp đất · vệt đấm lửa · khí lạnh xoáy · bão tuyết phun · sét đánh tay · song chưởng · vòng sét · golem vỡ
 //   ngọc (tấm 04)          : ngọc Hỏa / Băng / Lôi
+//   (bản 3 thay: nổ lửa / vỡ băng / nổ sét / lốc 3 màu / nổ thiên thạch / cầu hỏa lôi / lốc xoáy / ấn chữ Sách / vòm băng sét /
+//    cột triệu hồi / vệt đấm / luồng bão tuyết / sét giáng — các hình đó trong atlas bản 2 không dùng nữa)
 // Hình vẽ GIỮ NGUYÊN MÀU như tranh: trộn thường (alpha), không cộng sáng (cộng sáng trên nền cỏ / trời sáng làm cháy trắng, mất màu).
 // Chỉ các quầng sáng phụ (glow) mới cộng sáng nhẹ. Đá / mây / khối băng có ruột đặc (fx_spec "core").
 // Mọi hình vẽ nhìn sang PHẢI; nhìn trái thì lật gương (scale.x = -1).
+// Lớp đặt SAU lưng (lốc Bão Nguyên Tố, vòm Giáp Băng Sét) nghiêng cùng góc với mặt phẳng nhân vật (camTilt) + 1 lớp cộng sáng mờ
+// phía trước — người bên trong vẫn rõ (như vòm khiên Brakk / khiên Seraphine).
 //   Ngọc Nguyên Tố: f = Hỏa · i = Băng · b = Lôi
 import * as THREE from 'three';
 import { textureView } from './texView.js';
 import fxUrl from '../assets/sprites/elarion_fx.png';
 import fxMeta from './elarionFx.json';
+import fx2Url from '../assets/sprites/elarion_fx2.webp';
+import FX2 from './elarionFx2.json';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture, easeOut,
     spawnHitSpark, spawnShockwave, spawnLightning, spawnRisingSparkles, spawnLandingDust,
 } from './vfx.js';
-import { spawnEmbers, spawnFireHit } from './fireFx.js';
+import { spawnEmbers } from './fireFx.js';
 import { startBlizzard, startStorm } from './screenFx.js';
 import { gameTimeout } from '../config.js';
+import { makeFlipbook, loopFrame, weighted, fadeInOut, camTilt } from './flipbook.js';
 
 const FLOOR = -0.45;
 export const ELEM_COLOR = { f: 0xff6a2a, i: 0x67e8f9, b: 0xb784ff };
@@ -51,7 +65,6 @@ function sprite(name, height, { additive = false, opacity = 1, color = 0xffffff,
     const { texture, aspect } = tex(name);
     return fxPlane(texture, width ?? height * aspect, height, { additive, opacity, color });
 }
-function setFrame(mesh, name) { mesh.material.map = tex(name).texture; }
 /** Hình bật lên rồi tàn tại pos (+y), to dần `grow`, bay lên `rise`. glow > 0: thêm quầng cộng sáng màu glowColor */
 function pop(name, pos, { size = 1.6, life = 0.5, y = 1.0, z = 0.7, grow = 0.4, rise = 0, dir = 1, spin = 0, additive = false, opacity = 1, color = 0xffffff, glow = 0, glowColor = 0xffffff, hold = 0.6 } = {}) {
     const m = sprite(name, size, { additive, opacity, color });
@@ -97,6 +110,35 @@ function boltSeg(a, b, { width = 1.2, life = 0.28, name } = {}) {
         m.material.opacity = f; hot.material.opacity = 0.55 * f;
     });
     return g;
+}
+
+// ---------- Atlas bản 3: chạy khung ----------
+const FB = makeFlipbook(fx2Url, FX2);
+FB.tex('zapHit');   // tải atlas ngay khi vào game (khung đầu không bị trống)
+const frames = FB.frames;
+const setFx = FB.set;
+const seqFrame = (p, w) => weighted(Math.min(0.999, Math.max(0, p)), w);
+/** Chạy 1 nhóm 4 khung (gốc nhóm đặt ở x, y, z), trọng số thời lượng `w`. tilt: lớp SAU lưng nghiêng song song mặt phẳng nhân vật */
+function playGroup(group, height, x, y, z, { dir = 1, life = 0.5, w = [0.6, 1, 1, 1.1], a = 0.04, b = 0.8, grow = 0, opacity = 1, additive = false, tilt = false } = {}) {
+    const m = frames(group, height, { opacity: 0, additive });
+    m.scale.x = dir;
+    m.position.set(x, y, z);
+    if (tilt) m.rotation.x = camTilt();
+    addAnim(m, life, (p, fx) => {
+        setFx(fx.mesh, seqFrame(p, w));
+        const s = 1 + grow * easeOut(p);
+        fx.mesh.scale.set(dir * s, s, 1);
+        fx.mesh.material.opacity = opacity * fadeInOut(p, a, b);
+    });
+    return m;
+}
+const HIT = { f: 'fireHit', i: 'iceHit', b: 'zapHit' };
+/** Nổ trúng đòn hệ `el` (4 khung: loé -> bùng -> to nhất -> tàn), giữa hình ở `pos` + y. size 1 = cỡ ngực 1 người */
+function hitBurst(el, pos, { size = 1, y = 1.0, z = 0.7, life = 0.36, glow = true } = {}) {
+    const k = HIT[el] ? el : 'b';
+    playGroup(HIT[k], 1.9 * size, pos.x, (pos.y ?? 0) + y, (pos.z ?? 0) + z,
+        { dir: Math.random() < 0.5 ? -1 : 1, life, w: [0.55, 1, 1.15, 1.3], a: 0.02, b: 0.72, grow: 0.08 });
+    if (glow) flash({ x: pos.x, y: (pos.y ?? 0) + y - 1, z: pos.z }, ELEM_COLOR[k], { size: 1.3 * size, y: 1, life: 0.22, opacity: 0.5 });
 }
 
 // ---------- Ngọc ----------
@@ -167,24 +209,32 @@ export function spawnGemFly(from, getTo, el, { duration = 0.28, onDone } = {}) {
 }
 
 // ---------- Sách / Bão ----------
-/** Đọc Sách: ấn chữ vàng bốc lên từ trang sách + 3 vòng nguyên tố của 3 viên vừa đọc */
+/** Đọc Sách: ánh vàng + chữ cổ + 3 quả cầu nguyên tố bốc lên từ trang Sách (4 khung, gốc = vòng chữ đặt đúng giữa trang Sách
+ *  `from`) + 3 vòng nguyên tố của 3 viên vừa đọc */
 export function spawnBookFlash(pos, recipe = [], from = null) {
-    const o = from ?? { x: pos.x, y: 2.0, z: pos.z };
+    const o = from ?? { x: pos.x + 0.6, y: 1.3, z: pos.z };
     groundRing(pos, GOLD, 1.4, 0.6);
-    pop('bookRune', o, { size: 2.3, y: 0.45, life: 0.85, rise: 0.45, grow: 0.25, glow: 0.8, glowColor: GOLD });
-    recipe.forEach((el, k) => gameTimeout(() => pop(RING[el], { x: o.x + (k - 1) * 0.7, y: o.y, z: o.z }, { size: 0.95, y: 1.4, life: 0.5, grow: 0.6 }), 60 + k * 80));
+    playGroup('bookFlash', 2.4, o.x, (o.y ?? 1.3) - 0.08, (o.z ?? 0) + 0.55, { life: 1.0, w: [0.8, 1, 1.25, 1.4], a: 0.03, b: 0.72 });
+    flash({ x: o.x, y: (o.y ?? 1.3) - 1, z: o.z }, GOLD, { size: 1.6, y: 1, life: 0.35, opacity: 0.55 });
+    recipe.forEach((el, k) => gameTimeout(() => pop(RING[el], { x: o.x + (k - 1) * 0.7, y: o.y, z: o.z }, { size: 0.95, y: 1.9, life: 0.5, grow: 0.6 }), 220 + k * 80));
 }
-/** Bão Nguyên Tố: lốc 3 nguyên tố xoáy quanh pháp sư */
-export function spawnStormStart(pos) {
-    const v = sprite('stormVortex', 4.4, { opacity: 0.95 });
-    v.position.set(pos.x, 1.4, (pos.z ?? 0) + 0.7);
-    addAnim(v, 1.1, (p, fx) => {
-        const s = 0.5 + easeOut(Math.min(1, p / 0.35)) * 0.7;
-        fx.mesh.scale.setScalar(s);
-        fx.mesh.rotation.z -= 0.12;
-        fx.mesh.material.opacity = 0.95 * (p > 0.65 ? (1 - p) / 0.35 : 1);
-    });
-    flash(pos, 0xffffff, { size: 4, y: 1.3, life: 0.4, opacity: 0.5 });
+/** Bão Nguyên Tố: lốc 3 nguyên tố (4 khung lặp) xoáy quanh pháp sư — lớp sau lưng (nghiêng theo camera) + ánh cộng sáng phía trước */
+export function spawnStormStart(pos, { height = 2.6 } = {}) {
+    const H = height * 1.75, life = 1.4;
+    const layer = (z, additive, op) => {
+        const m = frames('storm', H, { opacity: 0, additive });
+        m.position.set(pos.x, FLOOR + 0.02, (pos.z ?? 0) + z);
+        if (!additive) m.rotation.x = camTilt();
+        addAnim(m, life, (p, fx) => {
+            setFx(fx.mesh, loopFrame(fx.age, 12, 4));
+            const s = 0.55 + 0.45 * easeOut(Math.min(1, p / 0.25));
+            fx.mesh.scale.set(s, s, 1);
+            fx.mesh.material.opacity = op * fadeInOut(p, 0.08, 0.7);
+        });
+    };
+    layer(-0.45, false, 1);
+    layer(0.5, true, 0.32);
+    flash(pos, 0xfff1d6, { size: 3.6, y: 1.3, life: 0.35, opacity: 0.28 });
     [FIRE, ICE, VIOLET].forEach((c, k) => gameTimeout(() => spawnShockwave(pos, { color: c, radius: 4 + k, life: 0.6 }), k * 90));
 }
 
@@ -204,9 +254,9 @@ export function spawnElemBolt(from, to, el = 'b', { duration = 0.16, onHit } = {
         if (p >= 1 && !hit) { hit = true; onHit?.(); }
     });
 }
-export function spawnElemHit(pos, el = 'b') {
-    const name = el === 'f' ? 'fireBlast' : el === 'i' ? 'iceBreak' : 'zapBurst';
-    pop(name, pos, { size: 1.5, y: 1.0, life: 0.32, grow: 0.3 });
+/** Trúng đòn hệ el (đánh thường / Thiên Thạch / mảnh Băng Phong / Lôi Xích...) — chí mạng: to hơn */
+export function spawnElemHit(pos, el = 'b', { size = 1, crit = false } = {}) {
+    hitBurst(el, pos, { size: size * (crit ? 1.3 : 1) });
 }
 
 // ---------- Phép ----------
@@ -226,7 +276,8 @@ export function spawnMeteor(m) {
         fx.mesh.position.set(x0 + (m.x - x0) * e, y0 + (y1 - y0) * e, z);
     });
     gameTimeout(() => {
-        pop('meteorBoom', { x: m.x, z: m.z }, { size: 6.4, y: FLOOR + 2.8, life: 0.85, grow: 0.2, z: 0.75, hold: 0.55 });
+        // nổ lớn 4 khung (loé trên đất -> bùng lên, đá lửa văng -> cột lửa khói to nhất -> sụp thành khói, mép hố đỏ rực)
+        playGroup('meteorBoom', 6.0, m.x, FLOOR + 0.02, (m.z ?? 0) + 0.75, { life: 1.05, w: [0.45, 1, 1.3, 1.6], a: 0.02, b: 0.8 });
         flash({ x: m.x, z: m.z }, FIRE, { size: 8, y: 1.2, life: 0.45, opacity: 0.6 });
         spawnShockwave({ x: m.x, z: m.z }, { color: FIRE, radius: (m.radius ?? 4) * 1.2, life: 0.65 });
         spawnEmbers(m.x, m.z, { count: 24, radius: 2.4, life: 1.1 });
@@ -261,44 +312,43 @@ function spawnFireTrailPatch(x, z, life, dir = 1) {
         fx.mesh.material.opacity = Math.min(1, p * 10) * (p > 0.7 ? (1 - p) / 0.3 : 1);
     });
 }
-/** Trúng băng: băng vỡ bung dưới chân */
+/** Trúng băng (mảnh Băng Phong, tia băng, Bão Tuyết làm đóng băng): pha lê băng vỡ bung ở ngực */
 export function spawnIceHit(pos) {
-    pop('iceSmash', pos, { size: 1.9, y: 0.4, life: 0.5, grow: 0.25 });
+    hitBurst('i', pos, { size: 1.05, y: 0.85, life: 0.4 });
 }
 /** Lôi Xích: sét nảy lần lượt qua các điểm (points = [{x,y,z}...], gap = giây giữa 2 lần nảy) */
 export function spawnChainLightning(points, gap = 0.12) {
     for (let k = 1; k < points.length; k++) {
         gameTimeout(() => {
             boltSeg(points[k - 1], points[k], { width: 1.6, life: 0.32 });
-            pop('zapBurst', points[k], { size: 1.6, y: 0, life: 0.28, grow: 0.3 });
+            hitBurst('b', points[k], { size: 0.95, y: 0, life: 0.32 });
         }, (k - 1) * gap * 1000);
     }
 }
 /** Sét giật ngắn (Giáp Băng Sét phản đòn / Hào Quang Sét của Golem) */
 export function spawnZap(from, to) {
     boltSeg(from, to, { width: 0.9, life: 0.22 });
-    pop('zapSmall', to, { size: 1.0, y: 0, life: 0.22, grow: 0.3 });
+    hitBurst('b', to, { size: 0.6, y: 0, life: 0.26, glow: false });
 }
-/** Lốc Xoáy: phễu gió xoáy KHỔNG LỒ (2 khung luân phiên) quét thẳng tới */
+/** Lốc Xoáy: phễu gió xoáy sét KHỔNG LỒ (4 khung lặp, chóp dưới chạm đất) quét thẳng tới */
 export function spawnTornado(t) {
-    const H = 6.6;
-    const m = sprite('tornado1', H);
-    let cur = 'tornado1', k = 0;
+    const H = 6.4;
+    const m = frames('tornado', H);
+    let k = 0;
     const travel = (t.travel ?? 900) / 1000;
     addAnim(m, travel + 0.3, (p, fx, dt) => {
         k += dt;
-        const n = Math.floor(k / 0.07) % 2 ? 'tornado2' : 'tornado1';
-        if (n !== cur) { cur = n; setFrame(fx.mesh, n); }
+        setFx(fx.mesh, loopFrame(k, 14, 4));
         const q = Math.min(1, p * (travel + 0.3) / travel);
-        fx.mesh.position.set(t.x0 + t.ux * t.length * q + Math.sin(k * 25) * 0.1, FLOOR + H * 0.48, t.z0 + t.uz * t.length * q + 0.75);
+        fx.mesh.position.set(t.x0 + t.ux * t.length * q + Math.sin(k * 25) * 0.1, FLOOR + 0.03, t.z0 + t.uz * t.length * q + 0.75);
         const s = Math.min(1, p * 5);
         fx.mesh.scale.set(s, s, 1);
         fx.mesh.material.opacity = p > 0.85 ? (1 - p) / 0.15 : 1;
     });
 }
-/** Hỏa Lôi Cầu nổ */
+/** Hỏa Lôi Cầu nổ (dùng lại nổ lớn của Thiên Thạch, nhỏ hơn) + sét tím toé ra */
 export function spawnFireBoltBlast(x, z, radius = 3) {
-    pop('fireBlast', { x, z }, { size: radius * 1.9, y: 1.3, life: 0.65, grow: 0.25, hold: 0.5 });
+    playGroup('meteorBoom', radius * 1.55, x, FLOOR + 0.02, (z ?? 0) + 0.75, { life: 0.85, w: [0.45, 1, 1.25, 1.5], a: 0.02, b: 0.78 });
     flash({ x, z }, FIRE, { size: radius * 2.4, y: 1.2, life: 0.4, opacity: 0.6 });
     spawnShockwave({ x, z }, { color: VIOLET, radius: radius * 0.9, life: 0.5 });
     for (let k = 0; k < 4; k++) boltSeg({ x, y: 1, z }, { x: x + (Math.random() - 0.5) * radius * 2, y: 2.2 + Math.random() * 1.5, z }, { width: 0.8, life: 0.25 });
@@ -309,10 +359,11 @@ export function spawnHasteBurst(pos) {
     pop('hasteRing', pos, { size: 2.6, y: 1.3, life: 0.6, grow: 0.5 });
     groundRing(pos, VIOLET, 1.4, 0.5);
 }
-/** Giáp Băng Sét vừa bật */
+/** Giáp Băng Sét vừa bật: sét giật + bụi băng bốc lên (vòm hiện ra 2 khung rồi giữ lặp do makeWardDome — view tự gắn theo trạng thái) */
 export function spawnWardPop(pos, height = 2.4) {
-    pop('wardDome', pos, { size: height * 0.95, y: height * 0.45, life: 0.5, grow: 0.3 });
     spawnZap({ x: pos.x - 0.6, y: height, z: pos.z ?? 0 }, { x: pos.x + 0.6, y: 0.3, z: pos.z ?? 0 });
+    spawnRisingSparkles({ x: pos.x, z: pos.z ?? 0 }, { count: 10, color: ICE, radius: height * 0.45 });
+    flash({ x: pos.x, z: pos.z }, ICE, { size: height * 1.3, y: height * 0.5, life: 0.35, opacity: 0.45 });
 }
 
 // ---------- Phép bản 2 ----------
@@ -340,7 +391,8 @@ export function spawnIceBlockDrop(f) {
     }, f.start ?? 0);
     const land = (f.start ?? 0) + (f.form ?? 1500) + (f.fall ?? 300);
     gameTimeout(() => {
-        pop('iceSmash', { x: f.x, z: f.z }, { size: 5.4, y: FLOOR + 2.4, life: 0.7, grow: 0.2, z: 0.85, hold: 0.55 });
+        // khối băng vỡ 4 khung (đáy khối nện xuống loé trắng -> nứt thành tảng lớn -> văng vụn + bông tuyết -> sương tan)
+        playGroup('iceShatter', 5.2, f.x, FLOOR + 0.02, (f.z ?? 0) + 0.85, { life: 0.95, w: [0.5, 1, 1.2, 1.5], a: 0.02, b: 0.78 });
         flash({ x: f.x, z: f.z }, ICE, { size: 6, y: 1, life: 0.4, opacity: 0.5 });
         spawnShockwave({ x: f.x, z: f.z }, { color: ICE, radius: 7, life: 0.6 });
         spawnLandingDust({ x: f.x, z: f.z }, 12);
@@ -351,35 +403,38 @@ export function spawnIceBlockDrop(f) {
                 fx.mesh.position.set(f.x + (p.x - f.x) * q, FLOOR + 1 + Math.sin(q * Math.PI) * 3.6, (f.z ?? 0) + ((p.z ?? 0) - (f.z ?? 0)) * q + 0.8);
                 fx.mesh.rotation.z += 0.25;
             });
-            gameTimeout(() => pop('iceBreak', { x: p.x, z: p.z }, { size: 1.8, y: 0.6, life: 0.4 }), fly * 1000);
+            gameTimeout(() => hitBurst('i', { x: p.x, z: p.z }, { size: 0.9, y: 0.55, life: 0.38 }), fly * 1000);
         });
     }, land);
 }
-/** Hỏa Lôi Cầu: quả cầu hiện ở điểm cách Elarion 1 khoảng phía trước, to dần `grow` rồi nổ tại chỗ */
+/** Hỏa Lôi Cầu: quả cầu lửa sét KHỔNG LỒ (4 khung lặp) hiện ở điểm cách Elarion 1 khoảng phía trước, to dần `grow` rồi nổ tại chỗ.
+ *  Cầu cao 1,6 -> ~1,7 lần bán kính nổ (bán kính 4,5: cao ~7,6 — trùm cả hàng địch), đáy cầu luôn trên mặt đất */
 export function spawnGrowingOrb(b) {
     const grow = (b.grow ?? 2000) / 1000;
-    const orb = sprite('orbSmall', 1);
-    const glow = fxPlane(glowTexture(), 1.6, 1.6, { color: FIRE, opacity: 0.45 });
+    const R = b.radius ?? 4.5, H0 = 1.6, H1 = R * 1.7;
+    const orb = frames('orb', 1);   // gốc = lõi trắng giữa cầu
+    const glow = fxPlane(glowTexture(), 1.4, 1.4, { color: FIRE, opacity: 0.45 });
     const g = new THREE.Group(); g.add(glow, orb);
     gameTimeout(() => {
-        let zt = 0, cur = 'orbSmall';
+        let zt = 0, ph = 0;
         addAnim(g, grow, (p, fx, dt) => {
-            const s = 1.0 + p * p * 3.6;
-            const n = p > 0.4 ? 'orbBig' : 'orbSmall';
-            if (n !== cur) { cur = n; setFrame(orb, n); }
-            fx.mesh.position.set(b.x, FLOOR + 1.8 + p * 0.9, (b.z ?? 0) + 0.8);
-            orb.scale.setScalar(s * (1 + 0.06 * Math.sin(p * 70)));
-            orb.rotation.z -= dt * (2 + p * 6);
-            glow.scale.setScalar(s * 1.2);
+            const H = H0 + (H1 - H0) * p * p;
+            const cy = FLOOR + 0.35 + H * 0.46;
+            ph += dt * (11 + p * 7);   // lửa xoáy nhanh dần
+            setFx(orb, Math.floor(ph) % 4);
+            fx.mesh.position.set(b.x, cy, (b.z ?? 0) + 0.8);
+            orb.scale.setScalar(H * (1 + 0.05 * Math.sin(p * 70)));
+            orb.rotation.z -= dt * (0.6 + p * 1.8);
+            glow.scale.setScalar(H * 1.1);
             zt -= dt;
             if (zt <= 0) {
-                zt = 0.14 - p * 0.08;
-                const a = Math.random() * Math.PI * 2, r = s * 0.6;
-                const c = { x: b.x, y: FLOOR + 1.8 + p * 0.9, z: b.z ?? 0 };
-                boltSeg(c, { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r, z: c.z }, { width: 0.6, life: 0.14 });
+                zt = 0.12 - p * 0.07;
+                const a = Math.random() * Math.PI * 2, r = H * 0.5;
+                const c = { x: b.x, y: cy, z: b.z ?? 0 };
+                boltSeg(c, { x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r, z: c.z }, { width: 0.6 + p * 0.5, life: 0.14 });
             }
         });
-        groundRing(b, VIOLET, b.radius ?? 3.5, grow);
+        groundRing(b, VIOLET, R, grow);
     }, b.start ?? 0);
 }
 // ---------- Băng Hoại Hỏa Thiên: SolarBeam băng-hỏa kiểu Kamehameha ----------
@@ -739,7 +794,7 @@ export function spawnCloudStrike(pos, sky = null) {
     const bot = { x: pos.x, y: 0.2, z: pos.z ?? 0 };
     boltSeg(top, mid, { width: 1.9, life: 0.35 });
     boltSeg(mid, bot, { width: 1.9, life: 0.35 });
-    pop('zapBurst', pos, { size: 2.6, y: 0.5, life: 0.35, grow: 0.3 });
+    hitBurst('b', pos, { size: 1.35, y: 0.6, life: 0.36, glow: false });
     flash(pos, VIOLET, { size: 3.2, y: 0.6, life: 0.35, opacity: 0.6 });
     sky?.flash?.();
 }
@@ -806,24 +861,24 @@ export function spawnInhale(pos, dir = 1, life = 2) {
  * Trả về { stop() }.
  */
 export function spawnBreath(pos, dir = 1, life = 6, { getMouth, alive } = {}) {
-    const H = 3.4;
-    const cone = sprite('blizzard', H, { opacity: 0 });
-    const W = H * tex('blizzard').aspect;
+    // luồng bão tuyết 4 khung lặp: gốc nhóm = mũi nhọn bên trái của tranh = miệng Golem, loe dần về phía địch (~9,6 đơn vị)
+    const H = 3.2;
+    const cone = frames('blizzard', H, { opacity: 0 });
     const g = new THREE.Group();
-    cone.position.x = W * 0.5;
     g.add(cone);
-    g.scale.x = dir * 1.8;
-    g.rotation.z = -dir * 0.16;   // chúi xuống hàng địch
+    g.scale.x = dir;
+    g.rotation.z = -dir * 0.14;   // chúi xuống hàng địch
     let t = 0, endAt = life, k = 0;
     const screen = startBlizzard({ dir, duration: life * 1000, alive });
     const fx = addAnim(g, life, (p, f, dt) => {
         const m = getMouth?.() ?? pos;
         if (alive && !alive() && endAt > f.age + 0.2) { endAt = f.age + 0.2; f.life = Math.min(f.life, f.age + 0.25); }
-        f.mesh.position.set(m.x, (m.y ?? 2.2) - 0.25, (m.z ?? 0) + 0.85);
+        f.mesh.position.set(m.x + dir * 0.1, (m.y ?? 2.2) - 0.08, (m.z ?? 0) + 0.85);
         const target = f.age > endAt - 0.4 ? Math.max(0, (endAt - f.age) / 0.4) : Math.min(1, f.age * 4);
         k += (target - k) * Math.min(1, dt * 12);
-        cone.material.opacity = k * (0.88 + 0.12 * Math.sin(f.age * 50));
-        cone.scale.y = 1 + 0.08 * Math.sin(f.age * 40);
+        setFx(cone, loopFrame(f.age, 10, 4));
+        cone.material.opacity = k * (0.9 + 0.1 * Math.sin(f.age * 50));
+        cone.scale.y = 1 + 0.05 * Math.sin(f.age * 40);
         t -= dt;
         if (t > 0 || k < 0.3) return;
         t = 0.07;
@@ -843,61 +898,66 @@ export function spawnFistFlame(getPos, life = 1) {
     addAnim(new THREE.Group(), life, (p, fx, dt) => {
         t -= dt;
         if (t > 0) return;
-        t = 0.08;
+        t = 0.09;
         const q = getPos?.();
         if (!q) return;
-        pop('fireBlast', q, { size: 1.4 + Math.random() * 0.6, y: 0, life: 0.3, grow: 0.3, spin: (Math.random() - 0.5) * 2 });
+        hitBurst('f', q, { size: 0.6 + Math.random() * 0.25, y: 0, z: 0.75, life: 0.3, glow: false });
         spawnEmbers(q.x, q.z ?? 0, { count: 2, radius: 0.5, life: 0.5 });
     });
 }
 
 // ---------- Golem ----------
+/** Golem trồi lên: vòng 3 màu trên đất -> 3 cột sáng Hỏa / Băng / Lôi -> nổ đá bazan -> bụi lắng (4 khung).
+ *  Lớp chính SAU lưng Golem (nghiêng theo camera, Golem trồi lên ở giữa vẫn rõ) + lớp mờ phía trước chỉ lúc cột sáng / nổ đá */
 export function spawnGolemSummon(x, z) {
     const pos = { x, z };
-    pop('summonPillar', pos, { size: 6.5, y: FLOOR + 3.2, life: 1.0, grow: 0.15 });
+    const H = 6.2, life = 1.0, w = [0.55, 0.75, 1.1, 1.6];   // nổ đá ~0,33–0,6s: đúng lúc Golem đứng dậy gầm (động tác summon)
+    playGroup('summon', H, x, FLOOR + 0.02, (z ?? 0) - 0.35, { life, w, a: 0.03, b: 0.8, tilt: true });
+    const front = frames('summon', H, { opacity: 0 });
+    front.position.set(x, FLOOR + 0.02, (z ?? 0) + 0.55);
+    addAnim(front, life, (p, fx) => {
+        const f = seqFrame(p, w);
+        setFx(fx.mesh, f);
+        fx.mesh.material.opacity = f === 0 ? 0 : 0.55 * fadeInOut(p, 0.28, 0.62);
+    });
     groundRing(pos, GOLD, 3.2, 0.9);
     gameTimeout(() => {
-        pop('landBurst', pos, { size: 3.4, y: FLOOR + 1.5, life: 0.7, grow: 0.3 });
         spawnLandingDust(pos, 18);
         spawnShockwave(pos, { color: 0xa8a29e, radius: 4, life: 0.5 });
-    }, 350);
+    }, 340);
 }
 export function spawnGolemCrumble(pos) {
     pop('crumble', pos, { size: 4.2, y: FLOOR + 2.0, life: 1.1, grow: 0.1, hold: 0.5 });
     spawnLandingDust(pos, 16);
     spawnHitSpark(at(pos, 0.6, 0), { count: 10, color: 0x78716c, size: 1.6 });
 }
-/** Nộ Lửa: vệt đấm lửa phía trước Golem suốt đường lao (f.getFist() = điểm trước nắm đấm mỗi khung hình, nếu có) */
+/** Nộ Lửa: vệt đấm lửa (4 khung lặp) bám nắm đấm suốt đường lao — đầu lửa trùm nắm đấm, đuôi lửa + khói kéo ra sau
+ *  (f.getFist() = nắm đấm phía trước mỗi khung hình, nếu có) */
 export function spawnFistDash(f) {
     const life = (f.time ?? 1200) / 1000;
     const dir = Math.sign(f.toX - f.fromX) || 1;
-    const H = 2.4;
-    const trail = sprite('fistTrail', H);
-    const W = H * tex('fistTrail').aspect;
+    const trail = frames('fistTrail', 1.9, { opacity: 0 });   // gốc = giữa đầu lửa
     trail.scale.x = dir;
     let t = 0;
     addAnim(trail, life, (p, fx, dt) => {
+        setFx(fx.mesh, loopFrame(fx.age, 14, 4));
         const x = f.fromX + (f.toX - f.fromX) * p, z = f.fromZ + (f.toZ - f.fromZ) * p;
         const fist = f.getFist?.();
-        if (fist) fx.mesh.position.set(fist.x - dir * W * 0.3, fist.y, (fist.z ?? z) + 0.5);
-        else fx.mesh.position.set(x + dir * (1.4 - W * 0.3), 1.8, z + 0.9);
+        if (fist) fx.mesh.position.set(fist.x + dir * 0.25, fist.y, (fist.z ?? z) + 0.5);
+        else fx.mesh.position.set(x + dir * 1.6, 1.8, z + 0.9);
         fx.mesh.material.opacity = Math.min(1, p * 10) * (p > 0.85 ? (1 - p) / 0.15 : 1);
         t -= dt;
         if (t > 0) return;
         t = 0.1;
-        spawnFireHit({ x: (fist?.x ?? x) - dir * 1.6, z }, { size: 1.0 });
+        spawnEmbers((fist?.x ?? x) - dir * 2.2, z, { count: 3, radius: 0.7, life: 0.6 });   // tàn lửa rơi lại sau đường lao
     });
 }
 export function spawnBlizzardRoar(pos, dir = 1) {
     spawnShockwave(pos, { color: 0xe0f7ff, radius: 7, life: 0.7 });
 }
-/** Hào Quang Sét: sét từ trời giáng xuống Golem (pos = điểm trúng) */
+/** Hào Quang Sét: sét từ trời giáng xuống Golem (4 khung: tia mảnh -> tia dày + loé -> tia tan, sét toé -> tàn; gốc = điểm trúng) */
 export function spawnSkyStrike(pos) {
-    const top = { x: pos.x + 0.6, y: 12, z: pos.z ?? 0 };
-    const mid = { x: pos.x - 0.5, y: (pos.y ?? 2) + 4, z: pos.z ?? 0 };
-    boltSeg(top, mid, { width: 2.4, life: 0.4 });
-    boltSeg(mid, pos, { width: 2.4, life: 0.4 });
-    pop('zapBurst', pos, { size: 3.2, y: 0, life: 0.38, grow: 0.4 });
+    playGroup('skyStrike', 8.5, pos.x, pos.y ?? 2, (pos.z ?? 0) + 0.7, { life: 0.55, w: [0.7, 1, 1.1, 1.3], a: 0.02, b: 0.75 });
     flash(pos, VIOLET, { size: 5, y: 0, life: 0.45, opacity: 0.7 });
     spawnShockwave({ x: pos.x, z: pos.z }, { color: VIOLET, radius: 4, life: 0.5 });
 }
@@ -915,20 +975,28 @@ export function makeIceBlock(height = 2.9) {
         dispose() { g.removeFromParent(); m.material.dispose(); m.geometry.dispose(); },
     };
 }
-/** Vòm Giáp Băng Sét quanh người (máu khiên còn nhiều -> vòm đậm) */
+/** Vòm Giáp Băng Sét quanh người (gốc nhóm = chân): pha lê băng trồi lên (khung 1 -> 2) rồi vòm kín giữ lặp (3 - 4) —
+ *  lớp vòm SAU lưng (nghiêng theo camera) + ánh cộng sáng mờ phía trước; máu khiên còn nhiều -> vòm đậm */
 export function makeWardDome(height = 2.4) {
     const g = new THREE.Group();
-    const dome = sprite('wardDome', height * 1.15, { opacity: 0, width: height * 1.3 });
-    dome.position.set(0, height * 0.52, 0.5);
-    g.add(dome);
+    const H = height * 1.4;
+    const back = frames('ward', H, { opacity: 0 });
+    back.position.set(0, 0.02, -0.4);
+    const sheen = frames('ward', H, { opacity: 0, additive: true });
+    sheen.position.set(0, 0.02, 0.5);
+    g.add(back, sheen);
     let t = 0;
     return {
         group: g,
         update(dt, k, frac = 1) {
             t += dt;
-            dome.material.opacity = k * (0.45 + 0.4 * frac) * (0.9 + 0.1 * Math.sin(t * 9));
+            const f = t < 0.45 ? seqFrame(t / 0.45, [1, 1, 1]) : 2 + loopFrame(t, 3, 2);
+            setFx(back, f); setFx(sheen, f);
+            back.rotation.x = camTilt();
+            back.material.opacity = k * (0.5 + 0.4 * frac) * (0.92 + 0.08 * Math.sin(t * 9));
+            sheen.material.opacity = k * (0.1 + 0.14 * frac) * (0.85 + 0.15 * Math.sin(t * 4));
         },
-        dispose() { g.removeFromParent(); dome.material.dispose(); dome.geometry.dispose(); },
+        dispose() { g.removeFromParent(); [back, sheen].forEach(m => { m.material.dispose(); m.geometry.dispose(); }); },
     };
 }
 export { sparkTexture };

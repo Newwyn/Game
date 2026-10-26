@@ -7,8 +7,12 @@
 // Dùng cho MỌI nhân vật: visual.sprite = { image, meta, idle: {A,B,C}, defaultIdle, clips, lean?, fire? }
 //   clips[clip].mode: strike (khung ra đòn = hitTime) · clip (trải theo clip) · hold (vào thế rồi lặp) · once · loop · still (1 khung + thở)
 //   clips[clip].noSpin: tranh đã vẽ sẵn vòng lộn (VD Phóng Bùa của Jessica) -> bỏ xoay lộn của khung xương
+//   clips[clip].at (mode strike): giây bắt đầu của từng khung thay cho chia đều (VD Bá Vương Quật của Brakk khớp nhịp nhảy vọt)
+//   giant / giantIdle / giantTint (Brakk): đang Khổng Lồ -> clip tranh khổng lồ / khung đứng khổng lồ / ám màu tranh thường
 //   fire (tuỳ chọn, chỉ nhân vật có lửa / vật trên tay như Ignar): { palmOffset, gatherOffset } + clips[].fire / gather
 // Điểm gắn từng khung (mũi kiếm, đầu cung, tay cầm lụa...): view.pointWorld(tên) -> toạ độ thế giới, null nếu khung không có.
+//   stickyPts (Elarion, Golem): events.js jointPoint lấy điểm của khung gần nhất có đánh dấu khi khung đang hiện không có
+//   (thay cho khớp của khung xương ẩn — dáng bản cũ khác hẳn tranh mới).
 // Lưu ý: KHÔNG đặt tên SpriteCharacterView.js (cap_nhat_github.bat đang xoá tên đó).
 // ============================================================
 import * as THREE from 'three';
@@ -55,7 +59,9 @@ export class FrameSpriteView extends CutoutCharacterView {
         for (const m of this.materials) m.visible = false;
 
         // Chiều cao như bản khung xương: chân -> đỉnh tóc của khung đứng (trung vị)
-        const tops = Object.keys(meta.frames).filter(k => /^idle\d/.test(k)).map(k => meta.frames[k].top).sort((a, b) => a - b);
+        //   heightFrames (tuỳ chọn): khung tính chiều cao khi nhân vật không có khung idle riêng (Golem: walk1)
+        const ref = sp.heightFrames ?? Object.keys(meta.frames).filter(k => /^idle\d/.test(k));
+        const tops = ref.map(k => meta.frames[k].top).sort((a, b) => a - b);
         // topScale (tuỳ chọn): đỉnh hình khung đứng không phải đỉnh tóc (VD đầu gậy Seraphine cao hơn tóc) -> tỉ lệ đỉnh tóc / đỉnh hình
         this._u = this.height / (tops[tops.length >> 1] * (sp.topScale ?? 1));
 
@@ -118,13 +124,20 @@ export class FrameSpriteView extends CutoutCharacterView {
         const src = name;
         const hv = this.sprite.hover?.[name];
         if (hv && (this._hover ?? 0) > 0.35 && this.sprite.clips?.[hv]) name = hv;
+        // dạng Khổng Lồ (Brakk): clip có tranh khổng lồ riêng -> dùng tranh đó; clip không có -> tranh thường + ánh dung nham
+        const gv = this._giantOn ? this.sprite.giant?.[name] : null;
+        if (gv && this.sprite.clips?.[gv]) name = gv;
+        this._giantArt = !!this._giantOn && (!!gv || (this.sprite.giantIdle && !this.sprite.clips?.[name]));
         if (name !== this._clipName) { this._clipName = name; this._clipT = 0; } else this._clipT += dt;
         if (sub) time = this._clipT;
         const cfg = this.sprite.clips?.[name];
         if (cfg) {
             const fr = cfg.frames, n = fr.length, t = this._clipT;
             let k = 0;
-            if (cfg.mode === 'strike') {
+            if (cfg.mode === 'strike' && cfg.at) {
+                // `at`: giây bắt đầu của từng khung (khớp nhịp nhảy / quật do events.js điều khiển)
+                for (let i = 0; i < n; i++) if (time >= cfg.at[i]) k = i;
+            } else if (cfg.mode === 'strike') {
                 const dur = this.actions[src]?.getClip().duration ?? 0.6;
                 const h = Math.min(this._hitOf[src] ?? dur * 0.4, dur * 0.9);
                 const pre = cfg.release - 1, post = n - pre;
@@ -146,10 +159,10 @@ export class FrameSpriteView extends CutoutCharacterView {
             }
             return { frame: fr[Math.max(0, k)], cfg, n: Math.max(0, k) + 1 };
         }
-        // khung đứng (đếm lại từ khung đầu mỗi lần quay về đứng)
+        // khung đứng (đếm lại từ khung đầu mỗi lần quay về đứng) — đang Khổng Lồ: khung thủ thế khổng lồ
         if (this._clipT === 0) this._idleT = 0;
         this._idleT += dt;
-        const I = this._idle;
+        const I = (this._giantOn && this.sprite.giantIdle) || this._idle;
         const frame = I.frames.length === 1 ? I.frames[0] : I.frames[Math.floor(this._idleT * I.fps + 1e-6) % I.frames.length];
         return { frame, cfg: null, n: 0, lean: this._lean.has(name) };
     }
@@ -170,7 +183,15 @@ export class FrameSpriteView extends CutoutCharacterView {
         // nghiêng người (động tác chưa có tấm riêng)
         this._leanG.rotation.z = lean && this.parts.torso ? (this.parts.torso.rotation.z - this._torsoRest) * 0.6 : 0;
         // thở bằng code (cách đứng C / clip 'still'): gốc ở chân nên không trượt chân
-        const breathing = cfg ? cfg.mode === 'still' : this._idle.breath;
+        const breathing = cfg ? cfg.mode === 'still' : ((this._giantOn && this.sprite.giantIdle) || this._idle).breath;
+        // Khổng Lồ mà động tác chưa có tranh khổng lồ (trúng đòn, túm quật, dậm...): ám cam dung nham (nháy trắng khi trúng đòn vẫn giữ)
+        const tintOn = !!(this._giantOn && this.sprite.giantTint && !this._giantArt);
+        if (tintOn !== !!this._tintOn) {
+            this._tintOn = tintOn;
+            const mat = this._spMesh.material;
+            if (tintOn) mat.userData.baseColor = new THREE.Color(this.sprite.giantTint); else delete mat.userData.baseColor;
+            if (!(this._flashTime > 0)) { if (tintOn) mat.color.copy(mat.userData.baseColor); else mat.color.setScalar(mat.userData.baseShade ?? 1); }
+        }
         const br = breathing ? Math.sin((cfg ? this._clipT : this._idleT) * Math.PI) : 0;
         this._spMesh.scale.set(1 - 0.004 * br, 1 + 0.012 * br, 1);
 

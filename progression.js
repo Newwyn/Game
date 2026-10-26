@@ -235,6 +235,8 @@ function computeStats(def, hero = { level: 1, rank: 0 }) {
             for (const k of MAIN_STATS) s[k] *= 1 + RANKS[r].bonus;
         }
     }
+    // NHÂN VẬT ĐẶC BIỆT (VD Elarion): hệ số riêng cho chỉ số chính, áp ở MỌI level (cộng thẳng vào chỉ số gốc thì lên Lv60 gần như mất tác dụng)
+    for (const [k, v] of Object.entries(def.statMul ?? {})) if (typeof s[k] === 'number') s[k] *= v;
     const race = RACE_DEFS[def.race];
     if (race) {
         for (const [k, v] of Object.entries(race.mul)) s[k] *= v;

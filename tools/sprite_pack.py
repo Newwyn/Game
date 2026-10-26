@@ -30,6 +30,13 @@ Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
      "footBand" theo tấm: ghi đè dải đáy tìm giày cho riêng tấm đó (VD tấm chém có chân sau nhấc gót).
      "solidFeet": true (cả spec, Zerith): gót / mũi giày chỉ tính các mảnh rộng >= footMin trong dải đáy — bỏ mũi đuôi quỷ,
        tua áo, mũi nhọn cán lưỡi hái chạm đất (không thì gót nhảy sang các mảnh đó, khung bị lệch ngang).
+     "cuts": [[x, y0, y1], ...] (theo tấm, Brakk): vạch dọc 2px (toạ độ tấm gốc) cắt chỗ 2 khung AI vẽ CHẠM nhau (nắm đấm khung này
+       chạm tóc khung bên cạnh) để tách đúng 8 khung; chỉ dùng khi tách vùng liền ra thiếu khung.
+     "anchorX": {"số khung": x} (theo tấm, Elarion): đặt TAY tâm đứng của khung đó = x trên tấm gốc (giữa 2 bàn chân / đầu gối) thay cho
+       mốc tự đo — dùng cho khung gục / quỳ / nằm mà đáy hình là cuốn sách rơi hay vạt áo trải đất (mốc tự đo bắt nhầm).
+     "split": true (theo tấm, Elarion): vùng liền phủ >= 2 TÂM Ô cùng hàng của lưới 4×2 (2 khung chạm nhau: tay áo / tóc dài / sách
+       chạm khung bên cạnh) được tách bằng watershed — hạt giống = dải dọc ±40px quanh từng tâm ô, ranh giới rơi đúng chỗ thắt hẹp
+       nơi 2 hình chạm nhau (không cần dò toạ độ "cuts"). Cần scikit-image.
      "ground": "group" hoặc ["tên nhóm", ...] (theo tấm): trục dọc = đường đất CHUNG của cả nhóm (trung vị đáy các khung cùng hàng tấm trong nhóm, đo
        trên tấm gốc) thay vì đáy từng khung -> khung nhảy / bật / xoạc chân giữ đúng độ cao AI vẽ (không bị kéo xuống đất).
 """
@@ -124,10 +131,40 @@ def load_sheet(path, key=None):
     return key_matte(rgb) if key == 'matte' else key_jade(rgb) if key == 'jade' else key_green(rgb)
 
 
-def split_frames(rgba, min_size=20000, attach=60):
+def split_touching(m, lab, n, min_size, grid=(4, 2), band=40):
+    """"split": vùng liền (lớn) phủ >= 2 tâm ô cùng hàng của lưới -> watershed theo khoảng cách tới mép, hạt giống = dải dọc
+    quanh từng tâm ô trong vùng đó. Trả về (lab, n) mới."""
+    from skimage.segmentation import watershed
+    cols, rows = grid
+    H, W = m.shape
+    cw = W / cols
+    X = np.arange(W)[None, :]
+    sizes = ndi.sum(m, lab, range(1, n + 1))
+    objs = ndi.find_objects(lab)
+    nxt = n
+    for i in range(n):
+        if sizes[i] <= min_size: continue
+        ys, xs = objs[i]
+        centers = [(c + 0.5) * cw for c in range(cols) if xs.start < (c + 0.5) * cw < xs.stop]
+        if len(centers) < 2: continue
+        comp = lab == i + 1
+        mk = np.zeros(m.shape, np.int32)
+        for q, cx in enumerate(centers): mk[comp & (np.abs(X - cx) < band)] = q + 1
+        ws = watershed(-ndi.distance_transform_edt(comp), mk, mask=comp, connectivity=2)
+        for q in range(1, len(centers)):
+            nxt += 1
+            lab[ws == q + 1] = nxt
+    return lab, nxt
+
+
+def split_frames(rgba, min_size=20000, attach=60, cuts=None, grid=None):
     alpha = rgba[..., 3].astype(np.float32) / 255
     m = alpha > 0.35
+    # "cuts" (theo tấm): [[x, y0, y1], ...] vạch dọc 2px tách 2 khung AI vẽ chạm nhau (VD nắm đấm khung 3 chạm tóc khung 4)
+    for x, y0, y1 in (cuts or []):
+        m[y0:y1, x:x + 2] = False
     lab, n = ndi.label(m, structure=np.ones((3, 3)))
+    if grid: lab, n = split_touching(m, lab, n, min_size, grid)   # "split": 2 khung chạm nhau -> tách theo tâm ô
     sizes = ndi.sum(m, lab, range(1, n + 1))
     objs = ndi.find_objects(lab)
     big = [i for i in range(n) if sizes[i] > min_size]
@@ -233,9 +270,10 @@ def main(spec_path, debug=None):
     gy = {}                                         # tên khung -> đường đất chung của nhóm (None: đáy khung)
     FB = spec.get('footBand', 30)                   # dải đáy tìm giày (px tấm gốc)
     fsrc, fband = {}, {}                            # tên khung -> (x, y gốc trên tấm, hệ số cỡ, tên tấm) · dải đáy riêng của tấm
+    fanc = {}                                       # tên khung -> tâm đứng đặt tay ("anchorX", toạ độ khung đã co giãn)
     for sname, sh in spec['sheets'].items():
         rgba = load_sheet(os.path.join(ROOT, sh['file']), sh.get('key', spec.get('key')))
-        imgs, offs = split_frames(rgba)
+        imgs, offs = split_frames(rgba, cuts=sh.get('cuts'), grid=spec.get('grid', [4, 2]) if sh.get('split') else None)
         pts = sh.get('points', {})               # điểm gắn đánh dấu tay: {"số khung (1..)": {"tên": [x, y] trên tấm gốc}}
         groups = sh.get('groups', [[sname, len(imgs), sh.get('anchor', 'toe')]])
         need = sum(g[1] for g in groups)
@@ -264,6 +302,7 @@ def main(spec_path, debug=None):
                 gy[f'{prefix}{i + 1}'] = (gnd[hrow] - oy) * s if hrow in gnd else None
                 fsrc[f'{prefix}{i + 1}'] = (ox, oy, s, sname)
                 fband[f'{prefix}{i + 1}'] = sh.get('footBand', FB)
+                if str(k) in sh.get('anchorX', {}): fanc[f'{prefix}{i + 1}'] = (sh['anchorX'][str(k)] - ox) * s
                 frames.append((f'{prefix}{i + 1}', im, mode, fp))
         print(sname, len(imgs), 'khung · scale', round(s0, 4))
     names = [f[0] for f in frames]
@@ -315,7 +354,9 @@ def main(spec_path, debug=None):
     trims, sizes, meta_f = [], [], {}
     for nm, im, mode in frames:
         F = Feet(im, off, hair_min, band_h, fband.get(nm, FB), RM)
-        if mode == 'face':
+        if nm in fanc:
+            ax = fanc[nm] - origin_dx                # "anchorX": tâm đứng đặt tay (bù origin_dx cộng ở dưới)
+        elif mode == 'face':
             if not face_find: raise SystemExit(f'{nm}: mốc "face" cần "face": [x0, y0, x1, y1] (khung mặt trên tấm của khung chuẩn)')
             fm, fx = face_find(im)
             if fm < 0.45: print(f'  ! {nm}: khớp mặt yếu ({fm:.2f}) — xem lại ảnh soi')

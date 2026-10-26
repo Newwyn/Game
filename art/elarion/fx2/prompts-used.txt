@@ -1,0 +1,122 @@
+Elarion + Golem V3 effects (7 tam, 56 khung)
+Tao bang built-in image_gen (ban gui kem: elarion-fx-v3.zip, README.md + manifest.json + PROMPTS.md).
+7 PNG 1536x1024, nen TRONG SUOT THAT (alpha). Luoi A 4x2 o 384x512 (6 tam) + Luoi B 2x4 o 768x256 (fx-golem-fire-frost).
+Thu tu khung: trai -> phai, tren -> duoi (row-major).
+Ghi chu cua ban tao: mot so hieu ung lon sat ranh gioi o; anh sang Sach co chi tiet gan / vuot duong phan hang; mot so diem nen alpha 1/255.
+Rap vao game: art/elarion/fx2/fx2_spec.json -> tools/fx_grid_pack.py -> src/assets/sprites/elarion_fx2.webp + src/vfx/elarionFx2.json.
+
+===== manifest.json =====
+{
+  "generator": "built-in image_gen",
+  "width": 1536,
+  "height": 1024,
+  "frameOrder": "row-major",
+  "sheets": [
+    {
+      "file": "art/elarion/fx2/fx-elem-hits.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-zap-storm.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-meteor-frost.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-orb-tornado.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-book-ward.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-golem-storm-summon.png",
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 384,
+      "frameHeight": 512,
+      "frames": 8
+    },
+    {
+      "file": "art/elarion/fx2/fx-golem-fire-frost.png",
+      "columns": 2,
+      "rows": 4,
+      "frameWidth": 768,
+      "frameHeight": 256,
+      "frames": 8
+    }
+  ]
+}
+
+===== PROMPTS.md =====
+## fx-elem-hits.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-elem-hits.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = FIRE HIT (a fire bolt bursting on an enemy), centered in each cell at the same point: Frame 1: a small bright yellow-white flash with a few orange flame tongues. Frame 2: a round burst of orange-red flames bursting outward with small embers. Frame 3: the burst at its biggest, flames curling outward, embers flying. Frame 4: fading wisps of flame, thin dark smoke curls and scattered embers.
+BOTTOM ROW, frames 5-8 = ICE HIT (an ice shard shattering on an enemy), centered at the same point: Frame 5: a small bright white-cyan flash with a few thin ice slivers. Frame 6: a burst of icy cyan crystal shards exploding outward with frost mist. Frame 7: the biggest shatter: sharp ice crystals and snowflakes flying outward, a thin ring of frost. Frame 8: fading frost mist and small falling ice fragments.
+
+
+## fx-zap-storm.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-zap-storm.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = LIGHTNING HIT (a lightning bolt striking an enemy), centered at the same point: Frame 1: a small bright white-violet flash. Frame 2: a starburst of jagged storm-violet lightning arcs crackling outward around a white core. Frame 3: the biggest burst, branching violet arcs and tiny sparks. Frame 4: a few fading thin arcs and violet sparks.
+BOTTOM ROW, frames 5-8 = ELEMENTAL STORM VORTEX, seamless loop, around an EMPTY center the size of a small character (the mage stands inside), bottoms on the same ground line near the bottom of each cell: a tall swirling cyclone made of three intertwined ribbons — ember-orange flames, icy cyan frost with snowflakes and storm-violet lightning — spiraling upward around the empty center, wider at the top, a faint ring on the ground at its base; each frame turns the ribbons a quarter turn further. The same size and position in all 4 frames.
+
+
+## fx-meteor-frost.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-meteor-frost.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = METEOR IMPACT (a giant flaming meteor crashing into the ground), bottoms on the same ground line near the bottom of each cell: Frame 1: a blinding yellow-white flash on the ground with a dome of fire starting. Frame 2: a huge fiery explosion bursting upward, chunks of burning rock flying out, a ring of fire spreading along the ground. Frame 3: the explosion at its biggest — a towering column of orange-red fire and smoke with molten rocks flying. Frame 4: the fire collapsing into dark smoke and embers, a glowing crater edge on the ground.
+BOTTOM ROW, frames 5-8 = GIANT ICE BLOCK SHATTERING (a huge ice block slamming down and breaking), bottoms on the same ground line: Frame 5: the bottom of a huge cyan ice block hitting the ground with a white flash and cracks. Frame 6: the block cracking apart into big faceted chunks with frost mist bursting outward. Frame 7: the chunks flying apart and shattering into smaller shards, snowflakes and frost mist. Frame 8: fading small ice shards on the ground and drifting frost mist.
+
+
+## fx-orb-tornado.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-orb-tornado.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = FIRE-LIGHTNING ORB, seamless loop, centered at the same point: a round magic orb of swirling orange-red fire and molten rock fragments wrapped in crackling storm-violet lightning arcs around a bright yellow-white core; each frame the fire swirls further and the lightning arcs change. The same size in all 4 frames (the game makes it grow).
+BOTTOM ROW, frames 5-8 = LIGHTNING TORNADO, seamless loop, the narrow bottom tip on the same ground point near the bottom of each cell: a tall grey-violet whirlwind funnel, wide at the top and narrow at the bottom, storm-violet lightning crackling inside it, dust and leaves whipping around the base; each frame the spiral bands rotate further and the lightning changes. The same size in all 4 frames.
+
+
+## fx-book-ward.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-book-ward.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = SPELLBOOK READING FLASH (light rising from the open pages of a floating spellbook — do NOT draw the book itself, only the light), every frame rising from the same point near the lower middle of the cell: Frame 1: a small golden glow with a few golden rune symbols lifting up. Frame 2: golden runes and three small glowing orbs (ember orange, ice cyan, storm violet) spiraling upward. Frame 3: a bright column of golden light rising with a ring of golden runes, the three colored orbs merging at its top into a white star. Frame 4: fading golden runes drifting upward and sparkles.
+BOTTOM ROW, frames 5-8 = ICE-LIGHTNING WARD (a protective dome around one ally), around an EMPTY space the size of a small character, bottoms on the same ground line: Frame 5: icy cyan crystal plates rising from a frost ring on the ground with violet sparks. Frame 6: the dome almost complete. Frame 7: the complete see-through dome of icy cyan crystal hexagon plates with crackling storm-violet lightning veins, the inside clear and empty. Frame 8: the same complete dome with the lightning veins in a different pattern (frames 7-8 loop).
+
+
+## fx-golem-storm-summon.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-golem-storm-summon.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 4 columns by 2 rows, eight equal cells 384x512 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. 
+TOP ROW, frames 1-4 = SKY LIGHTNING STRIKE (a bolt from the sky striking the golem's raised fists), the bottom point of the bolt at the same place near the BOTTOM of each cell: Frame 1: a thin bright white-violet bolt from the top edge of the cell down to the bottom point. Frame 2: a thick jagged storm-violet lightning bolt with branches and a bright flash burst at the bottom point. Frame 3: the bolt fading while the burst at the bottom spreads into crackling arcs. Frame 4: a few fading arcs and violet sparks at the bottom point.
+BOTTOM ROW, frames 5-8 = GOLEM SUMMONING (the golem bursting out of the ground — do NOT draw the golem), bottoms on the same ground line near the bottom of each cell: Frame 5: a three-color magic circle (orange, cyan and violet runes) lying flat on the ground, seen from a low side angle as a wide flat ellipse. Frame 6: three tall pillars of light shooting up from the circle — one fire orange, one ice cyan, one storm violet. Frame 7: the pillars bursting into a big explosion of dark basalt rocks, dust and element sparks flying upward and outward around an EMPTY center. Frame 8: settling dust, falling pebbles and fading sparks.
+
+
+## fx-golem-fire-frost.png
+
+Use case: stylized-concept. Create ONE 2D fantasy game VFX animation sprite sheet fx-golem-fire-frost.png, exactly 1536x1024 PNG with genuine transparent alpha background. Exactly 2 columns by 4 rows, eight equal cells 768x256 pixels, reading left to right row by row. Invisible grid: no labels, numbers, borders or text. ONLY effects; NO characters, no elf, no golem body, no hands, no book, no scenery. Attached FX sheets are references for rendering, colors and materials ONLY, not layouts: use the new eight-frame layout specified here. Polished crisp stylized anime game VFX, sharp detailed elemental shapes, soft translucent alpha edges, controlled luminous cores. Fire orange-red with yellow-white core; ice faceted cyan crystals, white frost and snowflakes; lightning violet with white core; book-light and seals antique gold. All eight effects must stay wholly inside their own cells with generous empty margins, including particles and glow. No spillover between cells. No opaque black backdrop, no checkerboard, no gradient background. Maintain fixed anchor and consistent scale within loops. The frame progression must be clearly visible for impacts, and subtle but distinct for seamless loops. These two effects are seen from the SIDE, flying horizontally — they do NOT lie on the ground.
+CELLS 1-4 (rows 1-2) = BURNING FIST TRAIL, seamless loop (the golem's flaming fist rushing to the RIGHT — do not draw the fist): a long horizontal comet of roaring orange-red fire, its bright yellow-white head at the RIGHT end of the cell and its fiery tail streaming to the left with embers and black smoke; the head at the same point in every frame, only the flames flicker.
+CELLS 5-8 (rows 3-4) = BLIZZARD BREATH, seamless loop (frost breath blown to the RIGHT from a mouth at the LEFT edge — do not draw the mouth): a widening cone of icy cyan-white wind, swirling frost and snowflakes blasting from a narrow point at the left edge toward the right, getting wider and mistier; the narrow point at the same place in every frame, only the swirls and snowflakes move.
+

@@ -1,0 +1,27 @@
+{
+ "note": "Golem Nguyen To ban 3 (giu tao hinh 05-golem-v2): 3 tam tranh AI cua nguoi dung, PNG trong suot that (key alpha; giu nguyen, chi cat + can chan + co gian). scale: hang dam ve nho hon hang di ~6%, tam lua-bang ~6%, tam set-trieu hoi ~12% (chong hinh + khop ngoc nguc). Moc ngang: 'body' cho di (than dung yen, chan buoc), 'heel' cho dam / gong / phun / don set; anchorX cho cuon tron (troi len) va tan ra dong da. Diem gan: handN = nam dam dung nham (lua quanh tay luc gong Nong Lua) · handF = nam dam phia truoc (vet dam lua khi lao, set giat) · mouth = mieng (hit khi lanh, phun bao tuyet) · core = ngoc nguc (set troi giang).",
+ "atlasScale": 0.9,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "walk1",
+ "key": "alpha",
+ "footBand": 20,
+ "footMin": 25,
+ "solidFeet": true,
+ "sheets": {
+  "move-attack": {"file": "art/elarion/sprite/golem-move-attack.png", "scale": 1.0,
+                  "groups": [["walk", 4, "body"], ["punch", 4, "heel", 1.06]],
+                  "points": {"6": {"handF": [790, 712]}, "7": {"handN": [1160, 715], "handF": [1160, 715]}}},
+  "fire-frost": {"file": "art/elarion/sprite/golem-fire-frost.png", "scale": 1.06,
+                 "groups": [["charge", 2, "heel"], ["dash", 2, "heel"], ["inhale", 2, "heel"], ["breath", 2, "heel"]],
+                 "points": {"1": {"handN": [55, 310]}, "2": {"handN": [440, 310]}, "3": {"handF": [1150, 300]}, "4": {"handF": [1525, 300]},
+                            "5": {"mouth": [225, 575]}, "6": {"mouth": [605, 572]}, "7": {"mouth": [1130, 668]}, "8": {"mouth": [1510, 668]}}},
+  "storm-summon": {"file": "art/elarion/sprite/golem-storm-summon.png", "scale": 1.12,
+                   "groups": [["aura", 2, "heel"], ["hurt", 1, "heel"], ["stun", 1, "heel"], ["form", 1, "body"], ["roar", 1, "heel"], ["crumble", 2, "heel"]],
+                   "points": {"1": {"core": [262, 300], "handF": [300, 135]}, "2": {"core": [612, 360], "handF": [725, 440]}},
+                   "anchorX": {"5": 205, "7": 975, "8": 1335}}
+ },
+ "out": "src/assets/sprites/golem_sprite",
+ "meta": "src/characters/sprite/golemSprite.json",
+ "format": "webp"
+}

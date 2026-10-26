@@ -482,6 +482,7 @@ body.selecting-squad #combat-hud, body.selecting-squad #controls-hint { opacity:
 .ss-count { flex: 1; font-size: 14px; color: #94a3b8; }
 .ss-count b { color: #fde68a; font-size: 18px; }
 .ss-quick { background: transparent; border: 1.5px solid rgba(148,163,184,.4); color: #cbd5e1; border-radius: 10px; padding: 9px 14px; font-family: inherit; cursor: pointer; }
+.ss-quick:disabled { opacity: .45; cursor: default; }
 .ss-go { background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff; font-weight: 800; font-size: 15px;
     border-radius: 10px; padding: 11px 22px; cursor: pointer; font-family: inherit; box-shadow: 0 6px 18px rgba(245,158,11,.45); }
 .ss-go:disabled { background: #475569; box-shadow: none; cursor: not-allowed; opacity: .7; }

@@ -118,6 +118,7 @@ export function brakkClips(parts, height) {
         c('charge', [0, 0.25, 0.5], [CHARGE, CHARGE_B, CHARGE]),                                                 // niệm Chấn Địa (lặp)
         c('stomp', [0, 0.1, 0.25, 0.45, 0.6, 0.8, 1.05], [CHARGE, STOMP_CROUCH, STOMP_UP, STOMP_APEX, STOMP_HIT, STOMP_HIT, READY]), // bật cao -> dậm (hit 0.6)
         c('roar', [0, 0.15, 0.3, 0.55, 0.8], [READY, ROAR_IN, ROAR, ROAR_B, READY]),                             // hoá khổng lồ (hit 0.3)
+        c('taunt', [0, 0.15, 0.3, 0.55, 0.8], [READY, ROAR_IN, ROAR, ROAR_B, READY]),                            // Tiếng Hét Bảo Hộ (bản sprite: tranh khiêu khích riêng)
         c('hurt', [0, 0.06, 0.18, 0.4], [IDLE, HURT, pose({ ...HURT, torso: 0.18, hips: [-0.015, -0.006] }), IDLE]),
         c('stunned', [0, 0.35, 0.7], [STUN_A, STUN_B, STUN_A]),
         c('victory', [0, 0.2, 0.45, 0.8], [IDLE, WIN_UP, WIN, WIN]),
@@ -138,6 +139,7 @@ export const SKIN_KEYS = {
     charge: [[0, 'eye', 'angry']],
     stomp: [[0, 'eye', 'angry'], [0.5, 'eye', 'roar'], [0.9, 'eye', 'angry']],
     roar: [[0, 'eye', 'angry'], [0.25, 'eye', 'roar']],
+    taunt: [[0, 'eye', 'angry'], [0.25, 'eye', 'roar']],
     hurt: [[0.03, 'eye', 'pain'], [0.32, 'eye', 'open']],
     stunned: [[0, 'eye', 'pain'], [0, 'handN', 'relax'], [0, 'handF', 'relax']],
     victory: [[0, 'eye', 'determined'], [0, 'handF', 'thumb']],

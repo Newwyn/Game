@@ -382,7 +382,7 @@ function effectInfo(ef, m) {
             ? ['🛡', '#fdba74', 'Khiên Vảy Rồng', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🛡', '#fdba74', 'Khiên Vảy Rồng', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} · cộng dồn Chấn Địa + Khí Thế Đấu Trường`];
         case 'grabbed': return ['✊', '#f97316', 'Bị túm', 'Bị Brakk nhấc bổng — sắp bị quật xuống đất', true];
-        case 'lone_dragon': return ['🐲', '#ef4444', 'Độc Long', `Chỉ còn 1 mình Brakk trên sân: sát thương ×${(1 + (ef.value ?? 1)).toFixed(0)}`];
+        case 'lone_dragon': return ['🐲', '#f59e0b', 'Độc Long', `Chỉ còn 1 mình Brakk trên sân: sát thương ×${(1 + (ef.value ?? 1)).toFixed(0)}`];
         // ---- Elarion (Tam Nguyên) + Golem ----
         case 'attune_fire': return ['🔥', '#fb923c', 'Cộng Hưởng Hỏa', `${ef.stacks} tầng: +${pc((ef.per ?? 0) * ef.stacks)}% ATK`];
         case 'attune_ice': return ['❄️', '#67e8f9', 'Cộng Hưởng Băng', `${ef.stacks} tầng: hồi ${((ef.per ?? 0) * ef.stacks * 100).toFixed(1)}% máu mỗi giây`];

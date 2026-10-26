@@ -241,8 +241,8 @@ const CLASS_DEFS = {
         skills: [
             // Lưỡi Hái Xuyên Hồn: chỉ dùng khi quái đã TRONG TẦM ĐÁNH; lướt thẳng về phía trước 1 quãng CỐ ĐỊNH 15 đơn vị
             //   (xuyên qua hàng trước, tới được chỗ tướng đánh xa đứng sau như Lyra), chém mọi quái trên đường lướt ×1.6.
-            //   Lúc Đêm Tử Thần: lướt lần 1 (tốn Orb) -> hồi chiêu NGAY + 5 giây được lướt lần 2 MIỄN PHÍ (tự bấm);
-            //   lướt lần 2 xong mới hồi chiêu bình thường
+            //   Lúc Đêm Tử Thần: lướt lần 1 -> hồi chiêu NGAY + 5 giây được lướt lần 2 MIỄN PHÍ (trạng thái reaper_echo, AI tự lướt / tự bấm);
+            //   lướt lần 2 xong (hoặc hết 5 giây không lướt) mới hồi chiêu bình thường
             { name: 'Lưỡi Hái Xuyên Hồn', orbCost: 0, cooldown: 7000, castTime: 0, type: 'reaper_dash', castRange: 2.8, dashLen: 15, multiplier: 1.6,
               width: 1.6, dashTime: 380, echoWindow: 5000, impact: 120, lock: 560 },
             // Lưỡi Hái Hất Hồn (niệm 0.7s — triệu hồi LƯỠI HÁI KHỔNG LỒ): lưỡi hái lớn quét từ dưới lên — quái phía trước trong 3.5 đơn vị
@@ -329,6 +329,10 @@ const CLASS_DEFS = {
     elementalist: {
         name: 'Elarion', title: 'Tam Nguyên', className: 'Phù Thủy', emoji: '🔮', color: '#7c3aed', dmgType: 'magic',
         classGroup: 'mage', race: 'elf',
+        // NHÂN VẬT ĐẶC BIỆT (24/10/2026 — sau này sở hữu bằng cách đặc biệt): mạnh hơn rõ rệt nhân vật thường —
+        //   statMul (progression.js computeStats, mọi level): máu ×1,3 · P.DEF ×1,4 · M.DEF ×1,35 · M.ATK ×1,15;
+        //   ngọc rơi 2s/viên, Sách không tốn Orb, phép ~+35%, Golem mạnh + ở lâu hơn
+        special: true, statMul: { maxHp: 1.3, pDef: 1.4, mDef: 1.35, mAtk: 1.15 },
         maxHp: 1000, maxMp: 5000, pAtk: 0, mAtk: 240, pDef: 40, mDef: 75,
         crit: 100, critDmg: 500, acc: 1000, dodge: 80, pen: 0, block: 0, lifesteal: 0,
         threat: 100,
@@ -336,10 +340,10 @@ const CLASS_DEFS = {
         atkSpeed: 1050, range: 'ranged', atkRange: 14, moveSpeed: 0.01,
         autoHitFrame: 2,
         autoImpact: 380, // ms: vung tay 0.22s + tia nguyên tố bay 0.16s
-        gemEvery: 3000, gemLife: 8000, gemMax: 5, gemHold: 3, gemMaxRun: 2,
+        gemEvery: 2000, gemLife: 8000, gemMax: 5, gemHold: 3, gemMaxRun: 2,
         skills: [
-            // Sách Nguyên Tố: tốn 1 Orb, KHÔNG hồi chiêu — đọc 3 viên đang giữ -> phép vào nút KN2
-            { name: 'Sách Nguyên Tố', orbCost: 1, cooldown: 0, castTime: 0, type: 'elem_book', castRange: 99, impact: 200, lock: 300 },
+            // Sách Nguyên Tố: KHÔNG tốn Orb, KHÔNG hồi chiêu — đọc 3 viên đang giữ -> phép vào nút KN2
+            { name: 'Sách Nguyên Tố', orbCost: 0, cooldown: 0, castTime: 0, type: 'elem_book', castRange: 99, impact: 200, lock: 300 },
             // nút KN2: phép đang giữ (thay bằng phép trong `spells` mỗi lần ghép) — chưa ghép hoặc vừa dùng xong thì trống
             { name: 'Chưa có phép', orbCost: 0, cooldown: 0, castTime: 0, type: 'elem_spell', spell: null, castRange: 99, impact: 0, lock: 0 },
             // Bão Nguyên Tố: dùng xong +2 Orb ngay (thực tốn 1 Orb), hồi 10s
@@ -350,41 +354,41 @@ const CLASS_DEFS = {
         spells: {
             // Thiên Thạch: rơi vào chỗ đông đối thủ (chạm đất LUÔN CHÍ MẠNG) -> LĂN CHẬM thẳng về phía địch (tầm lướt Zerith) -> vệt lửa 2 lần.
             //   (ý đồ ẩn) Lốc Xoáy đẩy đối thủ va vào thiên thạch đang lăn -> thêm sát thương va chạm
-            meteor: { name: 'Thiên Thạch', recipe: 'fff', orbCost: 3, cooldown: 14000, multiplier: 2.8, radius: 4, impact: 800, lock: 600,
-                rollLen: 15, rollTime: 3000, rollWidth: 1.6, rollMultiplier: 0.8, crashMultiplier: 1.2, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.4, trailTime: 3500 },
-            // Băng Phong: khối băng thành hình trên đầu địch 1,5s -> rơi: cả đội địch ×1.1 (băng) + −20% tốc đánh 3s;
-            //   vỡ ra 5 khối nhỏ văng xuống (×0.35, hiệu ứng tính chung) · mỗi đối thủ có cơ hội bị đóng băng theo bậc
-            frost: { name: 'Băng Phong', recipe: 'iii', orbCost: 3, cooldown: 12000, multiplier: 1.1, shards: 5, shardMultiplier: 0.35, shardRadius: 1.6,
+            meteor: { name: 'Thiên Thạch', recipe: 'fff', orbCost: 3, cooldown: 14000, multiplier: 3.8, radius: 4, impact: 800, lock: 600,
+                rollLen: 15, rollTime: 3000, rollWidth: 1.6, rollMultiplier: 1.1, crashMultiplier: 1.6, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.55, trailTime: 3500 },
+            // Băng Phong: khối băng thành hình trên đầu địch 1,5s -> rơi: cả đội địch ×1.5 (băng) + −20% tốc đánh 3s;
+            //   vỡ ra 5 khối nhỏ văng xuống (×0.48, hiệu ứng tính chung) · mỗi đối thủ có cơ hội bị đóng băng theo bậc
+            frost: { name: 'Băng Phong', recipe: 'iii', orbCost: 3, cooldown: 12000, multiplier: 1.5, shards: 5, shardMultiplier: 0.48, shardRadius: 1.6,
                 form: 1500, fall: 300, slow: 0.2, slowTime: 3000, impact: 400, lock: 600,
                 freezeChance: 0.2, freezeTime: 1000, byRank: { freezeChance: [0.2, 0.25, 0.3, 0.4], freezeTime: [1000, 1300, 1600, 2000] } },
             // Lôi Xích: nảy qua tối đa 5 đối thủ, sau đó mỗi lần 50% nảy tiếp (được trúng lại), −M.DEF 5s (không cộng dồn)
-            chain: { name: 'Lôi Xích', recipe: 'bbb', orbCost: 2, cooldown: 13000, multiplier: 1.5, bounces: 5, extraChance: 0.5, extraMax: 10,
+            chain: { name: 'Lôi Xích', recipe: 'bbb', orbCost: 2, cooldown: 13000, multiplier: 2.0, bounces: 5, extraChance: 0.5, extraMax: 10,
                 bounceRange: 9, bounceGap: 120, mDefDown: 0.1, debuffTime: 5000, byRank: { mDefDown: [0.10, 0.12, 0.13, 0.15] }, impact: 300, lock: 500 },
-            golem: { name: 'Nguyên Tố Hợp Nhất', recipe: 'fib', orbCost: 5, cooldown: 25000, duration: 20000, impact: 600, lock: 900,
-                hpMult: 4.67, atkMult: 1.1, pDefMult: 6, mDefMult: 2.3 },   // máu = 4,67× máu Elarion · ATK = 1,1× M.ATK Elarion
+            golem: { name: 'Nguyên Tố Hợp Nhất', recipe: 'fib', orbCost: 5, cooldown: 25000, duration: 25000, impact: 600, lock: 900,
+                hpMult: 5, atkMult: 1.4, pDefMult: 6, mDefMult: 2.3 },   // máu = 5× máu Elarion · ATK = 1,4× M.ATK Elarion · ở lại 25s
             // Giáp Băng Sét: khiên 25% máu cho Elarion + đồng đội yếu máu nhất 6s; ai đánh trúng người có giáp bị sét giật + choáng
-            ward: { name: 'Giáp Băng Sét', recipe: 'iib', orbCost: 2, cooldown: 15000, duration: 6000, shieldPct: 0.25, impact: 300, lock: 500,
-                counterMultiplier: 0.4, counterStun: 500, counterEvery: 1000 },
-            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 1.1, length: 12, width: 1.8, travel: 900,
+            ward: { name: 'Giáp Băng Sét', recipe: 'iib', orbCost: 2, cooldown: 15000, duration: 6000, shieldPct: 0.32, impact: 300, lock: 500,
+                counterMultiplier: 0.55, counterStun: 500, counterEvery: 1000 },
+            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 1.5, length: 12, width: 1.8, travel: 900,
                 push: 4, knockTime: 450, impact: 300, lock: 500 },
             // Hơi Nước Bỏng: niệm 2s -> mây mưa giông 7s (Elarion đứng thi triển: không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác thì ngắt)
             //   mưa: phe ta hồi máu mỗi giây (đầy máu thì hồi MP) · sét: mỗi giây đánh 1 đối thủ ngẫu nhiên, choáng 0,5s
             steam: { name: 'Hơi Nước Bỏng', recipe: 'ffi', orbCost: 3, cooldown: 14000, castTime: 2000, duration: 7000, every: 1000,
-                heal: 0.3, healPct: 0.015, manaPerSec: 200, strikeMultiplier: 0.7, strikeStun: 500, impact: 0, lock: 0 },
-            // Hỏa Lôi Cầu: quả cầu hiện ở 1 điểm cố định phía trước Elarion (cách 12 ô ~ hàng trước địch), to dần 2s rồi nổ TẠI CHỖ:
-            //   đối thủ đứng trong vùng nổ: sát thương + choáng 0,5s + mất 1 Orb
-            firebolt: { name: 'Hỏa Lôi Cầu', recipe: 'ffb', orbCost: 2, cooldown: 12000, multiplier: 2.0, radius: 3.5, stun: 500, grow: 2000, orbBurn: 1,
+                heal: 0.4, healPct: 0.015, manaPerSec: 200, strikeMultiplier: 0.95, strikeStun: 500, impact: 0, lock: 0 },
+            // Hỏa Lôi Cầu: quả cầu KHỔNG LỒ hiện ở 1 điểm cố định phía trước Elarion (cách 12 ô ~ hàng trước địch), to dần 2s rồi nổ TẠI CHỖ:
+            //   đối thủ đứng trong vùng nổ (bán kính 4,5): sát thương + choáng 0,5s + mất 1 Orb
+            firebolt: { name: 'Hỏa Lôi Cầu', recipe: 'ffb', orbCost: 2, cooldown: 12000, multiplier: 2.7, radius: 4.5, stun: 500, grow: 2000, orbBurn: 1,
                 distance: 12, teamOrbs: 1, selfOrbs: 2, impact: 300, lock: 500 },   // nổ: cả đội +1 Orb, riêng Elarion +2
             // Băng Hoại Hỏa Thiên (SolarBeam kiểu Kamehameha): dồn lực 0,7s -> đứng yên chưởng tia băng-hỏa 10s thẳng tới CUỐI BẢN ĐỒ
             //   (ngắm hướng có nhiều đối thủ nhất, lệch tối đa ~26°; người đang bay không dính). Mỗi giây, mọi đối thủ trong tia:
             //   Băng ×iceMultiplier (không tăng) + 1 tầng Hàn Khí + giảm tốc đánh · Hỏa ×fireMultiplier, mỗi giây +1 tầng (+3% sát thương lửa);
             //   đủ 5 tầng: tia lửa to ra (tia rộng hơn), sát thương lửa thêm +30%. Bị choáng / dùng kỹ năng khác thì ngắt
             beams: { name: 'Băng Hoại Hỏa Thiên', recipe: 'iif', orbCost: 3, cooldown: 14000, duration: 10000, every: 1000,
-                iceMultiplier: 0.3, fireMultiplier: 0.42, fireRamp: 0.03, fireMax: 5, maxBonus: 0.3,
+                iceMultiplier: 0.4, fireMultiplier: 0.57, fireRamp: 0.03, fireMax: 5, maxBonus: 0.3,
                 slow: 0.15, slowTime: 1500, width: 1.6, widthMax: 2.3, maxAngle: 0.45, impact: 700, lock: 700 },
             // Tốc Lôi: riêng Elarion 10s — mỗi đòn đánh thường chưởng 2 lần, +25% tốc đánh;
             //   cứ 5 đòn -> cả đội (kể cả Elarion) +5% tốc đánh 10s (cộng dồn tối đa 5 lần)
-            haste: { name: 'Tốc Lôi', recipe: 'bbf', orbCost: 2, cooldown: 13000, duration: 10000, atkSpeedUp: 0.25, every: 5,
+            haste: { name: 'Tốc Lôi', recipe: 'bbf', orbCost: 2, cooldown: 13000, duration: 10000, atkSpeedUp: 0.35, every: 5,
                 teamUp: 0.05, teamTime: 10000, teamMax: 5, orbRegen: 2, impact: 300, lock: 500 },
         },
         passives: [
@@ -399,7 +403,7 @@ const CLASS_DEFS = {
               desc: 'Mỗi lần ghép phép bằng Sách Nguyên Tố: {value%} phép kế tiếp giảm 1 Orb' },
         ]
     },
-    // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 20s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
+    // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 25s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
     //   tính thắng thua) nhưng không có thẻ HUD, không được hồi sinh. Chỉ số tính theo pháp sư lúc gọi (xem summonGolem).
     //   Cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
     elem_golem: {
@@ -410,22 +414,22 @@ const CLASS_DEFS = {
         atkSpeed: 1400, range: 'melee', atkRange: 2.8, moveSpeed: 0.01,
         autoHitFrame: 2, autoImpact: 300,
         skills: [
-            // Nộ Lửa: lùi về phía đồng minh -> niệm 1s -> lướt chậm 8 ô đấm lửa: ×1.8 + hất tung 1s, cả đội địch −10% M.DEF 5s
+            // Nộ Lửa: lùi về phía đồng minh -> niệm 1s -> lướt chậm 8 ô đấm lửa: ×2.3 + hất tung 1s, cả đội địch −10% M.DEF 5s
             { name: 'Nộ Lửa', orbCost: 0, cooldown: 10000, castTime: 0, type: 'golem_fist', castRange: 99, backLen: 3, backTime: 500, channel: 1000,
-              dashLen: 8, dashTime: 1200, width: 1.8, multiplier: 1.8, knockup: 1000, mDefDown: 0.1, debuffTime: 5000, impact: 0, lock: 2800 },
-            // Bão Tuyết: niệm 2s hút khí lạnh -> đứng phun bão tuyết 6s: mỗi giây ×0.5 mọi đối thủ + 1 tầng Hàn Khí
+              dashLen: 8, dashTime: 1200, width: 1.8, multiplier: 2.3, knockup: 1000, mDefDown: 0.1, debuffTime: 5000, impact: 0, lock: 2800 },
+            // Bão Tuyết: niệm 2s hút khí lạnh -> đứng phun bão tuyết 6s: mỗi giây ×0.65 mọi đối thủ + 1 tầng Hàn Khí
             { name: 'Bão Tuyết', orbCost: 0, cooldown: 10000, castTime: 2000, type: 'golem_blizzard', castRange: 99, ticks: 6, tickGap: 1000,
-              tickMultiplier: 0.5, impact: 300, lock: 6300 },
+              tickMultiplier: 0.65, impact: 300, lock: 6300 },
             // Hào Quang Sét: niệm 1s -> sét đánh vào tay: +25% tốc đánh 5s, mỗi đòn đánh giật TOÀN BỘ đối thủ (50% choáng 0,5s)
             { name: 'Hào Quang Sét', orbCost: 0, cooldown: 10000, castTime: 1000, type: 'golem_aura', castRange: 99, duration: 5000,
-              atkSpeedUp: 0.25, multiplier: 0.45, stunChance: 0.5, stun: 500, impact: 300, lock: 600 },
+              atkSpeedUp: 0.25, multiplier: 0.6, stunChance: 0.5, stun: 500, impact: 300, lock: 600 },
         ],
         passives: []
     },
     // Brakk (Cuồng Đấu) — class CHIẾN BINH (đô vật), tộc Dragon: máu trâu, quật / dậm đất / hoá khổng lồ.
     //   Mọi kỹ năng tốn Orb + MÁU (hpCost × máu tối đa, không bao giờ tự làm chết: tối thiểu còn 1 máu)
     wrestler: {
-        name: 'Brakk', title: 'Cuồng Đấu', className: 'Chiến Binh', emoji: '🐉', color: '#dc2626', dmgType: 'physical',
+        name: 'Brakk', title: 'Cuồng Đấu', className: 'Chiến Binh', emoji: '🐉', color: '#b45309', dmgType: 'physical',   // bản 3: đồng – dung nham
         classGroup: 'warrior', race: 'dragon',
         maxHp: 4000, maxMp: 5000, pAtk: 180, mAtk: 0, pDef: 180, mDef: 140,
         crit: 100, critDmg: 500, acc: 1000, dodge: 50, pen: 80, block: 100, lifesteal: 0,
@@ -442,13 +446,14 @@ const CLASS_DEFS = {
               multiplier: 1.8, stun: 1000, aoeMultiplier: 1.0, radius: 3, giantDmgUp: 0.3, giantRadius: 4.5, impact: 850, lock: 1300 },
             // Chấn Địa (niệm 1s): bật CAO rồi DẬM xuống (chạm đất 0.6s) — ×1.4 mọi quái trong 4 đơn vị, HẤT TUNG 1s; Brakk được KHIÊN = 25% máu HIỆN CÓ (10s).
             //   Khiên cộng dồn với khiên thiên phú 1 thành 1 lớp dày hơn, dùng lại thì làm mới 10s.
-            //   Lúc Khổng Lồ: quái rơi xuống đất chịu thêm ×0.8
-            { name: 'Chấn Địa', orbCost: 2, hpCost: 0.06, cooldown: 12000, castTime: 1000, type: 'brakk_stomp', radius: 4, multiplier: 1.4,
+            //   Lúc Khổng Lồ: KHÔNG CẦN NIỆM (giantCast: dậm ngay) + quái rơi xuống đất chịu thêm ×0.8
+            { name: 'Chấn Địa', orbCost: 2, hpCost: 0.06, cooldown: 12000, castTime: 1000, giantCast: 0, type: 'brakk_stomp', radius: 4, multiplier: 1.4,
               knockup: 1000, shieldPct: 0.25, shieldTime: 10000, fallMultiplier: 0.8, impact: 600, lock: 1050 },
             // Thần Lực Khổng Lồ (niệm nhanh 0.5s): hoá KHỔNG LỒ 10s — +50% máu tối đa (hồi đúng phần tăng), +40% P.DEF/M.DEF, +25% sát thương;
             //   5 giây đầu MIỄN MỌI HIỆU ỨNG bất lợi (choáng, hất tung, đẩy lùi, khiêu khích...).
-            //   Đánh thường ĐẦU TIÊN và cứ sau 3 đòn thường: MÓC NGƯỢC ×1.3 hất tung 0.8s + hất văng 3 đơn vị
-            { name: 'Thần Lực Khổng Lồ', orbCost: 3, hpCost: 0.08, cooldown: 25000, castTime: 500, type: 'brakk_giant', duration: 10000,
+            //   Đánh thường ĐẦU TIÊN và cứ sau 3 đòn thường: MÓC NGƯỢC ×1.3 hất tung 0.8s + hất văng 3 đơn vị.
+            //   Đang Khổng Lồ: MỌI kỹ năng dùng ngay, KHÔNG CẦN NIỆM (giantCast — xem castTimeOf)
+            { name: 'Thần Lực Khổng Lồ', orbCost: 3, hpCost: 0.08, cooldown: 25000, castTime: 500, giantCast: 0, type: 'brakk_giant', duration: 10000,
               hpUp: 0.5, defUp: 0.4, dmgUp: 0.25, ccImmune: 5000, upliftEvery: 3, upliftMultiplier: 1.3, upliftPush: 3, upliftTime: 800,
               impact: 300, lock: 800 },
         ],
@@ -2572,6 +2577,23 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         // lướt xong: tự chọn lại mục tiêu GẦN NHẤT (không khoá mục tiêu cũ)
         member.lockedTargetIndex = -1;
         member.targetIndex = plan.end ? opponentData.squad.indexOf(plan.end) : -1;
+        // Đêm Tử Thần: lướt lần 1 -> hồi chiêu NGAY + echoWindow (5s) được lướt lần 2 miễn phí (reaper_echo);
+        //   lướt lần 2 -> hồi chiêu bình thường (đã đặt ở đầu executeSkill); hết 5s không lướt -> hồi chiêu bình thường tính từ lúc hết
+        const echoEf = member.statusEffects.find(ef => ef.type === 'reaper_echo' && ef.endTime > now);
+        if (echoEf) {
+            echoEf.used = true;
+            member.statusEffects = member.statusEffects.filter(ef => ef !== echoEf);
+        } else if (reaperForm(member, now) && !room.players[casterId].debugNoMana && !opts.free) {
+            const until = now + lock + skillDef.echoWindow;
+            const ef = { type: 'reaper_echo', endTime: until };
+            member.statusEffects = member.statusEffects.filter(e => e.type !== 'reaper_echo');
+            member.statusEffects.push(ef);
+            member.skillCooldowns[skillIdx] = now + lock;   // hồi ngay khi diễn xong cú lướt
+            extra.echo = true;
+            later(lock + skillDef.echoWindow, () => {
+                if (!ef.used) member.skillCooldowns[skillIdx] = Math.max(member.skillCooldowns[skillIdx] ?? 0, until + skillDef.cooldown);
+            });
+        }
     } else if (skillDef.type === 'reaper_scythe') {
         // ---- Lưỡi Hái Hất Hồn: lưỡi hái khổng lồ quét lên, hất tung quái phía trước (Đêm Tử Thần: hiện ngay + bổ xuống thêm) ----
         const squad = opponentData.squad;
@@ -3023,6 +3045,7 @@ function kiteAway(member, enemies, step, now) {
 function castTimeOf(member, skillDef, now) {
     if (skillDef.godCast != null && member.statusEffects?.some(ef => ef.type === 'fire_god' && ef.endTime > now)) return skillDef.godCast;
     if (skillDef.formCast != null && reaperForm(member, now)) return skillDef.formCast;   // Đêm Tử Thần: Lưỡi Hái Hất Hồn không cần niệm
+    if (skillDef.giantCast != null && giantForm(member, now)) return skillDef.giantCast;   // Brakk Khổng Lồ: mọi kỹ năng dùng ngay, không niệm
     return skillDef.castTime ?? 0;
 }
 const inFireGod = (m, now) => m.statusEffects?.some(ef => ef.type === 'fire_god' && ef.endTime > now);

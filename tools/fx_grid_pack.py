@@ -23,6 +23,12 @@ Chỉ làm các việc sau, KHÔNG tô / vẽ lại tranh:
      "rect": [x0, y0, x1, y1] (toạ độ tấm gốc) thay cho "cells" -> cắt đúng khung chữ nhật đó (1 khung), không gom vùng liền.
      "feather": [trái, phải] (px, tuỳ chọn): AI vẽ hình bị CẮT CỤT ở mép tấm / mép ô -> mờ dần vài chục px ở 2 mép để không
      lộ đường cắt thẳng (chỉ làm mờ mép, không vẽ thêm).
+  7. "cuts": [[x0, y0, x1, y1], ...] (theo tấm, Brakk): 2 khung chạm nhau (cột sáng khung dưới chạm đáy khung trên) -> xoá dải đó khỏi
+     mặt nạ gom vùng để mỗi khung giữ phần của mình.
+     "cutFeather": N (px, tuỳ chọn, Elarion): quầng sáng 2 khung CHỒNG lên nhau ở chỗ cắt (VD lửa sát đất thiên thạch khung 1 - 2)
+     -> mờ dần N px về phía dải cắt để mép cắt không thành đường thẳng (chỉ làm mờ mép, không vẽ thêm).
+  8. "offsets": [[dx, dy], ...] (ở nhóm, px theo tấm gốc, tuỳ chọn, Elarion): dời thêm từng khung sau bước căn — AI vẽ lệch tâm vài
+     chục px giữa các khung (lốc xoáy trôi sang trái, đầu vệt đấm hàng dưới cao hơn hàng trên) -> dời cả khung cho trùng điểm gốc.
 """
 import json, os, sys
 import numpy as np
@@ -128,19 +134,43 @@ def main(spec_path, preview=None):
         M = 96
         # "regionThr" / "regionDilate": ngưỡng sáng (keepAlpha: ngưỡng độ đục) + độ nở khi gom vùng liền (lưới B nhiều hình
         # sát nhau: tăng ngưỡng để quầng sáng mờ không nối các hình lại); "keepGrow": nở thêm quanh vùng để giữ quầng sáng mờ
-        lab, n = ndi.label(ndi.binary_dilation(lum > sh.get('regionThr', 20), iterations=sh.get('regionDilate', 4)))
+        rmask = lum > sh.get('regionThr', 20)
+        # "cuts": [[x0, y0, x1, y1], ...] (toạ độ tấm gốc): xoá dải này khỏi mặt nạ gom vùng — tách 2 khung AI vẽ CHẠM nhau
+        # (VD cột sáng khung 7 chạm đáy khung 3 ở hàng trên). Điểm trong dải vẫn được giữ nhờ "keepGrow" của khung kề bên.
+        for x0, y0, x1, y1 in sh.get('cuts', []):
+            rmask[y0:y1, x0:x1] = False
+        rmask = ndi.binary_dilation(rmask, iterations=sh.get('regionDilate', 4))
+        for x0, y0, x1, y1 in sh.get('cuts', []):
+            rmask[y0:y1, x0:x1] = False
+        lab, n = ndi.label(rmask)
         owner = np.zeros(n + 1, int) - 1
         if n:
             cell_of = (np.arange(H)[:, None] // ch).clip(0, gr - 1) * gc + (np.arange(W)[None, :] // cw).clip(0, gc - 1)
             cnt = np.zeros((n + 1, gc * gr), int)
             np.add.at(cnt, (lab.ravel(), cell_of.ravel()), 1)
             owner[1:] = cnt[1:].argmax(1)
+        cut_f = sh.get('cutFeather', 0)
+        def cut_ramp(y0, y1, x0, x1):
+            """hệ số mờ dần về phía các dải cắt (1 = giữ nguyên, 0 = trong dải) cho vùng [y0:y1, x0:x1] của tấm"""
+            r = np.ones((y1 - y0, x1 - x0), np.float32)
+            ys, xs = np.arange(y0, y1)[:, None], np.arange(x0, x1)[None, :]
+            for a0, b0, a1, b1 in sh.get('cuts', []):
+                if a1 - a0 <= b1 - b0:   # dải dọc: mờ theo chiều ngang, chỉ trong khoảng y của dải
+                    d = np.maximum(np.maximum(a0 - xs, xs - (a1 - 1)), 0) + np.zeros_like(ys)
+                    inside = (ys >= b0) & (ys < b1) & np.ones_like(xs, bool)
+                else:                    # dải ngang: mờ theo chiều dọc
+                    d = np.maximum(np.maximum(b0 - ys, ys - (b1 - 1)), 0) + np.zeros_like(xs)
+                    inside = (xs >= a0) & (xs < a1) & np.ones_like(ys, bool)
+                r = np.where(inside, np.minimum(r, np.clip(d / cut_f, 0, 1) ** 1.5), r)
+            return r
         def cell_img(i):
             cy, cx = (i // gc) * ch, (i % gc) * cw
             y0, y1, x0, x1 = max(0, cy - M), min(H, cy + ch + M), max(0, cx - M), min(W, cx + cw + M)
             keep = ndi.binary_dilation(owner[lab[y0:y1, x0:x1]] == i, iterations=sh.get('keepGrow', 3))
             c = np.zeros((ch + 2 * M, cw + 2 * M, NC), np.float32)
-            c[y0 - cy + M:y1 - cy + M, x0 - cx + M:x1 - cx + M] = raw[y0:y1, x0:x1] * keep[..., None]
+            part = raw[y0:y1, x0:x1] * keep[..., None]
+            if cut_f: part = part * cut_ramp(y0, y1, x0, x1)[..., None]   # nền đen: tối đi; keepAlpha: màu đã nhân sẵn -> mờ cả độ đục
+            c[y0 - cy + M:y1 - cy + M, x0 - cx + M:x1 - cx + M] = part
             return c
         cells = [cell_img(i) for i in range(gc * gr)]
         def rect_img(r, feather=(0, 0)):   # cắt đúng khung chữ nhật (đặt như 1 ô có lề M)
@@ -188,6 +218,8 @@ def main(spec_path, preview=None):
                 print('   blob:', [tuple(round(v) for v in q) if q else None for q in pts])
             else:
                 offs = [(0, 0)] * len(imgs)
+            if 'offsets' in g:   # dời thêm từng khung (px theo tấm gốc)
+                offs = [(dx + ex, dy + ey) for (dx, dy), (ex, ey) in zip(offs, g['offsets'])]
             pad = max(40, int(max(max(abs(dx), abs(dy)) for dx, dy in offs)) + 4)
             if al == 'blob': g['_blobRef'] = (ref[0] + pad, ref[1] + pad)                                   # ảnh ô đã có lề M quanh ô gốc
             canv = []

@@ -18,6 +18,9 @@ import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
 import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
 import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
+import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
+import { ELARION_SPRITE } from './sprite/elarionSprite.js';
+import { GOLEM_SPRITE } from './sprite/golemSprite.js';
 import { makeDivineShield } from '../vfx/rokFx.js';
 import { makeStealthAura } from '../vfx/jessicaFx.js';
 import { makeWindSpirit } from '../vfx/lyraFx.js';
@@ -246,7 +249,7 @@ const REAPER = {
     },
 };
 
-// Brakk (Cuồng Đấu) — Chiến Binh đô vật, tộc Dragon. Thần Lực Khổng Lồ: view tự đổi cả bộ mảnh sang dạng khổng lồ
+// Brakk (Cuồng Đấu) — Chiến Binh đô vật, tộc Dragon (bản 3: rồng Đất – dung nham). Thần Lực Khổng Lồ: view tự đổi sang dạng khổng lồ
 const BRAKK = {
     rig: BRAKK_RIG,
     clips: brakkClips,
@@ -257,15 +260,20 @@ const BRAKK = {
     secondary: BRAKK_SECONDARY,
     locomotion: BRAKK_LOCOMOTION,
     blink: true,
-    ghostTint: 0xff7a1a,
-    circleTint: 0xff5a1a,
+    ghostTint: 0xffa040,     // bản 3: cam dung nham (bỏ đỏ — đỏ là màu của Ignar, Zerith)
+    circleTint: 0xf59e0b,
+    // Kiểu sprite (bản 3: đô vật tộc Rồng Đất – dung nham) — ?brakk=cutout về bản khung xương, ?brakkIdle=A|B|C đổi cách đứng
+    sprite: BRAKK_SPRITE,
+    spriteParam: 'brakk',
+    spriteIdleParam: 'brakkIdle',
     anims: {
         attack: { clip: 'attack', hitTime: 0.2 },    // đấm
         uplift: { clip: 'uplift', hitTime: 0.2 },    // móc ngược hất tung (Khổng Lồ)
         grab:   { clip: 'grab',   hitTime: 0.85 },   // túm -> nhảy vọt -> quật (Bá Vương Quật)
         charge: { clip: 'charge' },                  // niệm Chấn Địa (giữ)
         stomp:  { clip: 'stomp',  hitTime: 0.6 },    // bật cao -> dậm đất
-        roar:   { clip: 'roar',   hitTime: 0.3 },    // hoá khổng lồ
+        roar:   { clip: 'roar',   hitTime: 0.3 },    // hoá khổng lồ (cả Độc Long)
+        taunt:  { clip: 'taunt',  hitTime: 0.3 },    // Tiếng Hét Bảo Hộ: đấm ngực -> vẫy tay khiêu khích
     },
 };
 
@@ -273,7 +281,8 @@ const BRAKK = {
 const DANCER = {
     rig: NERISSA_RIG,
     clips: nerissaClips,
-    height: 2.9,
+    // 2,65 (thấp hơn mọi người 2,9): tóc xoăn bồng tới gối + 2 dải lụa dài + đầu to -> cùng chiều cao trông TO hơn cả đội
+    height: 2.65,
     shadowSize: 1.3,
     skinKeys: NERISSA_SKINS,
     defaultSkins: NERISSA_DEFAULT_SKINS,
@@ -307,6 +316,10 @@ const ELEMENTALIST = {
     blink: true,
     ghostTint: 0xc4b5fd,
     circleTint: 0xa78bfa,
+    // Kiểu sprite (bản 3: hiền giả tinh linh tóc bạch kim) — ?elarion=cutout về bản khung xương, ?elarionIdle=A|B|C đổi cách đứng
+    sprite: ELARION_SPRITE,
+    spriteParam: 'elarion',
+    spriteIdleParam: 'elarionIdle',
     anims: {
         attack: { clip: 'attack', hitTime: 0.22 },   // đẩy chưởng -> tia nguyên tố
         book:   { clip: 'book',   hitTime: 0.2 },    // đọc Sách Nguyên Tố
@@ -324,6 +337,10 @@ const ELEM_GOLEM = {
     shadowSize: 3.6,
     locomotion: GOLEM_LOCOMOTION,
     circleTint: 0xb784ff,
+    // Kiểu sprite (bản 3: 3 tấm động tác, giữ tạo hình) — ?golem=cutout về bản 1 tranh liền cử động cả thân
+    sprite: GOLEM_SPRITE,
+    spriteParam: 'golem',
+    spriteIdleParam: 'golemIdle',
     anims: {
         attack:  { clip: 'attack',  hitTime: 0.3 },   // chồm tới nện
         charge:  { clip: 'charge' },                  // gồng (rung, giữ)

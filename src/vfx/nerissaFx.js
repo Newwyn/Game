@@ -13,7 +13,7 @@ import fxUrl from '../assets/sprites/nerissa_fx2.webp';
 import FX from './nerissaFx2.json';
 import { textureView } from './texView.js';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnShockwave, spawnRisingSparkles } from './vfx.js';
-import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR } from './flipbook.js';
+import { makeFlipbook, loopFrame, weighted, fadeInOut, FLOOR, camTilt } from './flipbook.js';
 
 const FB = makeFlipbook(fxUrl, FX);
 FB.tex('dropFly');   // tải atlas ngay khi vào game (khung đầu không bị trống)
@@ -211,6 +211,7 @@ export function makeGoddessAura() {
         group: g,
         update(dt, k) {
             t += dt;
+            g.rotation.x = camTilt();   // nữ thần sau lưng: nghiêng theo camera như nhân vật -> không phủ lên đầu Nerissa
             if (t < 0.8) { setFx(god, seqFrame(t / 0.8, [1, 1, 0.9, 1.1])); god.material.opacity = 0.95 * k; return; }
             if (!hold) { hold = frames('goddessHold', H, { opacity: 0 }); hold.position.copy(god.position); g.remove(god); g.add(hold); }
             setFx(hold, loopFrame(t, 4, 4));

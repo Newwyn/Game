@@ -1,14 +1,16 @@
-<!doctype html><html><body style="margin:0;background:#3c5a30">
-<!-- Xem thử kỹ năng / hiệu ứng Brakk theo từng mốc thời gian (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả):
-     npm run dev rồi mở /tools/fx-brakk.html?s=grab   (s = grab | stomp | giant | uplift | ggrab | gstomp | blood | shout | end | judge | judges | quake | lone)
-     window.stepTo(giây) để tua -->
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#3a3226;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 18px sans-serif;color:#ffd9a8;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem thử MỌI kỹ năng + hiệu ứng của Brakk bản 3 (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả, mốc thời gian như server).
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/fx-brakk.html?s=all&auto=1
+     s = all (lần lượt tất cả) | attack | grab | stomp | giant | shout | blood | lone
+     (tên cũ vẫn dùng được: uplift | ggrab | gstomp = phần Khổng Lồ trong 'giant')
+     &w=1280&h=720 cỡ khung · &auto=1 tự chạy lặp · &brakk=cutout bản khung xương · console: stepTo(giây) -->
 <script>
-  // Đồng hồ ảo: setTimeout + performance.now chạy theo stepTo() để chụp đúng khoảnh khắc
   window.__vt = 0; const __timers = []; let __tid = 1;
   window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
   window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
   window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
-  const __pn = performance.now.bind(performance); performance.now = () => 1 + window.__vt * 1000;
+  performance.now = () => 1 + window.__vt * 1000;
 </script>
 <script type="module">
 import * as THREE from 'three';
@@ -17,78 +19,141 @@ import { updateVfx } from '../src/vfx/vfx.js';
 import { timeState } from '../src/config.js';
 import { game } from '../src/state.js';
 import { createCharacterView } from '../src/characters/registry.js';
-import { __fxTest } from '../src/combat/events.js';
+import { __fxTest as T } from '../src/combat/events.js';
 timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
 const q = new URLSearchParams(location.search);
-const S = q.get('s') || 'grab';
+let S = q.get('s') || 'all';
+if (['uplift', 'ggrab', 'gstomp'].includes(S)) S = 'giant';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
 document.body.appendChild(renderer.domElement);
-renderer.setSize(900, 500); camera.aspect = 900 / 500; camera.updateProjectionMatrix();
-camera.position.set(3, 3.2, 13); camera.lookAt(3, 1.6, 0);
-if (q.get('zoom')) { camera.position.set(0.6, 2.2, 7.5); camera.lookAt(0.6, 1.7, 0); }
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34; camera.updateProjectionMatrix();
+const CX = +(q.get('cx') ?? 1.8), CY = +(q.get('cy') ?? 2.2), CZ = +(q.get('cz') ?? 17);
+camera.position.set(CX, CY + 2.7, CZ); camera.lookAt(CX, CY, 0);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
 scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-const giant = ['ggrab', 'gstomp', 'gup', 'end'].includes(S);
-const now = () => window.__vt * 1000;
-const mk = (classId, x, side) => ({ classId, alive: true, statusEffects: [], x, z: 0, hp: 100, maxHp: 100, state: 'idle', side,
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
   skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
-const brakk = mk('wrestler', 0, 'left');
-if (giant) brakk.statusEffects.push({ type: 'giant_form', endTime: S === 'end' ? 600 : 1e9, immuneUntil: 1e9, duration: 10000, defUp: 0.4, dmgUp: 0.25, autos: 0, every: 3 });
-const foes = [mk('monster_tank', 2.4, 'right'), mk('monster_archer', 4.6, 'right'), mk('monster_supporter', 3.2, 'right')];
-foes[2].z = 1.2;
-game.roomData = { players: { me: { squad: [brakk] }, op: { squad: foes } } };
-const skills = [{ type: 'brakk_grab', orbCost: 1, hpCost: 0.04 }, { type: 'brakk_stomp', orbCost: 2, castTime: 1000 }, { type: 'brakk_giant', orbCost: 3 }];
-game.classDefs = { wrestler: { skills }, monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
-const vB = createCharacterView(brakk, game.classDefs.wrestler, true);
+const BX = -1.8;
+const brakk = mk('wrestler', BX, 'left');
+const rok = mk('warrior', -5.4, 'left', -1.0);
+const allies = [brakk, rok];
+const foes = [mk('monster_tank', 0.6, 'right'), mk('monster_archer', 3.4, 'right', -1), mk('monster_supporter', 2.0, 'right', 1.2)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+const skills = [{ type: 'brakk_grab', orbCost: 1, hpCost: 0.04 }, { type: 'brakk_stomp', orbCost: 2, castTime: 1000 }, { type: 'brakk_giant', orbCost: 3, castTime: 500 }];
+game.classDefs = { wrestler: { skills }, warrior: { skills: [] }, monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
 const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
 vF.forEach(v => { v.facingLeft = true; });
-game.views = { me: [vB], op: vF };
-[vB, ...vF].forEach(v => scene.add(v.root));
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+const B = vA[0];
+window.view = B;
+
+const lbl = document.getElementById('lbl');
 const ev = [];
 const at = (t, fn) => ev.push([t, fn]);
-const hits = (list) => list.map((e, i) => ({ targetIndex: e[0], damage: e[1], isCrit: false, isBlock: false, isMiss: false, ...e[2] }));
-if (S === 'grab' || S === 'ggrab') at(0.1, () => __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: 0, type: 'brakk_grab', hpCost: 160,
-  effects: hits([[0, 820, { grab: true, fromX: 2.4, fromZ: 0, toX: 5.3, toZ: 0 }], [1, 410, { shock: true }], [2, 400, { shock: true }]]),
-  leap: { fromX: 0, fromZ: 0, toX: 4, toZ: 0 }, slam: { x: 5.3, z: 0 }, dir: 1, giant, radius: giant ? 4.5 : 3, impact: 850, newX: 4, newZ: 0 }));
-if (S === 'stomp' || S === 'gstomp') {
-  at(0.0, () => vB.playAction('charge', { hold: true }));
-  at(0.5, () => __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: 1, type: 'brakk_stomp', hpCost: 240, shield: 1100,
-    effects: hits([[0, 700, { knockup: true }], [2, 650, { knockup: true }], ...(giant ? [[0, 300, { fall: true }], [2, 280, { fall: true }]] : [])]),
-    giant, radius: 4, impact: 600, knockup: 1000, newX: 0, newZ: 0 }));
-  at(1.1, () => brakk.statusEffects.push({ type: 'brakk_shield', hp: 1100, maxHp: 1100, endTime: 1e9 }));
+const say = (t, s) => at(t, () => { lbl.textContent = s; });
+const BIG = 1e12;
+const exec = (skillIdx, type, payload = {}) => T.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx, type, effects: [], ...payload });
+const cast = (skillIdx, castTime) => T.onCastStart({ casterId: 'me', casterIdx: 0, skillIdx, castTime });
+const attack = (ti = 0, crit = false) => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: ti, damage: crit ? 420 : 210, isCrit: crit });
+const fx = (d) => T.onBrakkFx({ casterId: 'me', casterIdx: 0, targetId: 'op', ...d });
+const hits = (list) => list.map(e => ({ targetIndex: e[0], damage: e[1], isCrit: false, isBlock: false, isMiss: false, ...e[2] }));
+const home = () => { B.teleport(BX, 0); brakk.x = BX; brakk.z = 0; B.facingLeft = false; };
+const giantOn = () => { brakk.statusEffects = brakk.statusEffects.filter(e => e.type !== 'giant_form')
+  .concat([{ type: 'giant_form', endTime: BIG, immuneUntil: (window.__vt + 5) * 1000, duration: 10000, defUp: 0.4, dmgUp: 0.25, autos: 0, every: 3 }]); };
+const giantOff = () => { brakk.statusEffects = brakk.statusEffects.filter(e => e.type !== 'giant_form'); fx({ kind: 'giantEnd' }); };
+const homeFoes = () => foes.forEach((f, i) => vF[i].teleport(f.x, f.z));
+
+function seqAttack(t0) {
+  say(t0, 'Đánh thường: đấm thẳng — đá + dung nham nổ ở nắm đấm (nhát 2: chí mạng)');
+  at(t0, () => attack(0));
+  at(t0 + 1.25, () => attack(0, true));
+  return t0 + 2.5;
 }
-if (S === 'giant') {
-  at(0.0, () => vB.playAction('charge', { hold: true }));
-  at(0.4, () => __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: 2, type: 'brakk_giant', hpCost: 320, effects: [{ targetIndex: 0, ally: true }], newX: 0, newZ: 0 }));
-  at(0.7, () => brakk.statusEffects.push({ type: 'giant_form', endTime: 1e9, immuneUntil: 1e9, duration: 10000, defUp: 0.4, dmgUp: 0.25, autos: 0, every: 3 }));
+function grabData(giant) {
+  return { hpCost: 160, effects: hits([[0, 820, { grab: true, fromX: foes[0].x, fromZ: 0, toX: BX + 6.2, toZ: 0 }], [1, 410, { shock: true }], [2, 400, { shock: true }]]),
+    leap: { fromX: BX, fromZ: 0, toX: BX + 4, toZ: 0 }, slam: { x: BX + 5.2, z: 0 }, dir: 1, giant, radius: giant ? 4.5 : 3, impact: 850, newX: BX + 4, newZ: 0 };
 }
-if (S === 'uplift' || S === 'gup') at(0.1, () => __fxTest.onBrakkFx({ kind: 'uplift', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: 0,
-  effects: hits([[0, 900, { knockup: true, fromX: 2.4, fromZ: 0, toX: 5.4, toZ: 0 }]]), upTime: 800, impact: 200 }));
-if (S === 'blood') at(0.1, () => __fxTest.onBrakkFx({ kind: 'blood', casterId: 'me', casterIdx: 0, heals: [{ targetIndex: 0, heal: 1200 }], orbs: 1 }));
-if (S === 'shout') at(0.1, () => __fxTest.onBrakkFx({ kind: 'shout', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndices: [0, 1, 2], allyIndex: 0, duration: 3000 }));
-if (S === 'end') at(0.05, () => {});
-// Thần Chết phán quyết (Ấn Tử chạm ngưỡng tử) — Brakk đứng vai Zerith: judge = chết, judges = có khiên (vỡ khiên)
-if (S === 'judge' || S === 'judges') {
-  at(0.1, () => __fxTest.onReaperFx({ kind: 'judgeStart', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: 0, lift: 1100, fall: 500 }));
-  at(1.2, () => __fxTest.onReaperFx({ kind: 'judgeSlash', casterId: 'me', casterIdx: 0, targetId: 'op', targetIndex: 0, shielded: S === 'judges', killed: S === 'judge', damage: 640 }));
+function seqGrab(t0) {
+  say(t0, 'Bá Vương Quật: vồ túm → nhấc qua đầu → nhảy vọt → quật xuống (nổ đá, hố nứt, vòng chấn động)');
+  at(t0, () => exec(0, 'brakk_grab', grabData(false)));
+  at(t0 + 2.4, () => { home(); homeFoes(); });
+  return t0 + 2.8;
 }
-if (S === 'lone') {   // Độc Long: chỉ còn 1 mình Brakk -> gầm lên, sát thương ×2
-  at(0.1, () => __fxTest.onBrakkFx({ kind: 'lone', casterId: 'me', casterIdx: 0, value: 1 }));
-  at(0.4, () => brakk.statusEffects.push({ type: 'lone_dragon', value: 1, endTime: 1e9 }));
+function stompData(giant) {
+  return { hpCost: 240, shield: 1100, effects: hits([[0, 700, { knockup: true }], [2, 650, { knockup: true }], ...(giant ? [[0, 300, { fall: true }], [2, 280, { fall: true }]] : [])]),
+    giant, radius: 4, impact: 600, knockup: 1000, newX: BX, newZ: 0 };
 }
-if (S === 'quake') at(0.1, () => __fxTest.onRokFx({ kind: 'quake', casterId: 'me', casterIdx: 0, x: 3, z: 0, radius: 3 }));
+function seqStomp(t0) {
+  say(t0, 'Chấn Địa: gồng 1s → bật cao → dậm: vòng chấn động + gai đá trồi, quái bay lên; khiên vảy rồng');
+  at(t0, () => cast(1, 1000));
+  at(t0 + 1.0, () => exec(1, 'brakk_stomp', stompData(false)));
+  at(t0 + 1.6, () => { brakk.statusEffects = brakk.statusEffects.concat([{ type: 'brakk_shield', hp: 1100, maxHp: 1100, endTime: BIG }]); });
+  at(t0 + 3.6, () => { brakk.statusEffects = brakk.statusEffects.filter(e => e.type !== 'brakk_shield'); });
+  return t0 + 4.0;
+}
+function seqGiant(t0) {
+  say(t0, 'Thần Lực Khổng Lồ: gồng 0,5s → gầm → rồng đất bốc lên, hoá khổng lồ (vương miện = miễn khống chế 5s)');
+  at(t0, () => cast(2, 500));
+  at(t0 + 0.5, () => exec(2, 'brakk_giant', { hpCost: 320, effects: [{ targetIndex: 0, ally: true }], newX: BX, newZ: 0 }));
+  at(t0 + 0.8, giantOn);
+  say(t0 + 2.2, 'Khổng Lồ: đấm thường (tranh khổng lồ)');
+  at(t0 + 2.2, () => attack(0));
+  say(t0 + 3.4, 'Khổng Lồ: móc ngược hất tung');
+  at(t0 + 3.4, () => fx({ kind: 'uplift', targetIndex: 0, effects: hits([[0, 900, { knockup: true, fromX: foes[0].x, fromZ: 0, toX: foes[0].x + 3, toZ: 0 }]]), upTime: 800, impact: 200 }));
+  at(t0 + 4.6, () => homeFoes());
+  say(t0 + 4.8, 'Khổng Lồ: Bá Vương Quật (to hơn, chấn động rộng hơn)');
+  at(t0 + 4.8, () => exec(0, 'brakk_grab', grabData(true)));
+  at(t0 + 7.2, () => { home(); homeFoes(); });
+  say(t0 + 7.4, 'Khổng Lồ: Chấn Địa KHÔNG CẦN NIỆM — dậm ngay (quái rơi xuống ăn thêm đòn)');
+  at(t0 + 7.4, () => exec(1, 'brakk_stomp', stompData(true)));
+  say(t0 + 9.6, 'Hết Khổng Lồ: teo lại');
+  at(t0 + 9.6, giantOff);
+  return t0 + 10.8;
+}
+function seqShout(t0) {
+  say(t0, 'Tiếng Hét Bảo Hộ: đấm ngực → vẫy khiêu khích — đầu rồng đá gầm + sóng âm, dấu "!" trên đầu đối thủ');
+  at(t0, () => fx({ kind: 'shout', targetIndices: [0, 1, 2], allyIndex: 1, duration: 3000 }));
+  return t0 + 3.4;
+}
+function seqBlood(t0) {
+  say(t0, 'Long Huyết Bất Khuất: cột máu rồng bùng lên, đồng đội hồi máu + Orb');
+  at(t0, () => fx({ kind: 'blood', heals: [{ targetIndex: 0, heal: 1200 }, { targetIndex: 1, heal: 480 }], orbs: 1 }));
+  return t0 + 2.2;
+}
+function seqLone(t0) {
+  say(t0, 'Độc Long: chỉ còn 1 mình — gầm lên, sát thương ×2 (hào quang nhạt)');
+  at(t0, () => fx({ kind: 'lone', value: 1 }));
+  at(t0 + 0.4, () => { brakk.statusEffects = brakk.statusEffects.concat([{ type: 'lone_dragon', value: 1, endTime: BIG }]); });
+  at(t0 + 2.6, () => { brakk.statusEffects = brakk.statusEffects.filter(e => e.type !== 'lone_dragon'); });
+  return t0 + 3.0;
+}
+const SEQ = { attack: seqAttack, grab: seqGrab, stomp: seqStomp, giant: seqGiant, shout: seqShout, blood: seqBlood, lone: seqLone };
+let end = 0.2;
+if (S === 'all') for (const k of Object.keys(SEQ)) end = SEQ[k](end);
+else end = SEQ[S](end);
+say(end, '');
+window.TOTAL = end + 0.3;
 ev.sort((a, b) => a[0] - b[0]);
 let t = 0;
 window.stepTo = (target) => {
-  while (t < target) {
+  while (t < target - 1e-9) {
     const dt = Math.min(1 / 60, target - t);
-    while (ev.length && ev[0][0] <= t) ev.shift()[1]();
+    while (ev.length && ev[0][0] <= t + 1e-9) ev.shift()[1]();
     t += dt; window.__vt = t; window.__runTimers();
     updateVfx(dt);
-    [vB, ...vF].forEach(v => v.update(dt, camera));
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
   }
   renderer.render(scene, camera);
   return t;
 };
-window.stepTo(0.02); window.__ready = true;
+window.stepTo(0.02);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(t + Math.min(0.05, (now - last) / 1000)); last = now; if (t > window.TOTAL) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
 </script></body></html>

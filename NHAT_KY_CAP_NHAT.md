@@ -5,6 +5,130 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 24/10/2026 — Elarion thành nhân vật đặc biệt + Hỏa Lôi Cầu khổng lồ + Nerissa nhỏ lại + bảng chọn đội + prompt icon kỹ năng
+- **Elarion ⭐ nhân vật đặc biệt** (bạn chọn: mạnh hơn rõ rệt, đủ 4 hướng):
+  - **Trâu hơn:** máu ×1,3, thủ ×1,35–1,4, M.ATK ×1,15 ở MỌI level (Lv60 SSS: máu 8.249 → 10.724, M.ATK 1.433 → 1.648).
+  - **Ra phép nhanh hơn:** ngọc rơi 2s/viên (trước 3s), Sách Nguyên Tố không tốn Orb.
+  - **Phép mạnh hơn ~35%:** Thiên Thạch ×3,8 (lăn ×1,1), Băng Phong ×1,5, Lôi Xích ×2,0, Hỏa Lôi Cầu ×2,7 nổ rộng 4,5, Lốc Xoáy ×1,5, Giáp Băng Sét khiên 32%, Băng Hoại Hỏa Thiên băng ×0,4 / lửa ×0,57, Tốc Lôi +35% tốc đánh, Hơi Nước Bỏng hồi ×0,4 / sét ×0,95.
+  - **Golem mạnh hơn:** ở lại 25s (trước 20s), máu 5× (trước 4,67×), ATK 1,4× (trước 1,1×), Nộ Lửa ×2,3, Bão Tuyết ×0,65 mỗi giây, Hào Quang Sét ×0,6.
+  - Đo trận thử AUTO (Lv60 SSS, 1 mình đánh 3 quái Lv60, 240 giây): sát thương ~1,75× bản trước, ~1,25× trung bình 4 nhân vật đánh chính (Lyra, Zerith, Jessica, Ignar) — chưa kể khiên, khống chế, Orb tặng đội.
+  - Cách sở hữu đặc biệt: ghi vào lộ trình, làm khi có hệ thống ngoài trận.
+- **Hỏa Lôi Cầu khổng lồ:** quả cầu to dần từ cao 1,6 tới ~7,6 (trùm cả hàng địch), vùng nổ bán kính 3,5 → 4,5, nổ to tương ứng.
+- **Nerissa nhỏ lại** (cao 2,9 → 2,65): tóc bồng tới gối + 2 dải lụa dài + đầu to làm cô trông to hơn mọi người dù cùng chiều cao.
+- **Bảng chọn đội:**
+  - Bỏ nút "Chọn 4 người đầu", thay bằng **✕ Bỏ chọn tất cả** (xoá hết lựa chọn, cả 2P khi Đấu với tướng; mờ đi khi chưa chọn ai).
+  - Ảnh Jessica + Rok đổi sang tạo hình bản 3 (trước còn hình cũ).
+- **Icon kỹ năng:** prompt 11 tấm (66 icon: kỹ năng, thiên phú, đánh thường, 10 phép Elarion, Golem) ở `art/icons/PROMPTS_ICONS.md`. Có tranh thì mình gắn lên nút kỹ năng trong trận, dùng chung cho các tính năng sau.
+- Đã thử: trận AUTO (Elarion + Rok + Lyra + Nerissa), trang thử Hỏa Lôi Cầu, bảng chọn đội, build: không lỗi.
+
+## 24/10/2026 — Elarion + Golem: 7 tấm hiệu ứng tranh vào game
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ cắt + căn + chỉnh cỡ): 7 tấm hiệu ứng (56 khung, nền trong suốt thật) → 14 hiệu ứng chạy khung.
+  - Vài khung AI vẽ lệch tâm (nổ trúng đòn, lốc xoáy trôi dần sang trái, vệt đấm / bão tuyết hàng dưới cao hơn hàng trên) → dời cả khung cho trùng tâm, không sửa hình.
+  - Lửa sát đất của thiên thạch và băng vụn của khối băng vẽ chồng sang ô bên cạnh → cắt ở chỗ mỏng nhất, mờ dần mép cắt.
+- **Elarion:**
+  - Đánh thường: nổ đúng màu ngọc đang giữ (lửa / băng / sét), chí mạng to hơn.
+  - Đọc Sách: ánh vàng + chữ cổ + 3 cầu nguyên tố bốc lên đúng giữa trang Sách lúc Sách mở.
+  - Bão Nguyên Tố: lốc 3 nguyên tố xoáy quanh người, bùng lên đúng lúc dang tay — lốc ở sau lưng + ánh sáng mờ phía trước nên vẫn thấy rõ Elarion.
+  - Thiên Thạch: nổ lớn 4 khung (loé → bùng → cột lửa khói → khói tàn). Hỏa Lôi Cầu: cầu lửa sét xoáy to dần rồi nổ.
+  - Băng Phong: khối băng rơi chạm đất vỡ 4 khung, mảnh văng trúng ai thì nổ băng ở người đó.
+  - Lốc Xoáy: phễu sét xoáy liên tục. Giáp Băng Sét: pha lê trồi lên thành vòm rồi giữ lặp sau lưng người được che.
+  - Lôi Xích, sét Mưa Giông, phản đòn Giáp Băng Sét, tia lửa Băng Hoại Hỏa Thiên: dùng nổ sét / nổ lửa mới.
+- **Golem:**
+  - Triệu hồi: vòng 3 màu → 3 cột sáng → nổ đá đúng lúc Golem đứng dậy gầm → bụi lắng.
+  - Nộ Lửa: lửa bùng quanh nắm đấm lúc gồng, vệt lửa trùm nắm đấm suốt đường lao.
+  - Bão Tuyết: luồng bão tuyết phun ra từ miệng. Hào Quang Sét: sét trời giáng trúng ngọc ngực.
+- Giữ hình lẻ bản 2 còn tốt: ngọc, vòng, tia đánh thường, Lôi Xích, thiên thạch rơi, tảng đá lăn, dải lửa, khối băng, ngục băng, mây giông, mưa hồi máu, vòng sét Tốc Lôi, chưởng đôi, xoáy hít khí, Golem tan rã.
+- Đã thử: trang thử phép (mọi phép + Golem), trận AUTO (Elarion + Rok + Seraphine), build: không lỗi. Video duyệt: `elarion_v3_fx.mp4`.
+
+## 24/10/2026 — Elarion hiền giả + Golem vào game (động tác sprite)
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ cắt + căn chân + chỉnh cỡ): 9 tấm Elarion (72 khung) + 3 tấm Golem (24 khung) + ảnh màn chọn đội mới (hiền giả tung 3 nguyên tố).
+  - 2 ảnh tạo hình có nền trong suốt thật — phần nền tối loang vàng chỉ là màu thừa bên dưới vùng trong suốt mà khung xem trước hiện ra, trong game không thấy.
+  - AI vẽ mỗi tấm to nhỏ khác nhau → đo lại bằng khuôn mặt (Elarion) / ngọc ngực + chồng hình (Golem): tấm tung phép nhỏ hơn ~17%, tấm sét – triệu hồi của Golem nhỏ hơn ~12%... đều chỉnh về cùng cỡ.
+  - 3 tấm có 2 khung vẽ chạm nhau (tay áo rộng, tóc dài, cuốn Sách) → thêm cách tách tự động theo ô lưới trong công cụ ráp.
+- **Elarion:** đứng, thủ thế (Sách mở bên tay), đẩy chưởng (tia Hỏa / Băng / Lôi bay ra đúng lòng bàn tay), chạy (tóc dài + tay áo bay), đọc Sách, tung phép, gọi Bão Nguyên Tố, đứng thi triển Mưa Giông, Băng Hoại Hỏa Thiên (khum tay dồn lực → chưởng giữ tia, tia phát ra đúng giữa 2 bàn tay), niệm, rơi vào trận → quỳ đáp đất, trúng đòn, choáng, gục (Sách rơi xuống đất), thắng (giơ tay ban phước).
+- **Golem:** đi nặng nề, đấm, Nộ Lửa (gồng → lấy đà → nắm đấm lửa duỗi thẳng suốt đường lao), Bão Tuyết (hít khí → há miệng phun, luồng bão ra đúng miệng), Hào Quang Sét (giơ 2 nắm đấm → nện xuống đúng lúc sét giáng), trồi lên lúc triệu hồi (cuộn tròn như tảng đá → đứng dậy gầm), trúng đòn, choáng, gục / tan thành đống đá.
+- **Hiệu ứng phép vẫn là bản cũ** — chờ 7 tấm hiệu ứng mới (`art/elarion/fx2/PROMPTS_FX.md`).
+- Đã thử: trang thử động tác Elarion + Golem, trang thử phép (đánh thường 3 hệ, đọc Sách, Băng Hoại Hỏa Thiên, Lôi Xích, Nộ Lửa, Bão Tuyết, Hào Quang Sét, triệu hồi), trận AUTO 4 người (Elarion + Rok + Seraphine + Lyra): không lỗi. Video duyệt: `elarion_v3_sprite.mp4`, `golem_v3_sprite.mp4`.
+- Bản cũ vẫn xem được: `?elarion=cutout`, `?golem=cutout`.
+
+## 24/10/2026 — Elarion bản 3: tạo hình hiền giả tóc bạch kim + prompt 9 tấm sprite, Golem 3 tấm, 7 tấm hiệu ứng
+- **Tạo hình mới** (bạn chọn): **hiền giả tinh linh từ thời xưa**, sống cả nghìn năm nhưng dung mạo vẫn trẻ.
+  - Tóc **bạch kim** thẳng dài chấm gối, đuôi buộc khoen vàng; tai nhọn đeo khuyên vàng hình lá.
+  - **Vòng miện vàng cổ** ngang trán, giữa có ngọc giọt nước pha 3 màu cam · lam · tím; mắt tím nhạt hiền hoà.
+  - **Áo bào xanh đêm** tay rất rộng, thêu cổ tự + chòm sao bằng chỉ vàng; áo trong trắng ngà cổ chéo.
+  - Khăn choàng trắng ngà thêu ngọn lửa · bông tuyết · tia sét; đai vàng đeo ngọc bội có tua; giày vải mũi cong.
+  - **Sách Nguyên Tố** tự lơ lửng: bìa đồng sẫm, huy hiệu tam giác vàng gắn 3 viên đá.
+  - (Bản nháp đầu là học giả tóc đen áo xám — bạn thấy không đẹp, đã đổi sang hiền giả tóc bạch kim, áo bào xanh đêm + vàng cổ.)
+- **Prompt sprite** `art/elarion/sprite/PROMPTS_SPRITE.md`: tạo hình (01-character-v3, chân dung 01b) + 9 tấm:
+  - đứng / thủ thế, đẩy chưởng (khung 4), chạy, trúng đòn / choáng;
+  - đọc Sách (khung 3) + gọi Bão Nguyên Tố (khung 7, dùng luôn khi đứng thi triển Mưa Giông);
+  - tung phép (khung 5, dùng cho mọi phép);
+  - Băng Hoại Hỏa Thiên: khum tay dồn lực → chưởng giữ tia;
+  - niệm + rơi vào trận → đáp đất; gục / thắng.
+  - Có **đoạn luật Sách** dán vào mọi tấm: Sách tự bay, cùng thiết kế mọi khung, chỉ mở khi được dặn, không vẽ phép.
+- **Golem giữ tạo hình cũ**, thêm 3 tấm động tác riêng (bạn chọn): đi + đấm · Nộ Lửa (lùi gồng → lao đấm) + Bão Tuyết (hít → phun) · Hào Quang Sét + trúng đòn + choáng + trồi lên + tan rã.
+- **Prompt hiệu ứng** `art/elarion/fx2/PROMPTS_FX.md` (7 tấm, chỉ vẽ lại phần chạy khung):
+  - trúng Hỏa / Băng / Lôi, lốc 3 nguyên tố;
+  - thiên thạch nổ, khối băng vỡ, cầu hỏa lôi, lốc xoáy;
+  - Sách loé, Giáp Băng Sét;
+  - vệt đấm lửa, luồng bão tuyết, sét giáng, triệu hồi Golem.
+  - Hình lẻ bản 2 còn tốt (ngọc, tia đánh thường, thiên thạch rơi, khối băng, mây giông, ngục băng...) giữ nguyên, đỡ tốn lượt vẽ.
+- Chưa đổi game (chờ tranh).
+
+## 24/10/2026 — Khiên Seraphine không còn che người · Brakk Khổng Lồ dùng kỹ năng không cần niệm
+- **Khiên Ánh Sáng (Seraphine) che người được che** — đúng như bạn thấy. Nguyên nhân: nhân vật được ngả nhẹ ra sau theo góc camera (đầu lùi ~0,75 đơn vị), còn bong bóng khiên đặt "sau lưng" lại dựng thẳng → nửa trên bong bóng chồi ra TRƯỚC đầu / vai, phủ một lớp sáng mờ lên người.
+  - Sửa: cả bong bóng + đôi cánh nghiêng cùng góc với nhân vật → nằm sau lưng thật; tóc, mặt người bên trong rõ nét lại (khiên 1 người lẫn khiên cả đội có cánh lúc Thánh Niệm).
+  - Cùng lỗi, sửa luôn: hào quang + cánh bóng tối của Zerith (lúc gồng / gọi Đêm Tử Thần / suốt 10s bay), nữ thần nước sau lưng Nerissa (Thủy Thần Vũ). Hình hiệu ứng giữ nguyên, chỉ không phủ lên người nữa.
+- **Brakk lúc Khổng Lồ: mọi kỹ năng dùng ngay, không cần niệm** (cả Khổng Lồ do Độc Long). Thực tế là **Chấn Địa** (bình thường gồng 1s) — giờ đang Khổng Lồ thì bật lên dậm luôn; Bá Vương Quật vốn không niệm.
+  - Đã thử trận thật (Brakk một mình, AUTO): ngoài Khổng Lồ Chấn Địa vẫn gồng 1s; trong Khổng Lồ dùng ngay.
+  - Trang thử `fx-brakk.html?s=giant`: đoạn Chấn Địa lúc Khổng Lồ bỏ phần gồng.
+
+## 24/10/2026 — Brakk bản 3 vào game: sprite + hiệu ứng tranh
+- **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 10 tấm sprite (80 khung, có 2 tấm Khổng Lồ) + 6 tấm hiệu ứng + ảnh màn chọn đội (cắt từ tranh nhân vật mới).
+  - Mỗi tấm AI vẽ to nhỏ khác nhau → đo lại bằng khuôn mặt + đai vô địch: hàng thủ thế, tấm Bá Vương Quật, 2 tấm Khổng Lồ đều chỉnh về cùng cỡ.
+  - Tấm đấm Khổng Lồ: nắm đấm khung 3 chạm tóc khung 4 → thêm cách "vạch tách" trong công cụ ráp để tách đúng 8 khung.
+  - Tấm máu rồng: chân cột máu hàng trên tràn xuống ô hồi máu → cắt bỏ phần tràn (không còn vệt cam lơ lửng trên hiệu ứng hồi máu).
+- **Động tác:** đứng, thủ thế, đấm thẳng, chạy, trúng đòn, choáng, gục, thắng; Bá Vương Quật (vồ → nhấc qua đầu → nhảy vọt → quật đúng 0,85s); gồng + Chấn Địa (bật cao → dậm đúng 0,6s); gầm hoá Khổng Lồ; Tiếng Hét Bảo Hộ (đấm ngực → vẫy khiêu khích).
+- **Thần Lực Khổng Lồ** dùng tranh khổng lồ riêng cho thủ thế, chạy, đấm, móc ngược; động tác khác (trúng đòn, túm quật, dậm) dùng tranh thường phóng to + ánh dung nham.
+- **Hiệu ứng mới** (màu cam dung nham · đồng · đá): nổ đá ở đúng nắm đấm; quật đất + hố nứt + vòng chấn động; gai đá trồi hai bên lúc dậm; vòm khiên vảy rồng; rồng đất bốc lên lúc hoá khổng lồ + hào quang khổng lồ; đầu rồng đá gầm ra từ miệng lúc Tiếng Hét + dấu "!" trên đầu đối thủ; cột máu rồng + hồi máu.
+- **Sửa lỗi hiệu ứng che người** (lúc thử thấy Brakk bị khối cam che kín):
+  - Hố nứt / vòng chấn động / ấn rồng giờ **nằm phẳng trên đất**, tâm đúng chân (trước là tấm dựng đứng trước người).
+  - Hiệu ứng **sau lưng** giờ nghiêng theo góc camera như nhân vật — trước đây phần trên của chúng chồi ra trước đầu (cột máu rồng, hào quang khổng lồ, vòm khiên). Thêm hàm dùng chung `camTilt()` để các nhân vật sau dùng.
+  - Vòm khiên lúc bật lên + hồi máu: tranh đặt sau người, phía trước chỉ còn ánh sáng mờ. Đầu rồng của Tiếng Hét đặt trước mặt Brakk thay vì đè lên mặt.
+- Đã thử: trang thử động tác, trang thử 7 nhóm kỹ năng, trận AUTO 4 người (Brakk + Rok + Seraphine + Lyra): không lỗi. Video duyệt: `brakk_v3_sprite.mp4`, `brakk_v3_fx.mp4`.
+- Bản khung xương cũ vẫn xem được: `?brakk=cutout`. Atlas hiệu ứng cũ (`brakk_fx.png`, `brakkFx.json`) bỏ → `cap_nhat_github.bat` tự xoá trên máy.
+
+## 24/10/2026 — Brakk bản 3: tạo hình mới rồng Đất – dung nham + prompt 10 tấm sprite + 6 tấm hiệu ứng
+- **Tạo hình mới** (bạn chọn): đô vật trẻ **tộc Rồng Đất – dung nham**, nhà vô địch đấu trường dung nham.
+  - Bờm nâu cát dựng ngược, ngọn cam dung nham; sừng rồng đá xám vân nứt cam; mắt hổ phách; răng nanh, sẹo trên má.
+  - Cởi trần cơ bắp; vảy rồng nâu đồng như đá phiến trên vai, tay, lưng; đuôi rồng to có gai đá, chóp cam dung nham.
+  - Đai vô địch đồng mặt đầu rồng đá ngậm ngọc hổ phách; quần đùi đen viền đồng; băng tay trắng; giày đấu vật nâu – đồng.
+  - Phối màu nâu cát · đồng · đen than · xám đá · cam dung nham: **bỏ đỏ** để khỏi trùng Ignar và Zerith.
+- **Dạng Khổng Lồ** vẽ riêng (bạn chọn 2 tấm): vạm vỡ hẳn, vảy đá nứt dung nham sáng rực, mắt trắng rực, bờm bốc như dung nham. Có ảnh tham chiếu riêng `01c-giant-v3.png` để 2 tấm khổng lồ giống nhau.
+- **Prompt sprite** `art/brakk/sprite/PROMPTS_SPRITE.md`: tạo hình (01-character-v3, dạng khổng lồ 01c, chân dung 01b) + 10 tấm:
+  - đứng / thủ thế, đấm thẳng (khung 4), chạy, trúng đòn / choáng;
+  - **Bá Vương Quật**: vồ → nhấc qua đầu → nhảy vọt → quật (khung 7);
+  - **gồng** + **Chấn Địa** bật cao dậm (khung 7);
+  - **gầm hoá Khổng Lồ** + **Tiếng Hét Bảo Hộ** riêng (đấm ngực, vẫy tay khiêu khích);
+  - gục (mặt đau) / thắng (khoe cơ);
+  - **Khổng Lồ:** thủ thế + chạy · đấm + móc ngược.
+  - Có **đoạn luật tay không** dán vào mọi tấm: không vẽ vũ khí, không vẽ quái bị túm (tay nắm vào khoảng trống, game tự vẽ quái).
+- **Prompt hiệu ứng** `art/brakk/fx2/PROMPTS_FX.md` (6 tấm, màu cam dung nham · đồng · đá, không đỏ):
+  - đấm trúng (mảnh đá + tia dung nham) + móc ngược;
+  - quật đất nổ tung + gai đá trồi;
+  - rồng đất bốc lên lúc hoá khổng lồ + hào quang khổng lồ lặp;
+  - tiếng hét đầu rồng đá + khiên vảy rồng;
+  - máu rồng bùng (Long Huyết) + hồi máu;
+  - 8 hình nhỏ: hố nứt, vòng chấn động, ấn rồng, khiên, vương miện, dấu "!", Orb, bụi bật nhảy.
+- Chưa đổi game (chờ tranh).
+
+## 24/10/2026 — Zerith: lướt lần 2 miễn phí lúc Đêm Tử Thần chạy thật
+- Trước đây tài liệu ghi có nhưng server chưa bao giờ bật (thiếu chỗ tạo trạng thái `reaper_echo`). Giờ:
+  - Đang Đêm Tử Thần, lướt lần 1 → Lưỡi Hái Xuyên Hồn **hồi chiêu ngay** khi diễn xong cú lướt, trong **5 giây** được lướt lần 2 **miễn phí**.
+  - Nút kỹ năng hiện **"MIỄN PHÍ"**, biểu tượng vòng lưỡi hái bật trên đầu Zerith. AUTO tự lướt luôn; chơi tay thì tự bấm.
+  - Lướt lần 2 xong (hoặc hết 5 giây không lướt) → hồi chiêu bình thường 7 giây. Lướt lần 2 không tạo thêm lượt miễn phí.
+- Đã thử trận thật (Zerith một mình, AUTO, quái bất tử): mỗi lần Đêm Tử Thần đều lướt 2 cú liền nhau.
+
 ## 21/10/2026 — Zerith bản 3 vào game: sprite + hiệu ứng tranh
 - **Tranh của bạn đã ráp** (giữ nguyên, chỉ tách nền + căn chân + chỉnh cỡ): 9 tấm sprite (72 khung) + 6 tấm hiệu ứng + ảnh chân dung màn chọn đội.
 - **Động tác:** đứng, thủ thế, bổ liềm, chạy, trúng đòn, choáng, lướt chém, chỉ tay gắn Ấn Tử, gồng, quét hất lên, bổ xuống, gọi Thần Chết, rơi vào trận, gục, thắng.

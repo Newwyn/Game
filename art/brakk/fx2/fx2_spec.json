@@ -1,0 +1,32 @@
+{
+ "note": "Hieu ung Brakk ban 3 (rong Dat - dung nham): tranh AI nen den cua nguoi dung (giu nguyen, chi tach nen den). Tam slam (quang sang day dat noi cac khung) + tam tieng het (khung ve lan sang o ben): regionThr cao de khong gom nham. Luoi 4x2 ca 6 tam (tam icons cung ve luoi 4x2). Hang co day cham dat dung chung 1 diem goc (pivot [x, y]) de doi khung khong nhay. Tieng het ve tu mep trai sang phai: pivot = tam chop loe khung 1 (mieng Brakk). Xem tools/fx_grid_pack.py.",
+ "out": "src/assets/sprites/brakk_fx2.webp",
+ "meta": "src/vfx/brakkFx2.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "punch": {"file": "art/brakk/fx2/fx-punch.png", "grid": [4, 2], "scale": 0.5, "regionThr": 40, "regionDilate": 2, "keepGrow": 8,
+            "groups": [{"name": "punchHit", "cells": [0, 1, 2, 3], "align": "cell", "pivot": "center"},
+                       {"name": "uppercut", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 448]}]},
+  "slam": {"file": "art/brakk/fx2/fx-slam.png", "grid": [4, 2], "scale": 0.5, "regionThr": 110, "regionDilate": 1, "keepGrow": 10,
+           "groups": [{"name": "slamHit", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 478]},
+                      {"name": "spikes", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 440]}]},
+  "giant": {"file": "art/brakk/fx2/fx-giant.png", "grid": [4, 2], "scale": 0.55, "regionThr": 40, "regionDilate": 2, "keepGrow": 8,
+            "groups": [{"name": "giantRise", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 472]},
+                       {"name": "giantAura", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 416]}]},
+  "roar": {"file": "art/brakk/fx2/fx-roar-shield.png", "grid": [4, 2], "scale": 0.5, "regionThr": 200, "regionDilate": 1, "keepGrow": 10,
+           "groups": [{"name": "warCry", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [115, 298]},
+                      {"name": "dome", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 400]}]},
+  "blood": {"file": "art/brakk/fx2/fx-dragon-blood.png", "grid": [4, 2], "scale": 0.5, "regionThr": 40, "regionDilate": 2, "keepGrow": 8, "cuts": [[0, 509, 1536, 529]],
+            "groups": [{"name": "bloodSurge", "cells": [0, 1, 2, 3], "align": "cell", "pivot": [192, 505]},
+                       {"name": "heal", "cells": [4, 5, 6, 7], "align": "cell", "pivot": [192, 465]}]},
+  "icons": {"file": "art/brakk/fx2/fx-brakk-icons.png", "grid": [4, 2], "scale": 0.5, "regionThr": 50, "regionDilate": 2, "keepGrow": 8,
+            "groups": [{"name": "crater", "cells": [0], "pivot": "bottom"},
+                       {"name": "ring", "cells": [1], "pivot": "bottom"},
+                       {"name": "seal", "cells": [2], "pivot": "bottom"},
+                       {"name": "shieldIcon", "cells": [3], "pivot": "center"},
+                       {"name": "crown", "cells": [4], "pivot": "center"},
+                       {"name": "tauntIcon", "cells": [5], "pivot": "center"},
+                       {"name": "orb", "cells": [6], "pivot": "center"},
+                       {"name": "dust", "cells": [7], "pivot": "bottom"}]}
+ }
+}

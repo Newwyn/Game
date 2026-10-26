@@ -4,7 +4,8 @@
 // Server gửi 'squadSelect' (sau khi chọn chế độ / bấm chơi lại) -> hiện bảng chọn.
 //   Test / Đấu với quái : 1 bảng (đội của bạn)
 //   Đấu với tướng      : 2 bảng 1P (bạn) và 2P (AI điều khiển)
-// Bấm thẻ để chọn / bỏ chọn, nhớ lựa chọn lần trước (server lưu). Phím: 1-9 chọn cho 1P, Enter = xác nhận.
+// Bấm thẻ để chọn / bỏ chọn, nút "Bỏ chọn tất cả" xoá hết (cả 1P lẫn 2P), nhớ lựa chọn lần trước (server lưu).
+// Phím: 1-9 chọn cho 1P, Enter = xác nhận.
 import { socket } from '../net/socket.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
@@ -70,7 +71,7 @@ function render() {
         <div class="ss-foot">
             <button class="ss-quick" data-ss-back>← Chọn chế độ</button>
             <span class="ss-count">${dual ? '' : `Đã chọn <b>${n1}</b> / ${max}`}</span>
-            ${dual ? '' : `<button class="ss-quick" data-ss-all>${state.heroes.length > max ? `Chọn ${max} người đầu` : 'Chọn tất cả'}</button>`}
+            <button class="ss-quick" data-ss-clear ${n1 + (dual ? n2 : 0) ? '' : 'disabled'}>✕ Bỏ chọn tất cả</button>
             <button class="ss-go" data-ss-go ${ok ? '' : 'disabled'}>⚔️ ${mode === 'test' ? 'Xác nhận vào trận' : 'Vào đấu'}</button>
         </div>
         ${state.error ? `<div class="ss-err">${state.error}</div>` : ''}
@@ -98,8 +99,10 @@ function confirm() {
 function onClick(e) {
     const card = e.target.closest('[data-ss]');
     if (card) return toggle(card.dataset.side ?? 'p1', card.dataset.ss);
-    if (e.target.closest('[data-ss-all]')) {
-        state.sides.p1 = new Set(state.heroes.slice(0, state.max).map(h => h.id));
+    if (e.target.closest('[data-ss-clear]')) {
+        state.sides.p1 = new Set();
+        if (state.dual) state.sides.p2 = new Set();
+        state.error = null;
         return render();
     }
     if (e.target.closest('[data-ss-back]')) { hide(); socket.emit('backToMenu'); return; }

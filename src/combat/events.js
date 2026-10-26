@@ -19,7 +19,7 @@ import {
 } from '../vfx/vfx.js';
 import { SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../config.js';
 import {
-    spawnFireball, spawnFireExplosion, spawnFireHit, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
+    spawnFireball, spawnFireExplosion, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
     spawnPillarHit, spawnSummonCircle, spawnFireWings, spawnPalmFlash,
     spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle,
 } from '../vfx/fireFx.js';
@@ -175,7 +175,7 @@ function onAutoAttack(data) {
         return;
     }
 
-    // Brakk: cú đấm thẳng — tia lửa ở ngực mục tiêu (Khổng Lồ: to hơn, rung mạnh hơn)
+    // Brakk: cú đấm thẳng — nổ đá dung nham ở nắm đấm (Khổng Lồ: to hơn, rung mạnh hơn)
     if (attacker.squad?.[data.attackerIndex]?.classId === 'wrestler') {
         const giant = !!attackerView._giantOn;
         const fire = () => {
@@ -183,7 +183,8 @@ function onAutoAttack(data) {
             if (!target) return;
             showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
             if (data.dodged) return;
-            spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant });
+            // bản sprite: nổ đá loé đúng chỗ nắm đấm trong tranh (khung đấm có điểm 'fist')
+            spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant, at: attackerView.pointWorld?.('fist') });
             cameraRig.shake(giant ? 0.12 : 0.07, 80);
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -206,7 +207,7 @@ function onAutoAttack(data) {
             }
             spawnElemBolt(attackerView.parts?.handN ? handOf(attackerView) : chestOf(attackerView, 1.3), chestOf(target, 1.0), el, { onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
-                if (!data.dodged) spawnElemHit(target.position, el);
+                if (!data.dodged) spawnElemHit(target.position, el, { crit: data.isCrit });
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -377,7 +378,7 @@ function onSkillExecuted(data) {
             brakkStomp(caster, data, opponentId);
             break;
         case 'brakk_giant':
-            // hoá Khổng Lồ: ưỡn ngực gầm -> rồng lửa bốc lên, cả người phình to (view tự đổi da theo trạng thái giant_form)
+            // hoá Khổng Lồ: ưỡn ngực gầm -> rồng đất bốc lên, cả người phình to (view tự đổi sang tranh khổng lồ theo trạng thái giant_form)
             caster.playAction('roar', { onHit: () => {
                 spawnGiantTransform(caster.position, caster.facingLeft ? -1 : 1);
                 cameraRig.shake(0.3, 300);
@@ -385,13 +386,12 @@ function onSkillExecuted(data) {
             break;
         case 'elem_book':
             // Sách Nguyên Tố: đọc 3 viên -> vòng chữ vàng bay lên từ trang sách
-            caster.playAction('book');
-            spawnBookFlash(caster.position, data.recipe ?? [], caster.parts?.book ? bookOf(caster) : null);
+            // (ánh vàng bốc lên lúc Sách mở ra trước mặt — mốc ra đòn của động tác đọc Sách, lấy đúng điểm giữa trang Sách lúc đó)
+            caster.playAction('book', { onHit: () => spawnBookFlash(caster.position, data.recipe ?? [], caster.parts?.book ? bookOf(caster) : null) });
             break;
         case 'elem_storm':
-            caster.playAction('storm');
-            spawnStormStart(caster.position);
-            cameraRig.shake(0.12, 180);
+            // lốc 3 nguyên tố bùng lên đúng lúc dang tay lên trời (mốc ra đòn của động tác gọi bão)
+            caster.playAction('storm', { onHit: () => { spawnStormStart(caster.position, { height: caster.height ?? 2.6 }); cameraRig.shake(0.12, 180); } });
             // Bão Nguyên Tố: +2 Orb ngay
             if (data.orbGain) gameTimeout(() => { spawnOrbGift(caster.position); spawnRisingGlyph(caster.position, `+${data.orbGain}◆`, '#e9d5ff', '#7c3aed'); }, 300);
             break;
@@ -730,7 +730,8 @@ function elemHits(effects, targetId, { fx = null, lift = 0 } = {}) {
 }
 /** Điểm thế giới của 1 khớp trên hình (VD bàn tay / Sách của Elarion); không có thì ước lượng trước ngực */
 function jointPoint(v, joint, { dx = 0, dy = 0 } = {}) {
-    const w = v.pointWorld?.(joint);   // nhân vật sprite: điểm gắn đánh dấu trên khung đang hiện
+    // nhân vật sprite: điểm gắn đánh dấu trên khung đang hiện (stickyPts: khung không đánh dấu -> khung gần nhất có đánh dấu)
+    const w = v.pointWorld?.(joint, { sticky: !!v.sprite?.stickyPts });
     if (w) return { x: w.x + (v.facingLeft ? -dx : dx), y: w.y + dy, z: w.z };
     const j = v.parts?.[joint];
     if (j) { const p = new THREE.Vector3(); j.getWorldPosition(p); return { x: p.x + (v.facingLeft ? -dx : dx), y: p.y + dy, z: p.z + 0.2 }; }
@@ -750,6 +751,9 @@ const rainClouds = new Map();   // view Elarion -> mây mưa giông đang hiện
 const solarBeams = new Map();   // view Elarion -> SolarBeam đang chưởng (Băng Hoại Hỏa Thiên)
 /** Giữa 2 lòng bàn tay (chưởng SolarBeam), nhích ra trước 1 chút */
 function palmsOf(v) {
+    // bản sprite (Elarion bản 3): điểm 'palms' đánh dấu giữa 2 bàn tay trên tranh dồn lực / giữ tia
+    const p = v.sprite?.stickyPts ? v.pointWorld?.('palms', { sticky: true }) : null;
+    if (p) return { x: p.x + (v.facingLeft ? -0.12 : 0.12), y: p.y, z: p.z };
     const a = jointPoint(v, 'handN'), b = v.parts?.handF ? jointPoint(v, 'handF') : a;
     return { x: (a.x + b.x) / 2 + (v.facingLeft ? -0.28 : 0.28), y: (a.y + b.y) / 2 - 0.05, z: Math.max(a.z, b.z) };
 }
@@ -863,17 +867,17 @@ function onElemFx(d) {
             onGemPicked(d);
             break;
         case 'meteorHit':
-            elemHits(d.effects, d.targetId, { fx: (t) => spawnFireHit(t.position, { size: 1.4 }) });
+            elemHits(d.effects, d.targetId, { fx: (t) => spawnElemHit(t.position, 'f', { size: 1.1 }) });
             break;
         case 'rollHit':
         case 'trailHit':
-            elemHits(d.effects, d.targetId, { fx: (t) => spawnFireHit(t.position) });
+            elemHits(d.effects, d.targetId, { fx: (t) => spawnElemHit(t.position, 'f', { size: 0.9 }) });
             break;
         case 'meteorCrash':
             // Lốc Xoáy đẩy đối thủ va vào thiên thạch đang lăn
             spawnFireBoltBlast(d.x, d.z, 2);
             cameraRig.shake(0.18, 180);
-            elemHits(d.effects, d.targetId, { fx: (t) => spawnFireHit(t.position, { size: 1.5 }) });
+            elemHits(d.effects, d.targetId, { fx: (t) => spawnElemHit(t.position, 'f', { size: 1.1 }) });
             break;
         case 'frostHit':
         case 'shardHit':
@@ -886,7 +890,7 @@ function onElemFx(d) {
             h?.pulse();
             cameraRig.shake(d.big ? 0.15 : 0.08, 140);
             elemHits(d.ice, d.targetId, { fx: (t, e) => (e.frozen ? spawnIceHit(t.position) : spawnHitSpark(t.position, { count: 5, color: ELEM_COLOR.i, size: 0.8 })) });
-            elemHits(d.fire, d.targetId, { fx: (t) => spawnFireHit(t.position, { size: d.big ? 1.35 : 1 }) });
+            elemHits(d.fire, d.targetId, { fx: (t) => spawnElemHit(t.position, 'f', { size: d.big ? 1.1 : 0.85 }) });
             break;
         }
         case 'beamEnd':
@@ -961,7 +965,7 @@ function onElemFx(d) {
             if (caster?.leapTo) caster.leapTo(d.toX, d.toZ, { duration: d.time / 1000, height: 0 });
             caster?.playAction?.('dash');
             spawnFistDash({ fromX: d.fromX, fromZ: d.fromZ, toX: d.toX, toZ: d.toZ, time: d.time, getFist: caster?.parts?.handF ? () => frontFistOf(caster) : null });
-            elemHits(d.effects, d.targetId, { lift: 0.95, fx: (t) => spawnFireHit(t.position, { size: 1.3 }) });
+            elemHits(d.effects, d.targetId, { lift: 0.95, fx: (t) => spawnElemHit(t.position, 'f', { size: 1.05 }) });
             break;
         case 'golemShock':
             // tay có sét: mỗi đòn giật toàn bộ đối thủ
@@ -1248,7 +1252,7 @@ function brakkGrab(caster, data, opponentId) {
     }, impact);
 }
 
-/** Chấn Địa (đã niệm): nhảy lên dậm xuống — vòng lửa + gai đá, quái bay lên rồi rơi (Khổng Lồ: rơi xuống ăn thêm sát thương) */
+/** Chấn Địa (đã niệm): nhảy lên dậm xuống — vòng chấn động + gai đá, quái bay lên rồi rơi (Khổng Lồ: rơi xuống ăn thêm sát thương) */
 function brakkStomp(caster, data, opponentId) {
     const impact = data.impact ?? 600;
     caster.teleport(caster.basePos.x, caster.basePos.z, true);
@@ -1375,11 +1379,11 @@ function onBrakkFx(d) {
                 caster.facingLeft = near.position.x < caster.position.x;
             }
             const cry = () => {
-                spawnBattleCry(caster.position, caster.facingLeft ? -1 : 1, { height: caster.height * (caster._giantSc ?? 1) });
+                spawnBattleCry(caster.position, caster.facingLeft ? -1 : 1, { height: caster.height * (caster._giantSc ?? 1), at: caster.pointWorld?.('mouth', { sticky: true }) });
                 cameraRig.shake(0.2, 260);
                 foes.forEach((v, k) => gameTimeout(() => spawnCryIcon(v, { life: (d.duration ?? 3000) / 1000, y: v.height + 0.35 }), 200 + k * 70));
             };
-            if (!caster.playAction('roar', { onHit: cry })) cry();
+            if (!caster.playAction('taunt', { onHit: cry })) cry();   // đấm ngực -> vẫy tay khiêu khích (khung 3 = 0,3s)
             break;
         }
         case 'blood':
@@ -1392,11 +1396,11 @@ function onBrakkFx(d) {
             }, 150 + k * 80));
             break;
         case 'lone':
-            // Độc Long: đồng đội gục hết -> Brakk gầm lên, máu rồng bốc cháy, sát thương ×2
+            // Độc Long: đồng đội gục hết -> Brakk gầm lên, cột máu rồng bùng lên, sát thương ×2
             if (!caster) break;
             caster.playAction('roar', { onHit: () => {
                 spawnBloodSurge(caster.position);
-                spawnRisingGlyph(caster.position, '×2', '#fecaca', '#b91c1c');
+                spawnRisingGlyph(caster.position, '×2', '#fed7aa', '#c2410c');
                 cameraRig.shake(0.22, 260);
             } });
             break;

@@ -138,7 +138,7 @@ Server không trừ máu ngay lúc ra đòn mà **hẹn đúng lúc đòn chạm
 ### 3.5 Level · Bậc · Tộc · Class
 Code: `progression.js` (bảng số liệu + hàm tính) · tiến trình người chơi lưu ở `data/progress.json` theo mã trình duyệt (`loc.clientId`).
 
-**Thứ tự tính chỉ số:** gốc (= level 1, `CLASS_DEFS`) → + tăng theo level → × thưởng bậc → tộc → *(đồ — làm sau)* → buff/debuff trong trận → giới hạn trên.
+**Thứ tự tính chỉ số:** gốc (= level 1, `CLASS_DEFS`) → + tăng theo level → × thưởng bậc → × hệ số nhân vật đặc biệt (`statMul`, nếu có) → tộc → *(đồ — làm sau)* → buff/debuff trong trận → giới hạn trên.
 
 **Level & bậc.** Level tối đa 60. Mỗi bậc có level tối đa; đầy thì phải **đột phá** (ngoài trận, có điều kiện) mới lên tiếp. Cấp kỹ năng tự lên theo bậc.
 
@@ -213,9 +213,11 @@ Lv1 · bậc Thường:
 | Zerith | Sát Thủ phép · Devil | 1.725 | 235 phép | 46 / 55 | 25% | 16% | 12% | 3% | 0,85s | 2,8 |
 | Brakk | Chiến Binh · Dragon | 4.600 | 180 vật lý | 198 / 154 | 10% | 5% | 8% | 10% | 1,21s | 2,4 |
 | Nerissa | Tu Sĩ (vũ công) · Elf | 1.575 | 170 phép | 45 / 100 | 8% | 22% | 0% | 0% | 1,00s | 8 |
-| Elarion | Phù Thủy nguyên tố · Elf | 1.500 | 240 phép | 40 / 75 | 10% | 16% | 0% | 0% | 1,05s | 14 |
+| Elarion ⭐ | Phù Thủy nguyên tố · Elf | 1.950 | 276 phép | 56 / 101 | 10% | 16% | 0% | 0% | 1,05s | 14 |
 
 Riêng: Lyra chính xác 122% · Nerissa, Elarion chính xác 112% · Zerith hút máu 5%. Mọi nhân vật: sát thương chí mạng ×2,0.
+
+⭐ **Nhân vật đặc biệt** (Elarion — sau này sở hữu bằng cách riêng): `statMul` trong `CLASS_DEFS` nhân thêm chỉ số chính ở **mọi level** (`computeStats` trong `progression.js`): Elarion máu ×1,3 · P.DEF ×1,4 · M.DEF ×1,35 · M.ATK ×1,15 (đã tính trong 2 bảng).
 
 **Máu:** mọi tướng **không phải Chiến Binh** (trừ Rok, Brakk) có máu **×1,5** (`NON_WARRIOR_HP` trong `progression.js`, đã tính trong 2 bảng này; bảng chỉ số riêng từng nhân vật bên dưới là số gốc trước khi ×1,5).
 
@@ -231,7 +233,7 @@ Lv60 · bậc SSS:
 | Zerith | 9.945 | 1.351 | 318 / 330 |
 | Brakk | 18.812 | 793 | 1.182 / 816 |
 | Nerissa | 11.870 | 968 | 433 / 785 |
-| Elarion | 8.249 | 1.401 | 239 / 565 |
+| Elarion ⭐ | 10.724 | 1.648 | 334 / 763 |
 
 Số liệu kỹ năng ghi ở các mục dưới là ở bậc Thường; lên bậc: sát thương / máu khiên / hồi máu ×1,2 (S) · ×1,45 (SS) · ×1,75 (SSS), các buff % ×1,1 / 1,2 / 1,3.
 
@@ -440,7 +442,7 @@ Khiêu khích: **100** (như mọi nhân vật).
 - **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/seraphine/fx2/fx2_spec.json` → `src/assets/sprites/seraphine_fx2.webp` (1,2 MB) + `src/vfx/seraphineFx2.json`; code `src/vfx/seraphineFx.js`:
   - **Đánh thường:** cầu ánh sáng bay (`spawnSunOrb`) → nổ sáng (`spawnSunBurst`).
   - **Thánh Quang Trị Liệu:** tia nắng rọi xuống người được hồi (`spawnSunlight`) + dấu cộng; đang choáng thì xích vỡ (`cleanse`).
-  - **Khiên Ánh Sáng:** loé mặt trời lúc dựng (`spawnSunFlare`); bong bóng khiên quanh MỌI người được che (`makeLightShield` trong `CutoutCharacterView._updateHolyShield`, thay bong bóng code): lớp sau người + lớp ánh bóng cộng sáng nhẹ phía trước (người bên trong vẫn rõ), mờ theo máu khiên; khiên lúc niệm có đôi cánh.
+  - **Khiên Ánh Sáng:** loé mặt trời lúc dựng (`spawnSunFlare`); bong bóng khiên quanh MỌI người được che (`makeLightShield` trong `CutoutCharacterView._updateHolyShield`, thay bong bóng code): lớp sau người + lớp ánh bóng cộng sáng nhẹ phía trước (người bên trong vẫn rõ), mờ theo máu khiên; khiên lúc niệm có đôi cánh. Cả nhóm nghiêng theo góc camera (`camTilt`, 24/10/2026) — trước đó nửa trên lớp sau người chồi ra trước đầu / vai làm người được che bị phủ mờ.
   - **Thánh Niệm:** giơ gậy → loé mặt trời + vòng thánh bùng (`spawnPrayStart`); **Hộ Vệ Thiên Sứ** sáu cánh sau lưng + vòng thánh nghiêng quanh chân suốt 10s (`makeSeraphGuardian`, gắn qua `visual.prayFx`); cả đội hiện biểu tượng +sát thương (Ân Điển: thêm +thủ); hồi máu mỗi giây: dấu cộng nhỏ (`onPrayHeal`).
   - **Đang niệm dùng KN1 / KN2:** thiên thần nhỏ bay tới từng người rồi trao ánh sáng (`spawnLittleAngel`).
   - **Thiên Thần Hộ Mệnh:** thiên thần bay tới xác (1,2s) → vòng hồi sinh + tia nắng lớn + loé mặt trời (`spawnReviveFx`).
@@ -552,7 +554,7 @@ Lv1: HP 1.725 · M.ATK ~235 · P.DEF/M.DEF 46/55 · chí mạng 25% · né 16% �
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
 | Đánh thường | — | Bổ liềm ×1.0 (phép): giơ liềm ra sau đầu → quét qua đỉnh đầu → lưỡi móc bổ xuống trước mặt |
-| **1. Lưỡi Hái Xuyên Hồn** | **0 (miễn phí)** / 7s · chỉ dùng khi quái **trong tầm đánh** | Lướt tối đa **15 đơn vị**, chém **mọi quái trên đường lướt** ×1.6. **Tự chọn đường lướt**: thử lướt về phía từng đối thủ trong tầm lướt, chọn đường xuyên được nhiều quái nhất, ưu tiên đích là tướng đánh xa / yếu máu ở hàng sau (vd Lyra); **dừng ngay sau lưng** con xa nhất trên đường (không lướt lố). Lướt xong tự đánh con gần nhất. AI chỉ lướt khi đáng (xuyên ≥ 2 quái hoặc tới được tướng đánh xa / con dưới 40% máu). Lúc Đêm Tử Thần (thiết kế): lướt lần 1 → **hồi chiêu ngay** + trong **5s** được lướt lần 2 **miễn phí** (tự bấm, nút "MIỄN PHÍ"); lướt lần 2 xong mới hồi chiêu bình thường. ⚠ *21/10/2026: server chưa tạo trạng thái `reaper_echo` nên lướt lần 2 chưa chạy (AI / nút / biểu tượng đã sẵn, chỉ thiếu chỗ tạo) — chờ người dùng quyết* |
+| **1. Lưỡi Hái Xuyên Hồn** | **0 (miễn phí)** / 7s · chỉ dùng khi quái **trong tầm đánh** | Lướt tối đa **15 đơn vị**, chém **mọi quái trên đường lướt** ×1.6. **Tự chọn đường lướt**: thử lướt về phía từng đối thủ trong tầm lướt, chọn đường xuyên được nhiều quái nhất, ưu tiên đích là tướng đánh xa / yếu máu ở hàng sau (vd Lyra); **dừng ngay sau lưng** con xa nhất trên đường (không lướt lố). Lướt xong tự đánh con gần nhất. AI chỉ lướt khi đáng (xuyên ≥ 2 quái hoặc tới được tướng đánh xa / con dưới 40% máu). Lúc Đêm Tử Thần: lướt lần 1 → **hồi chiêu ngay** (khi diễn xong cú lướt) + trong **5s** được lướt lần 2 **miễn phí** (trạng thái `reaper_echo`: nút hiện "MIỄN PHÍ", biểu tượng vòng lưỡi hái bật trên đầu; AUTO tự lướt luôn, tay thì tự bấm); lướt lần 2 xong — hoặc hết 5s không lướt — mới hồi chiêu bình thường (7s) |
 | **2. Lưỡi Hái Hất Hồn** | 2 / 10s · niệm 0,7s | Niệm: **lưỡi hái khổng lồ** hiện dần sau lưng, lưỡi trên đầu → vọt ra trước quét từ dưới lên: quái phía trước trong 3,5 đơn vị trúng ×2.2 và bị **hất tung 1s**. Lúc Đêm Tử Thần: **không cần niệm** (lưỡi hái hiện ngay), phạm vi **rộng 6 đơn vị**, quét lên rồi **bổ xuống** thêm ×1.2 |
 | **3. Đêm Tử Thần** | 3 / 25s · niệm 1s | 10s: **Hộ Vệ Thần Chết** chiến đấu cùng (chém ×0.6 mỗi 1,2s; cứ chém đủ 2 nhát → 50% **tự dùng Lưỡi Hái Hất Hồn** miễn phí: hất tung quái quanh mục tiêu (4,5 đơn vị) ×2.2 rồi chém bổ xuống ×1.2), Zerith bay lơ lửng · +20% sát thương · +30% tốc đánh · −40% thời gian bị khống chế · **không thể chết** (máu tối thiểu 1, hiện đồng hồ cát). Đánh thường **chém lan** ×0.5 lên quái quanh mục tiêu (3 đơn vị) |
 
@@ -588,7 +590,7 @@ Hình bản 2 (khung xương, `?zerith=cutout`): `art/zerith/` (tranh toàn thâ
 - **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/zerith/fx2/fx2_spec.json` → `src/assets/sprites/zerith_fx2.webp` (1,9 MB, 48 khung) + `src/vfx/zerithFx2.json`; code `src/vfx/zerithFx.js` (giữ nguyên tên hàm cũ):
   - **`keepAlpha`** (mới trong `fx_grid_pack.py`): 6 tấm là PNG trong suốt THẬT (khói đen, áo choàng tối của Thần Chết) → giữ nguyên kênh trong suốt. Cách cũ (đặt lên nền đen rồi tách đen) làm mất mọi phần tối: Hộ Vệ Thần Chết gần như vô hình. Tranh nền đen giả trong suốt (VD Jessica: quầng đen vuông quanh hình) vẫn dùng cách cũ.
   - **Đánh thường:** vệt chém lưỡi liềm đỏ thẫm (`spawnScytheSlash`; chí mạng to hơn + loé). Đêm Tử Thần: chém lan (`spawnCleave`).
-  - **Lưỡi Hái Xuyên Hồn:** vệt khói đỏ dài (`spawnReaperDashTrail`) + dư ảnh đỏ hồng; mỗi con trúng: loé → chém + linh hồn bị xé bay lên (`spawnReaperDashHit`). Biểu tượng lướt lần 2 miễn phí (`spawnFreeDash`) bật khi server gửi `echo` — *server hiện chưa tạo trạng thái `reaper_echo` (xem dòng kỹ năng 1 bên dưới)*.
+  - **Lưỡi Hái Xuyên Hồn:** vệt khói đỏ dài (`spawnReaperDashTrail`) + dư ảnh đỏ hồng; mỗi con trúng: loé → chém + linh hồn bị xé bay lên (`spawnReaperDashHit`). Lướt lần 1 lúc Đêm Tử Thần (server gửi `echo`): biểu tượng vòng lưỡi hái "lướt lần 2 miễn phí" bật trên đầu (`spawnFreeDash`).
   - **Lưỡi Hái Hất Hồn:** niệm → vòng ấn tử thần vẽ nghiêng quanh chân (vành trước đặt trước người) + **lưỡi hái khổng lồ** hiện dần sau lưng (`spawnPhantomScythe`: hiện ra 4 khung → giữ lặp) → vọt ra trước quét lên (`spawnReapUp`); Đêm Tử Thần: bổ xuống (`spawnReapSlam`) + vết nứt đất đọng lại (`spawnGroundCrack`).
   - **Đêm Tử Thần:** gồng: vòng ấn + hào quang; gọi: cánh bóng tối bung + sóng + linh hồn (`spawnReaperWings`); suốt 10s: hào quang cánh bóng tối lặp (`makeReaperAura`, nâng theo nửa độ bay, hơi trong để Zerith vẫn rõ) + **Hộ Vệ Thần Chết** sau lưng (`makeReaperGuardian`: hiện ra 4 khung → đứng / giương liềm / chém ngang / chém bổ; bản sprite lùi xa 1,95 + bay cao 0,55 để không bị Zerith che); chặn đòn chí tử: đồng hồ cát (`spawnHourglass`).
   - **Phán Quyết Tử Thần:** chỉ tay → loé đầu ngón tay (`spawnFingerFlare`) + Ấn Tử bay lên đầu mọi đối thủ (`spawnDeathMarkCast`) → lơ lửng trên đầu (`makeDeathMarkIcon`); chạm ngưỡng tử: Thần Chết hiện sau lưng mục tiêu + vòng ấn + hồn xoáy, nhấc lên rồi chém bổ (`spawnJudgement`) → nhát chém phán quyết (`spawnExecution`); có khiên: mảnh khiên vỡ (`spawnShieldShatterZ`).
@@ -603,17 +605,56 @@ Lv1: HP 4.000 · P.ATK 180 · P.DEF/M.DEF 180/140 · chí mạng 10% · chặn 1
 |---|---|---|
 | Đánh thường | — | Đấm thẳng ×1.0 (vật lý) |
 | **1. Bá Vương Quật** | 1 + 4% / 8s · tầm 2,6 | **Túm** quái trước mặt → nhảy vọt RẤT CAO (camera tự nâng lên theo) nhấc nó qua đầu → **quật** xuống 1 điểm cố định phía trước (4 đơn vị), Brakk đứng lại đó. Diễn ~1s: nhảy vọt CAO, quật ở 0,85s. Mục tiêu ×1.8 + **choáng 1s**; chấn động khi chạm đất ×1.0 lên mọi quái khác trong 3 đơn vị. Khổng Lồ: **+30% sát thương**, chấn động **4,5** đơn vị. Mục tiêu đang miễn khống chế thì không túm được (chỉ ăn đòn) |
-| **2. Chấn Địa** | 2 + 6% / 12s · niệm 1s | Bật **cao** rồi **dậm** xuống (chạm đất 0,6s): ×1.4 mọi quái trong 4 đơn vị, **hất tung 1s**; Brakk được **khiên = 25% máu HIỆN CÓ** (10s). Khiên **cộng dồn** với khiên thiên phú 1 thành 1 lớp dày hơn, dùng lại thì **làm mới 10s**. Khổng Lồ: quái **rơi xuống** chịu thêm ×0.8 |
-| **3. Thần Lực Khổng Lồ** | 3 + 8% / 25s · niệm 0,5s | Hoá **khổng lồ** 10s (cả bộ hình đổi sang dạng khổng lồ, mắt trắng rực, to thêm 25%, hào quang rồng lửa): **+50% máu tối đa** (hồi đúng phần tăng; hết giờ thì máu tối đa trở lại cũ) · **+40% P.DEF/M.DEF** · **+25% sát thương**. **5 giây đầu miễn mọi hiệu ứng bất lợi** (choáng, hất tung, đẩy lùi, khiêu khích, debuff — trừ Ấn Tử; vương miện vảy rồng trên đầu). Đánh thường **đầu tiên** và cứ **sau 3 đòn thường**: **móc ngược** ×1.3 hất tung 0,8s + hất văng 3 đơn vị |
+| **2. Chấn Địa** | 2 + 6% / 12s · niệm 1s (Khổng Lồ: **không niệm**) | Bật **cao** rồi **dậm** xuống (chạm đất 0,6s): ×1.4 mọi quái trong 4 đơn vị, **hất tung 1s**; Brakk được **khiên = 25% máu HIỆN CÓ** (10s). Khiên **cộng dồn** với khiên thiên phú 1 thành 1 lớp dày hơn, dùng lại thì **làm mới 10s**. Khổng Lồ: **dậm ngay không cần niệm** + quái **rơi xuống** chịu thêm ×0.8 |
+| **3. Thần Lực Khổng Lồ** | 3 + 8% / 25s · niệm 0,5s | Hoá **khổng lồ** 10s (cả bộ hình đổi sang dạng khổng lồ, mắt trắng rực, to thêm 25%, hào quang rồng lửa): **+50% máu tối đa** (hồi đúng phần tăng; hết giờ thì máu tối đa trở lại cũ) · **+40% P.DEF/M.DEF** · **+25% sát thương**. **5 giây đầu miễn mọi hiệu ứng bất lợi** (choáng, hất tung, đẩy lùi, khiêu khích, debuff — trừ Ấn Tử; vương miện vảy rồng trên đầu). Đánh thường **đầu tiên** và cứ **sau 3 đòn thường**: **móc ngược** ×1.3 hất tung 0,8s + hất văng 3 đơn vị. Đang Khổng Lồ: **mọi kỹ năng dùng ngay, không cần niệm** (`giantCast` → `castTimeOf` trong server.js, như `formCast` của Zerith) |
 
 Thiên phú 1 (Lv20) **Khí Thế Đấu Trường**: phe địch dùng đủ **5 chiêu** → Brakk hồi **8 / 10 / 12%** máu (hồi 10s); phe mình (kể cả Brakk) dùng đủ **5 chiêu** → khiên **10 / 12 / 15%** máu trong 10s, **cộng dồn** với khiên Chấn Địa (hồi 20s). Đang hồi thì không đếm. Thêm **Tiếng Hét Bảo Hộ**: khi có **đồng đội** (không tính Brakk) **dưới 50% máu** → Brakk tự **gầm lên khiêu khích TẤT CẢ đối thủ 3s** (buộc đánh Brakk, **không gây sát thương**; địch đang miễn khống chế thì không dính), hồi **10s**.
 Thiên phú 2 (Lv40) **Long Huyết Bất Khuất**: máu tụt **dưới 50%** → Brakk hồi **25%** (SSS **30%**) máu, đồng đội hồi **10%** (SSS **15%**), **cả đội +1 Orb** (SSS **+2**) và được **giải mọi hiệu ứng bất lợi** (Ấn Tử thì không). Hồi 20s. Thêm **Độc Long**: khi đồng đội đã gục hết, **chỉ còn 1 mình Brakk trên sân** → mọi sát thương của Brakk **×2** (hào quang rồng lửa nhạt quanh người; đồng đội được hồi sinh thì tắt). Vừa còn 1 mình → **tự hoá Khổng Lồ MIỄN PHÍ** (không tốn Orb / máu, không tính hồi chiêu); đang Khổng Lồ rồi thì **làm mới thời gian** Khổng Lồ (10s). Mỗi lần bị bỏ lại 1 mình kích hoạt 1 lần.
 AI: áp sát (≤ 4 đơn vị) → Khổng Lồ → Chấn Địa khi có ≥ 2 quái quanh mình / đang bị đánh dồn / máu < 70% / đang Khổng Lồ → Bá Vương Quật quái trước mặt (khi Khổng Lồ, dư Orb hoặc mục tiêu yếu máu).
-Hình (bản 2): ghép từ **tấm bộ phận vẽ riêng** (đầu khớp tròn, không cắt từ tranh toàn thân nữa) — `art/brakk/` (tranh nhìn nghiêng + 3/4, tấm bộ phận, tay & mắt, tranh + tấm bộ phận **dạng khổng lồ**, 3 tấm hiệu ứng — fx-c là Tiếng Hét Bảo Hộ) → `tools/cut_reference.py art/brakk/ref_spec.json` (mỗi mảnh có 2 da `normal` / `giant`, `brakkRig.js`) và `tools/build_fx_atlas.py art/brakk/fx_spec.json` (→ `brakk_fx.png`, vẽ ở `src/vfx/brakkFx.js`). Xem thử dạng khổng lồ: `/tools/preview-cutout.html?rig=../src/characters/cutout/brakkRig.js&clip=roar&t=0.4&giant=1`; xem thử kỹ năng + hiệu ứng theo từng mốc: `/tools/fx-brakk.html?s=grab` (grab / stomp / giant / ggrab / gstomp / gup / blood / shout / end).
+Hình bản 2 (khung xương, `?brakk=cutout`): ghép từ **tấm bộ phận vẽ riêng** (đầu khớp tròn) — `art/brakk/` (tranh nhìn nghiêng + 3/4, tấm bộ phận, tay & mắt, tranh + tấm bộ phận **dạng khổng lồ**) → `tools/cut_reference.py art/brakk/ref_spec.json` (mỗi mảnh có 2 da `normal` / `giant`, `brakkRig.js`, atlas `brakk_atlas.png` vẫn dùng cho bản khung xương). Atlas hiệu ứng bản 2 (`brakk_fx.png` + `src/vfx/brakkFx.json`, từ `fx-a/b/c.png`) **không còn dùng** — hiệu ứng mọi bản lấy từ atlas bản 3 (bên dưới); 2 file cũ nằm trong danh sách dọn của `cap_nhat_github.bat`. Xem thử dạng khổng lồ bản 2: `/tools/preview-cutout.html?rig=../src/characters/cutout/brakkRig.js&clip=roar&t=0.4&giant=1`.
+
+**Brakk bản 3 — kiểu SPRITE + hiệu ứng tranh (24/10/2026, mặc định bật):**
+- **Tạo hình mới** (người dùng chọn): đô vật trẻ **tộc Rồng Đất – dung nham**, nhà vô địch đấu trường dung nham. Bờm nâu cát ngọn cam dung nham, sừng đá xám vân nứt cam, mắt hổ phách; vảy rồng nâu đồng như đá phiến trên vai / tay / lưng, đuôi rồng gai đá; đai vô địch đồng đầu rồng đá ngậm ngọc hổ phách, quần đùi đen viền đồng, băng tay trắng, giày đấu vật nâu – đồng. Phối màu nâu cát · đồng · đen than · xám đá · cam dung nham (**bỏ đỏ** để khỏi trùng Ignar, Zerith); màu class `#b45309`, dư ảnh / vòng chọn cam hổ phách.
+- **Dạng Khổng Lồ:** vạm vỡ hẳn, vảy đá nứt **dung nham cam sáng**, mắt trắng rực, bờm bốc như dung nham — tranh tham chiếu `01c-giant-v3.png`.
+- **Prompt:** `art/brakk/sprite/PROMPTS_SPRITE.md` (tạo hình + 10 tấm sprite, có **đoạn luật tay không**: không vẽ vũ khí, không vẽ quái bị túm) và `art/brakk/fx2/PROMPTS_FX.md` (6 tấm hiệu ứng).
+- **Tranh của người dùng** (giữ nguyên) trong `art/brakk/`: `01-character-v3.png` (→ ảnh màn chọn đội `src/assets/portraits/wrestler.png`), `01c-giant-v3.png` (+ bản nền xanh `01c-giant-v3-green.png`), `sprite/` 10 tấm nền xanh (80 khung), `fx2/` 6 tấm hiệu ứng nền đen.
+- **Đóng gói sprite:** `tools/sprite_pack.py art/brakk/sprite/sprite_spec.json` → `src/assets/sprites/brakk_sprite.webp` (3,7 MB) + `src/characters/sprite/brakkSprite.json`.
+  - Tách nền `matte`. Cỡ từng tấm đo bằng khớp khuôn mặt + khớp đai vô địch + chồng hình thủ thế: hàng thủ thế vẽ nhỏ hơn hàng đứng ~4% (×1,04), tấm Bá Vương Quật nhỏ hơn ~7%. 2 tấm Khổng Lồ vẽ ngang tầm tranh thường → ×0,93 / ×0,995 (game phóng to cả người ×1,25 khi hoá khổng lồ; tấm đấm khổng lồ vẽ nhỏ hơn tấm thủ thế khổng lồ ~7%).
+  - `footBand` 16 + `footMin` 25 + `solidFeet` (mũi đuôi rồng gai đá chạm đất).
+  - Mốc ngang: `heel` cho đứng / đấm / trúng đòn / gồng / gầm / túm / đáp; `face` cho chạy + khung trên không (nhảy vọt, bật cao); `body` cho chạy khổng lồ (mắt trắng rực không khớp mẫu mặt).
+  - **`cuts`** (mới trong `sprite_pack.py`): `[[x, y0, y1]]` — vạch dọc 2px tách 2 khung AI vẽ chạm nhau (nắm đấm khung 3 tấm đấm khổng lồ chạm tóc khung 4).
+  - Điểm gắn `fist` (đấm khung 4 · đấm khổng lồ khung 3 · móc ngược khung 7) → nổ đúng nắm đấm; `mouth` (gầm khung 3–4 · khiêu khích khung 2–3) → Tiếng Hét phát ra từ miệng.
+  - Khung nhảy vọt thứ 2 (`grabAir2`) khớp mặt hơi yếu (đầu ngửa) nhưng soi thấy vẫn đúng chỗ.
+- **Khung ↔ động tác** (`src/characters/sprite/brakkSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?brakkIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 (đấm thẳng) | khung 4 = 0,2s |
+  | Bá Vương Quật | grab1–4 (vồ, nhấc qua đầu) → grabAir1–2 (nhảy vọt) → grabLand1–2 (quật) — giờ bắt đầu riêng từng khung (`at`) khớp nhịp nhảy của events.js | quật = 0,85s |
+  | gồng / Chấn Địa | charge1–2 → giữ charge3–4 · stomp1 → stompAir1 (bật cao) → stompLand1–2 | dậm = 0,6s |
+  | gầm (hoá Khổng Lồ, Độc Long) | roar1–4 | khung 3 = 0,3s |
+  | Tiếng Hét Bảo Hộ | taunt1–4 (đấm ngực → vẫy khiêu khích) | khung 3 = 0,3s |
+  | **Khổng Lồ (10s)** | gReady1 (thủ thế, thở) · gMove1–4 (chạy) · gPunch1–4 (đấm) · gUpper1–4 (móc ngược); động tác khác dùng tranh thường + ánh dung nham (`giantTint`) | đấm / móc ngược: khung 3 = 0,2s |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận / gục / thắng | grabAir1 → charge1–2, ready1 / dead1–4 / victory1–4 | — |
+- **Mới trong `FrameSpriteView`:** `clips[].at` (mode strike: giây bắt đầu từng khung); bảng `giant` (`{ clip khung xương: clip tranh khổng lồ }`, mốc ra đòn vẫn theo clip gốc) + `giantIdle` + `giantTint` (màu nhân lên tranh thường lúc khổng lồ — không áp lên tranh khổng lồ).
+- **Hiệu ứng tranh:** `tools/fx_grid_pack.py art/brakk/fx2/fx2_spec.json` → `src/assets/sprites/brakk_fx2.webp` (1,9 MB, 48 khung) + `src/vfx/brakkFx2.json`; code `src/vfx/brakkFx.js` viết lại (giữ tên hàm cũ):
+  - **`cuts`** (mới trong `fx_grid_pack.py`): `[[x0, y0, x1, y1]]` — dải cắt khỏi mặt nạ vùng (trước + sau khi nới) để hình hàng trên vẽ tràn xuống ô hàng dưới không dính vào (cột máu rồng → hồi máu).
+  - **Đánh thường:** nổ đá + tia dung nham đúng nắm đấm (`spawnPunchHit`, chí mạng to hơn + loé). Khổng Lồ: đấm to hơn; móc ngược: vệt dung nham cong vút lên (`spawnUppercut`).
+  - **Bá Vương Quật:** bụi bật nhảy (`spawnBrakkLeapDust`) → quật: nổ đá dung nham + hố nứt + vòng chấn động (`spawnBrakkSlam`); quái rơi xuống: `spawnFallImpact`.
+  - **Chấn Địa:** vòng chấn động + hố nứt dưới chân + gai đá trồi ở **hai bên** Brakk (không trồi ngay trước người kẻo che mất Brakk) (`spawnStompWave`); khiên: biểu tượng khiên + vòm vảy rồng hiện ra (`spawnBrakkShieldPop`) → vòm giữ (`makeBrakkBubble`: lớp vảy sau lưng + ánh cộng sáng mờ phía trước).
+  - **Thần Lực Khổng Lồ:** rồng đất bốc lên xoắn sau lưng + ấn rồng + vòng chấn động (`spawnGiantTransform`); suốt 10s: hào quang 4 khung lặp sau lưng (độ rõ 70%) + ấn rồng dưới chân (`makeGiantAura`, Độc Long dùng bản nhạt); 5s đầu miễn khống chế: vương miện vảy rồng (`makeImmuneCrown`).
+  - **Tiếng Hét Bảo Hộ:** loé ở miệng → đầu rồng đá gầm lao ra **trước mặt** (không đè lên mặt Brakk) + sóng âm (`spawnBattleCry`) + dấu "!" đá nứt trên đầu đối thủ (`spawnCryIcon`).
+  - **Long Huyết Bất Khuất / Độc Long:** cột máu rồng sau lưng + ấn rồng (`spawnBloodSurge`); hồi máu (`spawnBrakkHeal`: lớp tranh sau người + ánh cộng sáng phía trước, + Orb bay lên).
+  - **Hình vẽ nghiêng sẵn trên mặt đất** (hố nứt, vòng chấn động, ấn rồng) **nằm phẳng** trên đất, tâm đúng chân (`flatDecal`: kéo sâu theo góc chúc camera) — người đứng giữa che phần phía sau, không còn tấm dựng đứng trùm lên người.
+  - **Lớp sau lưng nghiêng theo camera** (`camTilt()` mới trong `flipbook.js`): mặt phẳng nhân vật ngửa ra sau đúng góc chúc camera (đầu cao 3 đơn vị lùi ~0,75) → lớp hiệu ứng z âm mà đứng thẳng sẽ chồi ra TRƯỚC đầu / ngực (lỗi "hiệu ứng sau lưng che mặt"). Mọi lớp sau lưng của Brakk đặt `rotation.x = camTilt()`.
+- **Xem:** `/tools/test-sprite.html?char=wrestler&auto=1` (động tác; dạng Khổng Lồ: `&only=giant`) · `/tools/fx-brakk.html?s=all&auto=1` (s = attack | grab | stomp | giant | shout | blood | lone); `?brakk=cutout` về bản khung xương.
 
 ### 4.8 Nerissa (Thủy Vũ) — Tu Sĩ nước, vũ công dải lụa 🌊 · tộc Elf · sát thương PHÉP
 Tu sĩ nước múa dải lụa: **buff MP** cho cả đội và **đốt MP để hồi máu**. Ba kỹ năng là **3 điệu múa chạy SONG SONG** — múa nhiều điệu cùng lúc thì mỗi **tổ hợp** có điệu múa (animation) riêng và hiệu ứng riêng (thiên phú 1). Trong lúc múa Nerissa **lượn qua lại thật** quanh chỗ bắt đầu múa (±1,5 ngang, ±0,7 sâu, 1 vòng 3s — quái phải đuổi theo), **không đánh thường**, vẫn bấm thêm được các điệu khác. Bị **choáng** hoặc **gục** → dừng mọi điệu.
 Lv1: HP 1.575 · M.ATK 170 · P.DEF/M.DEF 45/100 · chí mạng 8% · né 22% · chính xác 112% · tốc đánh 1000ms · tầm 8.
+Cỡ hình trong trận: cao **2,65** (cả đội 2,9 — `registry.js` DANCER.height, 24/10/2026): tóc xoăn bồng tới gối + 2 dải lụa dài + đầu to nên cùng chiều cao trông to hơn mọi người.
 
 | Kỹ năng | Orb / hồi | Mô tả |
 |---|---|---|
@@ -652,13 +693,15 @@ Hình bản khung xương cũ (`?nerissa=cutout`): ghép từ **tấm bộ phậ
 
 ### 4.9 Elarion (Tam Nguyên) — Phù Thủy nguyên tố 🔮 · tộc Elf · sát thương PHÉP
 Cơ chế kiểu Invoker. Đã có tranh riêng (`art/elarion/`): Elarion chibi + **Sách Nguyên Tố lơ lửng** trước người (đóng → mở → bốc 3 luồng nguyên tố khi đọc / tung phép), Golem đá 3 nguyên tố, 5 tấm hiệu ứng + ngọc (xem mục **Đồ hoạ** cuối phần này).
-Lv1: HP 1.500 · M.ATK 240 · P.DEF/M.DEF 40/75 · chí mạng 10% · né 16% · chính xác 112% · tốc đánh 1050ms · tầm 14.
+⭐ **NHÂN VẬT ĐẶC BIỆT** (24/10/2026, người dùng chọn: sau này phải dùng cách đặc biệt mới sở hữu được) — mạnh hơn rõ rệt nhân vật thường: chỉ số ×`statMul`, ngọc rơi nhanh hơn, Sách không tốn Orb, phép mạnh hơn ~35%, Golem mạnh + ở lâu hơn. Đo trận thử AUTO (Lv60 SSS, 1 mình đánh 3 quái Lv60, 2 bên bất tử, 240 giây trận): sát thương ~1,75× bản trước (gồm Golem), ~1,25× trung bình 4 nhân vật đánh chính (Lyra, Zerith, Jessica, Ignar) — chưa kể khiên, khống chế, Orb tặng đội.
+
+Lv1: HP 1.950 · M.ATK 276 · P.DEF/M.DEF 56/101 · chí mạng 10% · né 16% · chính xác 112% · tốc đánh 1050ms · tầm 14 (Lv60 SSS: HP 10.724 · M.ATK 1.648).
 - **Ngọc Nguyên Tố** (🔥 Hỏa · ❄️ Băng · ⚡ Lôi):
   - Hiện trên **KHAY NGỌC ngay phía trên thẻ Elarion** (giao diện, không nằm trong cảnh 3D) → bấm dễ, không bị camera / góc nhìn / động tác ảnh hưởng. Mỗi viên có chỗ cố định (5 ô hàng dưới + 4 ô hàng trên so le), viên khác rơi / tan không làm xê dịch.
-  - Cứ 3s rơi 1 viên ngẫu nhiên; một hệ không rơi quá 2 lần liền. Tối đa 5 viên, mỗi viên sống 8s **giờ thật**.
+  - Cứ **2s** rơi 1 viên ngẫu nhiên (trước 24/10/2026: 3s); một hệ không rơi quá 2 lần liền. Tối đa 5 viên, mỗi viên sống 8s **giờ thật**.
   - **Ngọc từ kỹ năng:** **đồng đội** dùng đủ **5 kỹ năng** → +1 ngọc ngẫu nhiên; **đối thủ** dùng đủ **10 kỹ năng** → +1 ngọc ngẫu nhiên (luồng nguyên tố bay từ người vừa dùng kỹ năng về Elarion, viên ngọc thưởng loé vàng trên khay). Không tính kỹ năng của chính Elarion và của Golem / nhân vật triệu hồi; quái không dùng kỹ năng nên đánh quái chỉ có ngọc từ đồng đội. Bộ đếm hiện trên thẻ: `🤝x/5 ⚔x/10`. Khay đầy (9 ô) thì giữ lượt, có chỗ là ra ngọc. Elarion gục thì không đếm.
   - Vòng quanh mỗi viên = thời gian còn lại; sắp tan (< 2 giây thật) thì nhấp nháy. Rê chuột vào: ngọc to lên + viền vàng; bấm để nhặt — viên ngọc bay vào 3 ô trên thẻ (viên thứ 4 đẩy viên cũ nhất ra). Chỉ phe mình thấy ngọc của mình.
-- **KN1 Sách Nguyên Tố** (1 Orb, **không hồi chiêu**): đọc 3 viên đang giữ (mất 3 viên) → phép tương ứng vào nút KN2.
+- **KN1 Sách Nguyên Tố** (**không tốn Orb** — trước 24/10/2026: 1 Orb, **không hồi chiêu**): đọc 3 viên đang giữ (mất 3 viên) → phép tương ứng vào nút KN2.
 - **KN2:** phép vừa ghép, mỗi phép có Orb và hồi chiêu riêng. **Dùng xong là mất** — nút KN2 trở về "Chưa ghép phép", muốn dùng lại phải ghép lại bằng Sách (không giữ phép).
 - **KN3 Bão Nguyên Tố** (3 Orb, hồi **10s**): ngọc đủ 7 viên ngay; trong 7s cứ bớt là tung thêm. Dùng xong **+2 Orb ngay** (thực tốn 1 Orb).
 - **Hàn Khí** (hiệu ứng chung): mọi sát thương **băng** (của bất kỳ ai) cộng 1 tầng — mỗi tầng −2% tốc đánh, giữ 5s; **đủ 5 tầng → đóng băng 1,5s**; bị giải hiệu ứng thì đếm lại.
@@ -666,25 +709,25 @@ Lv1: HP 1.500 · M.ATK 240 · P.DEF/M.DEF 40/75 · chí mạng 10% · né 16% ·
 
 | Công thức | Phép | Orb / hồi | Tác dụng |
 |---|---|---|---|
-| 🔥🔥🔥 | Thiên Thạch | 3 / 14s | Sau 0,8s rơi vào chỗ đông đối thủ nhất: ×2,8 bán kính 4, **chạm đất luôn chí mạng** (lăn / vệt lửa / va chạm thì tính bình thường). Lăn **chậm** 15 ô (3s) về phía trước (hướng phe địch), cán qua hàng địch: ×0,8 mỗi đối thủ. Vệt lửa 2 lần ×0,4. Đối thủ bị Lốc Xoáy đẩy va vào thiên thạch đang lăn: thêm ×1,2 |
-| ❄️❄️❄️ | Băng Phong | 3 / 12s | Khối băng thành hình trên đầu đội địch 1,5s rồi rơi: **cả đội địch** ×1,1 (băng) + −20% tốc đánh 3s. Vỡ ra 5 khối nhỏ văng xuống ×0,35 (băng, hiệu ứng tính chung). Cơ hội đóng băng 20% / 1s → 40% / 2s (SSS) |
-| ⚡⚡⚡ | Lôi Xích | 2 / 13s | ×1,5, nảy qua tối đa 5 đối thủ, sau đó mỗi lần **50% nảy tiếp** (được trúng lại, tối đa 10 lần thêm). −10% M.DEF 5s → −15% (SSS), không cộng dồn |
-| 🔥❄️⚡ | Nguyên Tố Hợp Nhất | 5 / 25s | Gọi Golem Nguyên Tố 20s |
-| ❄️❄️⚡ | Giáp Băng Sét | 2 / 15s | Khiên 25% máu cho **Elarion + đồng đội yếu máu nhất** 6s. Ai đánh trúng người có giáp bị giật ×0,4 + choáng 0,5s (mỗi người 1 lần/giây) |
-| ⚡⚡❄️ | Lốc Xoáy | 2 / 16s | Lốc bay thẳng 12 ô: ×1,1, đẩy lùi 4 ô |
-| 🔥🔥❄️ | Hơi Nước Bỏng | 3 / 14s | **Niệm 2s** → mây mưa giông 7s: Elarion **đứng thi triển** (không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác hoặc bị choáng thì ngắt). Mỗi giây: phe ta hồi ×0,3 M.ATK + 1,5% máu (đầy máu thì +200 MP), sét đánh 1 đối thủ ngẫu nhiên ×0,7 + choáng 0,5s |
-| 🔥🔥⚡ | Hỏa Lôi Cầu | 2 / 12s | Quả cầu hiện ở **1 điểm cố định cách Elarion 12 ô phía trước** (~ hàng trước địch), to dần 2s rồi **nổ tại chỗ** (bán kính 3,5): đối thủ đứng trong vùng nổ ×2,0 + choáng 0,5s + **mất 1 Orb**. **Nổ: cả đội +1 Orb, riêng Elarion +2 Orb.** AI chỉ dùng khi có đối thủ quanh điểm nổ |
-| ❄️❄️🔥 | Băng Hoại Hỏa Thiên | 3 / 14s | **SolarBeam kiểu Kamehameha:** khum 2 tay dồn lực 0,7s → **đứng yên chưởng tia băng-hỏa 10s thẳng tới cuối bản đồ** (ngắm hướng có nhiều đối thủ nhất, lệch tối đa ~26°; tia rộng 1,6 ô mỗi bên). **Người đang bay không dính.** Mỗi giây, mọi đối thủ trong tia: **Băng** ×0,3 (không tăng) + 1 tầng Hàn Khí + −15% tốc đánh 1,5s · **Hỏa** ×0,42, mỗi giây +1 tầng (+3% sát thương lửa); **đủ 5 tầng: tia lửa to hẳn (rộng 2,3 ô), sát thương lửa thêm +30%** (= +45%). Không đánh / chạy trong lúc chưởng; bị choáng / đóng băng hoặc dùng kỹ năng khác thì ngắt |
-| ⚡⚡🔥 | Tốc Lôi | 2 / 13s | **Riêng Elarion 10s:** đánh thường chưởng 2 lần, +25% tốc đánh, **tốc độ hồi Orb ×2**. Cứ 5 đòn → cả đội (kể cả Elarion) +5% tốc đánh 10s (cộng dồn tối đa 5 lần) |
+| 🔥🔥🔥 | Thiên Thạch | 3 / 14s | Sau 0,8s rơi vào chỗ đông đối thủ nhất: ×3,8 bán kính 4, **chạm đất luôn chí mạng** (lăn / vệt lửa / va chạm thì tính bình thường). Lăn **chậm** 15 ô (3s) về phía trước (hướng phe địch), cán qua hàng địch: ×1,1 mỗi đối thủ. Vệt lửa 2 lần ×0,55. Đối thủ bị Lốc Xoáy đẩy va vào thiên thạch đang lăn: thêm ×1,6 |
+| ❄️❄️❄️ | Băng Phong | 3 / 12s | Khối băng thành hình trên đầu đội địch 1,5s rồi rơi: **cả đội địch** ×1,5 (băng) + −20% tốc đánh 3s. Vỡ ra 5 khối nhỏ văng xuống ×0,48 (băng, hiệu ứng tính chung). Cơ hội đóng băng 20% / 1s → 40% / 2s (SSS) |
+| ⚡⚡⚡ | Lôi Xích | 2 / 13s | ×2,0, nảy qua tối đa 5 đối thủ, sau đó mỗi lần **50% nảy tiếp** (được trúng lại, tối đa 10 lần thêm). −10% M.DEF 5s → −15% (SSS), không cộng dồn |
+| 🔥❄️⚡ | Nguyên Tố Hợp Nhất | 5 / 25s | Gọi Golem Nguyên Tố **25s** |
+| ❄️❄️⚡ | Giáp Băng Sét | 2 / 15s | Khiên 32% máu cho **Elarion + đồng đội yếu máu nhất** 6s. Ai đánh trúng người có giáp bị giật ×0,55 + choáng 0,5s (mỗi người 1 lần/giây) |
+| ⚡⚡❄️ | Lốc Xoáy | 2 / 16s | Lốc bay thẳng 12 ô: ×1,5, đẩy lùi 4 ô |
+| 🔥🔥❄️ | Hơi Nước Bỏng | 3 / 14s | **Niệm 2s** → mây mưa giông 7s: Elarion **đứng thi triển** (không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác hoặc bị choáng thì ngắt). Mỗi giây: phe ta hồi ×0,4 M.ATK + 1,5% máu (đầy máu thì +200 MP), sét đánh 1 đối thủ ngẫu nhiên ×0,95 + choáng 0,5s |
+| 🔥🔥⚡ | Hỏa Lôi Cầu | 2 / 12s | Quả cầu **khổng lồ** hiện ở **1 điểm cố định cách Elarion 12 ô phía trước** (~ hàng trước địch), to dần 2s (cao 1,6 → ~7,6, trùm cả hàng địch) rồi **nổ tại chỗ** (bán kính **4,5**): đối thủ đứng trong vùng nổ ×2,7 + choáng 0,5s + **mất 1 Orb**. **Nổ: cả đội +1 Orb, riêng Elarion +2 Orb.** AI chỉ dùng khi có đối thủ quanh điểm nổ |
+| ❄️❄️🔥 | Băng Hoại Hỏa Thiên | 3 / 14s | **SolarBeam kiểu Kamehameha:** khum 2 tay dồn lực 0,7s → **đứng yên chưởng tia băng-hỏa 10s thẳng tới cuối bản đồ** (ngắm hướng có nhiều đối thủ nhất, lệch tối đa ~26°; tia rộng 1,6 ô mỗi bên). **Người đang bay không dính.** Mỗi giây, mọi đối thủ trong tia: **Băng** ×0,4 (không tăng) + 1 tầng Hàn Khí + −15% tốc đánh 1,5s · **Hỏa** ×0,57, mỗi giây +1 tầng (+3% sát thương lửa); **đủ 5 tầng: tia lửa to hẳn (rộng 2,3 ô), sát thương lửa thêm +30%** (= +45%). Không đánh / chạy trong lúc chưởng; bị choáng / đóng băng hoặc dùng kỹ năng khác thì ngắt |
+| ⚡⚡🔥 | Tốc Lôi | 2 / 13s | **Riêng Elarion 10s:** đánh thường chưởng 2 lần, +35% tốc đánh, **tốc độ hồi Orb ×2**. Cứ 5 đòn → cả đội (kể cả Elarion) +5% tốc đánh 10s (cộng dồn tối đa 5 lần) |
 
 - **Golem Nguyên Tố:**
   - Nhân vật bình thường trên sân: bị đánh, tính thắng thua. Không có thẻ HUD, không được hồi sinh.
   - **Không nhận buff / debuff / khống chế nào**, trừ Ấn Tử của Zerith. Vẫn được hồi máu.
-  - Chỉ số: máu **4,67×** máu Elarion (gấp đôi bản trước — máu Elarion đã ×1,5), ATK **1,1×** M.ATK, thủ 6× / 2,3×.
+  - Chỉ số: máu **5×** máu Elarion, ATK **1,4×** M.ATK (24/10/2026: trước 4,67× / 1,1×), thủ 6× / 2,3×. Ở lại **25s** (trước 20s).
   - Cứ 2 đòn đánh thường thì dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s).
-    - **Nộ Lửa:** lùi 3 ô về phía đồng minh → niệm 1s → lướt chậm 8 ô (1,2s) đấm lửa: ×1,8 + hất tung 1s; cả đội địch −10% M.DEF 5s.
-    - **Bão Tuyết:** niệm 2s hút khí lạnh → đứng phun bão tuyết 6s (**bão tuyết phủ toàn màn hình**): mỗi giây ×0,5 mọi đối thủ + 1 tầng Hàn Khí. Golem gục / tan thì tắt ngay.
-    - **Hào Quang Sét:** niệm 1s, sét đánh vào tay → +25% tốc đánh 5s; mỗi đòn đánh giật **toàn bộ** đối thủ ×0,45, 50% choáng 0,5s.
+    - **Nộ Lửa:** lùi 3 ô về phía đồng minh → niệm 1s → lướt chậm 8 ô (1,2s) đấm lửa: ×2,3 + hất tung 1s; cả đội địch −10% M.DEF 5s.
+    - **Bão Tuyết:** niệm 2s hút khí lạnh → đứng phun bão tuyết 6s (**bão tuyết phủ toàn màn hình**): mỗi giây ×0,65 mọi đối thủ + 1 tầng Hàn Khí. Golem gục / tan thì tắt ngay.
+    - **Hào Quang Sét:** niệm 1s, sét đánh vào tay → +25% tốc đánh 5s; mỗi đòn đánh giật **toàn bộ** đối thủ ×0,6, 50% choáng 0,5s.
 - **Thiên phú 1 Cộng Hưởng Nguyên Tố:**
   - Nhặt ngọc thì hệ đó +1 tầng (tối đa 3), 5s, nhặt thêm thì làm mới.
   - Mỗi tầng: Hỏa +4 / 5 / 6% ATK · Băng hồi 0,3 / 0,4 / 0,5% máu mỗi giây · Lôi +4 / 5 / 6% tốc đánh **và +10 / 15 / 20% tốc độ hồi Orb** (MP mỗi giây + MP mỗi đòn; 3 tầng Lôi = +30 / 45 / 60%).
@@ -697,13 +740,81 @@ Lv1: HP 1.500 · M.ATK 240 · P.DEF/M.DEF 40/75 · chí mạng 10% · né 16% ·
   - Bấm Sách khi chưa đủ 3 viên: lệnh xếp hàng chờ, đủ 3 viên tự đọc.
 - **AI (tự động):** đang giữ phép dùng được (đã hồi, đáng dùng) thì không ghép đè bằng Sách, đỡ tốn Orb; dùng phép xong thì nhặt ngọc ghép phép mới.
 - **Hiệu ứng trên người:** đóng băng có ngục băng phủ người, Giáp Băng Sét có vòm băng sét, Tốc Lôi / Hào Quang Sét có vòng sét quanh người (nắm đấm Golem hoá sét).
-- **Đồ hoạ:**
+- **Đồ hoạ bản 2** (khung xương Elarion + Golem 1 tranh liền: nay chỉ khi `?elarion=cutout` / `?golem=cutout`, mặc định là tranh sprite bản 3 bên dưới · hiệu ứng `elarion_fx.png`: nay chỉ còn dùng các **hình lẻ** — xem bản 3 bên dưới · toàn màn hình: vẫn dùng):
   - Elarion: rig `src/characters/cutout/elarionRig.js` + `elarionClips.js` (đứng, chạy, chưởng, đọc Sách, tung phép, gọi bão, đứng thi triển Mưa Giông, trúng đòn, thắng, gục). Tay gần ngửa dưới Sách; tóc sau + 2 vạt áo choàng + Sách là lò xo đung đưa, Sách còn nhấp nhô (`floatParts`). Mắt: thường / chớp / quyết tâm / vui / đau / niệm (mắt 3 màu).
   - Golem: dùng **nguyên tranh** `art/elarion/05-golem-v2.png` (1 hình liền, giữ đúng nét vẽ), cao 4,7 (gấp ~1,6 lần nhân vật). Cử động cả thân (`golemClips.js`: nghiêng, nhún, phồng / dẹp `sq`): đấm, gồng rung, lao đấm, hít khí (phồng người), chồm tới phun, ngửa đón sét rồi nện, trồi lên lúc triệu hồi. Lửa quanh nắm đấm, luồng băng từ miệng, sét giáng là hiệu ứng phủ lên (`golemRig.js` có điểm neo: nắm đấm lửa / băng, miệng, lõi ngực).
   - Hiệu ứng: atlas `elarion_fx.png` 4096 px (`tools/build_fx_atlas.py art/elarion/fx_spec.json`), vẽ **giữ nguyên màu tranh** (trộn thường, không cộng sáng); đá / mây / khối băng có ruột đặc (`core` trong fx_spec). Thiên thạch khổng lồ rơi chéo + nổ lớn + tảng đá lửa lăn + dải lửa, khối băng lớn rơi vỡ, tia sét xích, lốc xoáy cao 6,6, cầu hỏa lôi to dần, tia băng / tia lửa quẹt + hàng gai băng / hàng nổ lửa, cột triệu hồi, vệt đấm lửa...
   - Toàn màn hình (`src/vfx/screenFx.js`, lớp 2D phủ trên cảnh, dưới HUD): **Mưa Giông** = 1 mảng mây đen lớn + trời tối sầm + mưa xiên + chớp sáng mỗi lần sét đánh; **Bão Tuyết** của Golem = sương giá viền màn hình + bông tuyết 3 lớp quất ngang + làn gió tuyết.
   - Đầu khớp tròn màu da của tấm bộ phận được tô lại màu vải (`tools/recolor_caps.py art/elarion/caps_spec.json`) trước khi cắt atlas.
 - **Test:** Tool Phe Mình có mục **"Elarion — đặt thẳng phép vào nút KN2"** (10 nút). Xem code ở `src/ui/hud.js` (khay ngọc), `src/combat/elemGems.js` (3 quả cầu quanh đầu), `src/vfx/elemFx.js` (hiệu ứng), `onElemFx` trong `src/combat/events.js`.
+
+**Elarion bản 3 + Golem — kiểu SPRITE (24/10/2026: động tác + 7 tấm hiệu ứng tranh đã vào game, mặc định bật):**
+- **Tạo hình mới** (người dùng chọn): **hiền giả tinh linh từ thời xưa** — sống cả nghìn năm nhưng dung mạo vẫn trẻ.
+  - Tóc **bạch kim** thẳng dài chấm gối (đuôi buộc khoen vàng); tai nhọn đeo khuyên vàng hình lá; **vòng miện vàng cổ** có ngọc giọt nước pha 3 màu; mắt tím nhạt hiền hoà.
+  - **Áo bào xanh đêm** tay rất rộng, thêu cổ tự + chòm sao chỉ vàng; áo trong trắng ngà cổ chéo; khăn choàng trắng ngà thêu lửa · tuyết · sét; đai vàng đeo ngọc bội có tua; giày vải mũi cong.
+  - **Sách Nguyên Tố** tự lơ lửng: bìa đồng sẫm, huy hiệu tam giác vàng 3 viên đá.
+  - Khác Rok (cũng tóc bạch kim nhưng ngắn, giáp vàng) nhờ tóc dài + áo bào hiền giả; khác Zerith (đen – đỏ thẫm).
+- **Golem:** giữ tạo hình `05-golem-v2.png`, vẽ thêm **3 tấm động tác riêng** (người dùng chọn).
+- **9 tấm sprite Elarion** (`art/elarion/sprite/PROMPTS_SPRITE.md`, có **đoạn luật Sách Nguyên Tố**: Sách tự bay, cùng 1 thiết kế mọi khung, chỉ mở khi khung ghi mở, không vẽ phép):
+  - đứng / thủ thế; đẩy chưởng khung 4 @0,22s; chạy; trúng đòn / choáng;
+  - đọc Sách khung 3 @0,2s + gọi Bão Nguyên Tố khung 7 @0,3s (khung 7–8 dùng luôn cho đứng thi triển Mưa Giông);
+  - tung phép khung 5 @0,38s (mọi phép trừ Băng Hoại Hỏa Thiên);
+  - Băng Hoại Hỏa Thiên: khum tay dồn lực + chưởng giữ tia lặp;
+  - niệm (Hơi Nước Bỏng) + rơi vào trận → đáp đất; gục / thắng.
+- **3 tấm Golem:** đi (khung 1 = thủ thế) + đấm khung 7 @0,3s · Nộ Lửa (lùi gồng → lao đấm) + Bão Tuyết (hít → phun) · Hào Quang Sét (giơ tay → nện khung 2 @0,4s) + trúng đòn + choáng + trồi lên + tan rã.
+- **7 tấm hiệu ứng** (`art/elarion/fx2/PROMPTS_FX.md`; tranh của người dùng giữ nguyên trong `art/elarion/fx2/` + `prompts-used.txt`, PNG trong suốt thật, 56 khung — **đã vào game 24/10/2026**), chỉ vẽ lại phần chạy khung:
+  - trúng Hỏa / Băng / Lôi; lốc 3 nguyên tố (Bão Nguyên Tố);
+  - thiên thạch nổ / khối băng vỡ; cầu hỏa lôi / lốc xoáy lặp;
+  - Sách loé / Giáp Băng Sét; vệt đấm lửa / luồng bão tuyết (Golem); sét giáng / triệu hồi Golem.
+  - Hình lẻ bản 2 còn tốt (ngọc, vòng, tia đánh thường, Lôi Xích, thiên thạch rơi, tảng đá lăn, dải lửa, khối băng, ngục băng, mây giông, mưa hồi máu, vòng sét Tốc Lôi, chưởng đôi, xoáy hít khí, Golem tan rã) giữ nguyên (atlas `elarion_fx.png`).
+- **Đóng gói hiệu ứng:** `tools/fx_grid_pack.py art/elarion/fx2/fx2_spec.json` → `src/assets/sprites/elarion_fx2.webp` (4096×1024, 2,1 MB, 14 nhóm × 4 khung) + `src/vfx/elarionFx2.json`.
+  - `keepAlpha` (giữ kênh trong suốt gốc: khói đen, đá tối). Lưới A 4×2; tấm Golem lửa – băng lưới B 2×4 (nhìn ngang).
+  - Mỗi nhóm 1 điểm gốc chung: giữa điểm trúng (nổ trúng đòn, cầu) · tâm vòng trên đất (lốc 3 nguyên tố, vòm băng, triệu hồi) · mặt đất (thiên thạch nổ, khối băng vỡ) · chóp dưới (lốc xoáy) · điểm trúng dưới đáy (sét giáng) · đầu lửa (vệt đấm) · mũi nhọn (bão tuyết) · vòng chữ dưới đáy (Sách loé).
+  - **`offsets`** (mới trong `fx_grid_pack.py`): AI vẽ lệch tâm giữa các khung (nổ trúng đòn khung 2–3 lệch trái ~20px, lốc xoáy trôi trái tới 45px, vệt đấm / bão tuyết hàng dưới cao hơn ~16px) → dời cả khung cho trùng điểm gốc.
+  - **`cutFeather`** (mới): lửa sát đất thiên thạch khung 1–2–3 và khối băng khung 5–6 chồng qua mép ô → `cuts` cắt ở chỗ mỏng nhất + mờ dần 20px về phía chỗ cắt. 1 đốm lửa của lốc 3 nguyên tố lọt sang ô sét → 1 `cuts` nhỏ trả về đúng khung.
+  - Cỡ 0,5; hình to trên màn hình 0,55–0,6 (lốc 3 nguyên tố, vòm băng, lốc xoáy, triệu hồi, thiên thạch nổ, khối băng vỡ).
+- **Hiệu ứng ↔ kỹ năng** (`src/vfx/elemFx.js`, giữ nguyên tên hàm cũ):
+
+  | Hiệu ứng (nhóm) | Dùng ở |
+  |---|---|
+  | trúng Hỏa / Băng / Lôi (`fireHit` / `iceHit` / `zapHit`) | đánh thường (màu viên ngọc giữ gần nhất, chí mạng to ×1,3) · Thiên Thạch / tảng đá lăn / dải lửa trúng · mảnh Băng Phong · Lôi Xích · sét Mưa Giông · phản đòn Giáp Băng Sét · tia lửa Băng Hoại Hỏa Thiên · lao đấm Golem · lửa quanh nắm đấm lúc gồng |
+  | lốc 3 nguyên tố `storm` (lặp 12 khung/giây) | Bão Nguyên Tố: bùng lên đúng lúc dang tay (mốc ra đòn) — lớp sau lưng nghiêng theo camera + ánh cộng sáng phía trước |
+  | Sách loé `bookFlash` | đọc Sách: ánh vàng + 3 cầu nguyên tố bốc lên đúng giữa trang Sách lúc Sách mở (mốc ra đòn 0,2s, điểm `book`) |
+  | thiên thạch nổ `meteorBoom` | Thiên Thạch (cao 6) · Hỏa Lôi Cầu nổ / va thiên thạch (cao 1,55 × bán kính) |
+  | khối băng vỡ `iceShatter` | Băng Phong: khối băng bản 2 rơi chạm đất thì vỡ 4 khung |
+  | cầu hỏa lôi `orb` (lặp, xoáy nhanh dần) | Hỏa Lôi Cầu to dần 2s: cao 1,6 → ~1,7 × bán kính nổ (4,5 → ~7,6, trùm cả hàng địch), đáy cầu luôn trên mặt đất |
+  | lốc xoáy `tornado` (lặp 14 khung/giây) | Lốc Xoáy quét 12 ô |
+  | vòm `ward` | Giáp Băng Sét: pha lê trồi lên 2 khung rồi vòm giữ lặp khung 3–4 (sau lưng + ánh trước, người bên trong vẫn rõ) |
+  | sét giáng `skyStrike` | Hào Quang Sét của Golem (trúng ngọc ngực lúc nện) |
+  | triệu hồi `summon` | Golem trồi lên: vòng 3 màu → 3 cột sáng → nổ đá (đúng lúc đứng dậy gầm) → bụi; lớp sau lưng + lớp mờ phía trước lúc cột sáng / nổ đá |
+  | vệt đấm `fistTrail` / bão tuyết `blizzard` | Nộ Lửa (đầu lửa trùm nắm đấm `handF`) / Bão Tuyết (mũi nhọn ở miệng `mouth`, loe ~9,6 ô) |
+- **Tranh của người dùng** (giữ nguyên) trong `art/elarion/`: `01-character-v3.png`, `01b-portrait-v3.png` (→ ảnh màn chọn đội `src/assets/portraits/elementalist.png`), `sprite/` 9 tấm Elarion + 3 tấm Golem (PNG trong suốt thật, 96 khung) + `prompts-used.txt` (prompt đã dùng khi tạo).
+- **Đóng gói Elarion:** `tools/sprite_pack.py art/elarion/sprite/sprite_spec.json` → `src/assets/sprites/elarion_sprite.webp` (4,6 MB, 72 khung) + `src/characters/sprite/elarionSprite.json`.
+  - Tách nền `alpha` (tranh đã trong suốt). Cỡ từng tấm đo bằng khớp khuôn mặt + chồng hình: tấm tung phép vẽ nhỏ hơn ~17% (×1,21), hàng thủ thế ×1,045, tấm đánh thường ×1,055; tấm trúng đòn vẽ đầu to hơn thân (theo mặt ×0,905, theo chiều cao ×1,0) → lấy giữa ×0,95.
+  - **`split`** (mới trong `sprite_pack.py`): 3 tấm có 2 khung vẽ chạm nhau (tay áo rộng, tóc dài, Sách) → tách bằng watershed theo tâm ô lưới, ranh giới rơi đúng chỗ thắt hẹp (không cần dò toạ độ `cuts`).
+  - **`anchorX`** (mới): khung gục / quỳ / nằm (đáy hình là cuốn Sách rơi hay vạt áo trải đất) + khung quỳ lúc đáp đất → đặt tay tâm đứng.
+  - Mốc ngang: `heel` cho hầu hết · `face` cho chạy + khung rơi.
+  - Điểm gắn: `handN` (lòng bàn tay: tia nguyên tố, Lôi Xích, chưởng thứ 2 Tốc Lôi) · `palms` (giữa 2 bàn tay: Băng Hoại Hỏa Thiên) · `book` (giữa Sách: ánh vàng lúc đọc Sách).
+- **Khung ↔ động tác** (`src/characters/sprite/elarionSprite.js`):
+
+  | Động tác | Khung | Khung chính |
+  |---|---|---|
+  | đứng / thủ thế | idle1 / ready1 + thở (`?elarionIdle=A` 4 khung) | — |
+  | đánh thường | attack1–8 (đẩy chưởng) | khung 4 = 0,22s |
+  | đọc Sách (KN1) | book1–4 | khung 3 = 0,2s |
+  | tung phép (KN2, mọi phép trừ Băng Hoại Hỏa Thiên) | spell1–8 | khung 5 = 0,38s |
+  | Bão Nguyên Tố (KN3) · đứng thi triển Mưa Giông | storm1–4 · lặp storm3–4 | khung 3 = 0,3s |
+  | Băng Hoại Hỏa Thiên | beamCharge1–2 → giữ beamCharge3–4 rung · beam1–4 lặp (giật lùi) | — |
+  | niệm (Hơi Nước Bỏng 2s) | cast1–2 → giữ cast3–4 | — |
+  | chạy / trúng đòn / choáng | move1–8 / hurt1–4 / stun1–4 | — |
+  | rơi vào trận / gục / thắng | fall1 → land1–3 / dead1–4 / victory1–4 | — |
+- **Đóng gói Golem:** `tools/sprite_pack.py art/elarion/sprite/golem_sprite_spec.json` → `src/assets/sprites/golem_sprite.webp` (1,4 MB, 24 khung, atlasScale 0,9 vì Golem cao 4,7) + `src/characters/sprite/golemSprite.json`; code `src/characters/sprite/golemSprite.js`.
+  - Cỡ: hàng đấm ×1,06, tấm lửa – băng ×1,06, tấm sét – triệu hồi ×1,12 (chồng hình, khớp ngọc ngực). Mốc `body` cho đi (thân đứng yên, chân bước), `heel` cho đòn; `anchorX` cho cuộn tròn và đống đá.
+  - Golem không có khung đứng riêng: khung đi 1 = đứng / thủ thế; chiều cao tính theo khung đó (**`heightFrames`** mới trong `FrameSpriteView`).
+  - Điểm gắn: `handN` (nắm đấm dung nham: lửa lúc gồng Nộ Lửa) · `handF` (nắm đấm phía trước: vệt đấm lửa khi lao, sét giật) · `mouth` (hít khí lạnh, phun bão tuyết) · `core` (ngọc ngực: sét trời giáng).
+  - Động tác: đi walk1–4 · đấm punch1–4 (khung 3 = 0,3s) · Nộ Lửa: gồng charge1–2 rung → lao: lấy đà dash1–2 → vung punch2 → nắm đấm lửa duỗi thẳng punch3 suốt đường lao · Bão Tuyết: hít inhale1–2 → phun breath1–2 · Hào Quang Sét: niệm giơ 2 nắm đấm (aura1) → nện aura2 đúng 0,4s · trồi lên form1 → roar1 · trúng đòn hurt1 · choáng stun1 · gục / tan crumble1–2 (đống đá) · thắng aura1 → aura2.
+- **`stickyPts`** (mới, Elarion + Golem): khung đang hiện không đánh dấu điểm → `events.js` `jointPoint` lấy điểm của khung gần nhất có đánh dấu thay cho khớp của khung xương ẩn (dáng bản 2 khác hẳn tranh mới).
+- **Xem:** `/tools/test-sprite.html?char=elementalist&auto=1` (thêm đoạn `&only=beam,channel`) · `?char=elem_golem&zoom=0.8&cy=1.8` · `/tools/fx-elarion.html?s=...` (phép + Golem với tranh mới); `?elarion=cutout` / `?golem=cutout` về bản khung xương / 1 tranh liền.
 
 ## 5. QUÁI VẬT
 
@@ -735,7 +846,7 @@ Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có 
 | **Thành Trì** (fortress) | (dự phòng) | Giảm sát thương nhận theo % |
 | **Bị hất tung** (knockup) | Lưỡi Hái Hất Hồn, Chấn Địa, móc ngược của Brakk | 1s bay lên không (kèm choáng), không hành động |
 | **Ấn Tử** (death_mark) | Phán Quyết Tử Thần (Zerith) | 15s, đầu lâu trên đầu; −20/27,5/35% hồi máu nhận được; Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên, máu dưới 5/7/10% → kết liễu |
-| **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí (⚠ server chưa tạo — xem §4.6) |
+| **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí (dùng hoặc hết 5s → hồi chiêu bình thường) |
 | **Đêm Tử Thần** (reaper_form) | Đêm Tử Thần | 10s, bay, Hộ Vệ Thần Chết, +20% sát thương, +30% tốc đánh, −40% khống chế, không thể chết |
 | **Bị túm** (grabbed) | Bá Vương Quật (Brakk) | Bị nhấc bổng qua đầu tới lúc bị quật (~0,85s) rồi choáng 1s |
 | **Thần Lực Khổng Lồ** (giant_form) | Thần Lực Khổng Lồ | 10s, +50% máu tối đa, +40% thủ, +25% sát thương, 5s đầu miễn mọi hiệu ứng bất lợi, móc ngược hất tung |
@@ -851,37 +962,48 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
   - Sprite: nền xanh #00FF00, lưới 4×2, 3/4 nghiêng nhìn phải.
   - Hiệu ứng: nền đen, lưới A 4×2 / lưới B 2×4.
   - Khung chính = mốc ra đòn.
-- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (xong: vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng), Lyra bản 3 (xong: tạo hình mới + 9 tấm sprite + 5 tấm hiệu ứng), Seraphine bản 3 (xong: tạo hình mới + 8 tấm sprite + 5 tấm hiệu ứng), Zerith bản 3 (xong: tạo hình mới + 9 tấm sprite + 6 tấm hiệu ứng).
+- **Prompt từng nhân vật:** `art/<tên>/sprite/PROMPTS_SPRITE.md` (động tác) + `art/<tên>/fx2/PROMPTS_FX.md` (hiệu ứng). Đã có: Ignar (xong), Rok bản 3 (xong: sprite + 4 tấm hiệu ứng), Jessica bản 3 (xong: sprite + 4 tấm hiệu ứng), Nerissa bản 3 (xong: vẽ lại chibi giữ tạo hình + 13 tấm sprite + 5 tấm hiệu ứng), Lyra bản 3 (xong: tạo hình mới + 9 tấm sprite + 5 tấm hiệu ứng), Seraphine bản 3 (xong: tạo hình mới + 8 tấm sprite + 5 tấm hiệu ứng), Zerith bản 3 (xong: tạo hình mới + 9 tấm sprite + 6 tấm hiệu ứng), Brakk bản 3 (xong: tạo hình mới rồng Đất – dung nham + 10 tấm sprite gồm 2 tấm dạng Khổng Lồ + 6 tấm hiệu ứng), Elarion bản 3 + Golem (xong: tạo hình mới hiền giả tinh linh tóc bạch kim, áo bào xanh đêm + 9 tấm sprite + Golem 3 tấm + 7 tấm hiệu ứng, giữ hình lẻ bản 2).
   - Cung thủ: thêm **đoạn luật cung tên** sau đoạn chung sprite (cung ở tay xa, dây 1 sợi, khung nhả không vẽ mũi tên).
   - App vẽ xuất sẵn PNG trong suốt cũng dùng được (`key: "alpha"`).
 - **Hiệu ứng dùng chung cả đội** (trúng đòn, vệt chém, bụi, khói, sao choáng, lấp lánh, sóng xung kích, vòng niệm...): `art/common/PROMPTS_FX_CHUNG.md`, chờ tranh. Phần trắng được nhuộm theo màu từng nhân vật.
+- **Icon kỹ năng cả đội** (24/10/2026, **chờ tranh**): `art/icons/PROMPTS_ICONS.md` — 11 tấm × 6 icon (3 cột × 2 hàng, ô vuông 512, nền trong suốt, không khung / chữ): mỗi nhân vật 1 tấm = 3 kỹ năng + 2 thiên phú + đánh thường; Elarion 3 tấm = Sách, Bão, 2 thiên phú, đánh thường, 10 phép + 3 kỹ năng Golem. Có tranh: cắt → `src/assets/icons/skills/` + bảng icon dùng chung `src/ui/skillIcons.js` → hiện trên nút kỹ năng trong trận (vòng hồi chiêu phủ lên; KN2 Elarion đổi icon theo phép vừa ghép), sau này dùng cho mọi tính năng khác.
 - **Ráp (không tô sửa):**
   - Sprite: `tools/sprite_pack.py art/<tên>/sprite/sprite_spec.json --debug soi.png` → `src/assets/sprites/<tên>_sprite.webp` + `src/characters/sprite/<tên>Sprite.json`.
     - Tách nền `"key"` (cả spec hoặc từng tấm): `green` (mặc định, Ignar) · `matte` (giữ viền đen mảnh — dùng cho nhân vật mới) · `jade` (nhân vật **mặc đồ xanh lá**, Lyra: chỉ tách nền xanh thuần kể cả lỗ kín giữa dây cung và thân cung, điểm cách nền > 2,5px giữ nguyên 100%, dải mép tách theo màu điểm đặc gần nhất → vải xanh không bị trong suốt / mất màu) · `alpha` (PNG đã trong suốt).
     - Mốc căn `toe / heel / body / hip / face` (`hip` = giữa váy trắng — múa tại chỗ của Nerissa; `face` = trùng khuôn mặt: so mẫu ô `"face": [x0, y0, x1, y1]` của khung `calib`, có xoay ±24° / co giãn 0,9–1,1 — dùng khi vũ khí giơ cao làm mốc `body` bắt nhầm, Zerith); nhiều tấm đưa về cùng cỡ ("scale"), nhóm trong tấm có hệ số riêng (phần tử thứ 4 của nhóm).
     - `"footBand"` / `"footMin"` (cả spec; `footBand` đặt riêng từng tấm được): dải đáy tìm giày + bề ngang tối thiểu của 1 chiếc giày — nhân vật có tua / lụa rủ sát đất (Nerissa 12 / 24) để tâm đứng không lệch theo tua. `"solidFeet": true`: khi tìm gót / mũi giày bỏ hẳn các khúc hẹp hơn `footMin` (mũi đuôi, tua áo, mũi nhọn cán vũ khí chạm đất — Zerith).
     - `"ground": "group"` hoặc `["tên nhóm"]` (theo tấm): đường đất chung từng hàng tấm (trung vị đáy các khung) → khung bật nhảy / xoạc chân giữ độ cao.
+    - `"cuts": [[x, y0, y1]]` (theo tấm, toạ độ tấm gốc): vạch dọc 2px tách 2 khung AI vẽ chạm nhau (tool báo thừa / thiếu khung) — Brakk.
+    - `"split": true` (theo tấm): vùng liền phủ ≥ 2 tâm ô cùng hàng của lưới 4×2 (2 khung chạm nhau) → tách bằng watershed theo tâm ô, không cần dò toạ độ — Elarion (tay áo rộng, tóc dài). Cần scikit-image.
+    - `"anchorX": {"số khung": x}` (theo tấm, toạ độ tấm gốc): đặt tay tâm đứng cho khung gục / quỳ / nằm mà đáy hình là vật rơi hay vạt áo trải đất — Elarion, Golem.
     - Điểm gắn đánh dấu tay `"points"` → `view.pointWorld(tên)`; `events.js` `jointPoint()` / `ribbonPoint()` tự dùng khi có.
     - `"format": "webp"`.
-  - Hiệu ứng: `tools/fx_grid_pack.py art/<tên>/fx2/fx2_spec.json --preview soi.png` → `<tên>_fx2.webp` + json. Code dùng `src/vfx/flipbook.js` (`makeFlipbook(url, meta)` → `frames / set / decal`).
+  - Hiệu ứng: `tools/fx_grid_pack.py art/<tên>/fx2/fx2_spec.json --preview soi.png` → `<tên>_fx2.webp` + json. Code dùng `src/vfx/flipbook.js` (`makeFlipbook(url, meta)` → `frames / set / decal`; `camTilt()`).
+    - **Đặt lớp hiệu ứng quanh nhân vật:** mặt phẳng nhân vật ngửa ra sau theo góc chúc camera (đầu lùi ~0,75) → lớp đặt SAU lưng (z âm) phải `rotation.x = camTilt()` (không thì phần trên chồi ra trước đầu / ngực); tranh vẽ nghiêng sẵn trên mặt đất (hố, vòng, ấn) nên nằm phẳng tâm đúng chân (`flatDecal` trong `brakkFx.js`) thay vì dựng đứng; tranh đục che người thì tách 2 lớp: tranh sau lưng + bản cộng sáng mờ phía trước. Đã sửa theo cách này: Brakk (mọi lớp sau lưng), khiên Seraphine (`makeLightShield`), hào quang + cánh bóng tối Zerith (`makeReaperAura`, `spawnReaperSummon`, `spawnReaperWings`), nữ thần nước Nerissa (`makeGoddessAura`). Nhóm gắn vào `view.flip` / `view.stand` (Hộ Vệ Thiên Sứ, Vệ Thần Gió, Thần Hộ Vệ của Rok) đã nghiêng sẵn theo nhân vật.
     - **Hiệu năng:** cắt 1 hình / 1 khung khỏi atlas phải dùng `textureView(base)` (`src/vfx/texView.js`), KHÔNG dùng `base.clone()` + `needsUpdate`: `clone()` của three.js đánh dấu cả ảnh atlas "cần tải lại" → mỗi khung dùng lần đầu tải lại nguyên atlas 4096×1024 lên GPU (giật, tụt FPS). `flipbook.js`, `elemFx`, `brakkFx`, `nerissaFx`, `zerithFx`, `vfx.js` (sera) đã dùng `textureView`.
     - Căn khung `"align": "blob"` + `"blob": [[r,g,b thấp],[r,g,b cao]]`: trùng 1 vật có màu riêng (VD sư tử giữa Khiên Thần); `"pivot": "blob"`.
     - `"holeMax"`: chỉ lấp lỗ nhỏ khi giữ đặc (khoảng tối lớn giữa cánh / hào quang vẫn trong suốt).
     - Lưới B nhiều hình sát nhau: `"regionThr"` / `"regionDilate"` / `"keepGrow"` (theo tấm) để quầng sáng mờ không nối các hình lại.
+    - Hình hàng trên vẽ tràn xuống ô hàng dưới (dính vào hình dưới): `"cuts": [[x0, y0, x1, y1]]` (theo tấm) cắt dải đó khỏi mặt nạ vùng — Brakk (cột máu rồng → hồi máu).
     - Hình AI vẽ tràn hẳn sang ô bên cạnh và chạm hình bên cạnh: nhóm dùng `"rect": [x0, y0, x1, y1]` thay `"cells"`; hình bị cắt cụt ở mép tấm: `"feather": [trái, phải]` làm mờ mép (VD vòng thủy triều Nerissa).
     - Tranh hiệu ứng xuất trong suốt nhưng có quầng tối vẽ sẵn (Nerissa, Jessica): cứ để tool đặt lên nền đen rồi tách nền đen như thường (bỏ được quầng tối).
     - Tranh hiệu ứng trong suốt THẬT có phần tối cố ý (khói đen, áo choàng đen — Zerith): `"keepAlpha": true` (theo tấm) giữ nguyên kênh trong suốt gốc; `regionThr` khi đó là ngưỡng độ đục. Cách nhận: đặt tấm lên nền cỏ — khói / áo tối trông đúng, không có quầng đen vuông → `keepAlpha`.
+    - Quầng sáng 2 khung CHỒNG lên nhau qua mép ô (lửa sát đất thiên thạch Elarion): `cuts` ở chỗ mỏng nhất + `"cutFeather": N` (theo tấm) mờ dần N px về phía chỗ cắt — mép cắt không thành đường thẳng.
+    - AI vẽ lệch tâm giữa các khung (lốc xoáy trôi sang trái, hàng dưới cao hơn hàng trên): `"offsets": [[dx, dy], ...]` (theo nhóm, px tấm gốc) dời thêm từng khung sau bước căn — Elarion.
 - **Nhân vật:** thêm `sprite: <TÊN>_SPRITE` + `spriteParam` / `spriteIdleParam` vào visual trong `registry.js` → `FrameSpriteView` tự dùng.
   - `?<spriteParam>=cutout` xem lại bản khung xương.
   - Mode clip: `strike` (khung chính = hitTime) · `clip` · `hold` · `once` · `loop` · `still` (1 khung + thở).
   - `topScale` (tuỳ chọn, Seraphine, Zerith): đỉnh hình khung đứng cao hơn đỉnh tóc (đầu gậy) → tỉ lệ đỉnh tóc / đỉnh hình, để chiều cao nhân vật tính tới tóc.
   - Bảng `hover` (tuỳ chọn, Lyra, Seraphine, Zerith): `{ tên clip khung xương: tên clip tranh }` dùng khi nhân vật đang lơ lửng (VD Thần Phong) — mốc ra đòn vẫn theo clip gốc.
   - `pointWorld(tên, { sticky: true })`: khung đang hiện không đánh dấu điểm → dùng điểm của khung gần nhất có đánh dấu.
+  - `clips[tên].at` (mode strike, tuỳ chọn): giây bắt đầu của từng khung — động tác dài có nhịp riêng (Bá Vương Quật, Chấn Địa của Brakk; lao Nộ Lửa của Golem).
+  - `heightFrames` (tuỳ chọn, Golem): khung tính chiều cao khi không có khung `idle` riêng. `stickyPts` (Elarion, Golem): `jointPoint` lấy điểm của khung gần nhất có đánh dấu khi khung đang hiện không có.
+  - Bảng `giant` + `giantIdle` + `giantTint` (Brakk): lúc Khổng Lồ đổi clip sang tranh khổng lồ; clip không có tranh khổng lồ dùng tranh thường nhân màu `giantTint`.
 - Bản khung xương cũ (`art/ignar/PROMPTS.md`, tấm bộ phận / tay / mắt) không cần vẽ nữa.
 
 ### 8.2 Công cụ xem thử (chạy `npm run dev`)
 - `/tools/preview-cutout.html?rig=../src/characters/cutout/rok2Rig.js&clip=attack&t=0.1,0.2` — xem từng khung động tác.
-- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`; Lyra / Seraphine / Zerith có thêm đoạn bay lơ lửng (`&only=hover` / `pray` / `hover`); Nerissa có thêm 7 điệu múa (`&only=dance`, `&dances=1,123`, `&dancefor=3`).
+- `/tools/test-sprite.html?char=warrior&auto=1` — **trang thử chung**: lần lượt mọi động tác của 1 nhân vật (sprite hoặc khung xương), đánh thường gọi đúng hàm game; `char` = classId (mage, warrior, assassin, archer, priest, reaper, wrestler, dancer, elementalist, elem_golem), `&only=attack,bash`, `&left=1`; Lyra / Seraphine / Zerith có thêm đoạn bay lơ lửng (`&only=hover` / `pray` / `hover`); Brakk có thêm đoạn Khổng Lồ (`&only=giant`); Elarion có thêm Băng Hoại Hỏa Thiên + Mưa Giông (`&only=beam,channel`); Nerissa có thêm 7 điệu múa (`&only=dance`, `&dances=1,123`, `&dancefor=3`).
 - `/tools/test-ignar.html?mode=idle` — Ignar đứng / thủ thế → đánh thường (cầu lửa thật như game), khung cố định 1/60s, console `stepTo(giây)`.
 - `/tools/test-ignar-sprite.html?mode=idle | ready | tour` — Ignar kiểu sprite (đúng view trong game), cầu lửa thật; `mode=tour` lần lượt mọi động tác; `&ignarIdle=A|B|C`, `&ignar=cutout` để so với khung xương, `&mode=none` rồi gọi `view.playAction('summon')`... trong console (mục 4.5). Bấm đúp `xem_thu_ignar.bat` = chạy `npm run dev` + mở trang này. **Không mở file html trực tiếp** (ra trang trắng).
 - `/tools/preview-scene.html?team=assassin,warrior|monster_dummy` — xem nhân vật trong cảnh trận (console: `act(0,'attack')`, `step(0.5)`).
@@ -890,8 +1012,9 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
 - `/tools/fx-lyra.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Lyra bản 3 (s = attack | snipe | wind | arrows | windarrows).
 - `/tools/fx-seraphine.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Seraphine bản 3 (s = attack | heal | shield | pray | revive).
 - `/tools/fx-zerith.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Zerith bản 3 (s = attack | dash | scythe | night | mark | ghost).
+- `/tools/fx-brakk.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Brakk bản 3 (s = attack | grab | stomp | giant | shout | blood | lone).
 - `/tools/fx-ignar.html?s=all` — mọi kỹ năng / hiệu ứng Ignar (s = attack | meteor | pillar | god | ward).
-- `/tools/fx-brakk.html?s=grab`, `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
+- `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
 
 ### 8.3 Đồng bộ với GitHub (2 file .bat — người dùng tự bấm)
 | File | Chiều | Khi nào bấm |
@@ -961,9 +1084,9 @@ Mọi bảng **kéo thả được**, bấm tiêu đề để thu gọn, nút **
 
 ### 9.x Chọn đội hình trước trận
 - Vào trận (hoặc bấm **Chơi lại / Tiếp tục trận mới**) → hiện bảng **CHỌN ĐỘI HÌNH**: chọn **1–4 nhân vật**, bấm **⚔️ Xác nhận vào trận** mới bắt đầu đếm ngược.
-- Phím tắt: **1–4** chọn / bỏ chọn, **Enter** xác nhận. Lựa chọn lần trước được nhớ (lưu trong `data/progress.json`, khoá `squadPick`).
+- Phím tắt: **1–9** chọn / bỏ chọn, **Enter** xác nhận. Nút **✕ Bỏ chọn tất cả** (24/10/2026, thay nút "Chọn 4 người đầu"): xoá hết lựa chọn (Đấu với tướng: cả 1P lẫn 2P), mờ đi khi chưa chọn ai. Lựa chọn lần trước được nhớ (lưu trong `data/progress.json`, khoá `squadPick`).
 - Server: phòng có thêm trạng thái `selecting`; sự kiện `squadSelect` (server → client) và `confirmSquad { classes }` (client → server). Giới hạn `MAX_SQUAD = 4`.
-- Ảnh chân dung: `src/assets/portraits/<classId>.png` (chụp từ tư thế đứng của rig, nền trong suốt). Nhân vật mới: thêm 1 ảnh cùng tên.
+- Ảnh chân dung: `src/assets/portraits/<classId>.png` — cắt sát từ tranh tạo hình bản 3 của người dùng (`art/<tên>/01b-portrait-v3.png` hoặc `01-character-v3.png`), cao 360px, nền trong suốt. 24/10/2026: thay nốt Jessica (`assassin.png`) + Rok (`warrior.png`) — trước đó còn hình bản cũ. Nhân vật mới: thêm 1 ảnh cùng tên.
 
 ## 10. QUY TRÌNH THÊM NHÂN VẬT MỚI
 
@@ -984,10 +1107,10 @@ Mọi bảng **kéo thả được**, bấm tiêu đề để thu gọn, nút **
 | **1. Lõi chiến đấu** | Server tick 50ms, sát thương 7 bước, Orb, hàng đợi kỹ năng, AUTO, tốc độ trận x1/x1.5/x2 | ✅ Xong |
 | **2. Nhân vật cơ bản** | Hệ 2D ghép mảnh; Jessica (Sát Thủ); Rok (Chiến Binh); công cụ đánh thử | ✅ Xong |
 | **3. Mở rộng đội hình** | Thêm class (Phù Thủy, Tu Sĩ...), đội 4 người, xếp đội hình tránh chồng nhau, quái 5–6 con có tranh riêng | ✅ 9 nhân vật + Golem triệu hồi |
-| **3b. Đồng bộ cả đội sang SPRITE** | Mỗi nhân vật: tạo hình + tấm sprite + tấm hiệu ứng tranh (mục 8.1b). Xong: Ignar, Rok, Jessica, Nerissa, Lyra, Seraphine, Zerith · còn: Brakk, Elarion + Golem · 4 tấm hiệu ứng chung cả đội | 🔄 Đang làm |
+| **3b. Đồng bộ cả đội sang SPRITE** | Mỗi nhân vật: tạo hình + tấm sprite + tấm hiệu ứng tranh (mục 8.1b). Xong: Ignar, Rok, Jessica, Nerissa, Lyra, Seraphine, Zerith, Brakk, Elarion + Golem (24/10/2026) · còn: 4 tấm hiệu ứng chung cả đội (`art/common/PROMPTS_FX_CHUNG.md`) + **11 tấm icon kỹ năng** (`art/icons/PROMPTS_ICONS.md`, chờ tranh) | 🔄 Đang làm |
 | **3c. Đủ 20 nhân vật** | Thêm ~11 nhân vật mới, làm thẳng theo quy trình sprite | ⏳ Tiếp theo |
 | **4. Thế giới + cốt truyện + cách chơi chính** | Xây thế giới game, cốt truyện, vòng chơi chính; bản đồ thế giới (góc camera chéo) | ⏳ Sau khi đủ 20 nhân vật |
-| **4b. Hệ thống ngoài trận** | Skin, trang bị, **Unique Weapon**, nâng cấp nhân vật (hướng làm skin / Unique Weapon: ghi chú dưới bảng) | ⏳ |
+| **4b. Hệ thống ngoài trận** | Skin, trang bị, **Unique Weapon**, nâng cấp nhân vật (hướng làm skin / Unique Weapon: ghi chú dưới bảng); **cách sở hữu nhân vật đặc biệt** (Elarion ⭐ — người dùng định: phải dùng cách đặc biệt mới có, chưa chốt cách) | ⏳ |
 | **5. Trực tuyến** | Tài khoản, lưu dữ liệu, PvP | ⏳ |
 
 **Ghi chú cho sau — skin & Unique Weapon (chưa làm, chốt lại khi xong đủ nhân vật):** sprite vẽ liền vũ khí trong từng khung, nên không ghép "mọi skin × mọi vũ khí" bằng cách vẽ lại cả bộ (số bộ nhân lên). Hướng đã bàn (21/10/2026):

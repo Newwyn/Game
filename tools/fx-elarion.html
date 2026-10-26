@@ -74,8 +74,8 @@ if (S === 'steam') {
   at(1.2, () => fx({ kind: 'rainTick', heals: [{ targetIndex: 0, heal: 80 }, { targetIndex: 1, mana: 200 }], strike: { targetIndex: 1, damage: 120, isCrit: false } }));
 }
 if (S === 'firebolt') {
-  at(0.1, () => spell('firebolt', { firebolt: { x: 5.5, z: 0, grow: 2000, start: 300, radius: 3.5 } }));
-  at(2.3, () => fx({ kind: 'fireboltHit', x: 5.5, z: 0, effects: hits([[0, 400], [1, 380]]) }));
+  at(0.1, () => spell('firebolt', { firebolt: { x: 5.5, z: 0, grow: 2000, start: 300, radius: 4.5 } }));
+  at(2.3, () => fx({ kind: 'fireboltHit', x: 5.5, z: 0, radius: 4.5, effects: hits([[0, 400], [1, 380]]) }));
 }
 if (S === 'beams') {
   // SolarBeam: dồn lực 0,7s -> chưởng 10s (mỗi giây 1 nhịp: băng + lửa, đủ 5 tầng tia lửa to) -> tắt
