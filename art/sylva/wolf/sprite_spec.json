@@ -1,0 +1,83 @@
+{
+    "note":  "Soi Rung (trieu hoi Sylva)",
+    "atlasScale":  0.6,
+    "maxWidth":  4096,
+    "pad":  6,
+    "calib":  "idle1",
+    "key":  "jade",
+    "footBand":  16,
+    "footMin":  25,
+    "solidFeet":  true,
+    "sheets":  {
+                   "idle":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/wolf/sprite-idle.png",
+                                "groups":  [
+                                               [
+                                                   "idle",
+                                                   4,
+                                                   "heel"
+                                               ],
+                                               [
+                                                   "ready",
+                                                   4,
+                                                   "heel"
+                                               ]
+                                           ]
+                            },
+                   "attack":  {
+                                  "anchor":  "body",
+                                  "scale":  1,
+                                  "split":  true,
+                                  "file":  "art/sylva/wolf/sprite-attack.png",
+                                  "ground":  "group"
+                              },
+                   "move":  {
+                                "anchor":  "body",
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/wolf/sprite-move.png",
+                                "ground":  "group"
+                            },
+                   "hurt-dead":  {
+                                     "groups":  [
+                                                    [
+                                                        "hurt",
+                                                        4,
+                                                        "heel"
+                                                    ],
+                                                    [
+                                                        "dead",
+                                                        4,
+                                                        "heel"
+                                                    ]
+                                                ],
+                                     "scale":  1,
+                                     "split":  true,
+                                     "file":  "art/sylva/wolf/sprite-hurt-dead.png",
+                                     "ground":  "group"
+                                 },
+                   "howl-pounce":  {
+                                       "groups":  [
+                                                      [
+                                                          "howl",
+                                                          4,
+                                                          "heel"
+                                                      ],
+                                                      [
+                                                          "pounce",
+                                                          4,
+                                                          "body"
+                                                      ]
+                                                  ],
+                                       "scale":  1,
+                                       "split":  true,
+                                       "file":  "art/sylva/wolf/sprite-howl-pounce.png",
+                                       "ground":  "group"
+                                   }
+               },
+    "out":  "src/assets/sprites/wolf_sprite",
+    "meta":  "src/characters/sprite/wolfSprite.json",
+    "format":  "webp"
+}

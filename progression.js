@@ -35,7 +35,7 @@ function growthUnits(level) {
 // Chỉ tăng SỐ LIỆU: hệ số sát thương / máu khiên / hồi máu ×DMG · % buff/debuff ×BUFF. Orb, hồi chiêu, hiệu ứng giữ nguyên.
 const SKILL_SCALE = { dmg: [1, 1.2, 1.45, 1.75], buff: [1, 1.1, 1.2, 1.3] };
 const SKILL_DMG_KEYS = ['multiplier', 'spiritMultiplier', 'splashMultiplier', 'burstMultiplier', 'shieldHp', 'heal', 'prayHeal',
-    'tickMultiplier', 'burnMultiplier', 'palmMultiplier', 'volleyMultiplier', 'guardianMultiplier',
+    'perStack', 'tickMultiplier', 'burnMultiplier', 'palmMultiplier', 'volleyMultiplier', 'guardianMultiplier',
     'slamMultiplier', 'cleaveMultiplier', 'aoeMultiplier', 'fallMultiplier', 'upliftMultiplier',
     'rollMultiplier', 'trailMultiplier', 'counterMultiplier',
     'iceMultiplier', 'fireMultiplier', 'shardMultiplier', 'crashMultiplier', 'strikeMultiplier'];   // (Elarion: trước đây sót, không tăng theo bậc)
@@ -75,6 +75,11 @@ const CLASS_GROWTH = {
     assassin: {
         name: 'Sát Thủ',
         perLevel: { maxHp: 55, pAtk: 10, mAtk: 0, pDef: 3, mDef: 3, crit: 5, acc: 2, dodge: 3, pen: 3, block: 0.5, mpSec: 1 },
+    },
+    // Triệu Hồi Sư (27/10/2026, Sylva): máu hơn Phù Thủy một chút, M.ATK tăng chậm hơn (sức mạnh nằm ở thú — thú có chỉ số riêng theo cấp)
+    summoner: {
+        name: 'Triệu Hồi Sư',
+        perLevel: { maxHp: 55, pAtk: 0, mAtk: 9, pDef: 3, mDef: 5, crit: 1, acc: 2, dodge: 1, pen: 2, block: 0, mpSec: 3 },
     },
 };
 // Chỉ số do THIÊN PHÚ cấp (trường `stat` của thiên phú): Kiên Cường (Rok) · Sát Ý (Jessica) · Ưng Nhãn (Lyra) · Hỏa Tốc (Ignar)

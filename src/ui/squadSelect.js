@@ -30,8 +30,8 @@ function grid(side, compact) {
     const selected = state.sides[side];
     const n = selected.size;
     const order = heroes.filter(h => selected.has(h.id)).map(h => h.id);
-    const cols = compact ? Math.min(heroes.length, 3) : Math.min(heroes.length, 5);
-    return `<div class="ss-grid${compact ? ' compact' : ''}" style="grid-template-columns: repeat(${cols}, minmax(${compact ? 112 : 150}px, 1fr))">
+    const cols = heroes.length > 10 ? 6 : Math.min(heroes.length, 5);
+    return `<div class="ss-grid${compact ? ' compact' : ''}" style="--cols:${cols}">
         ${heroes.map((h, i) => {
             const on = selected.has(h.id);
             const full = !on && n >= max;
@@ -60,17 +60,22 @@ function render() {
         : `Mỗi bên ${min} – ${max} nhân vật · Lv60 SSS · 2P do AI điều khiển · không có tool`;
     box.innerHTML = `
     <div class="ss-box${dual ? ' dual' : ''}">
-        <h2>${MODE_TITLE[mode] ?? 'CHỌN ĐỘI HÌNH'}</h2>
-        <p class="ss-sub">${sub}</p>
+        <div class="ss-head">
+            <h2>${MODE_TITLE[mode] ?? 'CHỌN ĐỘI HÌNH'}</h2>
+            <p class="ss-sub">${sub}</p>
+        </div>
+        <div class="ss-body">
+
         ${dual ? `
         <div class="ss-dual">
             <div class="ss-side p1"><div class="ss-side-h">🔵 1P <span>(bạn) · ${n1}/${max}</span></div>${grid('p1', true)}</div>
             <div class="ss-vs">VS</div>
             <div class="ss-side p2"><div class="ss-side-h">🔴 2P <span>(AI) · ${n2}/${max}</span></div>${grid('p2', true)}</div>
         </div>` : grid('p1', false)}
+        </div>
         <div class="ss-foot">
             <button class="ss-quick" data-ss-back>← Chọn chế độ</button>
-            <span class="ss-count">${dual ? '' : `Đã chọn <b>${n1}</b> / ${max}`}</span>
+            <span class="ss-count">${dual ? `🔵 1P: <b>${n1}</b>/${max} · 🔴 2P: <b>${n2}</b>/${max}` : `Đã chọn <b>${n1}</b> / ${max}`}</span>
             <button class="ss-quick" data-ss-clear ${n1 + (dual ? n2 : 0) ? '' : 'disabled'}>✕ Bỏ chọn tất cả</button>
             <button class="ss-go" data-ss-go ${ok ? '' : 'disabled'}>⚔️ ${mode === 'test' ? 'Xác nhận vào trận' : 'Vào đấu'}</button>
         </div>
@@ -112,8 +117,8 @@ function onClick(e) {
 function onKey(e) {
     if (!state || !root || root.style.display === 'none') return;
     if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); confirm(); return; }
-    const i = Number(e.key) - 1;
-    if (i >= 0 && i < Math.min(9, state.heroes.length)) { e.preventDefault(); e.stopImmediatePropagation(); toggle('p1', state.heroes[i].id); }
+    const i = e.key === '0' ? 9 : e.key === '-' ? 10 : Number(e.key) - 1;
+    if (i >= 0 && i < state.heroes.length) { e.preventDefault(); e.stopImmediatePropagation(); toggle('p1', state.heroes[i].id); }
 }
 
 function show(data) {

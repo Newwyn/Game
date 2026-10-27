@@ -95,7 +95,7 @@ Quái **Hỗ Trợ** đánh phép (M.ATK vs M.DEF); còn lại đánh vật lý.
 - **1 Orb = 1000 MP**, tối đa 5 Orb. MP hồi theo giây (MP/s) và mỗi đòn đánh trúng (MP/Atk).
 - Kỹ năng tốn 1 / 2 / 3 Orb (Kỹ năng 1 / 2 / 3) và có hồi chiêu riêng.
 - Kỹ năng cần cự ly (VD Đẩy Khiên) → nhân vật tự đi tới tầm rồi mới dùng.
-- **Phải gặp đối thủ mới dùng:** các điệu múa của Nerissa và Tàng Hình của Jessica chỉ dùng được khi có đối thủ còn sống trong **tầm bắn của Lyra (11)** quanh người dùng — tránh múa / tàng hình lúc chưa giao tranh làm camera chạy loạn. Bấm sớm thì lệnh nằm chờ (nhân vật vẫn tiến lên), gặp địch là dùng ngay; nút hiện nhãn đỏ **"chưa gặp địch"**. AUTO cũng chỉ chọn các chiêu này khi đã gặp địch.
+- **Luật tầm đánh (MỌI nhân vật, mọi kỹ năng — từ 27/10/2026):** chỉ dùng được kỹ năng khi có đối thủ (chọn được: còn sống, không tàng hình / bị Thần Chết nhấc lên) **trong TẦM ĐÁNH của chính nhân vật đó** (tầm đánh thường + tầm cộng từ Thần Phong, dư 0,3 cho khỏi chập chờn mép tầm). Bấm sớm thì lệnh nằm chờ (nhân vật vẫn tiến lên, đánh thường bình thường), địch vào tầm là dùng ngay; nút kỹ năng mờ như lúc thiếu Orb, **không hiện nhãn chú thích**. AUTO cũng theo luật này. Server: `foeInReach` (dùng `attackRangeOf`); client: `foeNear` trong `src/ui/hud.js`. (Bản cũ chỉ áp cho điệu múa / Tàng Hình, đo theo tầm Lyra 11, có nhãn "chưa gặp địch".)
 - **AUTO từng tướng:** mỗi thẻ có nút **AUTO** (góc phải) — AUTO MODE cả đội đang tắt vẫn để riêng tướng đó tự dùng kỹ năng, các tướng khác bấm tay. Bật: nút vàng; AUTO MODE cả đội đang bật: nút viền vàng. Lựa chọn được nhớ theo trình duyệt (theo nhân vật), vào trận mới tự bật lại.
 
 ### 3.3b Logic theo animation (thời điểm chạm & thời gian diễn)
@@ -123,9 +123,19 @@ Server không trừ máu ngay lúc ra đòn mà **hẹn đúng lúc đòn chạm
 - Mã: `addShield()` / `activeShield()` trong `server.js` (thêm loại khiên mới vào `SHIELD_TYPES`, khiên đặc trưng ở `isSignatureShield`).
 
 ### 3.3d Kết thúc trận
-- Trận kết thúc **ngay** khi một bên không còn nhân vật nào sống (linh hồn / hộ vệ không tính).
+- Trận kết thúc **ngay** khi một bên không còn **TƯỚNG** nào sống. **Triệu hồi KHÔNG tính** (27/10/2026): còn Golem / thú của Sylva / Hộ Vệ Thần Chết mà hết tướng → vẫn THUA, triệu hồi bên thua biến mất (`vanishSummon`).
 - Cả hai bên cùng gục trong cùng một nhịp → **HOÀ**.
+- **Luật Sinh Tử** (27/10/2026, **chỉ trong ĐẤU** — chế độ Test không có): trên sân chỉ còn **1 đấu 1** (mỗi bên đúng 1 TƯỚNG còn sống — triệu hồi không tính và không bị trừ máu) suốt **15 giây** mà chưa ai thắng → **cả hai mất 5% máu TỐI ĐA mỗi 0,5 giây** (trừ thẳng vào máu, bỏ qua khiên / giáp / Đêm Tử Thần) cho tới khi 1 bên gục (cùng gục = hoà). Đổi người (hồi sinh, triệu hồi) → đếm lại 15s. Tool 'bất tử' vẫn giữ (bên đó không mất máu). Màn hình hiện chữ lớn **⚔️ SINH TỬ!**, số máu mất màu cam. Server: processSuddenDeath (SUDDEN_DEATH = { after: 15000, every: 500, pct: 0.05 }), sự kiện suddenDeath (kind start · tick).
 
+### 3.3e Triệu hồi (27/10/2026)
+- **Triệu hồi** = thực thể có mặt trên sân và tự hành động, mang nhãn chung **"Triệu hồi"** (cờ `summon: true` trên thành viên đội). Hiện có: **Golem** (Elarion), **Vạc** (Grix), **Hộ Vệ Thần Chết** (Zerith gục — chỉ thêm nhãn), **Sói / Đại Bàng / Gấu / Thần Hươu** (Sylva).
+- **Không tính thắng / thua** (xem 3.3d) và không tính trong Sinh Tử.
+- **Luật riêng từng triệu hồi** — `summonRules` trong `CLASS_DEFS`: `targetable` (bị đánh không), `buffs` (nhận buff đồng minh), `debuffs` (nhận debuff / khống chế), `allowFromSylva` (nhận hiệu ứng của Sylva / Thần Hươu dù không nhận buff khác).
+  - **Golem**: không nhận buff / debuff nào trừ **Ấn Tử** (Zerith), nhưng **nhận hiệu ứng của Sylva** (Thần Hươu hồi máu + tăng sức, Gắn Kết, Khiên Lá).
+  - **Thú của Sylva**: bị đánh, nhận cả buff lẫn debuff.
+  - **Thần Hươu / Vạc**: không có máu, không bị đánh (không phải thành viên đội).
+- Mã: `summonRulesOf` · `takesBuffs` · `takesDebuffs` (dùng trong `ccImmune`, `addChill`, buff của Nerissa / Elarion) · `vanishSummon`.
+- Thú **không theo chỉ số của Sylva**: có chỉ số gốc riêng + `perLevel` (tăng theo cấp Sylva). Gọi lại khi con cũ còn sống → con cũ biến mất, con mới thay.
 ### 3.4 Chọn mục tiêu & Khiêu khích
 - **Ưu tiên mục tiêu TRONG TẦM ĐÁNH**: mục tiêu đang đánh còn trong tầm thì giữ nguyên; không ai trong tầm thì chạy tới con **gần nhất** (giữ mục tiêu cũ nếu nó chỉ xa hơn < 1,5 đơn vị để khỏi đổi qua đổi lại).
 - Chỉ số **Khiêu khích** hiện bằng nhau cho mọi nhân vật / quái (100) — không còn ảnh hưởng chọn mục tiêu.
@@ -816,6 +826,51 @@ Lv1: HP 1.950 · M.ATK 276 · P.DEF/M.DEF 56/101 · chí mạng 10% · né 16% �
 - **`stickyPts`** (mới, Elarion + Golem): khung đang hiện không đánh dấu điểm → `events.js` `jointPoint` lấy điểm của khung gần nhất có đánh dấu thay cho khớp của khung xương ẩn (dáng bản 2 khác hẳn tranh mới).
 - **Xem:** `/tools/test-sprite.html?char=elementalist&auto=1` (thêm đoạn `&only=beam,channel`) · `?char=elem_golem&zoom=0.8&cy=1.8` · `/tools/fx-elarion.html?s=...` (phép + Golem với tranh mới); `?elarion=cutout` / `?golem=cutout` về bản khung xương / 1 tranh liền.
 
+**Bóng Nguyên Tố (27/10/2026)** — lúc đang bật **Bão Nguyên Tố**: dùng **Hơi Nước Bỏng** hoặc **Băng Hoại Hỏa Thiên** khi chưa có bóng → bóng (bản sao tím mờ của Elarion) đứng ở chỗ Elarion, Elarion lùi 4 ô (0,35s, dư ảnh tím) và không phải niệm; bóng niệm (mưa 2s / tia 0,7s) rồi thi triển từ vị trí của nó (tia ngắm + dài theo bóng; sát thương / hồi máu theo chỉ số Elarion). Bóng không bị chọn / đánh / ngắt; Elarion tự do hành động. Mỗi lúc 1 bóng (bóng bận → phép niệm kia Elarion tự niệm như cũ). Elarion gục → bóng tan. Server: canElemShadow / startElemShadow / endElemShadow / putElemChannel, hiệu ứng mưa / tia của bóng có shadow: true (rainOf / beamOf chỉ tính của chính Elarion); sự kiện elemFx kind shadowStart · shadowEnd, ainTick / eamTick / ainEnd / eamEnd có shadow. Client: spawnElemShadow (elemFx.js), mưa mới (spawnRainCloud: mây 3D cuồn cuộn + sét, cột mưa, nước bắn; nimateChannelPose: nhịp thở / đung đưa khi niệm). Xem thử: /tools/fx-elarion.html?s=shadow · ?s=shadowbeam. **Thiên Thạch** lăn 15 ô trong **5s** (trước 3s).
+
+### 4.10 Grix (Lục Độc) — Phù Thủy độc dược 🧪 · tộc Goblin · sát thương PHÉP
+Goblin giả kim sư đứng hàng sau, **tích Độc** lên kẻ địch rồi **kích nổ**. Khắc chế đội hồi máu (đầm lầy −40% hồi máu). classId `alchemist`, màu `#65a30d`, tộc **Goblin** (nhân vật Goblin đầu tiên).
+Lv1: HP 1.000 · M.ATK 200 · P.DEF/M.DEF 40/75 · chí mạng 10% · né 12% · xuyên 8% · tốc đánh 1000ms · tầm 12.
+
+**Độc (poison):** mỗi kẻ địch 1 hiệu ứng Độc, tối đa **5 tầng** (thiên phú 1: **7**), giữ 6s (thêm tầng → làm mới 6s). Mỗi **0,5 giây** (27/10, trước 1 giây) gây sát thương phép **×0,12 mỗi tầng** (diện rộng nên trúng cả mục tiêu tàng hình). Grix gục thì Độc vẫn chạy tới hết giờ. Thánh Quang Trị Liệu giải được Độc.
+
+| Kỹ năng | Orb / hồi | Mô tả |
+|---|---|---|
+| Đánh thường | — | Ném lọ độc ×1.0 (phép), trúng → **+1 tầng Độc** |
+| **1. Bình Độc Văng** (bản 2, 27/10) | 1 / 7s · dùng tại chỗ | Có địch trong tầm đánh là ném **2 bình** (+ **50% mọi cấp bình thứ 3**), mỗi bình rơi vào **1 kẻ địch NGẪU NHIÊN ở BẤT KỲ ĐÂU trên bản đồ** (đủ địch thì mỗi bình 1 người khác nhau, lệch ±0,4 quanh chân). Mỗi bình ×1.0 trong 3,5 đơn vị + **2 tầng Độc**; bình rơi cách nhau 0,14s (bình đầu 0,65s). Hàm `randomFoes` (server.js) |
+| **2. Đầm Lầy Thối Rữa** (bản 2) | 2 / 13s · niệm 0,8s · dùng tại chỗ | Grix giơ gậy gọi **2 vạc** sau lưng (0,4s). **3 đợt**: mỗi đợt các vạc gồng **2s** rồi bắn bùn độc (bay 0,55s) → mỗi vạc tạo 1 **đầm lầy** (bán kính 4,5, tồn tại **5s**, mỗi giây ×0.35 + 1 tầng Độc + **Thối rữa** −40% hồi máu). Mỗi phát bắn vào **1 kẻ địch NGẪU NHIÊN ở BẤT KỲ ĐÂU trên bản đồ** (2 vạc cùng đợt ưu tiên 2 người khác nhau), chọn lại mỗi đợt → tối đa **6 đầm**; hết địch thì vạc không bắn. Vạc là hình ảnh (không bị đánh), Grix gục vẫn bắn tiếp |
+| **3. Đại Bộc Phá Độc** | 3 / 22s · niệm 1s · không cần đi tới | Dùng được khi có địch trong tầm đánh (luật chung). Grix **bay lên** niệm (vòng xoáy độc quanh người) rồi **búng tay**: lúc 0,5s **kích nổ toàn bộ Độc** trên MỌI kẻ địch: ×0.5 **mỗi tầng** (5 tầng = ×2.5, 7 tầng = ×3.5), xoá Độc. Địch chết vì nổ → **lây 3 tầng Độc** sang địch quanh nó (4 đơn vị). Grix **+20% M.ATK 6s** (Cuồng Độc) rồi hạ xuống. Bị choáng lúc niệm → rơi xuống, mất chiêu |
+
+Thiên phú 1 (Lv20) **Độc Tố Ngấm Sâu**: Độc mạnh thêm **15 / 25 / 35%**, tối đa **7 tầng**. Địch đủ **7 tầng** → **Mục Rữa**: thêm **−40% hồi máu 5s** (CỘNG với Thối rữa / Ấn Tử, tối đa −90%); mỗi địch **10s/lần** (tính từ lúc dính), hết 10s mà vẫn 7 tầng thì dính lại. Bình Độc Văng **hồi máu đồng minh** trong vùng vỡ **60 / 80 / 100% M.ATK** Grix, và **50% (mọi cấp) ném thêm 1 bình** về đồng minh **ít máu nhất** (tính %, kể cả Grix).
+Thiên phú 2 (Lv40) **Giáp Độc** (bản 2, thay bom khói): máu tụt **dưới 50%** → khiên **= 100% máu đã mất** trong **8s**. Có khiên: kẻ đánh trúng Grix **dính 1 tầng Độc** (mỗi kẻ tối đa 1 lần / 0,3s), sát thương Độc của Grix **hồi máu cho Grix 30 / 40%** lượng gây ra. Khiên vỡ / hết giờ → **nổ**: địch trong 3,5 đơn vị **+2 tầng Độc + choáng 1s** (tính kháng khống chế). Hồi 20s (tính từ lúc bật).
+AI: Đại Bộc Phá khi tổng Độc ≥ 8 tầng / mọi địch trúng độc đã đầy tầng / có địch trúng độc dưới 25% máu → Đầm Lầy (vạc, mạnh hơn) → Bình Độc (bình / vạc rơi ngẫu nhiên khắp bản đồ nên không cần tìm cụm địch). Chiêu cuối sắp hồi xong (< 3s) mà Độc đã ngấm (≥ 3 tầng) → **để dành 3 Orb**.
+Server: `CLASS_DEFS.alchemist`, cuối `server.js`: `addPoison` / `processPoison` / `goblinArea` / `goblinFlasks` / `goblinCauldrons` / `checkVenomRot` / `checkGoblinWard` / `goblinWardHit` (gọi từ `dealDamage` — mọi đòn có truyền người đánh) / `drainGoblinWard` / `processGoblinWard`; trạng thái `goblin_float` lúc niệm chiêu cuối. Sự kiện `goblinFx` kind: `poisonTick` · `flaskHit` (+`flaskKind` near/far/extra/ally, `heals`) · `bogTick` · `cauldronCharge` · `cauldronShot` · `cauldronEnd` · `detonate` · `spread` · `venomRot` · `wardUp` · `wardHit` · `wardDrain` · `wardBurst`. Client: `src/vfx/goblinFx.js` + `onGoblinFx` trong `events.js`. **Hiệu ứng vẽ tay theo khung** (như Ignar / Zerith, 27/10/2026): 8 tấm nền đen do **Codex vẽ** theo `art/grix/fx2/PROMPTS_FX.md` → `tools/fx_grid_pack.py art/grix/fx2/fx2_spec.json` → `src/assets/sprites/grix_fx2.webp` (1,9 MB, 64 khung) + `src/vfx/grixFx2.json`. Nhóm: `vial`·`hit` (lọ bay · trúng) · `flask`·`flaskAlly` (bình độc · bình hồi máu) · `splash` 8 (bình vỡ) · `warn`·`puddle`·`bog` 4·`wardRing`·`shock` (hình trên đất) · `cauldronIn`·`cauldronBoil` (vạc hiện · sôi) · `glob`·`fumes` (bùn bay · khói đầm) · `boom` 8 (nổ lớn, khung 4 đầu lâu) · `vortex`·`snap`·`rotSkull`·`dome`·`wisp`. Tách nền: vạc `solid 16` (đồng sẫm không bị thủng), đầm lầy / vũng / bình `solid` 28–45. Xem thử: `/tools/fx-grix.html?s=all&auto=1` (s = attack | flask | bog | detonate | rot | ward).
+**Hình — kiểu SPRITE (27/10/2026):** tranh do **Codex vẽ** (công cụ vẽ ảnh của Codex) theo `art/grix/sprite/PROMPTS_SPRITE.md`: tạo hình `art/grix/01-character-v3.png` (→ ảnh chọn đội `src/assets/portraits/alchemist.png`, 400×360) + 9 tấm nền xanh trong `art/grix/sprite/` (72 khung). Hiệu ứng độc vẫn vẽ bằng code (`src/vfx/goblinFx.js`).
+- **Đóng gói:** `tools/sprite_pack.py art/grix/sprite/sprite_spec.json` → `src/assets/sprites/grix_sprite.webp` (2,9 MB) + `src/characters/sprite/grixSprite.json`. Tách nền **`jade`** (bắt buộc: `matte` biến tròng kính / bình cầu / lọ thuốc xanh lục độc thành vàng). Mốc `heel` cho đứng / đánh / kỹ năng; `body` cho chạy, nhảy, thắng; `ground: group` cho tấm gục – thắng và gồng – đáp. Thư viện Python (numpy, scipy, opencv, scikit-image) cài trong môi trường riêng `.team/pyenv` (Python của máy bị khoá, không cài thẳng được): `.team\pyenv\Scripts\python.exe tools/sprite_pack.py ...`.
+- **Khung xương ẩn mượn của Ignar** (`IGNAR_RIG` + `ignarClips`, cùng kiểu phù thủy đánh xa) — tên clip tranh = tên clip khung xương: `attack` ném lọ (khung 4 @0,25s) · `summon` Bình Độc Văng (khung 5 @0,35s) · `bolt` Đầm Lầy cắm gậy (khung 4 @0,25s) · `palm` Đại Bộc Phá búng tay (khung 5 @0,2s) · `charge` gồng khuấy gậy (giữ). Registry `ALCHEMIST` (cao 2,6 — goblin nhỏ con), `events.js` gọi `playAction('attack' | 'flask' | 'bog' | 'detonate' | 'charge')`. Cách đứng: `?grixIdle=A|B|C`.
+- **Xem:** `/tools/preview-scene.html?team=alchemist,warrior|monster_dummy` (console: `act(0,'flask')`, `act(0,'bog')`, `act(0,'detonate')`).
+
+### 4.11 Sylva (Lâm Linh) — Triệu Hồi Sư 🦌 · tộc Elf · sát thương PHÉP · class mới (27/10/2026)
+Tiên nữ rừng xanh gọi thú. Lv1: HP 950 · M.ATK 190 · P.DEF/M.DEF 40/80 · chí mạng 10% · né 12% · tốc đánh 1000ms · tầm 10. Tăng theo cấp: `CLASS_GROWTH.summoner` (progression.js).
+
+| Kỹ năng | Orb / hồi | Mô tả |
+|---|---|---|
+| Đánh thường | — | Phóng gai lá ×1.0 (phép) |
+| **1. Gọi Sói & Đại Bàng** | 1 / 14s | Gọi **cả 2 con** cạnh Sylva, mỗi con **18s**. |
+| **2. Gấu Hộ Vệ** | 2 / 16s | Gấu hiện tại chỗ Sylva, **ủi xuyên qua mọi đối thủ rồi ủi về** (1,2s): mỗi lượt trúng ×1.0, **hất tung 0,6s rồi choáng 0,5s**. Sau đó đánh như thường, **20s**. |
+| **3. Thần Hươu** | 3 / 22s | Hươu ánh sáng **không máu, không bị đánh**, **10s**. Mỗi giây hồi **3%** máu tối đa cho tướng phe mình, **8%** cho triệu hồi (kể cả Golem). Triệu hồi phe mình **+25% sát thương, +30% P.DEF, +30% M.DEF** (`deer_bless`). |
+
+**Thú triệu hồi** (chỉ số cấp 1, tăng theo cấp Sylva):
+- **🐺 Sói Rừng** — HP 1.400, P.ATK 140, cận chiến. Ra sân **tru**: địch −15% P.DEF/M.DEF 10s (`wolf_howl`). Cứ **4 đòn** → ngẫu nhiên **Cắn** (×1.4 + hồi 10% máu) hoặc **Vồ** (nhảy tới 1 địch hàng sau ngẫu nhiên, ×1.2).
+- **🦅 Đại Bàng** — HP 900, P.ATK 160, đánh xa 10. Cứ **4 đòn** → niệm 1s rồi ngẫu nhiên **Cầu Gió** (×1.5 + đẩy lùi 3 ô) hoặc **Bão Lông Vũ** (5 đợt rơi ngẫu nhiên, mỗi đợt ×0.5 trong 2,5 ô, −10% tốc đánh 3s `feather_slow`). Thiên phú **Ưng Nhãn**: lúc ra sân + mỗi 15s → 5s **+30% tốc đánh, tầm cả bản đồ, mỗi đòn 1 địch ngẫu nhiên** (`eagle_eye`).
+- **🐻 Gấu Hộ Vệ** — HP 3.500, P.ATK 200, P.DEF/M.DEF 220/180, không kỹ năng. Thiên phú **Hộ Chủ**: địch đứng gần Sylva (3 ô) **quá 3s** → gấu ủi nó, đẩy 4 ô (không choáng) + **khiêu khích 5s** (hồi 8s).
+
+Thiên phú 1 (Lv20) **Gắn Kết Rừng Thiêng**: mỗi triệu hồi ra sân → cả đội **+4% tấn công** (triệu hồi **+8%**), cộng dồn **5 tầng**, mỗi tầng 5s, triệu hồi mới làm mới thời gian (`forest_might`).
+Thiên phú 2 (Lv40) **Khiên Lá**: mỗi **10s** khiên **25% máu tối đa** cho 1 triệu hồi có máu (ít máu nhất) trong **7s**; có khiên: **+20% sát thương, +25% tốc đánh** (`leaf_shield`).
+AI: chưa có Sói / Đại Bàng → gọi trước · Thần Hươu khi đã có triệu hồi trên sân hoặc tướng mình dưới 70% máu (không gọi chồng) · Gấu khi ≥ 2 đối thủ hoặc bị áp sát.
+Server: `CLASS_DEFS.summoner` / `sylva_wolf` / `sylva_eagle` / `sylva_bear`, khối hàm sau `processGolem`: `summonSylvaUnit` · `castSylvaSkill` · `bearCharge` · `sylvaAfterAuto` · `processSylvaUnit` · `processSylva`. Sự kiện `sylvaFx` kind: `summon` · `summonEnd` · `howl` · `bite` · `pounce` · `eagleCast` · `windOrb` · `featherWave` · `eagleEye` · `bearCharge` · `bearGuard` · `deer` · `deerTick` · `deerEnd` · `leafShield` · `forestMight` (chi tiết: `.team/contract.md`). Client: `src/vfx/sylvaFx.js`.
+**Hình — kiểu SPRITE (27/10/2026, Codex vẽ):** tạo hình `art/sylva/01..05-*.png` (Sylva, Sói, Đại Bàng, Gấu, Thần Hươu — `PROMPTS_DESIGN.md`) → ảnh chọn đội `src/assets/portraits/summoner.png`. Tấm động tác lưới 4×2 nền xanh (đề bài từng tấm: `.team/drawsy2/*.md`; Codex vẽ 1536×1024, riêng Đại Bàng `cast` + 4 tấm Gấu (attack · move · hurt-dead · charge) do **Antigravity** vẽ 1264×848 JPG → chuyển PNG, `scale` 1.215 trong spec; Antigravity lưu ảnh ở `~/.gemini/antigravity-cli/brain/<conversation_id>/`): Sylva 9 tấm `art/sylva/sprite/` (idle · attack · move · hurt-stun · dead-victory · cast-land · call · bear · deer); Sói `art/sylva/wolf/` (idle · attack · move · hurt-dead · howl-pounce); Đại Bàng `art/sylva/eagle/` (idle · attack · move · hurt-dead · cast); Gấu `art/sylva/bear/` (idle · attack · move · hurt-dead · charge); Thần Hươu `art/sylva/deer/sprite-idle-bless.png`. Đóng gói: `.team\pyenv\Scripts\python.exe tools/sprite_pack.py art/sylva/<sprite|wolf|eagle|bear|deer>/sprite_spec.json` (key `jade` — tóc / lá / lông xanh, `split`). Sylva: `src/characters/sprite/sylvaSprite.js`, khung xương ẩn mượn Ignar (như Grix): `attack` khung 4 · `summon`=gọi Sói & Đại Bàng khung 5 · `bolt`=Gấu khung 4 · `palm`=Thần Hươu khung 5; registry `SUMMONER` (cao 2,75), events gọi `playAction('call' | 'bear' | 'deer')`. Thú: `src/characters/sprite/sylvaPetSprites.js`, khung xương ẩn mượn Golem; động tác `howl` (Sói tru) · `pounce` (vồ) · `cast` (Đại Bàng niệm, giữ) · `ram` (Gấu ủi, giữ). Đại Bàng bay: `sprite.lift` 0,85 + `bob` (FrameSpriteView nâng hình + thanh máu; gục thì nằm đất). Thần Hươu không phải nhân vật: `sylvaFx.js` `spawnSpiritDeer` vẽ tranh từ atlas `deer_sprite` (đứng thở idle1–4, mỗi `deerTick` ban phước bless1–4 0,8s). Xem: `/tools/preview-scene.html?team=summoner,sylva_wolf,sylva_eagle|monster_dummy` (console: `act(0,'call')`, `act(1,'howl')`, `act(2,'cast')`).
+
 ## 5. QUÁI VẬT
 
 | Quái | HP | ATK | P.DEF / M.DEF | Khiêu khích | Đặc điểm |
@@ -846,6 +901,12 @@ Quái hiện vẽ bằng code (hình "capsule" dễ thương) cho tới khi có 
 | **Thành Trì** (fortress) | (dự phòng) | Giảm sát thương nhận theo % |
 | **Bị hất tung** (knockup) | Lưỡi Hái Hất Hồn, Chấn Địa, móc ngược của Brakk | 1s bay lên không (kèm choáng), không hành động |
 | **Ấn Tử** (death_mark) | Phán Quyết Tử Thần (Zerith) | 15s, đầu lâu trên đầu; −20/27,5/35% hồi máu nhận được; Lưỡi Hái Hất Hồn lúc Đêm Tử Thần phá sạch khiên, máu dưới 5/7/10% → kết liễu |
+| **Độc** (poison) | Grix: đánh thường, Bình Độc Văng, Đầm Lầy, lây khi nổ | 6s, 1–5 tầng (7 với thiên phú), mỗi 0,5 giây sát thương phép ×0,12/tầng; Đại Bộc Phá Độc kích nổ ×0,5/tầng; giải được |
+| **Thối rữa** (toxic) | Đầm Lầy Thối Rữa (Grix) | 1,5s (làm mới khi còn đứng trong đầm), −40% hồi máu nhận được (lấy mức cao nhất với Ấn Tử, không cộng) |
+| **Cuồng Độc** (goblin_frenzy) | Đại Bộc Phá Độc | 6s, Grix +20% M.ATK |
+| **Mục Rữa** (venom_rot) | Độc Tố Ngấm Sâu (thiên phú 1 Grix): địch đủ 7 tầng Độc | 5s, thêm −40% hồi máu (cộng với Thối rữa / Ấn Tử, tối đa −90%), mỗi địch 10s/lần · đầu lâu tím trên đầu |
+| **Giáp Độc** (goblin_ward) | Giáp Độc (thiên phú 2 Grix) | Khiên = 100% máu đã mất, 8s; kẻ đánh trúng dính 1 tầng Độc; Độc của Grix hồi máu 30/40%; vỡ / hết giờ → +2 tầng Độc + choáng 1s quanh mình |
+| **Bay lên** (goblin_float) | Đại Bộc Phá Độc (lúc niệm) | Chỉ là hình ảnh: Grix lơ lửng từ lúc niệm tới sau khi nổ 0,3s; bị choáng → mất |
 | **Lướt lần 2** (reaper_echo) | Lưỡi Hái Xuyên Hồn lúc Đêm Tử Thần | 5s, lướt thêm 1 lần miễn phí (dùng hoặc hết 5s → hồi chiêu bình thường) |
 | **Đêm Tử Thần** (reaper_form) | Đêm Tử Thần | 10s, bay, Hộ Vệ Thần Chết, +20% sát thương, +30% tốc đánh, −40% khống chế, không thể chết |
 | **Bị túm** (grabbed) | Bá Vương Quật (Brakk) | Bị nhấc bổng qua đầu tới lúc bị quật (~0,85s) rồi choáng 1s |
@@ -1015,6 +1076,8 @@ tools/                    build_atlas.py, slice_parts.py, make_gdd_docx.js (tạ
 - `/tools/fx-brakk.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Brakk bản 3 (s = attack | grab | stomp | giant | shout | blood | lone).
 - `/tools/fx-ignar.html?s=all` — mọi kỹ năng / hiệu ứng Ignar (s = attack | meteor | pillar | god | ward).
 - `/tools/fx-nerissa.html?s=d123`, `/tools/fx-elarion.html?s=meteor` (cả Golem: `s=fist / blizzard / aura`; SolarBeam: `s=beams`, tia chéo `&uz=0.3`) — xem kỹ năng + hiệu ứng theo từng mốc (gọi đúng hàm xử lý sự kiện của game với dữ liệu giả; console `stepTo(giây)`).
+- `/tools/fx-grix.html?s=all&auto=1` — mọi kỹ năng / hiệu ứng Grix bản 2 (s = attack | flask | bog | detonate | rot | ward); console `stepTo(giây)`.
+- **Trận đánh thử tự động** (không cần trình duyệt, server phải đang chạy): `node tools/sim_battle.js --mode test --squad alchemist,priest --seconds 60` (thêm `--mode duel_hero --enemy priest,dancer`, `--progress all` = Lv60 SSS, `--watch <classId>`, `--port`). Bật AUTO x2, in ra JSON: kỹ năng đã dùng, số lần / sát thương từng sự kiện `goblinFx`, hiệu ứng đã thấy, tầng Độc cao nhất, máu cuối trận, và **lỗi** (sát thương / máu NaN, âm, máu vượt tối đa) — có lỗi thì thoát mã 1. Lưu ý: ghi tiến trình vào `data/progress.json` theo mã `sim-battle-bot` (đội đã chọn của bạn không đổi).
 
 ### 8.3 Đồng bộ với GitHub (2 file .bat — người dùng tự bấm)
 | File | Chiều | Khi nào bấm |

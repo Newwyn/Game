@@ -18,6 +18,9 @@ import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
 import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
 import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
+import { GRIX_SPRITE } from './sprite/grixSprite.js';
+import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
+import { WOLF_SPRITE, EAGLE_SPRITE, BEAR_SPRITE } from './sprite/sylvaPetSprites.js';
 import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
 import { ELARION_SPRITE } from './sprite/elarionSprite.js';
 import { GOLEM_SPRITE } from './sprite/golemSprite.js';
@@ -221,6 +224,32 @@ const MAGE = {
     },
 };
 
+// Grix (Lục Độc) — Phù Thủy goblin độc dược. Tranh sprite do Codex vẽ; khung xương ẩn mượn của Ignar (cùng kiểu phù thủy đánh xa)
+//   tên clip khung xương: attack = ném lọ · summon = Bình Độc Văng · bolt = Đầm Lầy · palm = Đại Bộc Phá · charge = gồng (khuấy gậy)
+const ALCHEMIST = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.6,             // goblin nhỏ con, khom lưng
+    shadowSize: 1.3,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: false,            // mắt vẽ sẵn trong tranh
+    ghostTint: 0x84cc16,     // dư ảnh xanh lục độc
+    circleTint: 0x65a30d,
+    sprite: GRIX_SPRITE,
+    spriteParam: 'grix',
+    spriteIdleParam: 'grixIdle',
+    anims: {
+        attack:   { clip: 'attack', hitTime: 0.25 },   // ném lọ độc (khung 4)
+        flask:    { clip: 'summon', hitTime: 0.35 },   // Bình Độc Văng (khung 5)
+        bog:      { clip: 'bolt',   hitTime: 0.25 },   // Đầm Lầy Thối Rữa: cắm gậy (khung 4)
+        detonate: { clip: 'palm',   hitTime: 0.2 },    // Đại Bộc Phá Độc: búng tay (khung 5)
+        charge:   { clip: 'charge' },                   // gồng (giữ)
+    },
+};
+
 // Zerith (U Minh) — Sát Thủ phép, lưỡi hái. Tay gần cầm liềm, tay xa thả lỏng / xoè phép / chỉ tay (Ấn Tử)
 const REAPER = {
     rig: ZERITH_RIG,
@@ -352,6 +381,48 @@ const ELEM_GOLEM = {
     },
 };
 
+// Sylva (Lâm Linh) — Triệu Hồi Sư, tiên nữ rừng. Tranh sprite do Codex vẽ; khung xương ẩn mượn của Ignar (như Grix)
+//   tên clip khung xương: attack = chĩa gậy · summon = Gọi Sói & Đại Bàng · bolt = Gấu Hộ Vệ · palm = Thần Hươu · charge = niệm
+const SUMMONER = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.75,
+    shadowSize: 1.4,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: false,            // mắt vẽ sẵn trong tranh
+    ghostTint: 0x86efac,     // dư ảnh xanh lá non
+    circleTint: 0x22c55e,
+    sprite: SYLVA_SPRITE,
+    spriteParam: 'sylva',
+    spriteIdleParam: 'sylvaIdle',
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.25 },   // chĩa gậy phóng gai lá (khung 4)
+        call:   { clip: 'summon', hitTime: 0.35 },   // Gọi Sói & Đại Bàng (khung 5)
+        bear:   { clip: 'bolt',   hitTime: 0.25 },   // Gấu Hộ Vệ: cắm gậy (khung 4)
+        deer:   { clip: 'palm',   hitTime: 0.2 },    // Thần Hươu: giơ gậy (khung 5)
+        charge: { clip: 'charge' },
+    },
+};
+
+// Thú triệu hồi của Sylva — tranh sprite do Codex vẽ; khung xương ẩn mượn của Golem (src/characters/sprite/sylvaPetSprites.js)
+const PET_ANIMS = {
+    attack: { clip: 'attack', hitTime: 0.3 },
+    howl:   { clip: 'aura',   hitTime: 0.4 },    // Sói tru
+    pounce: { clip: 'summon' },                  // Sói vồ
+    cast:   { clip: 'charge' },                  // Đại Bàng niệm 1s (giữ)
+    release: { clip: 'aura', hitTime: 0.05 },    // Đại Bàng vỗ cánh phóng Cầu Gió / Bão Lông Vũ
+    ram:    { clip: 'dash' },                    // Gấu ủi (giữ)
+    turn:   { clip: 'summon' },                  // Gấu phanh + quay đầu giữa 2 lượt ủi
+};
+const SYLVA_WOLF = { rig: GOLEM_RIG, clips: golemClips, height: 1.75, shadowSize: 1.5, locomotion: GOLEM_LOCOMOTION, circleTint: 0x22c55e,
+    sprite: WOLF_SPRITE, spriteParam: 'sylvaPet', anims: PET_ANIMS };
+const SYLVA_EAGLE = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize: 1.0, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+    sprite: EAGLE_SPRITE, spriteParam: 'sylvaPet', anims: PET_ANIMS };
+const SYLVA_BEAR = { rig: GOLEM_RIG, clips: golemClips, height: 2.55, shadowSize: 2.2, locomotion: GOLEM_LOCOMOTION, circleTint: 0x84cc16,
+    sprite: BEAR_SPRITE, spriteParam: 'sylvaPet', anims: PET_ANIMS };
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
@@ -364,6 +435,11 @@ export const CHARACTER_VISUALS = {
     dancer: () => DANCER,
     elementalist: () => ELEMENTALIST,
     elem_golem: () => ELEM_GOLEM,
+    alchemist: () => ALCHEMIST,
+    summoner: () => SUMMONER,
+    sylva_wolf: () => SYLVA_WOLF,
+    sylva_eagle: () => SYLVA_EAGLE,
+    sylva_bear: () => SYLVA_BEAR,
     monster_tank: (m) => creatureVisual('monster_tank', m.color),
     monster_archer: (m) => creatureVisual('monster_archer', m.color),
     monster_supporter: (m) => creatureVisual('monster_supporter', m.color),

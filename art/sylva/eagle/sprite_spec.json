@@ -1,0 +1,81 @@
+{
+    "note":  "Dai Bang (trieu hoi Sylva) - bay: moi khung moc \u0027body\u0027, giu do cao AI ve",
+    "atlasScale":  0.6,
+    "maxWidth":  4096,
+    "pad":  6,
+    "calib":  "idle1",
+    "key":  "jade",
+    "sheets":  {
+                   "idle":  {
+                                "groups":  [
+                                               [
+                                                   "idle",
+                                                   4,
+                                                   "body"
+                                               ],
+                                               [
+                                                   "ready",
+                                                   4,
+                                                   "body"
+                                               ]
+                                           ],
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/eagle/sprite-idle.png",
+                                "ground":  "group"
+                            },
+                   "attack":  {
+                                  "anchor":  "body",
+                                  "scale":  1,
+                                  "split":  true,
+                                  "file":  "art/sylva/eagle/sprite-attack.png",
+                                  "ground":  "group"
+                              },
+                   "move":  {
+                                "anchor":  "body",
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/eagle/sprite-move.png",
+                                "ground":  "group"
+                            },
+                   "hurt-dead":  {
+                                     "groups":  [
+                                                    [
+                                                        "hurt",
+                                                        4,
+                                                        "body"
+                                                    ],
+                                                    [
+                                                        "dead",
+                                                        4,
+                                                        "body"
+                                                    ]
+                                                ],
+                                     "scale":  1,
+                                     "split":  true,
+                                     "file":  "art/sylva/eagle/sprite-hurt-dead.png",
+                                     "ground":  "group"
+                                 },
+                   "cast":  {
+                                "file":  "art/sylva/eagle/sprite-cast.png",
+                                "scale":  1.215,
+                                "split":  true,
+                                "ground":  "group",
+                                "groups":  [
+                                               [
+                                                   "cast",
+                                                   4,
+                                                   "body"
+                                               ],
+                                               [
+                                                   "release",
+                                                   4,
+                                                   "body"
+                                               ]
+                                           ]
+                            }
+               },
+    "out":  "src/assets/sprites/eagle_sprite",
+    "meta":  "src/characters/sprite/eagleSprite.json",
+    "format":  "webp"
+}

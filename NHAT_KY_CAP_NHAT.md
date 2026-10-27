@@ -5,6 +5,86 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 27/10/2026 — Nhân vật mới SYLVA (Lâm Linh) · class mới TRIỆU HỒI SƯ · hệ thống Triệu hồi · luật thua mới
+- **Luật thắng / thua mới:** hết **tướng** là THUA, kể cả còn Golem / thú triệu hồi (trước đây còn Golem là chưa thua). Triệu hồi bên thua biến mất. Luật Sinh Tử cũng chỉ đếm tướng.
+- **Hệ thống Triệu hồi:** nhãn chung **"Triệu hồi"** (hiện trên đầu): Golem, Vạc của Grix, Hộ Vệ Thần Chết của Zerith (chỉ thêm nhãn), thú của Sylva. Mỗi triệu hồi có luật riêng: có bị đánh không, có nhận buff / debuff không. **Golem** không nhận buff / debuff nào trừ Ấn Tử, nhưng **nhận hiệu ứng của Sylva**.
+- **Sylva (Lâm Linh)** — tiên nữ rừng, tộc Elf, class **Triệu Hồi Sư**, sát thương phép, đánh xa:
+  - **KN1 Gọi Sói & Đại Bàng** (1 Orb): gọi cả 2 con, mỗi con 18s. Sói: ra sân tru (địch −15% thủ 10s), cứ 4 đòn ngẫu nhiên Cắn (hồi máu) / Vồ (nhảy vào hàng sau). Đại Bàng: cứ 4 đòn niệm 1s → Cầu Gió (đẩy lùi) / Bão Lông Vũ (5 đợt, −10% tốc đánh); Ưng Nhãn (ra sân + mỗi 15s): 5s +30% tốc đánh, bắn cả bản đồ, mục tiêu ngẫu nhiên.
+  - **KN2 Gấu Hộ Vệ** (2 Orb): ủi xuyên qua mọi địch rồi ủi về (hất tung → choáng 0,5s), rồi đánh 20s. Địch đứng sát Sylva quá 3s → gấu ủi đẩy + khiêu khích 5s.
+  - **KN3 Thần Hươu** (3 Orb): hươu ánh sáng không bị đánh, 10s, mỗi giây hồi 3% máu tướng / 8% máu triệu hồi (cả Golem); triệu hồi +25% sát thương, +30% thủ.
+  - **Thiên phú 1:** mỗi triệu hồi ra sân → cả đội +4% tấn công (triệu hồi +8%), tối đa 5 tầng. **Thiên phú 2:** mỗi 10s khiên lá 25% máu cho 1 triệu hồi, có khiên +20% sát thương, +25% tốc đánh.
+  - Thú **không theo chỉ số Sylva**, có chỉ số riêng tăng theo cấp.
+- **Bảng chọn tướng** 11 nhân vật: 2 hàng 6 + 5, vẫn vừa màn hình 1280×720.
+- **Sửa sau khi bạn thử (27/10 chiều):** Gấu ủi trước đây không hiện (lệnh ủi tới trước khi hình Gấu kịp xuất hiện) → giờ chờ hình Gấu rồi chạy, bù phần trễ; Sói tru / Ưng Nhãn cũng vậy. Gấu ủi có thêm **0,6s phanh + quay đầu** (tranh mới) giữa lượt đi và lượt về. **Đại Bàng thành con riêng**: ra sân phía trước, lệch hàng, tầm đánh 7, bay nhanh hơn (không còn đi dính theo Sylva); bắn **lông vũ vàng** riêng (không bắn lá như Sylva); đạn đối thủ nhắm đúng chỗ nó bay.
+- **ĐANG LÀM DỞ — hiệu ứng vẽ tay của Sylva** (9 tấm nền đen, `art/sylva/fx2/`): đã có 4 tấm (lông vũ, cột lá triệu hồi, bụi đá + cú húc của Gấu, khiên lá + dấu buff), còn 5 tấm chờ vẽ (Antigravity + Codex hết lượt). Trong lúc chờ, hiệu ứng vẫn là bản vẽ bằng code.
+- **Hình vẽ tay:** tạo hình 5 nhân vật (bạn đã duyệt) + **25 tấm động tác** (200 khung): Sylva 9 tấm, Sói 5, Đại Bàng 5 (bay lơ lửng), Gấu 5, Thần Hươu 1 (đứng thở + ngẩng sừng ban phước mỗi lần hồi máu). Codex vẽ 20 tấm; Codex hết lượt nên **Antigravity vẽ 5 tấm** (Đại Bàng niệm gió + 4 tấm Gấu). Ảnh chọn đội mới cho Sylva. Hiệu ứng (lá, sóng tru, lông vũ, khiên lá…) vẫn vẽ bằng code.
+- Đội làm: Claude (toàn bộ phần server vì Codex hết lượt dùng; sửa AI chọn chiêu; sửa 1 lỗi của Antigravity làm màn hình đứng hình số hồi chiêu); Antigravity (hiệu ứng, nhãn Triệu hồi, biểu tượng trạng thái, bảng chọn tướng).
+- Đã thử: trận tự động có Sylva (quái bất tử, 60s): đủ 3 kỹ năng, 2 thiên phú, mọi chiêu của Sói / Đại Bàng / Gấu đều ra, không lỗi; 2 đấu 2 thua khi còn Đại Bàng sống → xử thua đúng luật; 1 đấu 1 với 10 tướng: Sylva **thắng 4** (Rok, Seraphine, Nerissa, Elarion), thua 6. Trận thật trên trình duyệt (Sylva + Elarion đấu Rok + Brakk, AUTO): thắng, hiệu ứng + nhãn "Triệu hồi" hiện, không lỗi.
+## 27/10/2026 — Elarion: Bóng Nguyên Tố + mưa sống động + Thiên Thạch lăn chậm · bảng chọn tướng vừa màn hình · Sinh Tử chỉ trong Đấu
+- **Sinh Tử chỉ áp dụng trong ĐẤU** (chế độ Test không có).
+- **Bảng chọn tướng** (nhất là Đấu với tướng 2 đội): vừa màn hình 1280×720 / 1366×768 / 1920×1080, không cần thu nhỏ trình duyệt. Tiêu đề + nút "Vào đấu" / "Chọn chế độ" luôn hiện, thẻ tướng tự co theo màn hình, quá chật thì cuộn bên trong.
+- **Thiên Thạch lăn chậm:** 15 ô trong 5 giây (trước 3 giây).
+- **Bóng Nguyên Tố** (khi đang bật Bão Nguyên Tố): dùng **Hơi Nước Bỏng** (mưa) hoặc **Băng Hoại Hỏa Thiên** (tia) → Elarion để lại **một cái bóng** (bản sao tím mờ của chính Elarion) ở chỗ đang đứng rồi **lùi về sau 4 ô**; bóng tự niệm và thi triển phép từ chỗ của nó. Bóng không bị đánh, không bị ngắt; Elarion tự do đánh, nhặt ngọc, dùng phép khác. **Mỗi lúc chỉ 1 bóng**: bóng đang bận thì phép niệm kia Elarion tự niệm như bình thường. Elarion gục thì bóng tan.
+- **Phép mưa hết cứng đơ:** đám mây giông 3D cuồn cuộn có sét bên trong, cột mưa rơi từ mây + nước bắn dưới đất, sương hồi máu quanh đồng đội; Elarion / bóng có nhịp thở, đung đưa, luân phiên 2 tư thế giơ tay.
+- Đội làm: Codex (server bóng — còn bắt được 1 lỗi Claude gây ra: chú thích chèn giữa dòng Thiên Thạch làm hỏng server); Antigravity (hình bóng, lùi dư ảnh, mưa mới, bảng chọn tướng — lần đầu bị chặn đọc file, giao lại); Claude (giao kèo, việc nhỏ, sửa 5 lỗi chạy thật trong code hiệu ứng: hàm không tồn tại / chưa nạp, tạo bóng sai cách, thanh máu trên bóng, dư ảnh sai cách gọi; trang thử `fx-elarion.html?s=shadow` / `s=shadowbeam`).
+- Đã thử: trận tự động 75s (quái bất tử): bóng hiện 5 lần, tan 5 lần, không lần nào 2 bóng, bóng và Elarion cùng thi triển 2 phép khác nhau được; trang thử: bóng làm mưa / bóng chưởng tia / Elarion tự mưa chạy hết không lỗi; bảng chọn tướng Đấu với tướng vừa khung 1280×720 và 1366×620, bấm chọn + Vào đấu chạy; Sinh Tử: Đấu bắt đầu giây 15, Test không có. Build không lỗi.
+
+## 27/10/2026 — Luật Sinh Tử (1 đấu 1 quá 15s) + Độc rút máu mỗi 0,5s
+- **Luật Sinh Tử:** trên sân chỉ còn 1 quân ta và 1 địch (Golem triệu hồi cũng tính là 1) mà sau **15 giây** chưa ai thắng → **cả hai mất 5% máu tối đa mỗi 0,5 giây** (trừ thẳng vào máu, khiên không đỡ) cho tới khi 1 bên gục; cùng gục = hoà. Có người hồi sinh / triệu hồi thêm → đếm lại từ đầu. Màn hình hiện chữ **⚔️ SINH TỬ!** + số máu mất màu cam.
+- **Độc của Grix:** rút máu **mỗi 0,5 giây** (trước 1 giây), mỗi lần vẫn ×0,12 / tầng → sát thương Độc mỗi giây **gấp đôi** (bạn muốn thử xem có bá quá không).
+- Đã thử: 5 trận 1 đấu 1 (Rok – Brakk, Grix – Brakk, Seraphine – Nerissa, Grix – Seraphine, Grix – Lyra): Sinh Tử bắt đầu đúng giây 15 ở 3 trận kéo dài, trừ máu đều tới khi 1 bên gục, không lỗi; 2 trận còn lại xong trước 15s. Grix giờ **thắng Brakk 1 đấu 1** (trước thua đậm), thắng Seraphine (13,9s), thua Lyra (6,3s). Build không lỗi.
+- Chưa xem tận mắt chữ "SINH TỬ!" trên màn hình (cần dựng 1 đấu 1 kéo dài quá 15s trong trận thật).
+
+## 27/10/2026 — Luật mới: có địch trong TẦM ĐÁNH mới dùng được kỹ năng (mọi nhân vật) + Grix tác dụng khắp bản đồ
+- **Luật chung cho MỌI nhân vật:** kỹ năng chỉ dùng được khi có kẻ địch trong **tầm đánh của chính nhân vật đó** (cận chiến 2,4–2,8 · Seraphine 9 · Lyra 11 · Grix 12 · Elarion 14 · Ignar 15). Bấm sớm thì lệnh chờ, nhân vật vẫn tiến lên đánh; địch vào tầm là dùng ngay. AUTO cũng theo luật này.
+  - Trước đây chỉ điệu múa (Nerissa) và Tàng Hình (Jessica) có luật "gặp địch" (đo theo tầm Lyra), các chiêu khác dùng lúc nào cũng được.
+- **Bỏ nhãn đỏ "chưa gặp địch"** trên nút kỹ năng — nút chỉ mờ đi như lúc thiếu Orb.
+- **Grix tác dụng khắp bản đồ:** có địch trong tầm đánh (12) là Grix dùng tại chỗ; bình độc (KN1) và phát bắn của vạc (KN2) rơi vào kẻ địch ngẫu nhiên **ở bất kỳ đâu trên bản đồ**. Đại Bộc Phá vốn đã nổ trên mọi kẻ địch; giờ dùng theo luật chung (trước: chỉ cần có địch trúng độc). AI Grix: vạc trước, rồi bình (không cần tìm cụm địch nữa).
+- Đã thử: 2 trận 4 đấu 4 cấp 60 với đủ 10 nhân vật — ai cũng dùng đủ kỹ năng, không ai bị kẹt, không lỗi. Trận thật trên trình duyệt: nút mờ khi quái còn xa, sáng khi quái vào tầm, không còn nhãn, không lỗi. Build không lỗi.
+- Lưu ý cân bằng: nhân vật cận chiến giờ phải áp sát mới dùng được cả chiêu tự buff (VD Rok Dựng Khiên, Brakk Khổng Lồ, Jessica Phóng Bùa từ xa); Seraphine phải có địch trong tầm 9 mới hồi máu.
+
+## 27/10/2026 — Grix: nhắm ngẫu nhiên + hiệu ứng VẼ TAY theo khung (như cả đội)
+- **Nhắm ngẫu nhiên:** mỗi bình của Bình Độc Văng (2 bình + 50% bình thứ 3) và mỗi phát bắn của vạc rơi vào **1 kẻ địch ngẫu nhiên** trong tầm (đủ địch thì mỗi phát 1 người khác nhau). Hết địch thì vạc không bắn.
+- **Hiệu ứng vẽ tay:** bỏ hiệu ứng vẽ bằng code, thay bằng **8 tấm tranh nền đen do Codex vẽ** (64 khung, như Ignar / Zerith): lọ độc xoay, bình độc đầu lâu, bình vàng hồi máu, bình vỡ 8 khung, vòng ấn giả kim, vũng axit, đầm lầy sủi bọt 4 khung, vạc đồng hiện ra + sôi, cục bùn đầu lâu, khói độc, nổ độc lớn có đầu lâu trong khói, lốc xoáy độc khi bay, loé búng tay, đầu lâu Mục Rữa, vòm Giáp Độc tổ ong, hồn độc lây. Prompt: `art/grix/fx2/PROMPTS_FX.md`.
+- **Đóng gói:** `tools/fx_grid_pack.py art/grix/fx2/fx2_spec.json` → `grix_fx2.webp` (1,9 MB). Vạc đồng sẫm bị thủng khi tách nền đen → hạ ngưỡng giữ đặc, vạc liền lại.
+- Đội làm: Codex vẽ 8 tấm; Antigravity chuyển hiệu ứng sang chạy khung tranh; Claude đổi cách nhắm (server), viết prompt, đóng gói, kiểm tra, chỉnh đầu lâu Mục Rữa to + cao hơn thanh máu.
+- Đã thử: trận tự động (2–4 bình mỗi lần ném vào địch ngẫu nhiên, vạc 3 đợt 6 phát) không lỗi; trang xem thử `tools/fx-grix.html`: mọi hiệu ứng tranh hiện đúng, không lỗi; build không lỗi.
+
+## 27/10/2026 — Grix bản 2: 3 bình độc, vạc đầm lầy, bay lên búng tay, Mục Rữa, Giáp Độc + hiệu ứng mới
+- **Bình Độc Văng:** ném **2 bình** (1 bình gần, 1 bình xa hơn để phủ cả hàng sau), **50% ném thêm bình thứ 3** (mọi cấp). Mỗi bình ×1.0 (trước 1 bình ×1.3) + 2 tầng Độc.
+- **Đầm Lầy Thối Rữa:** Grix giơ gậy gọi **2 vạc**; vạc bắn **3 đợt**, mỗi đợt gồng 2s rồi bắn bùn ra thành đầm lầy (5s, hiệu ứng như cũ) → tối đa 6 đầm. Hồi chiêu giữ 13s.
+- **Đại Bộc Phá Độc:** Grix **bay lên niệm**, **búng tay** là nổ (số liệu giữ nguyên).
+- **Thiên phú 1:** địch đủ **7 tầng** → **Mục Rữa** thêm −40% hồi máu 5s (cộng dồn với đầm lầy, tối đa −90%), mỗi địch 10s/lần. Bình độc **hồi máu đồng minh** 60 / 80 / 100% M.ATK, **50% ném thêm 1 bình** về đồng minh ít máu nhất.
+- **Thiên phú 2 → Giáp Độc** (thay bom khói): máu dưới 50% → khiên = 100% máu đã mất (8s); ai đánh Grix dính Độc; Độc hồi máu cho Grix **30 / 40%**; giáp nổ: +2 tầng Độc + choáng 1s quanh mình. Hồi 20s.
+- **Hiệu ứng mới toàn bộ** (Antigravity làm, mình chỉnh: vạc to hơn, đầu lâu Mục Rữa to hơn, vòm Giáp Độc trong hơn để thấy Grix).
+- **Trang xem thử mới** `tools/fx-grix.html` (giống fx-ignar) + trận đánh thử tự động báo thêm số bình / máu hồi.
+- Đội làm: Codex (server), Antigravity (hiệu ứng — lần 1 không sửa được file nào do bị chặn chạy lệnh, giao lại lần 2 thì xong), Claude (thiết kế giao kèo, công cụ thử, kiểm tra, chỉnh hiệu ứng, tài liệu).
+- Mình tự chọn (bạn chưa nói rõ): bình "ngắn / dài" = khoảng ném; 2 vạc; Mục Rữa CỘNG dồn; hồi máu bình 60–100% M.ATK; Giáp Độc 8s, hút 30/40%.
+- Đã thử: 4 trận tự động (2–4 bình mỗi lần ném, bình đồng minh hồi 5.212 máu, vạc 3 đợt 6 phát, Mục Rữa, Giáp Độc bật / phản độc / hút 1.534 máu / nổ choáng, bay lên, kích nổ) — không lỗi. Trang xem thử: mọi hiệu ứng hiện đúng, không lỗi. Build không lỗi.
+- Lưu ý cân bằng: Grix 1 đấu 1 với Brakk vẫn thua đậm (Brakk còn 96% máu).
+
+## 27/10/2026 — Grix có tranh thật (Codex vẽ)
+- **Codex vẽ tranh:** bạn nhắc "Codex vẽ được" — đúng (công cụ vẽ ảnh của Codex), hôm trước mình nói nhầm là cả đội không vẽ được.
+  - Tạo hình `art/grix/01-character-v3.png` (nền trong suốt) + 9 tấm động tác nền xanh (72 khung): đứng, ném lọ, chạy, trúng đòn / choáng, gục / thắng, gồng / rơi vào trận, Bình Độc Văng, Đầm Lầy, Đại Bộc Phá. Prompt: `art/grix/sprite/PROMPTS_SPRITE.md`.
+  - Mình duyệt từng tấm: đúng nhân vật ở mọi khung, đúng thứ tự khung ra đòn. Lệch nhỏ: khung 5 tấm Đại Bộc Phá kính lại nằm trên trán (khung khác sụp xuống mắt).
+- **Vào game:** Grix hết là con nhộng — chạy bằng tranh thật, ảnh màn chọn đội cũng là tranh mới. Tách nền kiểu "jade" để giữ màu xanh độc (kiểu thường biến xanh thành vàng).
+- **Cài thêm:** thư viện xử lý ảnh cho Python (bạn đồng ý) — cài vào môi trường riêng `.team/pyenv` vì Python của máy bị khoá.
+- Đã thử: đóng gói 72 khung (soi từng khung: tách rời, căn chân đúng), build không lỗi, trận thật + trang xem cảnh: Grix hiện đúng, ném lọ / giơ gậy / đứng thủ thế đổi khung đúng. Còn 1 cảnh báo hình 3D (toạ độ NaN) hiện đúng 1 lần ở trận đầu lúc đổi cỡ khung trình duyệt liên tục — thử lại 3 lần (cả đổi cỡ) không gặp lại, game không bị ảnh hưởng.
+
+## 26/10/2026 — Nhân vật mới Grix (Lục Độc) — Goblin độc dược + trận đánh thử tự động
+- **Grix (Lục Độc) 🧪** — Phù Thủy tộc **Goblin** (nhân vật Goblin đầu tiên), đánh xa tầm 12, sát thương phép. Bạn chọn hướng "Goblin Độc Dược". Làm theo đội AI: Codex làm phần server, Antigravity làm phần hiển thị, Claude thiết kế + ghép + kiểm tra.
+  - **Độc:** đánh thường / kỹ năng gắn tầng Độc (tối đa 5, thiên phú 1: 7), mỗi giây trừ máu theo số tầng. Grix gục thì Độc vẫn chạy hết giờ. Thánh Quang Trị Liệu giải được.
+  - **Bình Độc Văng** (1 Orb): ném vào chỗ địch đông nhất, +2 tầng Độc.
+  - **Đầm Lầy Thối Rữa** (2 Orb): đầm độc 5s, mỗi giây trừ máu + 1 tầng Độc + **−40% hồi máu** — khắc chế Seraphine / Nerissa.
+  - **Đại Bộc Phá Độc** (3 Orb): kích nổ toàn bộ Độc trên mọi địch (×0,5 mỗi tầng), địch chết vì nổ thì lây độc sang người bên cạnh, Grix +20% M.ATK 6s. Chỉ dùng được khi có địch đang trúng Độc.
+  - Thiên phú: **Độc Tố Ngấm Sâu** (Độc mạnh thêm 15–35%, 7 tầng) · **Mẹo Vặt Goblin** (máu dưới 50% → bom khói choáng quanh mình 0,8s, +né 5s).
+  - AUTO: tích độc → đủ độc thì kích nổ; biết **để dành 3 Orb** cho chiêu cuối.
+  - Chi tiết số: `DOCUMENTATION.md` §4.10, bảng hiệu ứng §6.
+- **Hình tạm:** chưa có tranh nên Grix là **con nhộng xanh vẽ bằng code**; hiệu ứng độc (lọ bay, bình vỡ, đầm lầy sủi bọt, nổ độc, lây độc, bom khói) cũng vẽ bằng code. Prompt vẽ tạo hình + 9 tấm sprite: `art/grix/sprite/PROMPTS_SPRITE.md` — vẽ xong tấm nào gửi tấm đó.
+- **Công cụ mới `tools/sim_battle.js`:** trận đánh thử tự động không cần trình duyệt (bật AUTO x2, báo kỹ năng đã dùng, sát thương, hiệu ứng, lỗi NaN / máu âm). Cách dùng: DOCUMENTATION §8.2.
+- **Lỗi đã bắt khi thử:** chiêu cuối của Grix ban đầu không bao giờ dùng được (điều kiện "gặp địch" tính theo tầm Lyra 11 trong khi Grix đứng xa 12) → đổi thành "có địch đang trúng Độc".
+- Đã thử: 4 trận tự động (Grix Lv1 + Seraphine đánh quái · Lv60 SSS + Rok · Đấu với tướng có Grix ở CẢ 2 phe · Grix 1 đấu 1 với Rok): đủ 3 kỹ năng + 2 thiên phú, độc chồng đúng tối đa, không lỗi. Trận thật trên trình duyệt: hiệu ứng hiện đúng, không lỗi console. Build: không lỗi. Chưa xem tận mắt hiệu ứng bom khói và lây độc (server đã chạy đúng trong trận tự động).
+
 ## 24/10/2026 — Elarion thành nhân vật đặc biệt + Hỏa Lôi Cầu khổng lồ + Nerissa nhỏ lại + bảng chọn đội + prompt icon kỹ năng
 - **Elarion ⭐ nhân vật đặc biệt** (bạn chọn: mạnh hơn rõ rệt, đủ 4 hướng):
   - **Trâu hơn:** máu ×1,3, thủ ×1,35–1,4, M.ATK ×1,15 ở MỌI level (Lv60 SSS: máu 8.249 → 10.724, M.ATK 1.433 → 1.648).

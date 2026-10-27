@@ -17,6 +17,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { CutoutCharacterView } from './CutoutCharacterView.js';
+import { GROUND_Y } from '../config.js';
 
 const texCache = new Map();
 // trạng thái đứng / di chuyển -> tên clip (như CutoutCharacterView)
@@ -96,6 +97,7 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._clipT = 0;
         this._idleT = 0;
         this._setFrame(this._idle.frames[0]);
+        if (sp.lift) this.setBarHeight(GROUND_Y + this.height + 0.35 + sp.lift);   // thanh máu trên con vật đang bay
     }
 
     /** Đổi khung: mặt phẳng đúng cỡ khung (atlas cắt sát), gốc = tâm đứng dưới chân */
@@ -180,6 +182,8 @@ export class FrameSpriteView extends CutoutCharacterView {
             this._spin.position.set(this._hipsRest.x + dx, this._hipsRest.y + dy, 0);
             this._spin.rotation.z = cfg?.noSpin ? 0 : hips.rotation.z;   // noSpin: tranh đã vẽ sẵn vòng lộn
         }
+        // bay lơ lửng (Đại Bàng của Sylva): nâng hình + nhấp nhô; gục thì nằm xuống đất
+        if (this.sprite.lift && !dead) this._spin.position.y += this.sprite.lift + Math.sin((this._time ?? 0) * 2.4) * (this.sprite.bob ?? 0);
         // nghiêng người (động tác chưa có tấm riêng)
         this._leanG.rotation.z = lean && this.parts.torso ? (this.parts.torso.rotation.z - this._torsoRest) * 0.6 : 0;
         // thở bằng code (cách đứng C / clip 'still'): gốc ở chân nên không trượt chân

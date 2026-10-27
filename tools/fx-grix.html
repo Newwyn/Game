@@ -1,0 +1,152 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#2f4a5a;overflow:hidden}
+#lbl{position:fixed;left:10px;top:8px;font:bold 18px sans-serif;color:#d9f99d;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:4px}#lbl:empty{display:none}</style></head><body><div id="lbl"></div>
+<!-- Xem thử MỌI kỹ năng + hiệu ứng của Grix (Lục Độc) — gọi đúng hàm xử lý sự kiện của game với dữ liệu giả, mốc thời gian như server.
+     PHẢI chạy `npm run dev` rồi mở http://localhost:5173/tools/fx-grix.html?s=all&auto=1
+     s = all (lần lượt tất cả) | attack | flask | bog | detonate | rot | ward
+     &w=1280&h=720 cỡ khung · &auto=1 tự chạy lặp · console: stepTo(giây) -->
+<script>
+  window.__vt = 0; const __timers = []; let __tid = 1;
+  window.setTimeout = (fn, ms = 0) => { const id = __tid++; __timers.push({ id, at: window.__vt + (ms || 0) / 1000, fn }); return id; };
+  window.clearTimeout = (id) => { const i = __timers.findIndex(t => t.id === id); if (i >= 0) __timers.splice(i, 1); };
+  window.__runTimers = () => { for (;;) { __timers.sort((a, b) => a.at - b.at); if (!__timers.length || __timers[0].at > window.__vt) break; __timers.shift().fn(); } };
+  performance.now = () => 1 + window.__vt * 1000;
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { updateVfx } from '../src/vfx/vfx.js';
+import { timeState } from '../src/config.js';
+import { game } from '../src/state.js';
+import { createCharacterView } from '../src/characters/registry.js';
+import { __fxTest as T } from '../src/combat/events.js';
+timeState.clock = 0; timeState.recvAt = 1; timeState.scale = 1;
+const q = new URLSearchParams(location.search);
+const S = q.get('s') || 'all';
+const W = +(q.get('w') || 1280), H = +(q.get('h') || 720);
+document.body.appendChild(renderer.domElement);
+renderer.setSize(W, H); camera.aspect = W / H; camera.fov = 34; camera.updateProjectionMatrix();
+const CX = +(q.get('cx') ?? 1.2), CY = +(q.get('cy') ?? 1.9), CZ = +(q.get('cz') ?? 16.5);
+camera.position.set(CX, CY + 2.7, CZ); camera.lookAt(CX, CY, 0);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshLambertMaterial({ color: 0x6d8f55 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; scene.add(ground);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const mk = (classId, x, side, z = 0) => ({ classId, alive: true, statusEffects: [], x, z, hp: 100, maxHp: 100, mp: 3000, maxMp: 5000, state: 'idle', side,
+  skillCooldowns: [0, 0, 0], queuedSkills: [], targetIndex: 0 });
+const gx = mk('alchemist', -4, 'left');
+const rok = mk('warrior', -6.5, 'left', 1.2); rok.hp = 45;
+const allies = [gx, rok];
+const foes = [mk('monster_tank', 4.5, 'right'), mk('monster_archer', 6.8, 'right', -1), mk('monster_supporter', 6, 'right', 1.2)];
+game.roomData = { players: { me: { squad: allies }, op: { squad: foes } } };
+game.classDefs = { alchemist: { skills: [{ type: 'goblin_flask' }, { type: 'goblin_bog' }, { type: 'goblin_detonate' }] },
+  warrior: { skills: [{ type: 'taunt' }, { type: 'knockback' }, { type: 'guard' }] },
+  monster_tank: { skills: [] }, monster_archer: { skills: [] }, monster_supporter: { skills: [] } };
+const vA = allies.map(m => createCharacterView(m, game.classDefs[m.classId], true));
+const vF = foes.map(f => createCharacterView(f, { skills: [] }, false));
+vF.forEach(v => { v.facingLeft = true; });
+game.views = { me: vA, op: vF };
+[...vA, ...vF].forEach(v => scene.add(v.root));
+window.view = vA[0];
+
+const lbl = document.getElementById('lbl');
+const ev = [];
+const at = (t, fn) => ev.push([t, fn]);
+const say = (t, s) => at(t, () => { lbl.textContent = s; });
+const BIG = 1e12;
+const hits = (idx, dmg = 300, extra = {}) => idx.map(i => ({ targetIndex: i, damage: dmg, isCrit: false, isBlock: false, isMiss: false, isMagic: true, ...extra }));
+const exec = (skillIdx, type, payload = {}) => T.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx, type, effects: [], ...payload });
+const cast = (skillIdx, castTime) => T.onCastStart({ casterId: 'me', casterIdx: 0, skillIdx, castTime });
+const fx = (kind, d = {}) => T.onGoblinFx({ casterId: 'me', casterIdx: 0, kind, ...d });
+const attack = (ti = 0) => T.onAutoAttack({ attackerId: 'me', attackerIndex: 0, targetId: 'op', targetIndex: ti, damage: 210, isCrit: false });
+const poisonAll = (n) => foes.forEach(f => { f.statusEffects = f.statusEffects.filter(e => e.type !== 'poison'); f.statusEffects.push({ type: 'poison', stacks: n, maxStacks: 7, endTime: BIG }); });
+
+// mốc như server.js (CLASS_DEFS.alchemist): ném lọ chạm 450ms · bình rơi 650 + k×140 · vạc: hiện 400, mỗi đợt gồng 2000, bùn bay 550,
+//   đầm 5s tick mỗi 1s · Đại Bộc Phá: niệm 1s (bay lên), nổ 500 · Giáp Độc
+function seqAttack(t0) {
+  say(t0, 'Đánh thường: ném lọ độc (+1 tầng Độc)'); at(t0, () => attack(0)); at(t0 + 1.0, () => attack(1));
+  at(t0 + 1.6, () => fx('poisonTick', { targetId: 'op', targetIndex: 0, stacks: 2, effect: hits([0], 48)[0] }));
+  return t0 + 2.4;
+}
+function seqFlask(t0) {
+  say(t0, 'Bình Độc Văng: 2 bình vào địch ngẫu nhiên + bình thêm (50%) + bình hồi máu đồng minh (thiên phú 1)');
+  const flasks = [{ x: 4.6, z: 0, at: 650, radius: 3.5, kind: 'enemy' }, { x: 7.2, z: -0.4, at: 790, radius: 3.5, kind: 'enemy' },
+    { x: 5.8, z: 1.3, at: 930, radius: 3.5, kind: 'extra' }, { x: -6.5, z: 1.2, at: 1070, radius: 3.5, kind: 'ally' }];
+  at(t0, () => exec(0, 'goblin_flask', { flasks }));
+  at(t0 + 0.65, () => fx('flaskHit', { flaskKind: 'enemy', x: 4.6, z: 0, radius: 3.5, effects: hits([0, 2], 260), heals: [] }));
+  at(t0 + 0.79, () => fx('flaskHit', { flaskKind: 'enemy', x: 7.2, z: -0.4, radius: 3.5, effects: hits([1], 260), heals: [] }));
+  at(t0 + 0.93, () => fx('flaskHit', { flaskKind: 'extra', x: 5.8, z: 1.3, radius: 3.5, effects: hits([2], 260), heals: [] }));
+  at(t0 + 1.07, () => fx('flaskHit', { flaskKind: 'ally', x: -6.5, z: 1.2, radius: 3.5, effects: [], heals: [{ targetIndex: 0, heal: 160 }, { targetIndex: 1, heal: 160 }] }));
+  return t0 + 2.6;
+}
+function seqBog(t0) {
+  say(t0, 'Đầm Lầy Thối Rữa: giơ tay gọi 2 vạc (niệm 0,8s)'); at(t0, () => cast(1, 800));
+  const t1 = t0 + 0.8, spots = [{ x: -5.6, z: -1.4 }, { x: -5.6, z: 1.4 }];
+  at(t1, () => exec(1, 'goblin_bog', { cauldrons: { at: 400, spots, waves: 3, charge: 2000, flight: 550 } }));
+  const aims = [[{ x: 4.6, z: 0 }, { x: 6.6, z: 0.6 }], [{ x: 5.2, z: -0.6 }, { x: 7.0, z: 1.0 }], [{ x: 4.8, z: 0.8 }, { x: 6.4, z: -1.0 }]];
+  for (let w = 0; w < 3; w++) {
+    const tc = t1 + 0.4 + w * 2, ts = t1 + 0.4 + (w + 1) * 2;
+    say(tc, `Đầm Lầy Thối Rữa: vạc gồng đợt ${w + 1}/3`);
+    at(tc, () => fx('cauldronCharge', { wave: w, charge: 2000 }));
+    aims[w].forEach((p, c) => {
+      at(ts, () => fx('cauldronShot', { wave: w, cauldron: c, from: spots[c], x: p.x, z: p.z, flight: 550, radius: 4.5, duration: 5000 }));
+      for (let k = 1; k <= 2; k++) at(ts + 0.55 + k, () => fx('bogTick', { x: p.x, z: p.z, radius: 4.5, effects: hits([0, 1, 2], 70) }));
+    });
+    if (w === 2) at(ts + 0.55, () => fx('cauldronEnd', {}));
+  }
+  return t1 + 0.4 + 6 + 3.2;
+}
+function seqDetonate(t0) {
+  say(t0, 'Đại Bộc Phá Độc: bay lên niệm 1s'); at(t0, () => { poisonAll(5); gx.statusEffects = [{ type: 'goblin_float', endTime: BIG }]; cast(2, 1000); });
+  const t1 = t0 + 1.0;
+  at(t1, () => { lbl.textContent = 'Đại Bộc Phá Độc: búng tay → kích nổ toàn bộ Độc'; exec(2, 'goblin_detonate', { detonate: { at: 500, targets: [{ targetIndex: 0, stacks: 5 }, { targetIndex: 1, stacks: 7 }, { targetIndex: 2, stacks: 3 }] } }); });
+  at(t1 + 0.5, () => { fx('detonate', { effects: hits([0, 1, 2], 900).map((e, i) => ({ ...e, stacks: [5, 7, 3][i] })) }); foes.forEach(f => { f.statusEffects = []; }); });
+  at(t1 + 0.6, () => fx('spread', { fromIndex: 1, x: 6.8, z: -1, radius: 4, toIndexes: [0, 2] }));
+  at(t1 + 0.8, () => { gx.statusEffects = [{ type: 'goblin_frenzy', endTime: BIG }]; });
+  at(t1 + 2.6, () => { gx.statusEffects = []; });
+  return t1 + 2.8;
+}
+function seqRot(t0) {
+  say(t0, 'Độc Tố Ngấm Sâu: địch đủ 7 tầng → Mục Rữa (thêm −40% hồi máu 5s)');
+  at(t0, () => { poisonAll(7); foes[0].statusEffects.push({ type: 'venom_rot', endTime: BIG, healCut: 0.4 }); fx('venomRot', { targetId: 'op', targetIndex: 0, rotTime: 5000 }); });
+  at(t0 + 0.8, () => fx('poisonTick', { targetId: 'op', targetIndex: 0, stacks: 7, effect: hits([0], 160)[0] }));
+  at(t0 + 1.8, () => fx('poisonTick', { targetId: 'op', targetIndex: 0, stacks: 7, effect: hits([0], 160)[0] }));
+  at(t0 + 2.8, () => { foes.forEach(f => { f.statusEffects = []; }); });
+  return t0 + 3.0;
+}
+function seqWard(t0) {
+  say(t0, 'Giáp Độc (thiên phú 2): máu dưới 50% → giáp = 100% máu đã mất');
+  at(t0, () => { gx.statusEffects = [{ type: 'goblin_ward', endTime: BIG, hp: 900, maxHp: 900 }]; fx('wardUp', { shield: 900 }); });
+  say(t0 + 1.0, 'Giáp Độc: ai đánh Grix dính Độc · Độc hồi máu cho Grix');
+  at(t0 + 1.0, () => fx('wardHit', { targetId: 'op', targetIndex: 0 }));
+  at(t0 + 1.6, () => fx('wardDrain', { heal: 140 }));
+  at(t0 + 2.2, () => fx('wardHit', { targetId: 'op', targetIndex: 2 }));
+  say(t0 + 3.0, 'Giáp Độc nổ: +2 tầng Độc + choáng 1s quanh mình');
+  at(t0 + 3.0, () => { gx.statusEffects = []; fx('wardBurst', { x: -4, z: 0, radius: 3.5, stunnedIndexes: [], poisonedIndexes: [] }); });
+  return t0 + 4.4;
+}
+const SEQ = { attack: seqAttack, flask: seqFlask, bog: seqBog, detonate: seqDetonate, rot: seqRot, ward: seqWard };
+let end = 0.2;
+if (S === 'all') for (const f of Object.values(SEQ)) end = f(end);
+else end = SEQ[S](end);
+say(end, '');
+window.TOTAL = end + 0.3;
+ev.sort((a, b) => a[0] - b[0]);
+let t = 0;
+window.stepTo = (target) => {
+  while (t < target - 1e-9) {
+    const dt = Math.min(1 / 60, target - t);
+    while (ev.length && ev[0][0] <= t + 1e-9) ev.shift()[1]();
+    t += dt; window.__vt = t; window.__runTimers();
+    updateVfx(dt);
+    [...vA, ...vF].forEach(v => v.update(dt, camera));
+  }
+  renderer.render(scene, camera);
+  return t;
+};
+window.stepTo(0.02);
+if (q.get('auto')) {
+  let last = Date.now();
+  const loop = () => { const now = Date.now(); window.stepTo(t + Math.min(0.05, (now - last) / 1000)); last = now; if (t > window.TOTAL) location.reload(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+window.__ready = true;
+</script></body></html>

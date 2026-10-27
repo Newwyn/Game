@@ -108,37 +108,45 @@ export function startBlizzard({ dir = 1, duration = 6000, alive } = {}) {
     return handle;
 }
 
-/** Trời giông: tối sầm phía trên, mưa xiên dày; flash() = chớp sáng khi sét đánh */
+/** Trời giông: tối dịu phía trên + mưa xiên theo nhịp gió + chớp giông khi sét đánh (mờ vào 0.4s, mờ ra 0.6s) */
 export function startStorm({ duration = 7000 } = {}) {
     const drops = [];
-    let flashK = 0;
+    let flashK = 0, t = 0;
     const handle = runLayer((ctx, w, h, dt, k) => {
+        t += dt;
         const s = w / 900;
-        // trời tối sầm (đậm ở trên, nhạt dần xuống dưới) + phủ xám xanh toàn cảnh
+        const gust = 0.16 + 0.04 * Math.sin(t * 2.2);
+        // trời giông dịu phía trên, nhạt nhanh xuống sân đấu để nổi bật mây giông 3D và cột mưa
         const g = ctx.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0, `rgba(10,14,28,${0.72 * k})`);
-        g.addColorStop(0.45, `rgba(20,26,45,${0.42 * k})`);
-        g.addColorStop(1, `rgba(20,30,50,${0.22 * k})`);
+        g.addColorStop(0, `rgba(12,16,36,${0.48 * k})`);
+        g.addColorStop(0.38, `rgba(22,28,54,${0.22 * k})`);
+        g.addColorStop(1, `rgba(18,32,48,${0.06 * k})`);
         ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-        // mưa xiên
-        while (drops.length < 320) drops.push({ x: Math.random() * w * 1.2, y: Math.random() * h, d: Math.random() });
+        // mưa xiên nền có nhịp gió lượn (giới hạn 140 hạt để nhẹ và không che khuất cột mưa 3D)
+        while (drops.length < 140) drops.push({ x: Math.random() * w * 1.2, y: Math.random() * h, d: Math.random(), ph: Math.random() * 6.28 });
         ctx.lineCap = 'round';
         for (const r of drops) {
-            const v = (900 + r.d * 900) * s;
-            r.x -= v * 0.18 * dt; r.y += v * dt;
+            const v = (780 + r.d * 760) * s;
+            const slant = gust + 0.03 * Math.sin(t * 3 + r.ph);
+            r.x -= v * slant * dt; r.y += v * dt;
             if (r.y > h + 20) { r.y = -20; r.x = Math.random() * w * 1.2; }
-            const len = (14 + r.d * 26) * s;
-            ctx.strokeStyle = `rgba(190,220,255,${(0.25 + r.d * 0.4) * k})`;
-            ctx.lineWidth = (0.8 + r.d * 1.4) * s;
-            ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x + len * 0.18, r.y - len); ctx.stroke();
+            const len = (12 + r.d * 22) * s;
+            const pulse = 0.8 + 0.2 * Math.sin(t * 4 + r.ph);
+            ctx.strokeStyle = `rgba(185,225,255,${(0.14 + r.d * 0.24) * pulse * k})`;
+            ctx.lineWidth = (0.7 + r.d * 1.1) * s;
+            ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x + len * slant, r.y - len); ctx.stroke();
         }
-        // chớp
+        // chớp giông lan từ vòm trời phía trên khi sét đánh
         if (flashK > 0) {
-            ctx.fillStyle = `rgba(230,225,255,${0.55 * flashK * k})`;
+            const fg = ctx.createRadialGradient(w * 0.5, h * 0.12, w * 0.05, w * 0.5, h * 0.2, w * 0.75);
+            fg.addColorStop(0, `rgba(220,210,255,${0.46 * flashK * k})`);
+            fg.addColorStop(0.5, `rgba(165,180,255,${0.22 * flashK * k})`);
+            fg.addColorStop(1, 'rgba(120,140,220,0)');
+            ctx.fillStyle = fg;
             ctx.fillRect(0, 0, w, h);
-            flashK = Math.max(0, flashK - dt * 5);
+            flashK = Math.max(0, flashK - dt * 5.5);
         }
-    }, { duration, fadeIn: 0.6, fadeOut: 0.8, z: 4 });
+    }, { duration, fadeIn: 0.4, fadeOut: 0.6, z: 4 });
     handle.flash = () => { flashK = 1; };
     return handle;
 }

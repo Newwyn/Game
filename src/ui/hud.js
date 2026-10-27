@@ -12,8 +12,7 @@ import gemB from '../assets/ui/gem_b.png';
 const GEM_ICON = { f: gemF, i: gemI, b: gemB };
 const GEM_NAME = { f: 'Hỏa', i: 'Băng', b: 'Lôi' };
 const GEM_LIFE_REAL = 8;   // giây thật mỗi viên ngọc sống (server: gemLife)
-// Điệu múa (Nerissa) / Tàng Hình (Jessica): phải có đối thủ trong tầm bắn của Lyra mới dùng được (server: foeInReach)
-const NEED_FOE_TYPES = new Set(['dance_tide', 'dance_flow', 'dance_god', 'stealth']);
+// Luật chung: mọi kỹ năng chỉ dùng được khi có đối thủ trong TẦM ĐÁNH của chính nhân vật (server: foeInReach)
 
 // ---------- AUTO từng tướng (nút AUTO trên thẻ) — nhớ theo trình duyệt, vào trận mới tự bật lại ----------
 const AUTO_KEY = 'loc.memberAuto';
@@ -60,9 +59,11 @@ function updateCardAuto(card, member, i, teamAuto) {
         : teamAuto ? 'Đang bật AUTO MODE cả đội — tướng này tự dùng kỹ năng. Bấm để bật AUTO riêng (giữ khi tắt AUTO MODE)'
         : 'AUTO riêng tướng này: TẮT — bấm để tướng này tự dùng kỹ năng';
 }
-/** Có đối thủ còn sống trong tầm bắn của Lyra quanh `m` không */
+/** Có đối thủ còn sống trong TẦM ĐÁNH của `m` không (tầm đánh thường + tầm cộng thêm từ Thần Phong; như server attackRangeOf + 0,3) */
 function foeNear(m, oppSquad) {
-    const r = game.classDefs?.archer?.atkRange ?? 11;
+    const now = gameNow();
+    const wind = m.statusEffects?.find(ef => ef.type === 'windspirit' && ef.endTime > now);
+    const r = (m.atkRange ?? game.classDefs?.[m.classId]?.atkRange ?? 2.4) + (wind?.rangeUp ?? 0) + 0.3;
     return (oppSquad ?? []).some(e => e.alive && Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= r);
 }
 
@@ -292,9 +293,8 @@ function updateMemberCard(member, i, now, ctx = {}) {
             const need = Math.max(cost, free ? 0 : (sk.minOrbs ?? 0));
             // Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép
             let usable = !elem || (s === 0 ? (member.held?.length ?? 0) >= 3 : s === 1 ? !!member.spell : true);
-            // điệu múa / Tàng Hình: chưa gặp đối thủ -> chưa dùng được (bấm vẫn xếp hàng chờ)
-            const farFoe = NEED_FOE_TYPES.has(sk.type) && !foeNear(member, ctx.oppSquad);
-            if (farFoe) { usable = false; cls += ' far-foe'; }
+            // chưa có đối thủ trong tầm đánh -> chưa dùng được (bấm vẫn xếp hàng chờ); không hiện nhãn chú thích
+            if (!foeNear(member, ctx.oppSquad)) usable = false;
             const isReady = !act && usable && member.mp >= need * ORB_COST && now > member.skillCooldowns[s];
             if (isReady) cls += ' ready';
             if (isQueued) cls += ' queued';
@@ -346,6 +346,8 @@ function effectInfo(ef, m) {
         case 'stun': return ['💫', '#facc15', 'Choáng', 'Không thể di chuyển, đánh, niệm', true];
         case 'taunted': return ef.by === 'Brakk'
             ? ['📢', '#fb923c', 'Tiếng Hét Bảo Hộ', 'Bị Brakk khiêu khích, buộc đánh Brakk', true]
+            : ef.by === 'Gấu Hộ Vệ'
+            ? ['🐻', '#f59e0b', 'Gấu Hộ Vệ Húc', 'Bị Gấu Hộ Vệ khiêu khích, buộc đánh Gấu Hộ Vệ', true]
             : ['🦁', '#f87171', 'Sư Tử Gầm', `Bị khiêu khích, buộc đánh ${ef.by ?? 'Rok'}${ef.defDown ? ` · −${pc(ef.defDown)}% thủ` : ''}`, true];
         case 'guard': return ['🛡️', '#fcd34d', 'Dựng Khiên', ef.maxHp ? `Khiên ${Math.ceil(ef.hp)}/${ef.maxHp}` : 'Đang dựng khiên'];
         case 'guard_aura': return ['🔰', '#fcd34d', 'Khiên Hộ Đội', `+${pc(ef.value ?? 0.2)}% P.DEF / M.DEF`];
@@ -422,16 +424,40 @@ function effectInfo(ef, m) {
         case 'note_amp': return ['🎶', '#5eead4', 'Nốt Nhạc Cổ Vũ', `+${pc(ef.value)}% sát thương phép`];
         case 'tide_haste': return ['💨', '#38bdf8', 'Nhịp Triều', `+${pc(ef.value)}% tốc đánh (Nerissa múa Sóng Triều + Thủy Thần)`];
         case 'tide_slow': return ['🐌', '#64748b', 'Nước Cuốn', `−${pc(ef.value)}% tốc đánh (Nerissa múa Sóng Triều + Thủy Thần)`, true];
+        // ---- Grix (Lục Độc) ----
+        case 'poison': return ['🧪', '#84cc16', `Độc (${ef.stacks ?? 1})`, `${ef.stacks ?? 1}/${ef.maxStacks ?? 5} tầng: sát thương phép mỗi giây`, true];
+        case 'toxic': return ['☠️', '#a3e635', 'Thối rữa', `−${pc(ef.healCut ?? 0.4)}% hồi máu nhận được`, true];
+        case 'venom_rot': return ['☣️', '#a855f7', 'Mục Rữa', `−${pc(ef.healCut ?? 0.4)}% hồi máu nhận được (thêm)`, true];
+        case 'goblin_ward': return ef.dormant
+            ? ['🛡️', '#84cc16', 'Giáp Độc', 'Đang có khiên khác dày hơn hứng đòn']
+            : ['🛡️', '#84cc16', 'Giáp Độc', `${ef.maxHp ? `Khiên ${Math.round(ef.hp)}/${ef.maxHp} · ` : ''}ai đánh Grix dính Độc · sát thương Độc hồi máu · hết giáp nổ độc + choáng`];
+        case 'goblin_float': return null;
+        case 'goblin_frenzy': return ['⚗️', '#84cc16', 'Cuồng Độc', `+${pc(ef.mAtkUp ?? 0.2)}% M.ATK`];
+        // ---- Sylva (Lâm Linh) + Linh Thú Triệu Hồi ----
+        case 'wolf_howl': return ['🐺', '#f87171', 'Tiếng Hú Sói Rừng', `−${pc(ef.defDown ?? ef.value ?? 0.15)}% P.DEF / M.DEF`, true];
+        case 'feather_slow': return ['🪶', '#f59e0b', 'Vũ Bão', `−${pc(ef.slow ?? ef.value ?? 0.1)}% tốc đánh`, true];
+        case 'eagle_eye': return ['🦅', '#fde047', 'Ưng Nhãn', `+${pc(ef.atkSpeedUp ?? ef.value ?? 0.3)}% tốc đánh · bắn toàn bản đồ · mục tiêu ngẫu nhiên`];
+        case 'deer_bless': return ['🦌', '#4ade80', 'Thần Hươu Ban Phước', `Thần Hươu: +${pc(ef.dmgUp ?? 0.25)}% sát thương, +${pc(ef.defUp ?? 0.3)}% thủ`];
+        case 'forest_might': {
+            const st = ef.stacks ?? 1;
+            const per = m.summon ? (ef.summonPer ?? 0.08) : (ef.heroPer ?? ef.per ?? 0.04);
+            return ['🌿', '#22c55e', `Gắn Kết Rừng Thiêng (${st})`, `${st} tầng: +${pc(per * st)}% P.ATK & M.ATK`];
+        }
+        case 'leaf_shield': return ef.dormant
+            ? ['🍃', '#4ade80', 'Khiên Lá', 'Đang có khiên khác dày hơn hứng đòn']
+            : ['🍃', '#4ade80', 'Khiên Lá', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0} · +${pc(ef.dmgUp ?? 0.2)}% sát thương · +${pc(ef.atkSpeedUp ?? 0.25)}% tốc đánh`];
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }
-const AURA_EFFECTS = new Set(['water_shield', 'tide_haste', 'tide_slow', 'lone_dragon']);
+const AURA_EFFECTS = new Set(['water_shield', 'tide_haste', 'tide_slow', 'lone_dragon', 'deer_bless']);
 // Thời lượng gốc của hiệu ứng không có `duration`: ghi lại lúc mới thấy (theo nhân vật + loại)
 const effStart = new Map();
 function statusTags(member, now, key = '') {
-    const active = (member.statusEffects || []).filter(ef => now < ef.endTime);
+    const active = (member.statusEffects || []).filter(ef => now < ef.endTime && ef.type !== 'goblin_float');
     if (active.length === 0) return '';
     const icons = active.map(ef => {
+        const info = effectInfo(ef, member);
+        if (!info) return '';
         const id = `${key}|${ef.type}|${ef.sourceIndex ?? ''}`;
         let rec = effStart.get(id);
         if (!rec || ef.endTime > rec.end + 30 || now < rec.start) { rec = { start: now, end: ef.endTime }; effStart.set(id, rec); }
@@ -440,12 +466,13 @@ function statusTags(member, now, key = '') {
         const left = Math.max(0, ef.endTime - now);
         const frac = Math.max(0, Math.min(1, 1 - left / total));       // phần đã trôi qua
         const secs = (Math.min(left, ef.duration ?? Infinity) / 1000 / timeState.scale).toFixed(1);
-        const [icon, color, name, desc, bad] = effectInfo(ef, member);
+        const [icon, color, name, desc, bad] = info;
         // duy trì (không có hạn / được làm mới liên tục khi tổ hợp điệu múa còn chạy) -> không ghi số giây
         const keep = left > 1e8 || AURA_EFFECTS.has(ef.type);
         const tip = `<b style="color:${color}">${icon} ${name}</b>${desc ? `<br>${desc}` : ''}<br><span style="color:#94a3b8">${keep ? 'Duy trì' : `Còn ${secs}s`}</span>`;
         return `<span class="st-ic${bad ? ' bad' : ''}" style="--c:${color};--p:${frac.toFixed(3)}" data-tip="${tip.replace(/"/g, '&quot;')}">${icon}</span>`;
-    });
+    }).filter(Boolean);
+    if (icons.length === 0) return '';
     return `<div class="st-icons">${icons.join('')}</div>`;
 }
 
@@ -494,11 +521,12 @@ function raceName(m) { const r = progressMeta()?.races?.[m.race]; return r ? `${
 function statPanelHTML(m, now, key, side) {
     const collapsed = isCollapsed(key, side);
     const btn = `<button class="stat-toggle" data-stat-toggle="${key}" data-stat-side="${side}" title="${collapsed ? 'Mở rộng' : 'Thu gọn'}">${collapsed ? '+' : '−'}</button>`;
+    const summonTag = m.summon ? `<span class="summon-tag">Triệu hồi</span>` : '';
     if (collapsed) {
         return `
         <div class="stat-panel-card collapsed">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <b style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}</b>${btn}
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                <b style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-flex; align-items:center; gap:5px;">${m.name}${summonTag}</b>${btn}
             </div>
             ${miniHpBar(m)}
             ${statusTags(m, now, key)}
@@ -510,8 +538,8 @@ function statPanelHTML(m, now, key, side) {
     const pct = v => v / 10;
     return `
         <div class="stat-panel-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <b style="font-size:16px;">${raceEmoji(m)}${m.name}</b>${btn}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px;">
+                <b style="font-size:16px; display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">${raceEmoji(m)}${m.name}${summonTag}</b>${btn}
             </div>
             ${m.level ? `<div style="font-size:11px; color:#94a3b8; margin-bottom:3px;">${raceName(m)}</div>
                 <div style="display:flex; gap:6px; align-items:center; font-size:11px; margin-bottom:6px; color:#94a3b8; white-space:nowrap;">
@@ -553,7 +581,7 @@ export function updateHUD(players) {
 
     squad.forEach((member, i) => {
         if (!member.summon) return updateMemberCard(member, i, now, { teamAuto: !!players[me].autoMode, oppSquad: opp?.squad });
-        const card = $(`member-${i}`);   // Golem triệu hồi: không có thẻ
+        const card = $(`member-${i}`);   // Đơn vị triệu hồi (Golem, Sói, Ưng, Gấu): không có thẻ HUD
         if (card) card.style.display = 'none';
     });
     for (let i = squad.length; i < MAX_SQUAD; i++) {

@@ -355,7 +355,8 @@ const CLASS_DEFS = {
             // Thiên Thạch: rơi vào chỗ đông đối thủ (chạm đất LUÔN CHÍ MẠNG) -> LĂN CHẬM thẳng về phía địch (tầm lướt Zerith) -> vệt lửa 2 lần.
             //   (ý đồ ẩn) Lốc Xoáy đẩy đối thủ va vào thiên thạch đang lăn -> thêm sát thương va chạm
             meteor: { name: 'Thiên Thạch', recipe: 'fff', orbCost: 3, cooldown: 14000, multiplier: 3.8, radius: 4, impact: 800, lock: 600,
-                rollLen: 15, rollTime: 3000, rollWidth: 1.6, rollMultiplier: 1.1, crashMultiplier: 1.6, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.55, trailTime: 3500 },
+                // lăn chậm (27/10: 3s -> 5s cho 15 ô)
+                rollLen: 15, rollTime: 5000, rollWidth: 1.6, rollMultiplier: 1.1, crashMultiplier: 1.6, trailTicks: 2, trailGap: 1000, trailMultiplier: 0.55, trailTime: 3500 },
             // Băng Phong: khối băng thành hình trên đầu địch 1,5s -> rơi: cả đội địch ×1.5 (băng) + −20% tốc đánh 3s;
             //   vỡ ra 5 khối nhỏ văng xuống (×0.48, hiệu ứng tính chung) · mỗi đối thủ có cơ hội bị đóng băng theo bậc
             frost: { name: 'Băng Phong', recipe: 'iii', orbCost: 3, cooldown: 12000, multiplier: 1.5, shards: 5, shardMultiplier: 0.48, shardRadius: 1.6,
@@ -403,11 +404,33 @@ const CLASS_DEFS = {
               desc: 'Mỗi lần ghép phép bằng Sách Nguyên Tố: {value%} phép kế tiếp giảm 1 Orb' },
         ]
     },
+    alchemist: {
+        // Grix — tích độc, phủ đầm lầy và kích nổ độc.
+        name: 'Grix', title: 'Lục Độc', className: 'Phù Thủy', emoji: '🧪', color: '#65a30d', dmgType: 'magic',
+        classGroup: 'mage', race: 'goblin',
+        maxHp: 1000, maxMp: 5000, pAtk: 0, mAtk: 200, pDef: 40, mDef: 75,
+        crit: 100, critDmg: 500, acc: 1000, dodge: 120, pen: 80, block: 0, lifesteal: 0, threat: 100,
+        mpAtk: 200, mpSec: 130, atkSpeed: 1000, range: 'ranged', atkRange: 12, moveSpeed: 0.01,
+        autoHitFrame: 2, autoImpact: 450,
+        skills: [
+            // Bình Độc Văng / Đầm Lầy: có địch trong tầm đánh là dùng tại chỗ; bình + phát bắn của vạc rơi vào địch ngẫu nhiên khắp bản đồ
+            { name: 'Bình Độc Văng', orbCost: 1, cooldown: 7000, castTime: 0, type: 'goblin_flask', castRange: 99, multiplier: 1.0, radius: 3.5, stacks: 2, extraChance: 0.5, impact: 650, flaskGap: 140, lock: 700 },
+            { name: 'Đầm Lầy Thối Rữa', orbCost: 2, cooldown: 13000, castTime: 800, type: 'goblin_bog', castRange: 99, cauldrons: 2, waves: 3, charge: 2000, flight: 550, radius: 4.5, duration: 5000, tickGap: 1000, tickMultiplier: 0.35, stacks: 1, healCut: 0.4, impact: 400, lock: 700 },
+            { name: 'Đại Bộc Phá Độc', orbCost: 3, cooldown: 22000, castTime: 1000, type: 'goblin_detonate', perStack: 0.5, spreadRadius: 4, spreadStacks: 3, frenzy: 6000, mAtkUp: 0.2, impact: 500, lock: 900 },
+        ],
+        passives: [
+            { name: 'Độc Tố Ngấm Sâu', type: 'goblin_venom', talent: 1, extraStacks: 2, rotAt: 7, rotCut: 0.4, rotTime: 5000, rotCooldown: 10000, allyChance: 0.5, levels: { value: [0.15, 0.25, 0.35], allyHeal: [0.6, 0.8, 1.0] }, desc: '+{value%} sát thương Độc · tối đa 7 tầng · địch đủ 7 tầng: thêm −40% hồi máu 5s (mỗi địch 10s/lần) · Bình Độc Văng hồi máu đồng minh {allyHeal%} M.ATK và 50% ném thêm 1 bình về đồng minh ít máu nhất' },
+            { name: 'Giáp Độc', type: 'goblin_ward', talent: 2, threshold: 0.5, cooldown: 20000, duration: 8000, radius: 3.5, stun: 1000, burstStacks: 2, hitStacks: 1, levels: { drain: [0.3, 0.4] }, desc: 'Máu dưới 50%: giáp độc = 100% máu đã mất (8s) · ai đánh Grix dính Độc · sát thương Độc hồi máu {drain%} · giáp nổ: +2 tầng Độc + choáng 1s quanh mình · hồi 20s' },
+        ]
+    },
     // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 25s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
     //   tính thắng thua) nhưng không có thẻ HUD, không được hồi sinh. Chỉ số tính theo pháp sư lúc gọi (xem summonGolem).
     //   Cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
     elem_golem: {
         name: 'Golem Nguyên Tố', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '🗿', color: '#64748b', dmgType: 'magic', summon: true,
+        // Quy định triệu hồi: bị đánh được · KHÔNG nhận buff / debuff (kể cả khống chế), trừ Ấn Tử + hiệu ứng của chính Golem
+        //   + mọi hiệu ứng từ Sylva / Thần Hươu (fromSylva — chỉ Sylva và Thần Hươu tác động được Golem)
+        summonRules: { targetable: true, buffs: false, debuffs: false, allowFromSylva: true },
         maxHp: 3500, maxMp: 0, pAtk: 0, mAtk: 170, pDef: 240, mDef: 170,
         crit: 50, critDmg: 500, acc: 1000, dodge: 0, pen: 0, block: 100, lifesteal: 0,
         threat: 120, mpAtk: 0, mpSec: 0,
@@ -425,6 +448,67 @@ const CLASS_DEFS = {
               atkSpeedUp: 0.25, multiplier: 0.6, stunChance: 0.5, stun: 500, impact: 300, lock: 600 },
         ],
         passives: []
+    },
+    // Sylva (Lâm Linh) — class TRIỆU HỒI SƯ (mới), tộc Elf: tiên nữ rừng gọi thú. Đánh xa bằng gai lá (phép).
+    //   Thú KHÔNG mạnh theo chỉ số Sylva: mỗi con có chỉ số riêng + tăng theo CẤP của Sylva (base + perLevel × (cấp − 1)).
+    //   Gọi lại khi con cũ còn sống -> con cũ biến mất, con mới ra (mỗi loại tối đa 1 con).
+    summoner: {
+        name: 'Sylva', title: 'Lâm Linh', className: 'Triệu Hồi Sư', emoji: '🦌', color: '#16a34a', dmgType: 'magic',
+        classGroup: 'summoner', race: 'elf',
+        maxHp: 950, maxMp: 5000, pAtk: 0, mAtk: 190, pDef: 40, mDef: 80,
+        crit: 100, critDmg: 500, acc: 1000, dodge: 120, pen: 50, block: 0, lifesteal: 0, threat: 100,
+        mpAtk: 200, mpSec: 140, atkSpeed: 1000, range: 'ranged', atkRange: 10, moveSpeed: 0.01,
+        autoHitFrame: 2, autoImpact: 420,   // ms: phóng gai lá
+        skills: [
+            // Gọi Sói & Đại Bàng: gọi CẢ 2 con cạnh Sylva, mỗi con 18s
+            { name: 'Gọi Sói & Đại Bàng', orbCost: 1, cooldown: 14000, castTime: 0, type: 'sylva_call', castRange: 99, duration: 18000, impact: 300, lock: 600 },
+            // Gấu Hộ Vệ: gọi tại chỗ Sylva, ủi xuyên qua mọi đối thủ rồi ủi về (hất tung + choáng 0,5s), 20s
+            { name: 'Gấu Hộ Vệ', orbCost: 2, cooldown: 16000, castTime: 0, type: 'sylva_bear', castRange: 99, duration: 20000,
+              chargeTime: 1200, turnTime: 600, chargeMultiplier: 1.0, knockup: 600, stun: 500, impact: 300, lock: 700 },   // turnTime: phanh + quay đầu giữa 2 lượt ủi
+            // Thần Hươu: triệu hồi KHÔNG máu, không bị đánh (như vạc của Grix), 10s — mỗi giây hồi máu đồng minh (tướng 3%, triệu hồi 8%
+            //   máu tối đa) + triệu hồi phe mình (kể cả Golem): +25% sát thương, +30% P.DEF, +30% M.DEF
+            { name: 'Thần Hươu', orbCost: 3, cooldown: 22000, castTime: 0, type: 'sylva_deer', castRange: 99, duration: 10000, every: 1000,
+              heroHeal: 0.03, summonHeal: 0.08, dmgUp: 0.25, defUp: 0.3, mDefUp: 0.3, impact: 300, lock: 700 },
+        ],
+        passives: [
+            { name: 'Gắn Kết Rừng Thiêng', type: 'sylva_bond', talent: 1, maxStacks: 5, duration: 5000, hero: 0.04, summon: 0.08,
+              desc: 'Mỗi triệu hồi ra sân: cả đội +4% tấn công (triệu hồi +8%), cộng dồn 5 tầng, mỗi tầng 5s — triệu hồi mới làm mới thời gian' },
+            { name: 'Khiên Lá', type: 'sylva_shield', talent: 2, every: 10000, duration: 7000, shieldPct: 0.25, dmgUp: 0.2, atkSpeedUp: 0.25,
+              desc: 'Mỗi 10s: khiên 25% máu tối đa cho 1 triệu hồi có máu (ít máu nhất), 7s — có khiên: +20% sát thương, +25% tốc đánh' },
+        ]
+    },
+    // ---- Thú của Sylva (TRIỆU HỒI có máu, bị đánh, nhận buff + debuff). Chỉ số: base / perLevel theo cấp Sylva ----
+    // Sói Rừng: cận chiến; cứ 4 đòn -> ngẫu nhiên Cắn (×1.4 + hồi 10% máu) / Vồ (nhảy tới địch hàng sau ×1.2); ra sân tru: địch −15% thủ 10s
+    sylva_wolf: {
+        name: 'Sói Rừng', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '🐺', color: '#78716c', dmgType: 'physical', summon: true,
+        summonRules: { targetable: true, buffs: true, debuffs: true },
+        maxHp: 1400, pAtk: 140, mAtk: 0, pDef: 90, mDef: 70, perLevel: { maxHp: 90, pAtk: 9, pDef: 5, mDef: 4 },
+        crit: 150, critDmg: 500, acc: 1000, dodge: 80, block: 0, threat: 100,
+        atkSpeed: 900, range: 'melee', atkRange: 2.2, moveSpeed: 0.012, autoHitFrame: 2, autoImpact: 200,
+        every: 4, biteMultiplier: 1.4, biteHeal: 0.1, pounceMultiplier: 1.2, howlDown: 0.15, howlTime: 10000,
+        skills: [], passives: []
+    },
+    // Đại Bàng: đánh xa lông vũ; cứ 4 đòn -> ngẫu nhiên (niệm 1s) Cầu Gió (×1.5 + đẩy lùi 3) / Bão Lông Vũ (5 đợt ×0.5 diện rộng, −10% tốc đánh 3s)
+    //   Ưng Nhãn: ra sân + mỗi 15s -> 5s: +30% tốc đánh, tầm đánh cả bản đồ, mỗi đòn đánh 1 đối thủ ngẫu nhiên
+    sylva_eagle: {
+        name: 'Đại Bàng', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '🦅', color: '#a16207', dmgType: 'physical', summon: true,
+        summonRules: { targetable: true, buffs: true, debuffs: true },
+        maxHp: 900, pAtk: 160, mAtk: 0, pDef: 50, mDef: 60, perLevel: { maxHp: 60, pAtk: 10, pDef: 3, mDef: 4 },
+        crit: 120, critDmg: 500, acc: 1000, dodge: 150, block: 0, threat: 90,
+        atkSpeed: 1000, range: 'ranged', atkRange: 7, moveSpeed: 0.017, autoHitFrame: 2, autoImpact: 350,   // bay sà vào gần hơn Sylva (tầm 10)
+        every: 4, cast: 1000, orbMultiplier: 1.5, push: 3, waves: 5, waveGap: 300, waveRadius: 2.5, waveMultiplier: 0.5, slow: 0.1, slowTime: 3000,
+        eyeEvery: 15000, eyeTime: 5000, eyeAtkSpeed: 0.3,
+        skills: [], passives: []
+    },
+    // Gấu Hộ Vệ: cận chiến trâu, không kỹ năng; Hộ Chủ: địch áp sát Sylva quá 3s -> gấu ủi đẩy 4 ô + khiêu khích 5s (hồi 8s)
+    sylva_bear: {
+        name: 'Gấu Hộ Vệ', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '🐻', color: '#57534e', dmgType: 'physical', summon: true,
+        summonRules: { targetable: true, buffs: true, debuffs: true },
+        maxHp: 3500, pAtk: 200, mAtk: 0, pDef: 220, mDef: 180, perLevel: { maxHp: 220, pAtk: 12, pDef: 12, mDef: 10 },
+        crit: 80, critDmg: 500, acc: 1000, dodge: 30, block: 150, threat: 150,
+        atkSpeed: 1300, range: 'melee', atkRange: 2.6, moveSpeed: 0.012, autoHitFrame: 2, autoImpact: 300,
+        guardRange: 3, guardTime: 3000, guardPush: 4, guardTaunt: 5000, guardCooldown: 8000,
+        skills: [], passives: []
     },
     // Brakk (Cuồng Đấu) — class CHIẾN BINH (đô vật), tộc Dragon: máu trâu, quật / dậm đất / hoá khổng lồ.
     //   Mọi kỹ năng tốn Orb + MÁU (hpCost × máu tối đa, không bao giờ tự làm chết: tối thiểu còn 1 máu)
@@ -508,7 +592,7 @@ const CLASS_DEFS = {
 
 // We will use 1 Assassins if TEST_MODE is active
 // Elarion ('elementalist'): đang dùng HÌNH TẠM (chờ tranh — art/elarion/PROMPTS.md)
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner'];
 
 // ============================================================
 // GAME STATE
@@ -788,6 +872,28 @@ function getEffectiveStats(member, now) {
             stats.pDef = Math.floor(stats.pDef * (1 - ef.defDown));
             stats.mDef = Math.floor(stats.mDef * (1 - ef.defDown));
         }
+        if (ef.type === 'goblin_frenzy') stats.mAtk = Math.floor(stats.mAtk * (1 + ef.mAtkUp));
+        // ---- Sylva & thú ----
+        if (ef.type === 'wolf_howl') {   // Sói tru: −P.DEF / −M.DEF
+            stats.pDef = Math.floor(stats.pDef * (1 - (ef.value ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * (1 - (ef.value ?? 0)));
+        }
+        if (ef.type === 'feather_slow') stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.value ?? 0)));   // lông vũ: chậm đánh
+        if (ef.type === 'eagle_eye') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.value ?? 0)));     // Ưng Nhãn: +tốc đánh
+        if (ef.type === 'deer_bless') {   // Thần Hươu (chỉ triệu hồi): +sát thương, +thủ
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.dmgUp ?? 0)));
+            stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.dmgUp ?? 0)));
+            stats.pDef = Math.floor(stats.pDef * (1 + (ef.defUp ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * (1 + (ef.mDefUp ?? 0)));
+        }
+        if (ef.type === 'forest_might') {   // Gắn Kết Rừng Thiêng: +tấn công theo tầng
+            const k = 1 + (ef.per ?? 0) * (ef.stacks ?? 0);
+            stats.pAtk = Math.floor(stats.pAtk * k); stats.mAtk = Math.floor(stats.mAtk * k);
+        }
+        if (ef.type === 'leaf_shield' && (ef.hp > 0 || ef.dormant)) {   // Khiên Lá: +sát thương, +tốc đánh
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.dmgUp ?? 0))); stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.dmgUp ?? 0)));
+            stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.atkSpeedUp ?? 0)));
+        }
         if (ef.type === 'fire_god') {
             // Hỏa Thần Giáng Lâm: +M.ATK; thiên phú Hỏa Tốc: +tốc đánh
             stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.mAtkUp ?? 0)));
@@ -914,7 +1020,7 @@ function isBehind(attacker, target) {
 //     khiên còn lại thành "dormant": mất máu khiên nhưng VẪN giữ hiệu ứng buff (vd +thủ, kháng choáng, cánh miễn choáng) tới hết thời gian.
 //   · Khiên ĐẶC TRƯNG (signature, vd Dựng Khiên của Chiến Binh) luôn được dùng, bất kể máu khiên khác nhiều hơn.
 // ============================================================
-const SHIELD_TYPES = new Set(['guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward']);
+const SHIELD_TYPES = new Set(['guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield']);
 const isSignatureShield = (ef) => ef.type === 'guard';
 
 /** Khiên đang hứng sát thương (null nếu không có) */
@@ -1100,6 +1206,7 @@ function isAirborne(m, now) {
 
 /** Tầm đánh hiện tại (Thần Phong Giáng Thế cộng thêm tầm) */
 function attackRangeOf(m, now) {
+    if (m.statusEffects?.some(ef => ef.type === 'eagle_eye' && ef.endTime > now)) return 99;   // Ưng Nhãn (Đại Bàng): tầm cả bản đồ
     const w = m.statusEffects?.find(ef => ef.type === 'windspirit' && ef.endTime > now);
     return m.atkRange + (w?.rangeUp ?? 0);
 }
@@ -1652,6 +1759,8 @@ function startBattleLoop(roomId) {
             return; // Stop processing frame if playing against bot and paused
         }
 
+        processPoison(room, now);
+        processSuddenDeath(room, now);
         const playerIds = Object.keys(room.players);
 
         playerIds.forEach(playerId => {
@@ -1677,6 +1786,10 @@ function startBattleLoop(roomId) {
             playerData.squad.forEach((member, memberIndex) => {
                 // Linh Hồn Báo Thù (Zerith): linh hồn Thần Chết chiến đấu đủ 7s — kể cả khi Zerith đã được hồi sinh (đánh chung)
                 processReaperGhost(roomId, playerId, memberIndex, opponentId, now);
+                processGoblinWard(room, playerId, memberIndex, opponentId, now);
+                processSylva(room, playerId, memberIndex, opponentId, now);   // Thần Hươu (ở lại cả khi Sylva gục) · Khiên Lá
+                if (!member.alive) return;
+                processSylvaUnit(room, playerId, memberIndex, opponentId, now);   // thú của Sylva: hết giờ · Ưng Nhãn · Hộ Chủ
                 if (!member.alive) return;
 
                 // Khiên của Dựng Khiên: nổ theo lượng máu khiên đã mất, vỡ khi hết máu
@@ -1745,6 +1858,7 @@ function startBattleLoop(roomId) {
                     if (isDancing(member, now)) endDances(roomId, playerId, memberIndex, opponentId, now, 'stun');   // Nerissa: dừng mọi điệu múa
                     if (rainOf(member, now)) endRain(room, playerId, memberIndex, 'stun');   // Elarion: ngắt mưa giông
                     if (beamOf(member, now)) endBeam(room, playerId, memberIndex, 'stun');   // Elarion: ngắt SolarBeam
+                    member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'goblin_float');
                     member.state = 'stunned';
                     member.castingSkillId = null;
                     return;
@@ -1848,6 +1962,12 @@ function startBattleLoop(roomId) {
                     member.lockedTargetIndex = -1; // Clear lock if target is dead
                     target = findBestTarget(member, opponentData.squad, now, opponentData.squad[member.targetIndex]);
                 }
+                // Đại Bàng — Ưng Nhãn: mỗi đòn đánh (lúc sắp ra đòn) chọn 1 đối thủ NGẪU NHIÊN trên cả bản đồ
+                if (!taunter && member.statusEffects.some(ef => ef.type === 'eagle_eye' && ef.endTime > now)
+                    && now - member.lastAttackTime >= getEffectiveStats(member, now).stats.atkSpeed) {
+                    const pool = opponentData.squad.filter(e => canBeTargeted(e, now));
+                    if (pool.length) target = pool[Math.floor(Math.random() * pool.length)];
+                }
                 const targetIdx = target ? opponentData.squad.indexOf(target) : -1;
                 member.targetIndex = targetIdx;
 
@@ -1870,7 +1990,7 @@ function startBattleLoop(roomId) {
                 // If not casting, check if we should start casting a queued skill
                 if (member.queuedSkills.length > 0) {
                     // kỹ năng đầu hàng đợi DÙNG ĐƯỢC (Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép)
-                    // điệu múa / Tàng Hình: phải có đối thủ trong tầm (foeInReach) — chưa gặp thì lệnh nằm chờ, vẫn tiến lên
+                    // mọi kỹ năng: phải có đối thủ trong TẦM ĐÁNH (foeInReach) — chưa có thì lệnh nằm chờ, vẫn tiến lên
                     const canUse = (k) => skillUsable(member, k) && foeInReach(member, skillsOf(member)[k]?.type, opponentData?.squad, now);
                     const skillIdxToCast = member.queuedSkills.find(canUse) ?? member.queuedSkills[0];
                     const skillDef = skillsOf(member)[skillIdxToCast];
@@ -1880,7 +2000,7 @@ function startBattleLoop(roomId) {
                     const hasEnoughMana = canUse(skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
-                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm'].includes(skillDef.type);
+                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ
                         const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now);
                         
                         const dx = target ? target.x - member.x : 0;
@@ -1911,6 +2031,7 @@ function startBattleLoop(roomId) {
                                 member.state = 'casting';
                                 member.castingSkillId = skillIdxToCast;
                                 member.castEndTime = now + castMs;
+                                if (skillDef.type === 'goblin_detonate') member.statusEffects.push({ type: 'goblin_float', endTime: now + castMs + skillDef.impact + 300 });
                                 io.to(roomId).emit('castStart', { 
                                     casterId: playerId, casterIdx: memberIndex, 
                                     skillIdx: skillIdxToCast, castTime: castMs 
@@ -1963,7 +2084,7 @@ function startBattleLoop(roomId) {
                         } else {
                             const dmg = result.damage;
                             
-                            dealDamage(target, dmg, opponentData, def.autoImpact ?? 180, executeHook(member, target)); // lúc nhát chém / mũi tên chạm
+                            dealDamage(target, dmg, opponentData, def.autoImpact ?? 180, executeHook(member, target), member, result); // lúc nhát chém / mũi tên chạm
                             
                             // Mana from attack
                             member.mp = Math.min(member.maxMp, member.mp + member.mpAtk * orbRegenMult(member, now));
@@ -1977,8 +2098,11 @@ function startBattleLoop(roomId) {
                                 isBlock: result.isBlock, isCrit: result.isCrit, absorbed: result.absorbed || 0, isMagic: result.isMagic
                             });
                         }
+                        if (member.classId === 'alchemist' && !result.isMiss)
+                            later(def.autoImpact, () => addPoison(member, target, 1, room.clock));
                         member.lastAttackTime = now;
                         golemAfterAuto(roomId, playerId, memberIndex, opponentId, now);   // Golem: Hào Quang Sét giật · cứ 2 đòn -> 1 kỹ năng
+                        sylvaAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);   // Sói / Đại Bàng: cứ 4 đòn -> 1 kỹ năng
                         elemAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);   // Elarion — Tốc Lôi: chưởng 2 lần
                         archerExtraShots(roomId, playerId, memberIndex, opponentId, targetIdx, now);
                         reaperCleave(roomId, playerId, memberIndex, opponentId, targetIdx, now);
@@ -2002,7 +2126,7 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     const orbs = playerData.debugNoMana ? 99 : member.mp / ORB_COST;
     const ready = (i) => (playerData.debugNoMana || member.mp >= Math.max(skillCostOf(member, i, now), (skillsOf(member)[i]?.minOrbs ?? 0) * ORB_COST))
         && now >= member.skillCooldowns[i] && !danceOn(member, skillsOf(member)[i]?.type, now)
-        && foeInReach(member, skillsOf(member)[i]?.type, opponentData.squad, now);   // múa / Tàng Hình: chỉ khi đã gặp đối thủ
+        && foeInReach(member, skillsOf(member)[i]?.type, opponentData.squad, now);   // mọi kỹ năng: chỉ khi có đối thủ trong tầm đánh
     const cdLeft = (i) => Math.max(0, member.skillCooldowns[i] - now);
     const has = (m, type, minLeft = 0) => m.statusEffects.some(ef => ef.type === type && ef.endTime > now + minLeft);
     const dist = (a, b) => Math.hypot(a.x - b.x, (a.z || 0) - (b.z || 0));
@@ -2152,6 +2276,36 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         if (!god && ready(2) && (engaged > 0 || nearest <= 12)) return 2;
         if (!tide && ready(0) && (god || orbs < 3 || engaged > 0 || nearest <= 14)) return 0;
         if (!flow && ready(1) && member.mp >= 2 * ORB_COST && (minPct < 0.85 || (tide && god))) return 1;
+        return -1;
+    }
+
+    if (member.classId === 'summoner') {
+        // Sylva: Thần Hươu khi đã có triệu hồi trên sân / đồng đội bị thương · Gấu khi ≥2 đối thủ hoặc bị áp sát · Sói & Đại Bàng
+        const hasSummons = allies.some(a => a.alive && a.summon);
+        const hurt = allies.some(a => a.alive && !a.summon && hpPct(a) < 0.7);
+        const pressed = targetable.some(e => dist(e, member) <= 5);
+        const pack = allies.some(a => a.alive && (a.classId === 'sylva_wolf' || a.classId === 'sylva_eagle'));
+        if (!pack && ready(0)) return 0;   // chưa có Sói / Đại Bàng -> gọi trước
+        if (ready(2) && (hasSummons || hurt) && !playerData.sylvaDeer?.[idx]) return 2;
+        if (ready(1) && (targetable.length >= 2 || pressed)) return 1;
+        if (ready(0)) return 0;
+        if (ready(1)) return 1;
+        return -1;
+    }
+
+    if (member.classId === 'alchemist') {
+        // Grix: tích Độc bằng Bình Độc / Đầm Lầy -> đủ Độc (≥8 tầng, hoặc mọi quái trúng độc đã đầy tầng, hoặc có quái độc sắp chết)
+        //   thì Đại Bộc Phá. Chiêu cuối sắp hồi xong mà Độc đã ngấm -> để dành 3 Orb, không tiêu vào chiêu nhỏ
+        const stacks = e => poisonOf(e, now)?.stacks ?? 0;
+        const poisoned = enemies.filter(e => stacks(e) > 0);
+        const total = poisoned.reduce((n, e) => n + stacks(e), 0);
+        const full = poisoned.length > 0 && poisoned.every(e => stacks(e) >= (poisonOf(e, now).maxStacks ?? 5));
+        if (ready(2) && (total >= 8 || full || poisoned.some(e => hpPct(e) <= 0.25))) return 2;
+        const saving = cdLeft(2) < 3000 && total >= 3;
+        const spare = (cost) => !saving || orbs >= 3 + cost;
+        // bình + vạc rơi vào địch ngẫu nhiên khắp bản đồ -> không cần tìm cụm: vạc (3 đợt, mạnh hơn) trước, rồi bình
+        if (ready(1) && spare(2)) return 1;
+        if (ready(0) && spare(1)) return 0;
         return -1;
     }
 
@@ -2342,7 +2496,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 const result = calculateDamage(member, target, multiplier, now, { forceCrit: isStealth });
                 const dmg = result.damage;
                 // lướt chém lần lượt: vanish 320ms -> mỗi nhát cách 150ms
-                if (dealDamage(target, dmg, opponentData, 380 + chainHits.length * 150)) extra.killed = true;
+                if (dealDamage(target, dmg, opponentData, 380 + chainHits.length * 150, null, member, result)) extra.killed = true;
                 chainHits.push({ targetIndex: obj.index, damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
             });
 
@@ -2359,7 +2513,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 
                 const result = calculateDamage(member, target, skillDef.multiplier, now, { forceCrit: isStealth });
                 const dmg = result.damage;
-                if (dealDamage(target, dmg, opponentData, 380)) extra.killed = true;
+                if (dealDamage(target, dmg, opponentData, 380, null, member, result)) extra.killed = true;
                 effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
             }
         }
@@ -2374,7 +2528,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             const result = calculateDamage(member, enemy, skillDef.multiplier, now, { aoe: true });
             // sóng gầm bung ở 0.42s rồi lan ra: xa trúng sau
             const tauntDist = Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0));
-            if (!result.isMiss) dealDamage(enemy, result.damage, opponentData, (skillDef.impact ?? 0) + tauntDist * 45);
+            if (!result.isMiss) dealDamage(enemy, result.damage, opponentData, (skillDef.impact ?? 0) + tauntDist * 45, null, member, result);
             effects.push({ targetIndex: i, taunted: true, damage: result.damage, isCrit: result.isCrit, isBlock: result.isBlock, isMiss: result.isMiss,
                 dist: Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) });
         });
@@ -2388,7 +2542,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             member.z = target.z;
             clampToArena(member);
             const result = calculateDamage(member, target, skillDef.multiplier, now);
-            dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0);
+            dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0, null, member, result);
             target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'stun');
             target.statusEffects.push({ type: 'stun', endTime: now + (skillDef.impact ?? 0) + ccTime(target, skillDef.stun, now) });
             effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: result.damage, isCrit: result.isCrit, isBlock: result.isBlock, stunned: true });
@@ -2400,7 +2554,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         if (target) {
             const ti = opponentData.squad.indexOf(target);
             const result = calculateDamage(member, target, skillDef.multiplier, now);
-            dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0);
+            dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0, null, member, result);
             const dir = Math.sign(target.x - member.x) || (member.side === 'left' ? 1 : -1);
             const fromX = target.x;
             if (!ccImmune(target, now)) target.x += dir * skillDef.push;   // Khổng Lồ: không bị đẩy
@@ -2503,6 +2657,51 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             // nhả dây (impact) -> xếp hàng sau lưng (formTime) -> phóng lần lượt (arrowGap) -> bay (arcFlight)
             const delay = (skillDef.impact ?? 0) + (skillDef.formTime ?? 0) + order * (skillDef.arrowGap ?? 60) + (skillDef.arcFlight ?? 450);
             effects.push({ ...hitTarget(member, t, ti, opponentData, shot.mult, now, { noBlock: true, delay }), role: shot.role, order });
+        });
+    } else if (skillDef.type === 'sylva_call' || skillDef.type === 'sylva_bear' || skillDef.type === 'sylva_deer') {
+        castSylvaSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, extra);
+    } else if (skillDef.type === 'goblin_flask') {
+        extra.flasks = goblinFlasks(room, member, opponentData.squad, skillDef, now);
+        for (const flask of extra.flasks)
+            later(flask.at, () => goblinArea(room, casterId, casterIdx, actualOpponentId, flask, skillDef, false));
+    } else if (skillDef.type === 'goblin_bog') {
+        extra.cauldrons = goblinCauldrons(room, casterId, casterIdx, actualOpponentId, skillDef);
+    } else if (skillDef.type === 'goblin_detonate') {
+        const floating = member.statusEffects.find(ef => ef.type === 'goblin_float');
+        if (floating) floating.endTime = now + skillDef.impact + 300;
+        extra.detonate = { at: skillDef.impact, targets: opponentData.squad.flatMap((e, targetIndex) => {
+            const poison = poisonOf(e, now);
+            return e.alive && poison ? [{ targetIndex, stacks: poison.stacks }] : [];
+        }) };
+        later(skillDef.impact, () => {
+            const t = room.clock, hits = [], spreads = [];
+            // Chốt tầng độc lúc nổ; độc mới lây không bị tiêu thụ trong cùng vụ nổ.
+            const victims = opponentData.squad.flatMap((e, i) => {
+                const poison = poisonOf(e, t);
+                return e.alive && poison ? [{ e, i, poison, stacks: poison.stacks }] : [];
+            });
+            for (const { e, i, poison, stacks } of victims) {
+                if (!e.alive) continue;
+                e.statusEffects = e.statusEffects.filter(ef => ef !== poison);
+                const effect = hitTarget(member, e, i, opponentData, skillDef.perStack * stacks, t, { noBlock: true, aoe: true });
+                hits.push({ ...effect, stacks });
+                if (!e.alive && !effect.isMiss) spreads.push({ e, i });
+            }
+            io.to(roomId).emit('goblinFx', { kind: 'detonate', casterId, casterIdx, effects: hits });
+            for (const { e, i } of spreads) {
+                const toIndexes = [];
+                opponentData.squad.forEach((other, j) => {
+                    if (!other.alive || other === e || Math.hypot(other.x - e.x, (other.z || 0) - (e.z || 0)) > skillDef.spreadRadius) return;
+                    addPoison(member, other, skillDef.spreadStacks, t);
+                    toIndexes.push(j);
+                });
+                io.to(roomId).emit('goblinFx', { kind: 'spread', casterId, casterIdx, fromIndex: i,
+                    x: e.x, z: e.z || 0, radius: skillDef.spreadRadius, toIndexes });
+            }
+            if (member.alive) {
+                member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'goblin_frenzy');
+                member.statusEffects.push({ type: 'goblin_frenzy', endTime: t + skillDef.frenzy, duration: skillDef.frenzy, mAtkUp: skillDef.mAtkUp });
+            }
         });
     } else if (skillDef.type === 'sky_fireball') {
         // ---- Thiên Hỏa Cầu: cầu lửa lớn rơi xuống chỗ quái đông nhất (nổ lúc impact). Thiên phú: 50% rơi thêm quả 2 (70%) ----
@@ -2834,7 +3033,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 const result = calculateDamage(member, enemy, skillDef.multiplier, now);
                 const dmg = result.damage;
                 
-                dealDamage(enemy, dmg, opponentData, skillDef.impact ?? 0);
+                dealDamage(enemy, dmg, opponentData, skillDef.impact ?? 0, null, member, result);
                 effects.push({ targetIndex: i, damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
             }
         });
@@ -2855,7 +3054,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             target.statusEffects.push({ type: 'seal', endTime: now + 7000 });
 
             // bùa bay: quăng ở 0.42s (nhảy lùi) / 0.2s (tại chỗ), mỗi lá cách 120ms, bay 200ms
-            dealDamage(target, dmg, opponentData, (skillDef.backstep ? 420 : 200) + 200 + effects.length * 120);
+            dealDamage(target, dmg, opponentData, (skillDef.backstep ? 420 : 200) + 200 + effects.length * 120, null, member, result);
             effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
         };
 
@@ -2934,7 +3133,13 @@ function onHitTaken(target) {
     }
 }
 
-function dealDamage(target, dmg, oppData, delay = 0, after) {
+function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
+    // Phản độc đúng lúc đòn chạm; giữ tham chiếu giáp cho đòn vừa phá hết máu khiên.
+    if (attacker && hit && !hit.isMiss && (dmg > 0 || hit.absorbed > 0)) {
+        const now = curRoom?.clock;
+        const ward = target.statusEffects?.find(ef => ef.type === 'goblin_ward' && ef.endTime > now && (ef.hp > 0 || hit.absorbed > 0));
+        later(delay, () => goblinWardHit(target, attacker, curRoom.clock, ward));
+    }
     if (dmg > 0) later(delay, () => onHitTaken(target));
     if (oppData.debugGodMode || !(dmg > 0)) { if (after) later(delay, after); return false; }
     target.pendingDmg = (target.pendingDmg || 0) + dmg;
@@ -2958,7 +3163,7 @@ function dealDamage(target, dmg, oppData, delay = 0, after) {
 /** Gây sát thương 1 phát lên mục tiêu (tôn trọng bất tử debug), trả về effect cho client. opts.delay = ms tới lúc chạm */
 function hitTarget(attacker, target, targetIndex, oppData, multiplier, now, opts = {}) {
     const r = calculateDamage(attacker, target, multiplier, now, { isSkill: true, ...opts });
-    const killed = !r.isMiss && dealDamage(target, r.damage, oppData, opts.delay ?? 0, r.isMiss ? null : executeHook(attacker, target));
+    const killed = !r.isMiss && dealDamage(target, r.damage, oppData, opts.delay ?? 0, r.isMiss ? null : executeHook(attacker, target), opts.goblinDot ? null : attacker, r);
     // hút máu (Devil...) lúc đòn chạm
     const ls = getEffectiveStats(attacker, now).stats.lifesteal ?? 0;
     if (!r.isMiss && ls > 0 && r.damage > 0) later(opts.delay ?? 0, () => { if (attacker.alive) healUnit(attacker, r.damage * ls / 1000, curRoom?.clock ?? now); });
@@ -3043,6 +3248,7 @@ function kiteAway(member, enemies, step, now) {
 
 /** Thời gian niệm thật: KN1 & KN2 của Ignar niệm TRUNG BÌNH (1s), lúc Hỏa Thần thì niệm NHANH (godCast) */
 function castTimeOf(member, skillDef, now) {
+    if (canElemShadow(member, skillDef, now)) return 0;
     if (skillDef.godCast != null && member.statusEffects?.some(ef => ef.type === 'fire_god' && ef.endTime > now)) return skillDef.godCast;
     if (skillDef.formCast != null && reaperForm(member, now)) return skillDef.formCast;   // Đêm Tử Thần: Lưỡi Hái Hất Hồn không cần niệm
     if (skillDef.giantCast != null && giantForm(member, now)) return skillDef.giantCast;   // Brakk Khổng Lồ: mọi kỹ năng dùng ngay, không niệm
@@ -3274,7 +3480,10 @@ function healUnit(m, amount, now = curRoom?.clock ?? Date.now()) {
 }
 /** Tỉ lệ giảm hồi máu đang chịu (Ấn Tử) */
 function healCutOf(m, now) {
-    return Math.max(0, ...(m.statusEffects ?? []).filter(ef => ef.type === 'death_mark' && ef.endTime > now).map(ef => ef.healCut ?? 0));
+    const active = (m.statusEffects ?? []).filter(ef => ef.endTime > now);
+    const base = Math.max(0, ...active.filter(ef => ef.type === 'death_mark' || ef.type === 'toxic').map(ef => ef.healCut ?? 0));
+    const rot = Math.max(0, ...active.filter(ef => ef.type === 'venom_rot').map(ef => ef.healCut ?? 0));
+    return Math.min(0.9, base + rot);
 }
 /** Hiệu ứng Đêm Tử Thần đang có (null nếu không) */
 function reaperForm(m, now) {
@@ -3336,7 +3545,7 @@ function reaperUndying(m) {
 /** Nhân vật gục: Thiên Thần Hộ Mệnh của Tu Sĩ + Linh Hồn Báo Thù của Zerith */
 function killMember(target, squad) {
     target.alive = false; target.state = 'dead';
-    target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged');
+    target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
     target.wardOn = false;   // Giáp Lửa mất theo
     // Elarion gục: tắt SolarBeam / mưa giông đang thi triển
     if (target.statusEffects.some(ef => ef.type === 'elem_beam' || ef.type === 'elem_rain')) {
@@ -3355,7 +3564,7 @@ function killMember(target, squad) {
         target.ghostPower = t.value;
         target.ghostX = target.x; target.ghostZ = target.z || 0;
         const at = locate(target);
-        if (at) emitReaper({ kind: 'ghostStart', casterId: at.pid, casterIdx: at.idx, x: target.x, z: target.ghostZ, duration: t.duration });
+        if (at) emitReaper({ kind: 'ghostStart', casterId: at.pid, casterIdx: at.idx, x: target.x, z: target.ghostZ, duration: t.duration, summon: true })   // Hộ Vệ Thần Chết: nhãn triệu hồi;
     }
 }
 /** Ấn Tử của `attacker` đang gắn trên `target` (null nếu không) */
@@ -3502,7 +3711,7 @@ function giantForm(m, now) {
 }
 /** Đang miễn mọi khống chế / hiệu ứng bất lợi (5 giây đầu Khổng Lồ) */
 function ccImmune(m, now) {
-    if (m?.summon) return true;   // Golem Nguyên Tố: không dính khống chế / hiệu ứng nào
+    if (m?.summon && !takesDebuffs(m)) return true;   // triệu hồi KHÔNG nhận debuff (Golem): không dính khống chế
     const g = giantForm(m, now);
     return !!g && now < (g.immuneUntil ?? 0);
 }
@@ -3687,6 +3896,7 @@ function afterHpLoss(m) {
     checkBrakkBlood(m);
     checkFireWard(m);
     checkJudgement(m);
+    checkGoblinWard(m);
 }
 const hasReviveGuard = (m, now) => !!m?.statusEffects?.some(ef => ef.type === 'revive_guard' && ef.endTime > now);
 function isJudged(m, now) {
@@ -3865,6 +4075,7 @@ function checkJudgement(target) {
     target.statusEffects.push({ type: 'judged', endTime: now + lift + fall, duration: lift + fall, noCleanse: true });
     _judgeKeep.set(target, new Set(target.statusEffects));
     target.judgePos = { x: target.x, z: target.z || 0 };
+    target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'goblin_float');
     target.castingSkillId = null; target.queuedSkills = [];
     target.state = 'judged';
     const roomId = curRoom.id;
@@ -3907,14 +4118,13 @@ function processJudged(m, now) {
 // ============================================================
 const DANCE_TYPES = new Set(['dance_tide', 'dance_flow', 'dance_god']);
 const DANCE_NUM = { dance_tide: 1, dance_flow: 2, dance_god: 3 };
-// Kỹ năng tự buff phải GẶP ĐỐI THỦ mới dùng được: các điệu múa (Nerissa), Tàng Hình (Jessica)
-//   -> có đối thủ (còn sống) trong tầm bắn của Lyra quanh người dùng. Chưa gặp: lệnh nằm chờ, nhân vật vẫn tiến lên.
-const NEED_FOE_TYPES = new Set(['dance_tide', 'dance_flow', 'dance_god', 'stealth']);
-const foeReach = () => CLASS_DEFS.archer.atkRange;
+// LUẬT CHUNG (mọi nhân vật, 27/10/2026): chỉ dùng được kỹ năng khi có đối thủ (chọn được) TRONG TẦM ĐÁNH của chính mình
+//   (attackRangeOf: tầm đánh thường, cộng thêm tầm từ buff). Chưa có: lệnh nằm chờ, nhân vật vẫn tiến lên / đánh thường bình thường.
+//   (bản cũ chỉ áp cho điệu múa / Tàng Hình / Đại Bộc Phá, đo theo tầm Lyra.) `skillType` giữ trong chữ ký cho các chỗ gọi cũ.
+const FOE_REACH_SLACK = 0.3;   // dư một chút cho khỏi chập chờn đúng mép tầm đánh
 function foeInReach(member, skillType, oppSquad, now) {
-    if (!NEED_FOE_TYPES.has(skillType)) return true;
-    const r = foeReach();
-    return (oppSquad ?? []).some(e => e.alive && !isJudged(e, now) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
+    const r = attackRangeOf(member, now) + FOE_REACH_SLACK;
+    return (oppSquad ?? []).some(e => canBeTargeted(e, now) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
 }
 /** Hệ số tốc độ hồi Orb (MP mỗi giây + MP mỗi đòn): Elarion — Tốc Lôi ×2, mỗi tầng Cộng Hưởng Lôi +10/15/20% */
 function orbRegenMult(m, now) {
@@ -3956,7 +4166,7 @@ function startDance(roomId, pid, idx, oppId, skillIdx, now) {
     m.statusEffects.push({ type: sk.type, endTime: end, duration: sk.duration ?? 0, skillIdx, start: now, next: now });
     // hồi chiêu tính từ lúc múa xong -> trong lúc múa khoá nút (endDance đặt lại thời điểm thật)
     if (!team.debugNoMana) m.skillCooldowns[skillIdx] = NEVER;
-    const allies = team.squad.filter(a => a.alive && !a.summon);   // Golem triệu hồi không nhận buff
+    const allies = team.squad.filter(a => a.alive && takesBuffs(a));   // triệu hồi chỉ nhận nếu quy định cho phép (Golem: không)
     if (sk.type === 'dance_tide') {
         allies.forEach(a => {
             a.statusEffects = a.statusEffects.filter(ef => !(ef.type === 'tide_mana' && ef.src === key));
@@ -4148,6 +4358,38 @@ const GEM_SLOTS = (() => {
 })();
 const stormOn = (m, now) => m.statusEffects?.find(e => e.type === 'elem_storm' && e.endTime > now) ?? null;
 
+/** Bóng chỉ nhận phép khi Elarion chưa tự niệm. */
+function canElemShadow(m, sp, now) {
+    return m.classId === 'elementalist' && sp.type === 'elem_spell' &&
+        (sp.key === 'steam' || sp.key === 'beams') && m.state !== 'casting' &&
+        !m.elemShadow && !!stormOn(m, now);
+}
+function startElemShadow(room, pid, idx, sp, now) {
+    const m = room.players[pid].squad[idx];
+    if (!canElemShadow(m, sp, now)) return null;
+    const castTime = sp.key === 'steam' ? sp.castTime : sp.impact;
+    const shadow = { spell: sp.key, x: m.x, z: m.z || 0, castEnd: now + castTime, endTime: now + castTime + sp.duration };
+    m.elemShadow = shadow;
+    m.x -= 4 * (m.side === 'left' ? 1 : -1);
+    clampToArena(m);
+    m.actionUntil = now;
+    m.state = 'idle';
+    emitElem(room.id, { kind: 'shadowStart', casterId: pid, casterIdx: idx, spell: sp.key,
+        x: shadow.x, z: shadow.z, fromX: shadow.x, fromZ: shadow.z, toX: m.x, toZ: m.z || 0, retreatTime: 350, castTime });
+    return shadow;
+}
+function endElemShadow(room, pid, idx) {
+    const m = room.players[pid]?.squad[idx];
+    if (!m?.elemShadow) return;
+    m.elemShadow = null;
+    emitElem(room.id, { kind: 'shadowEnd', casterId: pid, casterIdx: idx });
+}
+/** Giữ riêng hiệu ứng của bóng và Elarion. */
+function putElemChannel(m, ef) {
+    m.statusEffects = m.statusEffects.filter(e => e.type !== ef.type || !!e.shadow !== !!ef.shadow);
+    m.statusEffects.push(ef);
+}
+
 /** Rơi 1 viên ngọc ngẫu nhiên (1 hệ không rơi quá gemMaxRun lần liền). Sống gemLife ms GIỜ THẬT (đổi ra giờ trận theo tốc độ) */
 function spawnGem(m, now, ts, storm = false) {
     const def = CLASS_DEFS.elementalist;
@@ -4310,7 +4552,7 @@ function wardCounter(attacker, mage, now) {
  *  Bị giải hiệu ứng (mọi cách) thì mất tầng, đếm lại. Trả về thời gian đóng băng nếu vừa đủ tầng (0 nếu chưa) */
 const CHILL = { per: 0.02, time: 5000, max: 5, freeze: 1500 };
 function addChill(e, now, n = 1) {
-    if (!e?.alive || e.summon) return 0;
+    if (!e?.alive || !takesDebuffs(e)) return 0;
     const cur = e.statusEffects.find(x => x.type === 'chill' && x.endTime > now);
     const stacks = (cur?.stacks ?? 0) + n;
     if (stacks >= CHILL.max) {
@@ -4452,7 +4694,7 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
         case 'ward': {
             // khiên 25% máu cho Elarion + đồng đội yếu máu nhất 6s; ai đánh trúng người có giáp bị sét giật + choáng (tới hết 6s)
             const end = now + (sp.lock ?? 0) + sp.duration;
-            const ally = team.squad.filter(a => a.alive && a !== m && !a.summon).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+            const ally = team.squad.filter(a => a.alive && a !== m && takesBuffs(a)).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
             extra.shields = [];
             [m, ally].filter(Boolean).forEach(a => {
                 const hp = Math.round(a.maxHp * sp.shieldPct);
@@ -4493,12 +4735,15 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
         }
         case 'steam': {
             // (đã niệm 2s) mây mưa giông 7s: Elarion đứng thi triển — mưa hồi máu phe ta, sét đánh ngẫu nhiên đối thủ
+            const shadow = startElemShadow(room, pid, idx, sp, now);
+            const delay = shadow ? sp.castTime : 0;
             const foes = foesOf(opp, now);
             const allies = team.squad.filter(a => a.alive);
             const cx = (avg(foes.map(o => o.e.x)) ?? m.x) * 0.5 + avg(allies.map(a => a.x)) * 0.5;
-            putEffect(m, { type: 'elem_rain', endTime: now + sp.duration, duration: sp.duration, next: now + sp.every, every: sp.every,
+            putElemChannel(m, { type: 'elem_rain', ...(shadow ? { shadow: true, x: shadow.x, z: shadow.z } : {}),
+                start: now + delay, endTime: now + delay + sp.duration, duration: sp.duration, next: now + delay + sp.every, every: sp.every,
                 heal: sp.heal, healPct: sp.healPct, manaPerSec: sp.manaPerSec, strike: sp.strikeMultiplier, stun: sp.strikeStun });
-            extra.rain = { x: cx, z: 0, duration: sp.duration };
+            extra.rain = { x: shadow?.x ?? cx, z: shadow?.z ?? 0, duration: sp.duration, ...(shadow ? { shadow: { x: shadow.x, z: shadow.z }, delay } : {}) };
             break;
         }
         case 'firebolt': {
@@ -4530,12 +4775,14 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
         }
         case 'beams': {
             // dồn lực (impact) -> đứng yên chưởng SolarBeam băng-hỏa `duration` ms; sát thương mỗi giây do processBeam
-            const aim = beamAim(m, foesOf(opp, now).map(o => o.e), sp, side, now, target);
+            const shadow = startElemShadow(room, pid, idx, sp, now);
+            const origin = shadow ?? m;
+            const aim = beamAim(origin, foesOf(opp, now).map(o => o.e), sp, side, now, target);
             const start = now + sp.impact;
-            putEffect(m, { type: 'elem_beam', start, endTime: start + sp.duration, duration: sp.duration, next: start + sp.every / 2, every: sp.every,
+            putElemChannel(m, { type: 'elem_beam', ...(shadow ? { shadow: true, x: shadow.x, z: shadow.z } : {}), start, endTime: start + sp.duration, duration: sp.duration, next: start + sp.every / 2, every: sp.every,
                 ux: aim.ux, uz: aim.uz, tick: 0, ice: sp.iceMultiplier, fire: sp.fireMultiplier, ramp: sp.fireRamp, max: sp.fireMax, maxBonus: sp.maxBonus,
                 slow: sp.slow, slowTime: sp.slowTime, width: sp.width, widthMax: sp.widthMax });
-            extra.beam = { ux: aim.ux, uz: aim.uz, charge: sp.impact, duration: sp.duration, every: sp.every, max: sp.fireMax, len: beamLength(m, aim) };
+            extra.beam = { ux: aim.ux, uz: aim.uz, charge: sp.impact, duration: sp.duration, every: sp.every, max: sp.fireMax, len: beamLength(origin, aim), ...(shadow ? { shadow: { x: shadow.x, z: shadow.z } } : {}) };
             break;
         }
         case 'haste': {
@@ -4596,7 +4843,7 @@ function summonGolem(room, pid, idx, sp, now) {
     for (const k of P.UNIQUE_KEYS) g[k] = 0;
     clampToArena(g);
     if (slot >= 0) team.squad[slot] = g; else { slot = team.squad.length; team.squad.push(g); }
-    emitElem(room.id, { kind: 'golemSummon', casterId: pid, casterIdx: idx, golemIdx: slot, x: g.x, z: g.z, duration: sp.duration });
+    emitElem(room.id, { kind: 'golemSummon', casterId: pid, casterIdx: idx, golemIdx: slot, x: g.x, z: g.z, duration: sp.duration, summon: true });
     return slot;
 }
 /** Golem tan biến (hết giờ / bị gọi Golem mới thay) — không tính là bị hạ gục */
@@ -4615,7 +4862,331 @@ function processGolem(roomId, pid, idx, oppId, now) {
     const g = room.players[pid].squad[idx];
     if (!g.alive) return;
     if (now >= (g.summonEnd ?? Infinity)) return vanishGolem(room, pid, idx, 'time');
-    if (g.statusEffects.some(e => !GOLEM_KEEP.has(e.type))) g.statusEffects = g.statusEffects.filter(e => GOLEM_KEEP.has(e.type));
+    // giữ: hiệu ứng được phép + mọi hiệu ứng từ Sylva / Thần Hươu (fromSylva)
+    const keep = (e) => GOLEM_KEEP.has(e.type) || (e.fromSylva && summonRulesOf(g).allowFromSylva);
+    if (g.statusEffects.some(e => !keep(e))) g.statusEffects = g.statusEffects.filter(keep);
+}
+
+// ============================================================
+// HỆ THỐNG TRIỆU HỒI (27/10/2026) — nhãn chung `summon: true`; mỗi triệu hồi tự quy định trong CLASS_DEFS.summonRules:
+//   targetable (bị đánh) · buffs (nhận buff đồng đội) · debuffs (nhận debuff / khống chế) · allowFromSylva (nhận hiệu ứng Sylva).
+//   Triệu hồi KHÔNG tính thắng thua (checkWinCondition) và Sinh Tử chỉ đếm tướng.
+// ============================================================
+const summonRulesOf = (m) => CLASS_DEFS[m?.classId]?.summonRules ?? { targetable: true, buffs: false, debuffs: false };
+const takesBuffs = (a) => !a?.summon || !!summonRulesOf(a).buffs;
+const takesDebuffs = (a) => !a?.summon || !!summonRulesOf(a).debuffs;
+const emitSylva = (roomId, data) => io.to(roomId).emit('sylvaFx', data);
+/** Triệu hồi biến mất (hết giờ / bị gọi lại / phe hết tướng) — không tính là bị hạ gục */
+function vanishSummon(room, pid, slot, reason) {
+    const s = room.players[pid]?.squad[slot];
+    if (!s || !s.alive) return;
+    if (s.classId === 'elem_golem') return vanishGolem(room, pid, slot, reason);
+    s.alive = false; s.hp = 0; s.state = 'dead'; s.vanished = true;
+    s.queuedSkills = []; s.castingSkillId = null; s.statusEffects = [];
+    emitSylva(room.id, { kind: 'summonEnd', casterId: pid, summonIdx: slot, reason, summon: true });
+}
+
+// ============================================================
+// SYLVA (Lâm Linh) — thú triệu hồi (Sói, Đại Bàng, Gấu: có máu) + Thần Hươu (không máu, không bị đánh)
+// ============================================================
+const SYLVA_UNITS = { wolf: 'sylva_wolf', eagle: 'sylva_eagle', bear: 'sylva_bear' };
+/** Gọi 1 thú (có máu) cho Sylva ở (x, z). Chỉ số riêng của thú + tăng theo cấp Sylva. Trả về chỉ số ô trong đội */
+function summonSylvaUnit(room, pid, idx, kind, x, z, duration, now) {
+    const team = room.players[pid];
+    const m = team.squad[idx];
+    const classId = SYLVA_UNITS[kind], d = CLASS_DEFS[classId];
+    let slot = team.squad.findIndex(s => s.classId === classId && s.ownerIdx === idx);
+    if (slot >= 0 && team.squad[slot].alive) vanishSummon(room, pid, slot, 'replaced');
+    const L = Math.max(0, (m.level ?? 1) - 1);
+    const stat = (k) => Math.round((d[k] ?? 0) + (d.perLevel?.[k] ?? 0) * L);
+    const s = {
+        classId, name: d.name, emoji: d.emoji, color: d.color,
+        summon: true, summonKind: kind, summonId: (room.summonSeq = (room.summonSeq ?? 0) + 1), ownerIdx: idx,
+        level: m.level, rank: 0, rankName: m.rankName, skillLevel: m.skillLevel,
+        hp: stat('maxHp'), maxHp: stat('maxHp'), mp: 0, maxMp: 0,
+        pAtk: stat('pAtk'), mAtk: 0, pDef: stat('pDef'), mDef: stat('mDef'),
+        crit: d.crit, critDmg: d.critDmg, acc: d.acc, dodge: d.dodge, pen: 0, block: d.block ?? 0, lifesteal: 0, threat: d.threat,
+        mpAtk: 0, mpSec: 0, atkSpeed: d.atkSpeed, atkRange: d.atkRange, range: d.range, moveSpeed: d.moveSpeed,
+        alive: true, x, y: 0, z, side: m.side,
+        state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: now,
+        skillCooldowns: [0, 0, 0], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: [],
+        skills: [], passives: [], talentLevels: { 1: 0, 2: 0 },
+        summonEnd: now + duration, autos: 0, actionUntil: now + 400,
+    };
+    for (const k of P.UNIQUE_KEYS) s[k] = 0;
+    clampToArena(s);
+    if (slot >= 0) team.squad[slot] = s; else { slot = team.squad.length; team.squad.push(s); }
+    emitSylva(room.id, { kind: 'summon', casterId: pid, casterIdx: idx, summonIdx: slot, summonType: kind, x: s.x, z: s.z, duration, summon: true });
+    onSylvaSummonAppear(room, pid, idx, now);
+    return slot;
+}
+/** Thiên phú 1 — Gắn Kết Rừng Thiêng: mỗi triệu hồi ra sân -> cả đội +tầng tấn công (triệu hồi gấp đôi), tối đa 5, làm mới thời gian */
+function onSylvaSummonAppear(room, pid, idx, now) {
+    const team = room.players[pid];
+    const m = team.squad[idx];
+    const t = talentOf(m, 'sylva_bond');
+    if (!t) return;
+    team.sylvaMight = Math.min(t.maxStacks, (team.sylvaMight && now < (team.sylvaMightEnd ?? 0) ? team.sylvaMight : 0) + 1);
+    team.sylvaMightEnd = now + t.duration;
+    team.squad.forEach(a => {
+        if (!a.alive || (a.summon && !takesBuffs(a) && !summonRulesOf(a).allowFromSylva)) return;
+        a.statusEffects = a.statusEffects.filter(e => e.type !== 'forest_might');
+        a.statusEffects.push({ type: 'forest_might', endTime: now + t.duration, duration: t.duration, stacks: team.sylvaMight,
+            per: a.summon ? t.summon : t.hero, fromSylva: true });
+    });
+    emitSylva(room.id, { kind: 'forestMight', casterId: pid, casterIdx: idx, stacks: team.sylvaMight });
+}
+/** Kỹ năng của Sylva (executeSkill) */
+function castSylvaSkill(room, pid, idx, oppId, sk, now, extra) {
+    const team = room.players[pid], opp = room.players[oppId];
+    const m = team.squad[idx];
+    const side = m.side === 'left' ? 1 : -1;
+    if (sk.type === 'sylva_call') {
+        // Sói đứng trước Sylva, Đại Bàng lệch sau — ra cùng lúc (sau động tác gọi)
+        later(sk.impact ?? 0, () => {
+            const t = room.clock;
+            if (!m.alive || room.winner) return;
+            const w = summonSylvaUnit(room, pid, idx, 'wolf', m.x + side * 1.8, (m.z || 0) + 1.0, sk.duration, t);
+            // Đại Bàng: con riêng — ra phía trước, lệch hàng; tầm đánh / tốc bay khác Sylva nên không đi dính theo Sylva
+            summonSylvaUnit(room, pid, idx, 'eagle', m.x + side * 3.2, (m.z || 0) - 1.8, sk.duration, t);
+            wolfHowl(room, pid, w, oppId, t);
+            const eagle = team.squad.findIndex(s => s.classId === 'sylva_eagle' && s.ownerIdx === idx && s.alive);
+            if (eagle >= 0) eagleEye(room, pid, eagle, t);
+        });
+        extra.call = { impact: sk.impact ?? 0 };
+    } else if (sk.type === 'sylva_bear') {
+        later(sk.impact ?? 0, () => {
+            const t = room.clock;
+            if (!m.alive || room.winner) return;
+            const slot = summonSylvaUnit(room, pid, idx, 'bear', m.x, m.z || 0, sk.duration, t);
+            bearCharge(room, pid, slot, oppId, sk, t);
+        });
+        extra.bear = { impact: sk.impact ?? 0 };
+    } else if (sk.type === 'sylva_deer') {
+        // Thần Hươu: triệu hồi KHÔNG máu (không phải thành viên đội) — lưu trên đội, xử lý mỗi tick ở processSylva
+        later(sk.impact ?? 0, () => {
+            const t = room.clock;
+            if (room.winner) return;
+            const x = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, m.x - side * 1.6)), z = (m.z || 0) - 0.6;
+            team.sylvaDeer = team.sylvaDeer ?? {};
+            team.sylvaDeer[idx] = { x, z, end: t + sk.duration, next: t + sk.every, sk };
+            emitSylva(room.id, { kind: 'deer', casterId: pid, casterIdx: idx, x, z, duration: sk.duration, summon: true });
+            onSylvaSummonAppear(room, pid, idx, t);
+        });
+        extra.deer = { impact: sk.impact ?? 0 };
+    }
+}
+/** Sói tru khi ra sân: mọi đối thủ −P.DEF / −M.DEF */
+function wolfHowl(room, pid, slot, oppId, now) {
+    const w = room.players[pid].squad[slot], d = CLASS_DEFS.sylva_wolf;
+    const opp = room.players[oppId];
+    if (!w?.alive || !opp) return;
+    const targetIndexes = [];
+    opp.squad.forEach((e, i) => {
+        if (!e.alive || !takesDebuffs(e)) return;
+        e.statusEffects = e.statusEffects.filter(ef => ef.type !== 'wolf_howl');
+        e.statusEffects.push({ type: 'wolf_howl', endTime: now + d.howlTime, duration: d.howlTime, value: d.howlDown, debuff: true });
+        targetIndexes.push(i);
+    });
+    emitSylva(room.id, { kind: 'howl', casterId: pid, summonIdx: slot, targetId: oppId, targetIndexes, duration: d.howlTime });
+}
+/** Đại Bàng — Ưng Nhãn: 5s tăng tốc đánh, tầm cả bản đồ, đánh ngẫu nhiên */
+function eagleEye(room, pid, slot, now) {
+    const g = room.players[pid].squad[slot], d = CLASS_DEFS.sylva_eagle;
+    if (!g?.alive) return;
+    g.statusEffects = g.statusEffects.filter(ef => ef.type !== 'eagle_eye');
+    g.statusEffects.push({ type: 'eagle_eye', endTime: now + d.eyeTime, duration: d.eyeTime, value: d.eyeAtkSpeed });
+    g.eyeNext = now + d.eyeEvery;
+    emitSylva(room.id, { kind: 'eagleEye', casterId: pid, summonIdx: slot, duration: d.eyeTime });
+}
+/** Gấu ra sân: ủi thẳng từ chỗ Sylva xuyên qua MỌI đối thủ tới quá người xa nhất, rồi ủi quay về — mỗi lượt hất tung + choáng */
+function bearCharge(room, pid, slot, oppId, sk, now) {
+    const b = room.players[pid].squad[slot];
+    const opp = room.players[oppId];
+    if (!b?.alive || !opp) return;
+    const side = b.side === 'left' ? 1 : -1;
+    const x0 = b.x, z0 = b.z || 0;
+    const foes = opp.squad.filter(e => e.alive);
+    const far = foes.length ? Math.max(...foes.map(e => e.x * side)) * side : x0 + side * 10;
+    const x1 = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, far + side * 2));
+    const T = sk.chargeTime, U = sk.turnTime ?? 0;   // U: phanh + quay đầu ở cuối lượt đi
+    b.actionUntil = now + T * 2 + U + 200;
+    b.statusEffects.push({ type: 'bear_charge', endTime: now + T * 2 + U + 200 });   // đang ủi: không bị đẩy / không đánh
+    const steps = 12;
+    for (let k = 1; k <= steps; k++) later(T * k / steps, () => { if (b.alive) b.x = x0 + (x1 - x0) * k / steps; });
+    for (let k = 1; k <= steps; k++) later(T + U + T * k / steps, () => { if (b.alive) b.x = x1 + (x0 - x1) * k / steps; });
+    const effects = [];
+    const hitPass = (fromX, toX, t0) => opp.squad.forEach((e, i) => {
+        if (!e.alive || !canBeTargeted(e, now)) return;
+        const f = Math.max(0, Math.min(1, (e.x - fromX) / ((toX - fromX) || 1)));
+        const at = t0 + Math.round(T * f);
+        effects.push({ ...hitTarget(b, e, i, opp, sk.chargeMultiplier, now, { aoe: true, noBlock: true, delay: at }), at });
+        later(at, () => { if (e.alive && takesDebuffs(e)) { knockUp(e, sk.knockup); later(sk.knockup, () => { if (e.alive) applyStun(e, sk.stun, room.clock); }); } });
+    });
+    hitPass(x0, x1, 0);
+    hitPass(x1, x0, T + U);
+    emitSylva(room.id, { kind: 'bearCharge', casterId: pid, summonIdx: slot, targetId: oppId,
+        path: [{ x: x0, z: z0, at: 0 }, { x: x1, z: z0, at: T }, { x: x1, z: z0, at: T + U, turn: true }, { x: x0, z: z0, at: T * 2 + U }], effects });
+}
+/** Sau mỗi đòn đánh thường của thú: Sói / Đại Bàng cứ 4 đòn -> 1 kỹ năng ngẫu nhiên (không hồi chiêu) */
+function sylvaAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
+    const room = rooms[roomId];
+    const s = room.players[pid].squad[idx];
+    if (s.classId !== 'sylva_wolf' && s.classId !== 'sylva_eagle') return;
+    const d = CLASS_DEFS[s.classId];
+    s.autos = (s.autos ?? 0) + 1;
+    if (s.autos < d.every) return;
+    s.autos = 0;
+    const opp = room.players[oppId];
+    const target = opp.squad[targetIdx];
+    if (s.classId === 'sylva_wolf') {
+        if (Math.random() < 0.5) {
+            // Cắn: ×1.4 + tự hồi 10% máu
+            if (!target?.alive) return;
+            const effect = hitTarget(s, target, targetIdx, opp, d.biteMultiplier, now, { delay: 200 });
+            const heal = healUnit(s, s.maxHp * d.biteHeal, now);
+            emitSylva(roomId, { kind: 'bite', casterId: pid, summonIdx: idx, targetId: oppId, targetIndex: targetIdx, effect, heal });
+        } else {
+            // Vồ: nhảy tới 1 đối thủ ngẫu nhiên ở NỬA SAU (xa phía sói nhất) -> ×1.2, đánh tiếp người đó
+            const side = s.side === 'left' ? 1 : -1;
+            const foes = foesOf(opp, now).filter(o => canBeTargeted(o.e, now)).sort((a, b) => (b.e.x - a.e.x) * side);
+            if (!foes.length) return;
+            const back = foes.slice(0, Math.max(1, Math.ceil(foes.length / 2)));
+            const o = back[Math.floor(Math.random() * back.length)];
+            const fromX = s.x, fromZ = s.z || 0;
+            s.x = o.e.x - side * 1.2; s.z = o.e.z || 0; clampToArena(s);
+            s.lockedTargetIndex = o.i; s.targetIndex = o.i;
+            s.actionUntil = now + 450;
+            const effect = hitTarget(s, o.e, o.i, opp, d.pounceMultiplier, now, { delay: 350 });
+            emitSylva(roomId, { kind: 'pounce', casterId: pid, summonIdx: idx, targetId: oppId, targetIndex: o.i, fromX, fromZ, toX: s.x, toZ: s.z, effect });
+        }
+        return;
+    }
+    // Đại Bàng: niệm 1s rồi Cầu Gió / Bão Lông Vũ
+    const skill = Math.random() < 0.5 ? 'windOrb' : 'featherStorm';
+    s.actionUntil = now + d.cast + 250;
+    emitSylva(roomId, { kind: 'eagleCast', casterId: pid, summonIdx: idx, skill, castTime: d.cast });
+    later(d.cast, () => {
+        const t = room.clock;
+        if (!s.alive || room.winner) return;
+        if (skill === 'windOrb') {
+            const cur = opp.squad[targetIdx];
+            const tg = cur?.alive && canBeTargeted(cur, t) ? { e: cur, i: targetIdx } : foesOf(opp, t).find(o => canBeTargeted(o.e, t));
+            if (!tg) return;
+            const effect = hitTarget(s, tg.e, tg.i, opp, d.orbMultiplier, t, { delay: 300 });
+            let pushed = null;
+            if (!effect.isMiss && takesDebuffs(tg.e) && !ccImmune(tg.e, t)) {
+                const dir = Math.sign(tg.e.x - s.x) || (s.side === 'left' ? 1 : -1);
+                const fromX = tg.e.x;
+                tg.e.x += dir * d.push; clampToArena(tg.e);
+                tg.e.statusEffects = tg.e.statusEffects.filter(ef => ef.type !== 'knocked');
+                tg.e.statusEffects.push({ type: 'knocked', endTime: t + 450 });
+                tg.e.lockedTargetIndex = -1;
+                pushed = { fromX, toX: tg.e.x, toZ: tg.e.z || 0 };
+            }
+            emitSylva(roomId, { kind: 'windOrb', casterId: pid, summonIdx: idx, targetId: oppId, targetIndex: tg.i, effect, pushed });
+        } else {
+            for (let w = 0; w < d.waves; w++) later(w * d.waveGap, () => {
+                const tt = room.clock;
+                if (room.winner) return;
+                const foes = foesOf(opp, tt);
+                if (!foes.length) return;
+                const picks = [...foes].sort(() => Math.random() - 0.5).slice(0, Math.min(3, foes.length));
+                const points = picks.map(o => ({ x: o.e.x + (Math.random() - 0.5), z: (o.e.z || 0) + (Math.random() - 0.5) }));
+                const hit = new Set(), effects = [];
+                points.forEach(p => foes.forEach(o => {
+                    if (hit.has(o.i) || Math.hypot(o.e.x - p.x, (o.e.z || 0) - p.z) > d.waveRadius) return;
+                    hit.add(o.i);
+                    const eff = hitTarget(s, o.e, o.i, opp, d.waveMultiplier, tt, { aoe: true, noBlock: true, delay: 150 });
+                    if (!eff.isMiss && takesDebuffs(o.e)) {
+                        o.e.statusEffects = o.e.statusEffects.filter(ef => ef.type !== 'feather_slow');
+                        o.e.statusEffects.push({ type: 'feather_slow', endTime: tt + d.slowTime, duration: d.slowTime, value: d.slow, debuff: true });
+                    }
+                    effects.push(eff);
+                }));
+                emitSylva(roomId, { kind: 'featherWave', casterId: pid, summonIdx: idx, targetId: oppId, wave: w, points, radius: d.waveRadius, effects });
+            });
+        }
+    });
+}
+/** Mỗi tick cho thú của Sylva: hết giờ thì biến mất · Đại Bàng: Ưng Nhãn mỗi 15s · Gấu: Hộ Chủ */
+function processSylvaUnit(room, pid, idx, oppId, now) {
+    const s = room.players[pid].squad[idx];
+    if (!s.alive || !s.classId?.startsWith('sylva_')) return;
+    if (now >= (s.summonEnd ?? Infinity)) return vanishSummon(room, pid, idx, 'time');
+    if (s.classId === 'sylva_eagle' && now >= (s.eyeNext ?? Infinity)) eagleEye(room, pid, idx, now);
+    if (s.classId === 'sylva_bear') {
+        const d = CLASS_DEFS.sylva_bear;
+        const owner = room.players[pid].squad[s.ownerIdx];
+        const opp = room.players[oppId];
+        if (!owner?.alive || !opp || now < (s.actionUntil ?? 0)) return;
+        s.guardNear = s.guardNear ?? {};
+        opp.squad.forEach((e, i) => {
+            const near = e.alive && canBeTargeted(e, now) && Math.hypot(e.x - owner.x, (e.z || 0) - (owner.z || 0)) <= d.guardRange;
+            if (!near) { delete s.guardNear[i]; return; }
+            s.guardNear[i] ??= now;
+            if (now - s.guardNear[i] < d.guardTime || now < (s.guardReady ?? 0)) return;
+            // Hộ Chủ: gấu ủi kẻ áp sát Sylva -> đẩy 4 ô (không choáng) + khiêu khích 5s
+            s.guardReady = now + d.guardCooldown;
+            delete s.guardNear[i];
+            const fromBX = s.x, fromBZ = s.z || 0;
+            const dir = Math.sign(e.x - owner.x) || (owner.side === 'left' ? 1 : -1);
+            s.x = e.x - dir * 1.2; s.z = e.z || 0; clampToArena(s);
+            s.actionUntil = now + 500;
+            let pushed = null, taunt = false;
+            if (takesDebuffs(e) && !ccImmune(e, now)) {
+                const fromX = e.x;
+                e.x += dir * d.guardPush; clampToArena(e);
+                e.statusEffects = e.statusEffects.filter(ef => ef.type !== 'knocked' && ef.type !== 'taunted');
+                e.statusEffects.push({ type: 'knocked', endTime: now + 450 });
+                e.statusEffects.push({ type: 'taunted', endTime: now + d.guardTaunt, duration: d.guardTaunt, sourceIndex: idx, debuff: true });
+                e.lockedTargetIndex = -1;
+                pushed = { fromX, toX: e.x, toZ: e.z || 0 }; taunt = true;
+            }
+            emitSylva(room.id, { kind: 'bearGuard', casterId: pid, summonIdx: idx, targetId: oppId, targetIndex: i, fromX: fromBX, fromZ: fromBZ, toX: s.x, toZ: s.z, pushed, taunt });
+        });
+    }
+}
+/** Mỗi tick cho Sylva (chạy cả khi Sylva đã gục — Thần Hươu vẫn ở lại hết giờ): Thần Hươu hồi máu + phép cho triệu hồi · Khiên Lá */
+function processSylva(room, pid, idx, oppId, now) {
+    const team = room.players[pid];
+    const m = team.squad[idx];
+    if (m.classId !== 'summoner') return;
+    const deer = team.sylvaDeer?.[idx];
+    if (deer) {
+        if (now >= deer.end || room.winner) {
+            delete team.sylvaDeer[idx];
+            emitSylva(room.id, { kind: 'deerEnd', casterId: pid, casterIdx: idx, summon: true });
+        } else if (now >= deer.next) {
+            deer.next += deer.sk.every;
+            const heals = [];
+            team.squad.forEach((a, i) => {
+                if (!a.alive) return;
+                if (a.summon && !takesBuffs(a) && !summonRulesOf(a).allowFromSylva) return;
+                const heal = healUnit(a, a.maxHp * (a.summon ? deer.sk.summonHeal : deer.sk.heroHeal), now);
+                if (heal > 0) heals.push({ targetIndex: i, heal });
+                if (a.summon) {
+                    a.statusEffects = a.statusEffects.filter(e => e.type !== 'deer_bless');
+                    a.statusEffects.push({ type: 'deer_bless', endTime: now + 1500, duration: 1500, dmgUp: deer.sk.dmgUp, defUp: deer.sk.defUp,
+                        mDefUp: deer.sk.mDefUp, fromSylva: true });
+                }
+            });
+            emitSylva(room.id, { kind: 'deerTick', casterId: pid, casterIdx: idx, heals });
+        }
+    }
+    // Thiên phú 2 — Khiên Lá: mỗi 10s khiên cho 1 triệu hồi có máu (ít máu nhất)
+    const t2 = m.alive ? talentOf(m, 'sylva_shield') : null;
+    if (t2 && now >= (m.leafNext ?? 0)) {
+        const cand = team.squad.map((a, i) => ({ a, i })).filter(o => o.a.alive && o.a.summon && o.a.maxHp > 0 &&
+            (takesBuffs(o.a) || summonRulesOf(o.a).allowFromSylva)).sort((p, q) => p.a.hp / p.a.maxHp - q.a.hp / q.a.maxHp)[0];
+        if (cand) {
+            m.leafNext = now + t2.every;
+            const hp = Math.round(cand.a.maxHp * t2.shieldPct);
+            addShield(cand.a, { type: 'leaf_shield', endTime: now + t2.duration, duration: t2.duration, hp, maxHp: hp,
+                dmgUp: t2.dmgUp, atkSpeedUp: t2.atkSpeedUp, fromSylva: true }, now);
+            emitSylva(room.id, { kind: 'leafShield', casterId: pid, casterIdx: idx, targetIndex: cand.i, shield: hp });
+        }
+    }
 }
 /** Golem sau mỗi đòn đánh thường: Hào Quang Sét -> giật toàn bộ đối thủ · cứ 2 đòn -> 1 kỹ năng ngẫu nhiên đang sẵn sàng */
 function golemAfterAuto(roomId, pid, idx, oppId, now) {
@@ -4710,7 +5281,7 @@ function elemAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
     if (target?.alive) {
         const r = calculateDamage(m, target, 1.0, now);
         const delay = 160;
-        if (!r.isMiss) dealDamage(target, r.damage, opp, (CLASS_DEFS.elementalist.autoImpact ?? 0) + delay, executeHook(m, target));
+        if (!r.isMiss) dealDamage(target, r.damage, opp, (CLASS_DEFS.elementalist.autoImpact ?? 0) + delay, executeHook(m, target), m, r);
         emitElem(roomId, { kind: 'echoHit', casterId: pid, casterIdx: idx, targetId: oppId, targetIndex: targetIdx,
             effect: { targetIndex: targetIdx, damage: r.damage, isCrit: r.isCrit, isBlock: r.isBlock, isMiss: r.isMiss, absorbed: r.absorbed || 0, isMagic: r.isMagic, delay } });
     }
@@ -4718,7 +5289,7 @@ function elemAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
     if (st.autos % st.every) return;
     const allies = [];
     room.players[pid].squad.forEach((a, i) => {
-        if (!a.alive || a.summon) return;
+        if (!a.alive || !takesBuffs(a)) return;
         const cur = a.statusEffects.find(e => e.type === 'storm_haste' && e.endTime > now);
         putEffect(a, { type: 'storm_haste', stacks: Math.min(st.teamMax, (cur?.stacks ?? 0) + 1), value: st.teamUp, endTime: now + st.teamTime, duration: st.teamTime });
         allies.push(i);
@@ -4726,44 +5297,53 @@ function elemAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
     emitElem(roomId, { kind: 'teamHaste', casterId: pid, casterIdx: idx, allies });
 }
 /** Hơi Nước Bỏng đang thi triển (Elarion đứng yên) */
-const rainOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_rain' && e.endTime > now) ?? null;
-function endRain(room, pid, idx, reason) {
+const rainOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_rain' && !e.shadow && e.endTime > now) ?? null;
+function endRain(room, pid, idx, reason, effect = null) {
     const m = room.players[pid]?.squad[idx];
     if (!m) return;
-    const had = m.statusEffects.some(e => e.type === 'elem_rain');
-    m.statusEffects = m.statusEffects.filter(e => e.type !== 'elem_rain');
-    if (had) emitElem(room.id, { kind: 'rainEnd', casterId: pid, casterIdx: idx, reason });
+    const ended = m.statusEffects.filter(e => e.type === 'elem_rain' &&
+        (effect ? e === effect : reason === 'dead' || !e.shadow));
+    m.statusEffects = m.statusEffects.filter(e => !ended.includes(e));
+    for (const e of ended) {
+        emitElem(room.id, { kind: 'rainEnd', casterId: pid, casterIdx: idx, reason, ...(e.shadow ? { shadow: true } : {}) });
+        if (e.shadow) endElemShadow(room, pid, idx);
+    }
 }
 /** Mỗi giây lúc mưa giông: phe ta hồi máu (đầy máu thì hồi MP), sét đánh 1 đối thủ ngẫu nhiên + choáng */
 function processRain(room, pid, idx, oppId, now) {
     const team = room.players[pid], opp = room.players[oppId];
     const m = team.squad[idx];
-    const rain = rainOf(m, now);
-    if (!rain || now < rain.next) return;
-    rain.next += rain.every;
-    const mAtk = getEffectiveStats(m, now).stats.mAtk;
-    const heals = [];
-    team.squad.forEach((a, i) => {
-        if (!a.alive) return;
-        if (a.hp >= a.maxHp) {
-            if (a.summon || !a.maxMp) return;
-            const mp = team.debugNoMana ? 0 : Math.max(0, Math.min(a.maxMp - a.mp, rain.manaPerSec));
-            a.mp += mp;
-            heals.push({ targetIndex: i, mana: Math.round(mp) });
-        } else heals.push({ targetIndex: i, heal: healUnit(a, mAtk * rain.heal + a.maxHp * rain.healPct, now) });
-    });
-    let strike = null;
-    const foes = opp ? foesOf(opp, now) : [];
-    if (foes.length) {
-        const o = foes[Math.floor(Math.random() * foes.length)];
-        strike = hitTarget(m, o.e, o.i, opp, rain.strike, now, { aoe: true, delay: 150 });
-        if (!strike.isMiss) later(150, () => applyStun(o.e, rain.stun, room.clock));
+    for (const rain of m.statusEffects.filter(e => e.type === 'elem_rain')) {
+        if (now >= rain.endTime) {
+            if (rain.shadow) endRain(room, pid, idx, 'time', rain);
+            continue;
+        }
+        if (now < rain.next) continue;
+        rain.next += rain.every;
+        const mAtk = getEffectiveStats(m, now).stats.mAtk;
+        const heals = [];
+        team.squad.forEach((a, i) => {
+            if (!a.alive) return;
+            if (a.hp >= a.maxHp) {
+                if (a.summon || !a.maxMp) return;
+                const mp = team.debugNoMana ? 0 : Math.max(0, Math.min(a.maxMp - a.mp, rain.manaPerSec));
+                a.mp += mp;
+                heals.push({ targetIndex: i, mana: Math.round(mp) });
+            } else heals.push({ targetIndex: i, heal: healUnit(a, mAtk * rain.heal + a.maxHp * rain.healPct, now) });
+        });
+        let strike = null;
+        const foes = opp ? foesOf(opp, now) : [];
+        if (foes.length) {
+            const o = foes[Math.floor(Math.random() * foes.length)];
+            strike = hitTarget(m, o.e, o.i, opp, rain.strike, now, { aoe: true, delay: 150 });
+            if (!strike.isMiss) later(150, () => applyStun(o.e, rain.stun, room.clock));
+        }
+        emitElem(room.id, { kind: 'rainTick', casterId: pid, casterIdx: idx, targetId: oppId, heals, strike, ...(rain.shadow ? { shadow: true } : {}) });
     }
-    emitElem(room.id, { kind: 'rainTick', casterId: pid, casterIdx: idx, targetId: oppId, heals, strike });
 }
 
 /** Băng Hoại Hỏa Thiên đang chưởng (Elarion đứng yên — kể cả lúc dồn lực) */
-const beamOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_beam' && e.endTime > now) ?? null;
+const beamOf = (m, now) => m.statusEffects?.find(e => e.type === 'elem_beam' && !e.shadow && e.endTime > now) ?? null;
 /** Đối thủ `e` nằm trong tia chưởng từ (x0, z0) theo hướng (ux, uz), nửa bề rộng `width`, dài `len` */
 function inBeam(e, x0, z0, ux, uz, width, len) {
     const rx = e.x - x0, rz = (e.z || 0) - z0;
@@ -4792,39 +5372,44 @@ function beamLength(m, { ux, uz }) {
     const tz = uz > 0.01 ? (ARENA_BOUNDS.maxZ + M - z0) / uz : uz < -0.01 ? (ARENA_BOUNDS.minZ - M - z0) / uz : Infinity;
     return Math.max(4, Math.min(tx, tz, 120));
 }
-function endBeam(room, pid, idx, reason) {
+function endBeam(room, pid, idx, reason, effect = null) {
     const m = room.players[pid]?.squad[idx];
     if (!m) return;
-    const had = m.statusEffects.some(e => e.type === 'elem_beam');
-    m.statusEffects = m.statusEffects.filter(e => e.type !== 'elem_beam');
-    if (had) emitElem(room.id, { kind: 'beamEnd', casterId: pid, casterIdx: idx, reason });
+    const ended = m.statusEffects.filter(e => e.type === 'elem_beam' &&
+        (effect ? e === effect : reason === 'dead' || !e.shadow));
+    m.statusEffects = m.statusEffects.filter(e => !ended.includes(e));
+    for (const e of ended) {
+        emitElem(room.id, { kind: 'beamEnd', casterId: pid, casterIdx: idx, reason, ...(e.shadow ? { shadow: true } : {}) });
+        if (e.shadow) endElemShadow(room, pid, idx);
+    }
 }
 /** Mỗi giây lúc chưởng: mọi đối thủ (dưới đất) trong tia — Băng (Hàn Khí + giảm tốc đánh) + Hỏa (tăng dần, đủ 5 tầng: tia to, +30%) */
 function processBeam(room, pid, idx, oppId, now) {
     const team = room.players[pid], opp = room.players[oppId];
     const m = team.squad[idx];
-    const b = m.statusEffects.find(e => e.type === 'elem_beam');
-    if (!b) return;
-    if (now >= b.endTime) return endBeam(room, pid, idx, 'time');
-    if (now < b.next || !opp) return;
-    b.next += b.every;
-    b.tick = (b.tick ?? 0) + 1;
-    const stacks = Math.min(b.max, b.tick);
-    const big = stacks >= b.max;
-    const fireMult = b.fire * (1 + b.ramp * stacks + (big ? b.maxBonus : 0));
-    const width = big ? b.widthMax : b.width;
-    const len = beamLength(m, b);
-    const ice = [], fire = [];
-    foesOf(opp, now).forEach(({ e, i }) => {
-        if (isAirborne(e, now) || !inBeam(e, m.x, m.z || 0, b.ux, b.uz, width, len)) return;   // đang bay: tia đi bên dưới
-        const ei = iceHit(m, e, i, opp, b.ice, now, { ground: true });
-        if (!ei.isMiss) putEffect(e, { type: 'beam_slow', endTime: now + b.slowTime, duration: b.slowTime, value: b.slow, debuff: true });
-        ice.push(ei);
-        const ef = hitTarget(m, e, i, opp, fireMult, now, { aoe: true, ground: true, delay: 150 });
-        ef.delay = 150;
-        fire.push(ef);
-    });
-    emitElem(room.id, { kind: 'beamTick', casterId: pid, casterIdx: idx, targetId: oppId, tick: b.tick, stacks, big, bonus: Math.round((fireMult / b.fire - 1) * 100), ice, fire });
+    for (const b of m.statusEffects.filter(e => e.type === 'elem_beam')) {
+        if (now >= b.endTime) { endBeam(room, pid, idx, 'time', b); continue; }
+        if (now < b.next || !opp) continue;
+        b.next += b.every;
+        b.tick = (b.tick ?? 0) + 1;
+        const stacks = Math.min(b.max, b.tick);
+        const big = stacks >= b.max;
+        const fireMult = b.fire * (1 + b.ramp * stacks + (big ? b.maxBonus : 0));
+        const width = big ? b.widthMax : b.width;
+        const origin = b.shadow ? b : m;
+        const len = beamLength(origin, b);
+        const ice = [], fire = [];
+        foesOf(opp, now).forEach(({ e, i }) => {
+            if (isAirborne(e, now) || !inBeam(e, origin.x, origin.z || 0, b.ux, b.uz, width, len)) return;   // đang bay: tia đi bên dưới
+            const ei = iceHit(m, e, i, opp, b.ice, now, { ground: true });
+            if (!ei.isMiss) putEffect(e, { type: 'beam_slow', endTime: now + b.slowTime, duration: b.slowTime, value: b.slow, debuff: true });
+            ice.push(ei);
+            const ef = hitTarget(m, e, i, opp, fireMult, now, { aoe: true, ground: true, delay: 150 });
+            ef.delay = 150;
+            fire.push(ef);
+        });
+        emitElem(room.id, { kind: 'beamTick', casterId: pid, casterIdx: idx, targetId: oppId, tick: b.tick, stacks, big, bonus: Math.round((fireMult / b.fire - 1) * 100), ice, fire, ...(b.shadow ? { shadow: true } : {}) });
+    }
 }
 
 // ------------------------------------------------------------
@@ -4954,11 +5539,12 @@ function broadcastState(roomId) {
 function checkWinCondition(roomId) {
     const room = rooms[roomId];
     if (!room || room.winner) return;
-    // Phân định NGAY khi 1 bên hết nhân vật còn sống (linh hồn / hộ vệ không tính).
-    // Cả 2 bên cùng chết trong cùng 1 nhịp -> HOÀ.
+    // Phân định NGAY khi 1 bên hết TƯỚNG còn sống — TRIỆU HỒI không tính (Golem, thú của Sylva... còn trên sân vẫn thua;
+    //   linh hồn / hộ vệ cũng không tính). Cả 2 bên cùng hết tướng trong cùng 1 nhịp -> HOÀ. Bên thua: triệu hồi biến mất.
     const ids = Object.keys(room.players);
-    const dead = ids.filter(id => room.players[id].squad.every(m => !m.alive));
+    const dead = ids.filter(id => room.players[id].squad.filter(m => !m.summon).every(m => !m.alive));
     if (!dead.length) return;
+    dead.forEach(id => room.players[id].squad.forEach((m, i) => { if (m.summon && m.alive) vanishSummon(room, id, i, 'ownerDefeated'); }));
     if (dead.length >= 2) {
         room.winner = 'draw';
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
@@ -4973,3 +5559,227 @@ function checkWinCondition(roomId) {
 server.listen(PORT, () => {
     console.log(`Legend of Capsules is running at http://localhost:${PORT}`);
 });
+
+// Grix — độc lưu nguồn bằng phe và chỉ số, tiếp tục chạy khi người gây độc đã chết.
+function poisonOf(m, now) {
+    return m.statusEffects?.find(ef => ef.type === 'poison' && ef.endTime > now && ef.stacks > 0);
+}
+function addPoison(caster, target, stacks, now) {
+    if (!target.alive) return;
+    const at = locate(caster);
+    if (!at) return;
+    const venom = talentOf(caster, 'goblin_venom');
+    let poison = poisonOf(target, now);
+    if (!poison) {
+        target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'poison');
+        poison = { type: 'poison', stacks: 0, tickGap: 500, nextTick: now + 500, duration: 6000, debuff: true };   // rút máu mỗi 0,5s (27/10)
+        target.statusEffects.push(poison);
+    }
+    Object.assign(poison, { maxStacks: 5 + (venom?.extraStacks ?? 0), perStack: 0.12,
+        endTime: now + 6000, sourceSide: caster.side, casterId: at.pid, casterIdx: at.idx });
+    poison.stacks = Math.min(poison.maxStacks, poison.stacks + stacks);
+    checkVenomRot(caster, target, poison, now);
+}
+// ============================================================
+// LUẬT SINH TỬ (27/10/2026): trên sân chỉ còn 1 đấu 1 (mỗi bên đúng 1 TƯỚNG còn sống — triệu hồi không tính, không bị trừ máu)
+//   suốt `after` ms mà chưa ai thắng -> CẢ HAI mất `pct` máu TỐI ĐA mỗi `every` ms (trừ thẳng vào máu: bỏ qua khiên,
+//   giáp, Đêm Tử Thần...) cho tới khi 1 bên gục (cùng gục 1 nhịp = hoà). Đổi người (hồi sinh, triệu hồi...) -> đếm lại.
+//   Tool "bất tử" (debugGodMode) vẫn giữ: bên đó không mất máu.
+// ============================================================
+const SUDDEN_DEATH = { after: 15000, every: 500, pct: 0.05 };
+function processSuddenDeath(room, now) {
+    if (room.winner || room.status !== 'active') return;
+    if (room.mode === 'test') return;   // chế độ Test (có tool): không áp Sinh Tử — chỉ trong ĐẤU
+    const ids = Object.keys(room.players);
+    if (ids.length !== 2) return;
+    const alive = ids.map(id => room.players[id].squad.filter(m => m.alive && !m.summon));   // chỉ đếm TƯỚNG (triệu hồi không tính)
+    if (!alive.every(a => a.length === 1)) { room.suddenDeath = null; return; }
+    const [a, b] = [alive[0][0], alive[1][0]];
+    let sd = room.suddenDeath;
+    if (!sd || sd.a !== a || sd.b !== b) sd = room.suddenDeath = { a, b, since: now, on: false, next: 0 };
+    if (now < sd.since + SUDDEN_DEATH.after) return;
+    if (!sd.on) {
+        sd.on = true; sd.next = now;
+        io.to(room.id).emit('suddenDeath', { kind: 'start' });
+    }
+    while (now >= sd.next && !room.winner) {
+        sd.next += SUDDEN_DEATH.every;
+        const hits = [];
+        ids.forEach((pid, k) => {
+            const team = room.players[pid], m = alive[k][0];
+            if (!m.alive || team.debugGodMode) return;
+            const dmg = Math.max(1, Math.round(m.maxHp * SUDDEN_DEATH.pct));
+            m.hp = Math.max(0, m.hp - dmg);
+            hits.push({ targetId: pid, targetIndex: team.squad.indexOf(m), damage: dmg });
+            if (m.hp <= 0) killMember(m, team.squad);
+        });
+        if (hits.length) io.to(room.id).emit('suddenDeath', { kind: 'tick', hits });
+        checkWinCondition(room.id);
+    }
+}
+function processPoison(room, now) {
+    for (const [targetId, team] of Object.entries(room.players)) {
+        team.squad.forEach((target, targetIndex) => {
+            const poison = poisonOf(target, now);
+            if (!target.alive || !poison) return;
+            const caster = room.players[poison.casterId]?.squad[poison.casterIdx];
+            if (!caster) return;
+            while (target.alive && poison.nextTick <= now && poison.nextTick < poison.endTime) {
+                poison.nextTick += poison.tickGap;
+                checkVenomRot(caster, target, poison, now);
+                const multiplier = poison.perStack * poison.stacks * (1 + (talentOf(caster, 'goblin_venom')?.value ?? 0));
+                const before = target.hp;
+                const effect = hitTarget(caster, target, targetIndex, team, multiplier, now, { noBlock: true, aoe: true, goblinDot: true });
+                drainGoblinWard(caster, Math.max(0, before - target.hp), now);
+                io.to(room.id).emit('goblinFx', { kind: 'poisonTick', casterId: poison.casterId,
+                    casterIdx: poison.casterIdx, targetId, targetIndex, stacks: poison.stacks, effect });
+            }
+        });
+    }
+}
+function goblinArea(room, casterId, casterIdx, opponentId, c, sk, bog) {
+    const caster = room.players[casterId]?.squad[casterIdx], opp = room.players[opponentId];
+    if (!caster || !opp) return;
+    const t = room.clock, effects = [];
+    opp.squad.forEach((enemy, i) => {
+        if (!enemy.alive || Math.hypot(enemy.x - c.x, (enemy.z || 0) - c.z) > sk.radius) return;
+        const effect = hitTarget(caster, enemy, i, opp, bog ? sk.tickMultiplier : sk.multiplier, t, { noBlock: true, aoe: true });
+        effects.push(effect);
+        if (!effect.isMiss && enemy.alive) {
+            addPoison(caster, enemy, sk.stacks, t);
+            if (bog) {
+                enemy.statusEffects = enemy.statusEffects.filter(ef => ef.type !== 'toxic');
+                enemy.statusEffects.push({ type: 'toxic', endTime: t + 1500, duration: 1500, healCut: sk.healCut, debuff: true });
+            }
+        }
+    });
+    const heals = [], venom = talentOf(caster, 'goblin_venom');
+    if (!bog && venom) room.players[casterId].squad.forEach((ally, targetIndex) => {
+        if (!ally.alive || Math.hypot(ally.x - c.x, (ally.z || 0) - c.z) > sk.radius) return;
+        const before = ally.hp;
+        healUnit(ally, getEffectiveStats(caster, t).stats.mAtk * venom.allyHeal, t);
+        heals.push({ targetIndex, heal: ally.hp - before });
+    });
+    io.to(room.id).emit('goblinFx', { kind: bog ? 'bogTick' : 'flaskHit', casterId, casterIdx,
+        x: c.x, z: c.z, radius: sk.radius, effects, ...(!bog ? { flaskKind: c.kind, heals } : {}) });
+}
+// Mục Rữa cộng giảm hồi máu, hồi chiêu riêng trên mỗi địch.
+function checkVenomRot(caster, target, poison, now) {
+    const t = talentOf(caster, 'goblin_venom');
+    if (!t || !target.alive || poison.stacks < t.rotAt || now < (target.venomRotReadyAt ?? 0)) return;
+    const at = locate(caster), to = locate(target);
+    if (!at || !to || !curRoom) return;
+    target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'venom_rot');
+    target.statusEffects.push({ type: 'venom_rot', endTime: now + t.rotTime, duration: t.rotTime, healCut: t.rotCut, debuff: true });
+    target.venomRotReadyAt = now + t.rotCooldown;
+    io.to(curRoom.id).emit('goblinFx', { kind: 'venomRot', casterId: at.pid, casterIdx: at.idx, targetId: to.pid, targetIndex: to.idx, rotTime: t.rotTime });
+}
+function goblinWardOf(m, now) {
+    return m.statusEffects?.find(ef => ef.type === 'goblin_ward' && ef.hp > 0 && ef.endTime > now);
+}
+function checkGoblinWard(m) {
+    const t = talentOf(m, 'goblin_ward'), now = curRoom?.clock;
+    if (!t || !m.alive || now == null || m.hp >= m.maxHp * t.threshold || m.goblinWardOn || now < (m.goblinWardReadyAt ?? 0)) return;
+    const at = locate(m);
+    if (!at) return;
+    m.goblinWardReadyAt = now + t.cooldown;
+    m.goblinWardOn = true;
+    const hp = m.maxHp - m.hp;
+    addShield(m, { type: 'goblin_ward', endTime: now + t.duration, duration: t.duration, hp, maxHp: hp }, now);
+    io.to(curRoom.id).emit('goblinFx', { kind: 'wardUp', casterId: at.pid, casterIdx: at.idx, shield: hp });
+}
+// Đòn phá giáp vẫn phản độc; không tính đòn trượt hay sát thương độc định kỳ.
+function goblinWardHit(m, attacker, now, hitWard) {
+    if (!m.alive || !attacker.alive || !(goblinWardOf(m, now) || (hitWard && hitWard.endTime > now))) return;
+    const at = locate(m), to = locate(attacker), t = talentOf(m, 'goblin_ward');
+    if (!at || !to || at.pid === to.pid || !t) return;
+    const key = `${to.pid}:${to.idx}`;
+    m.goblinWardHits ??= {};
+    if (now < (m.goblinWardHits[key] ?? 0)) return;
+    m.goblinWardHits[key] = now + 300;
+    addPoison(m, attacker, t.hitStacks, now);
+    io.to(curRoom.id).emit('goblinFx', { kind: 'wardHit', casterId: at.pid, casterIdx: at.idx, targetId: to.pid, targetIndex: to.idx });
+}
+function drainGoblinWard(m, damage, now) {
+    const t = talentOf(m, 'goblin_ward');
+    if (!m.alive || !t || !goblinWardOf(m, now) || !(damage > 0)) return;
+    const before = m.hp;
+    healUnit(m, damage * t.drain, now);
+    m.goblinDrainHeal = (m.goblinDrainHeal ?? 0) + m.hp - before;
+}
+function processGoblinWard(room, pid, idx, oppId, now) {
+    const m = room.players[pid].squad[idx];
+    if (m.goblinDrainHeal > 0 && now >= (m.goblinDrainEmitAt ?? 0)) {
+        io.to(room.id).emit('goblinFx', { kind: 'wardDrain', casterId: pid, casterIdx: idx, heal: m.goblinDrainHeal });
+        m.goblinDrainHeal = 0;
+        m.goblinDrainEmitAt = now + 500;
+    }
+    if (!m.goblinWardOn || (m.alive && goblinWardOf(m, now))) return;
+    m.goblinWardOn = false;
+    m.statusEffects = m.statusEffects.filter(ef => ef.type !== 'goblin_ward');
+    const t = talentOf(m, 'goblin_ward');
+    if (!m.alive || !t) return;
+    const stunnedIndexes = [], poisonedIndexes = [];
+    room.players[oppId]?.squad.forEach((enemy, i) => {
+        if (!enemy.alive || Math.hypot(enemy.x - m.x, (enemy.z || 0) - (m.z || 0)) > t.radius) return;
+        addPoison(m, enemy, t.burstStacks, now);
+        poisonedIndexes.push(i);
+        applyStun(enemy, t.stun, now);
+        if (enemy.statusEffects.some(ef => ef.type === 'stun' && ef.endTime > now)) stunnedIndexes.push(i);
+    });
+    io.to(room.id).emit('goblinFx', { kind: 'wardBurst', casterId: pid, casterIdx: idx, x: m.x, z: m.z || 0, radius: t.radius, stunnedIndexes, poisonedIndexes });
+}
+// Grix: chọn n kẻ địch NGẪU NHIÊN trong tầm (không có ai trong tầm -> lấy mọi địch chọn được), ưu tiên mỗi phát 1 người khác nhau;
+//   ít địch hơn n thì bốc lại ngẫu nhiên. Điểm rơi lệch nhẹ ±0,4 quanh chân địch cho tự nhiên.
+function randomFoes(member, squad, range, n, now) {
+    const all = squad.filter(e => canBeTargeted(e, now));
+    const inRange = all.filter(e => Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= range);
+    const pool = inRange.length ? inRange : all;
+    if (!pool.length) return [];
+    const bag = [...pool].sort(() => Math.random() - 0.5);
+    return Array.from({ length: n }, (_, i) => i < bag.length ? bag[i] : pool[Math.floor(Math.random() * pool.length)])
+        .map(e => ({ x: e.x + (Math.random() - 0.5) * 0.8, z: (e.z || 0) + (Math.random() - 0.5) * 0.8 }));
+}
+// Bình Độc Văng: 2 bình (+50% bình thứ 3) rơi vào địch NGẪU NHIÊN; thiên phú 1: 50% thêm 1 bình về đồng minh ít máu nhất.
+function goblinFlasks(room, member, squad, sk, now) {
+    const flasks = [];
+    const push = (point, kind) => {
+        if (!point) return;
+        const flask = { x: point.x, z: point.z || 0, at: sk.impact + flasks.length * sk.flaskGap, radius: sk.radius, kind };
+        clampToArena(flask); flasks.push(flask);
+    };
+    const n = 2 + (Math.random() < sk.extraChance ? 1 : 0);
+    // dùng được (có địch trong tầm đánh) -> bình rơi vào địch ngẫu nhiên Ở BẤT KỲ ĐÂU trên bản đồ
+    randomFoes(member, squad, Infinity, n, now).forEach((p, i) => push(p, i < 2 ? 'enemy' : 'extra'));
+    const venom = talentOf(member, 'goblin_venom'), at = locate(member);
+    if (venom && at && Math.random() < venom.allyChance)
+        push(room.players[at.pid].squad.filter(a => a.alive).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0], 'ally');
+    return flasks;
+}
+// Các vạc tồn tại độc lập với sinh mạng Grix; mỗi phát bắn vào 1 kẻ địch NGẪU NHIÊN (2 vạc cùng đợt ưu tiên 2 người khác nhau).
+function goblinCauldrons(room, casterId, casterIdx, opponentId, sk) {
+    const member = room.players[casterId].squad[casterIdx];
+    const facing = member.side === 'left' ? 1 : -1;
+    const spots = Array.from({ length: sk.cauldrons }, (_, i) => ({ x: member.x - 1.6 * facing, z: (member.z || 0) + (i ? 1.4 : -1.4) }));
+    for (let wave = 0; wave < sk.waves; wave++) {
+        later(sk.impact + wave * sk.charge, () => {
+            io.to(room.id).emit('goblinFx', { kind: 'cauldronCharge', casterId, casterIdx, wave, charge: sk.charge });
+        });
+        later(sk.impact + (wave + 1) * sk.charge, () => {
+            const now = room.clock;
+            const points = randomFoes(member, room.players[opponentId]?.squad ?? [], Infinity, spots.length, now);   // khắp bản đồ
+            points.forEach((point, cauldron) => {
+                clampToArena(point);
+                io.to(room.id).emit('goblinFx', { kind: 'cauldronShot', casterId, casterIdx, wave, cauldron, from: spots[cauldron], x: point.x, z: point.z, flight: sk.flight, radius: sk.radius, duration: sk.duration });
+                later(sk.flight, () => {
+                    for (let k = 1; k <= Math.floor(sk.duration / sk.tickGap); k++)
+                        later(k * sk.tickGap, () => goblinArea(room, casterId, casterIdx, opponentId, point, sk, true));
+                });
+            });
+            // hết đợt cuối: vạc biến mất (kể cả khi không còn địch để bắn)
+            if (wave === sk.waves - 1)
+                later(sk.flight, () => io.to(room.id).emit('goblinFx', { kind: 'cauldronEnd', casterId, casterIdx }));
+        });
+    }
+    return { at: sk.impact, spots, waves: sk.waves, charge: sk.charge, flight: sk.flight, summon: true };   // vạc: triệu hồi (không máu, không bị đánh)
+}

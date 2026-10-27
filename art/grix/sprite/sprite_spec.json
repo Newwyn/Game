@@ -1,0 +1,29 @@
+{
+ "note": "Grix (Luc Doc): tranh AI nen xanh ve bang Codex (giu nguyen, chi tach nen + can chan + co gian). key 'jade': Grix co nhieu chi tiet xanh luc doc (trong kinh, binh cau, lo thuoc) -> 'matte' bien chung thanh vang. footBand 16 + footMin 25 + solidFeet: mui gay go cham dat bi bo khi tim got. Moc ngang: 'heel' cho dung / danh / trung don / ky nang tai cho; 'body' cho chay va khung bay (nga, nhay cang). ground 'group': khung nga / nhay giu do cao AI ve.",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "jade",
+ "footBand": 16,
+ "footMin": 25,
+ "solidFeet": true,
+ "sheets": {
+  "idle": {"file": "art/grix/sprite/sprite-idle.png", "scale": 1.0,
+           "groups": [["idle", 4, "heel"], ["ready", 4, "heel"]]},
+  "attack": {"file": "art/grix/sprite/sprite-attack.png", "scale": 1.0, "anchor": "heel"},
+  "move": {"file": "art/grix/sprite/sprite-move.png", "scale": 1.0, "anchor": "body"},
+  "hurt-stun": {"file": "art/grix/sprite/sprite-hurt-stun.png", "scale": 1.0,
+                "groups": [["hurt", 4, "heel"], ["stun", 4, "heel"]]},
+  "dead-victory": {"file": "art/grix/sprite/sprite-dead-victory.png", "scale": 1.0, "ground": "group",
+                   "groups": [["dead", 4, "toe"], ["victory", 4, "body"]]},
+  "cast-land": {"file": "art/grix/sprite/sprite-cast-land.png", "scale": 1.0, "ground": "group",
+                "groups": [["cast", 4, "heel"], ["land", 4, "body"]]},
+  "flask": {"file": "art/grix/sprite/sprite-flask.png", "scale": 1.0, "anchor": "heel"},
+  "bog": {"file": "art/grix/sprite/sprite-bog.png", "scale": 1.0, "anchor": "heel"},
+  "detonate": {"file": "art/grix/sprite/sprite-detonate.png", "scale": 1.0, "anchor": "heel"}
+ },
+ "out": "src/assets/sprites/grix_sprite",
+ "meta": "src/characters/sprite/grixSprite.json",
+ "format": "webp"
+}

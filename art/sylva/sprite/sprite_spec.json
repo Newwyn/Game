@@ -1,0 +1,116 @@
+{
+    "note":  "Sylva (Lam Linh): tranh AI nen xanh do Codex ve. key jade (toc / vay / la xanh). Moc nhu Grix.",
+    "atlasScale":  0.75,
+    "maxWidth":  4096,
+    "pad":  6,
+    "calib":  "idle1",
+    "key":  "jade",
+    "footBand":  16,
+    "footMin":  25,
+    "solidFeet":  true,
+    "sheets":  {
+                   "idle":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/sprite/sprite-idle.png",
+                                "groups":  [
+                                               [
+                                                   "idle",
+                                                   4,
+                                                   "heel"
+                                               ],
+                                               [
+                                                   "ready",
+                                                   4,
+                                                   "heel"
+                                               ]
+                                           ]
+                            },
+                   "attack":  {
+                                  "scale":  1,
+                                  "split":  true,
+                                  "file":  "art/sylva/sprite/sprite-attack.png",
+                                  "anchor":  "heel"
+                              },
+                   "move":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/sprite/sprite-move.png",
+                                "anchor":  "body"
+                            },
+                   "hurt-stun":  {
+                                     "scale":  1,
+                                     "split":  true,
+                                     "file":  "art/sylva/sprite/sprite-hurt-stun.png",
+                                     "groups":  [
+                                                    [
+                                                        "hurt",
+                                                        4,
+                                                        "heel"
+                                                    ],
+                                                    [
+                                                        "stun",
+                                                        4,
+                                                        "heel"
+                                                    ]
+                                                ]
+                                 },
+                   "dead-victory":  {
+                                        "groups":  [
+                                                       [
+                                                           "dead",
+                                                           4,
+                                                           "toe"
+                                                       ],
+                                                       [
+                                                           "victory",
+                                                           4,
+                                                           "body"
+                                                       ]
+                                                   ],
+                                        "scale":  1,
+                                        "split":  true,
+                                        "file":  "art/sylva/sprite/sprite-dead-victory.png",
+                                        "ground":  "group"
+                                    },
+                   "cast-land":  {
+                                     "groups":  [
+                                                    [
+                                                        "cast",
+                                                        4,
+                                                        "heel"
+                                                    ],
+                                                    [
+                                                        "land",
+                                                        4,
+                                                        "body"
+                                                    ]
+                                                ],
+                                     "scale":  1,
+                                     "split":  true,
+                                     "file":  "art/sylva/sprite/sprite-cast-land.png",
+                                     "ground":  "group"
+                                 },
+                   "call":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/sprite/sprite-call.png",
+                                "anchor":  "heel"
+                            },
+                   "bear":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/sprite/sprite-bear.png",
+                                "anchor":  "heel"
+                            },
+                   "deer":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/sprite/sprite-deer.png",
+                                "anchor":  "heel"
+                            }
+               },
+    "out":  "src/assets/sprites/sylva_sprite",
+    "meta":  "src/characters/sprite/sylvaSprite.json",
+    "format":  "webp"
+}

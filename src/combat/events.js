@@ -5,8 +5,10 @@
 // Còn hành động đó trông ra sao là việc của CharacterView (CutoutCharacterView).
 import * as THREE from 'three';
 import { socket } from '../net/socket.js';
-import { game, getView, opponentIdOf } from '../state.js';
+import { game, getView, opponentIdOf, myId } from '../state.js';
 import { cameraRig } from '../core/cameraRig.js';
+import { camera } from '../core/scene.js';
+import { createCharacterView } from '../characters/registry.js';
 import { buildBattleScene, rebuildSquad, syncState } from './battleScene.js';
 import {
     spawnDamageNumber, spawnSlashVfx, spawnBackstabVfx,
@@ -37,7 +39,7 @@ import {
     spawnChainLightning, spawnZap, spawnTornado, spawnFireBoltBlast,
     spawnHasteBurst, spawnWardPop, spawnGolemSummon, spawnGolemCrumble, spawnFistDash, spawnBlizzardRoar, spawnSkyStrike,
     spawnIceBlockDrop, spawnGrowingOrb, spawnSolarBeam, spawnRainCloud, spawnCloudStrike, spawnRainHeal,
-    spawnPalmEcho, spawnInhale, spawnBreath, spawnFistFlame,
+    spawnPalmEcho, spawnInhale, spawnBreath, spawnFistFlame, spawnElemShadow,
 } from '../vfx/elemFx.js';
 import { onGemPicked } from './elemGems.js';
 import {
@@ -57,6 +59,23 @@ import {
     spawnWaterBolt, spawnSplash, spawnDanceStart, spawnHealRain, spawnNote, spawnNoteMark,
     spawnCleanseChains, spawnOrbDrain, spawnWaterShieldPop, spawnOrbGift,
 } from '../vfx/nerissaFx.js';
+import {
+    spawnGoblinVial, spawnPoisonSplash, spawnGoblinFlask, spawnFlaskSplash,
+    spawnGoblinCauldrons, chargeGoblinCauldrons, shootGoblinCauldron, endGoblinCauldrons,
+    spawnGoblinBog, pulseGoblinBog, spawnGoblinCharge, ensureGoblinView, startGoblinFloat, stopGoblinFloat,
+    spawnDetonateCast, spawnSnapFlash, spawnDetonateBurst,
+    spawnVenomRot, spawnGoblinWardUp, spawnWardHitSpit, spawnWardDrain, spawnWardBurst,
+    spawnPoisonTick, spawnPoisonBubbles, spawnPoisonWisp,
+} from '../vfx/goblinFx.js';
+import {
+    spawnSylvaDart, spawnSylvaDartHit, spawnEagleFeather, spawnSylvaCast, spawnBearTauntMark,
+    spawnSylvaSummon, spawnSylvaSummonEnd,
+    spawnWolfHowl, spawnWolfBite, spawnWolfPounce, spawnWolfPounceImpact,
+    spawnEagleWindOrb, spawnFeatherWave, spawnEagleEyeAura,
+    startBearCharge, spawnBearHitImpact,
+    spawnSpiritDeer, spawnDeerTick, endSpiritDeer,
+    spawnLeafShield, spawnForestMight, ensureSummonTag,
+} from '../vfx/sylvaFx.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
 
@@ -69,7 +88,7 @@ function damageType({ dodged, isMiss, isCrit, isBlock, isMagic }, forceCrit = fa
     return isMagic ? 'magic' : 'normal';   // sát thương phép: số xanh dương, vật lý: số đỏ
 }
 
-const chestOf = (v, dy = 1.0) => ({ x: v.position.x, y: v.position.y + dy, z: v.position.z });
+const chestOf = (v, dy = 1.0) => ({ x: v.position.x, y: v.position.y + dy + (v.sprite?.lift ?? 0), z: v.position.z });   // + độ cao đang bay (Đại Bàng)
 /** Điểm bắn tên của Xạ Thủ: chỗ tên rời cung trên tranh (điểm 'bow' của khung nhả, Lyra bản sprite);
  *  bản khung xương: trước ngực, theo hướng mặt, cộng độ cao đang bay */
 const bowPoint = (v) => {
@@ -223,6 +242,40 @@ function onAutoAttack(data) {
             spawnWaterBolt(ribbonPoint(attackerView), chestOf(target, 1.0), { duration: 0.2, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) spawnSplash(target.position, { size: data.isCrit ? 1.4 : 1.0 });
+            } });
+        };
+        if (attackerView.isBusy) { fire(); return; }
+        attackerView.playAction('attack', { onHit: fire });
+        return;
+    }
+
+    // Grix (Lục Độc): ném lọ thuốc độc nhỏ xoay tròn rỏ giọt, chạm ở autoImpact (450ms)
+    if (attacker.squad?.[data.attackerIndex]?.classId === 'alchemist') {
+        ensureGoblinView(attackerView);
+        const fire = (delayMs = 0) => {
+            const target = getView(data.targetId, data.targetIndex);
+            if (!target) return;
+            const dur = Math.max(0.15, (450 - delayMs) / 1000);
+            spawnGoblinVial(grixHandPoint(attackerView), chestOf(target, 0.9), { duration: dur, onHit: () => {
+                showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
+                if (!data.dodged) spawnPoisonSplash(target.position, { size: 0.88 });
+            } });
+        };
+        if (attackerView.isBusy) { fire(0); return; }
+        if (!attackerView.playAction('attack', { onHit: () => fire(250) })) fire(0);   // tranh: khung 4 buông lọ đúng 0,25s
+        return;
+    }
+
+    // Sylva (Lâm Linh): phi tiêu lá · Đại Bàng: lông vũ vàng (tranh vẽ tay sylva_fx2)
+    const atkClass = attacker.squad?.[data.attackerIndex]?.classId;
+    if (atkClass === 'summoner' || atkClass === 'sylva_eagle') {
+        const fire = () => {
+            const target = getView(data.targetId, data.targetIndex);
+            if (!target) return;
+            const eagle = atkClass === 'sylva_eagle';
+            (eagle ? spawnEagleFeather : spawnSylvaDart)(chestOf(attackerView, eagle ? 0.75 : 1.1), chestOf(target, 0.95), { duration: eagle ? 0.2 : 0.24, onHit: () => {
+                showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
+                if (!data.dodged) spawnSylvaDartHit(chestOf(target, 0.95), { eagle });
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -458,6 +511,79 @@ function onSkillExecuted(data) {
                 if (!hasAnim) vanishFx();
             }
             break;
+        case 'goblin_flask': {
+            const flasks = data.flasks?.length ? data.flasks : (data.flask ? [data.flask] : []);
+            if (!flasks.length) break;
+            ensureGoblinView(caster);
+            caster.facingLeft = flasks[0].x < caster.position.x;
+            const throwFlasks = (delayMs = 0) => {
+                const from = grixHandPoint(caster);
+                flasks.forEach((fl) => {
+                    const dur = Math.max(0.15, ((fl.at ?? 650) - delayMs) / 1000);
+                    const kind = fl.kind ?? 'near';
+                    spawnGoblinFlask(from, { x: fl.x, z: fl.z }, {
+                        duration: dur, radius: fl.radius ?? 3.5, kind,
+                        onLand: () => {
+                            spawnFlaskSplash({ x: fl.x, z: fl.z }, { radius: fl.radius ?? 3.5, kind });
+                            cameraRig.shake(0.14, 150);
+                        },
+                    });
+                });
+            };
+            if (!caster.playAction('flask', { onHit: () => throwFlasks(350) })) throwFlasks(0);   // tranh: khung 5 ném bình đúng 0,35s
+            break;
+        }
+        case 'goblin_bog': {
+            ensureGoblinView(caster);
+            const cd = data.cauldrons;
+            if (cd) {
+                caster.playAction('bog');   // giơ gậy rồi cắm xuống đất triệu hồi 2 vạc đồng
+                const at = cd.at ?? 400;
+                const totalLife = (((cd.waves ?? 3) + 0.5) * (cd.charge ?? 2000) + (cd.flight ?? 550) + 1500) / 1000;
+                gameTimeout(() => {
+                    spawnGoblinCauldrons(data.casterId, data.casterIdx, cd.spots ?? [], { totalLife });
+                    cameraRig.shake(0.12, 140);
+                }, at);
+                break;
+            }
+            const bg = data.bog;
+            if (!bg) break;
+            caster.facingLeft = bg.x < caster.position.x;
+            caster.playAction('bog');
+            const at = bg.at ?? 400;
+            const dur = (bg.duration ?? 5000) / 1000;
+            gameTimeout(() => {
+                spawnGoblinBog(bg.x, bg.z, { radius: bg.radius ?? 4.5, duration: dur });
+                cameraRig.shake(0.1, 120);
+            }, at);
+            break;
+        }
+        case 'goblin_detonate': {
+            ensureGoblinView(caster);
+            const det = data.detonate;
+            const at = det?.at ?? 500;
+            stopGoblinFloat(caster, at + 280);
+            const snap = () => spawnSnapFlash(grixHandPoint(caster));
+            if (!caster.playAction('detonate', { onHit: snap })) gameTimeout(snap, 200);   // khung 5 búng tay đúng 0,2s
+            spawnDetonateCast(caster.position, { lift: caster._hover ?? 1.2 });
+            gameTimeout(() => {
+                (det?.targets ?? []).forEach((tg, k) => {
+                    const t = getView(opponentId, tg.targetIndex);
+                    if (!t) return;
+                    t._goblinDetAt = gameNow();
+                    gameTimeout(() => spawnDetonateBurst(t.position, { stacks: tg.stacks ?? 1 }), k * 35);
+                });
+                cameraRig.shake(0.26, 230);
+            }, at);
+            break;
+        }
+        case 'sylva_call':
+        case 'sylva_bear':
+        case 'sylva_deer': {
+            caster.playAction?.({ sylva_call: 'call', sylva_bear: 'bear', sylva_deer: 'deer' }[data.type] ?? 'attack');
+            spawnSylvaCast(caster, data.type);   // vòng phép rừng dưới chân + lá cuốn quanh gậy
+            break;
+        }
         case 'aoe_damage':
             data.effects.forEach(processHit);
             spawnAoeExplosion(caster.position.x, caster.position.z);
@@ -705,6 +831,17 @@ function palmPoint(v) {
     return { x: v.position.x + (v.facingLeft ? -0.8 : 0.8), y: 1.5 + (v._lift ?? 0), z: v.position.z };
 }
 
+/** Bàn tay Grix (ném lọ / ném bình / búng tay): đọc từ toạ độ `hand` của khung sprite đang hiện */
+function grixHandPoint(v) {
+    const f = v?.sprite?.meta?.frames?.[v._frame];
+    if (f?.hand && v._leanG && v._spMesh) {
+        const s = v._spMesh.scale, u = v._u ?? 0.0085;
+        const w = v._leanG.localToWorld(new THREE.Vector3(f.hand[2] * u * s.x, -f.hand[3] * u * s.y, 0.2));
+        return { x: w.x, y: w.y, z: v.position.z };
+    }
+    return { x: v.position.x + (v.facingLeft ? -0.65 : 0.65), y: 1.2 + (v._lift ?? 0) + (v._hover ?? 0), z: v.position.z };
+}
+
 /** Bàn tay cầm lụa của Nerissa (chỗ giọt nước bắn ra) */
 function ribbonPoint(v) {
     const w = v.pointWorld?.('ribbon');
@@ -748,7 +885,10 @@ const breaths = new Map();   // view Golem -> luồng bão tuyết đang phun (t
 /** Giữa Sách Nguyên Tố (phép bốc lên từ trang sách) */
 const bookOf = (v) => jointPoint(v, 'book', { dy: 0.1 });
 const rainClouds = new Map();   // view Elarion -> mây mưa giông đang hiện
-const solarBeams = new Map();   // view Elarion -> SolarBeam đang chưởng (Băng Hoại Hỏa Thiên)
+const solarBeams = new Map();   // key -> SolarBeam đang chưởng (Băng Hoại Hỏa Thiên)
+const elemShadows = new Map();  // `${casterId}:${casterIdx}` -> Bóng Nguyên Tố đang hiện
+const elemChannelKey = (casterId, casterIdx, shadow = false) => `${casterId}:${casterIdx}:${shadow ? 'shadow' : 'self'}`;
+const elemShadowKey = (casterId, casterIdx) => `${casterId}:${casterIdx}`;
 /** Giữa 2 lòng bàn tay (chưởng SolarBeam), nhích ra trước 1 chút */
 function palmsOf(v) {
     // bản sprite (Elarion bản 3): điểm 'palms' đánh dấu giữa 2 bàn tay trên tranh dồn lực / giữ tia
@@ -758,7 +898,18 @@ function palmsOf(v) {
     return { x: (a.x + b.x) / 2 + (v.facingLeft ? -0.28 : 0.28), y: (a.y + b.y) / 2 - 0.05, z: Math.max(a.z, b.z) };
 }
 /** Tắt SolarBeam đang hiện của Elarion (hết giờ / bị ngắt / gục) + thả tư thế giữ tia */
-function endSolarBeam(caster, h = null) {
+function endSolarBeam(caster, h = null, { casterId, casterIdx, shadow = false } = {}) {
+    const key = casterId != null ? elemChannelKey(casterId, casterIdx, shadow) : caster;
+    const cur = solarBeams.get(key);
+    if (!cur || (h && cur !== h)) return;
+    cur.stop();
+    solarBeams.delete(key);
+    if (!shadow && caster) {
+        caster.releaseHold?.('beam');
+        caster.releaseHold?.('beamCharge');
+    }
+}
+function _unusedEndSolarBeam(caster, h = null) {
     const cur = solarBeams.get(caster);
     if (!cur || (h && cur !== h)) return;
     cur.stop();
@@ -768,7 +919,8 @@ function endSolarBeam(caster, h = null) {
 }
 function elemSpell(caster, data, opponentId) {
     const dir = caster.facingLeft ? -1 : 1;
-    if (data.spell !== 'beams') caster.playAction('spell');
+    const isShadowCast = !!(data.rain?.shadow || data.beam?.shadow);
+    if (data.spell !== 'beams' && data.spell !== 'steam' && !isShadowCast) caster.playAction('spell');
     switch (data.spell) {
         case 'meteor':
             if (data.meteor) spawnMeteor(data.meteor);
@@ -801,12 +953,37 @@ function elemSpell(caster, data, opponentId) {
             elemHits(data.effects, opponentId);
             break;
         case 'steam': {
-            // mây mưa giông che trận (tắt sớm khi bị ngắt — 'rainEnd')
+            // mây mưa giông che trận (tắt sớm khi bị ngắt — 'rainEnd'; hỗ trợ delay & Bóng Nguyên Tố)
+            const r = data.rain;
+            if (!r) break;
+            const rKey = elemChannelKey(data.casterId, data.casterIdx, !!r.shadow);
+            rainClouds.get(rKey)?.stop();
+            const delay = r.delay ?? 0;
+            const dur = r.duration ?? 7000;
+            const startCloud = () => {
+                const channelView = r.shadow ? elemShadows.get(elemShadowKey(data.casterId, data.casterIdx))?.view : caster;
+                if (!r.shadow && caster) {
+                    caster.playAction('storm', { onComplete: () => { if (rainClouds.has(rKey)) caster.setLocomotion?.('channel'); } });
+                }
+                const c = spawnRainCloud(r, channelView);
+                rainClouds.set(rKey, c);
+                gameTimeout(() => { if (rainClouds.get(rKey) === c) rainClouds.delete(rKey); }, dur);
+            };
+            if (delay > 0) {
+                let cancelled = false;
+                const pending = { stop() { cancelled = true; }, flash() {} };
+                rainClouds.set(rKey, pending);
+                gameTimeout(() => { if (!cancelled && rainClouds.get(rKey) === pending) startCloud(); }, delay);
+            } else {
+                startCloud();
+            }
+            if (false) {
             if (!data.rain) break;
             rainClouds.get(caster)?.stop();
             const c = spawnRainCloud(data.rain);
             rainClouds.set(caster, c);
             gameTimeout(() => { if (rainClouds.get(caster) === c) rainClouds.delete(caster); }, data.rain.duration ?? 7000);
+            }
             break;
         }
         case 'firebolt':
@@ -819,6 +996,37 @@ function elemSpell(caster, data, opponentId) {
             // khum 2 tay về hông dồn lực -> HA! đẩy 2 lòng bàn tay giữ tia SolarBeam băng-hỏa tới cuối bản đồ (tắt khi 'beamEnd')
             const b = data.beam;
             if (!b) break;
+            const isShadow = !!b.shadow;
+            const bKey = elemChannelKey(data.casterId, data.casterIdx, isShadow);
+            if (isShadow) {
+                const sKey = elemShadowKey(data.casterId, data.casterIdx);
+                const sh = elemShadows.get(sKey);
+                if (sh?.view) sh.view.facingLeft = b.ux < 0;
+                const alive = () => elemShadows.has(sKey) && !!game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.alive;
+                endSolarBeam(null, null, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: true });
+                const getOrigin = () => {
+                    const cur = elemShadows.get(sKey);
+                    return cur?.view ? palmsOf(cur.view) : { x: b.shadow.x, y: 1.35, z: b.shadow.z ?? 0 };
+                };
+                const h = spawnSolarBeam({ getOrigin, ux: b.ux, uz: b.uz, len: b.len, charge: (b.charge ?? 700) / 1000,
+                    duration: (b.duration ?? 7000) / 1000, alive });
+                solarBeams.set(bKey, h);
+                gameTimeout(() => { if (solarBeams.get(bKey) === h) cameraRig.shake(0.32, 280); }, b.charge ?? 700);
+                gameTimeout(() => endSolarBeam(null, h, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: true }), (b.charge ?? 700) + (b.duration ?? 7000) + 500);
+            } else {
+                caster.facingLeft = b.ux < 0;
+                const alive = () => !!game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.alive && caster.root.visible;
+                endSolarBeam(caster, null, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: false });
+                const h = spawnSolarBeam({ getOrigin: () => palmsOf(caster), ux: b.ux, uz: b.uz, len: b.len, charge: (b.charge ?? 700) / 1000,
+                    duration: (b.duration ?? 7000) / 1000, alive });
+                solarBeams.set(bKey, h);
+                caster.playAction('beamCharge', { onComplete: () => { if (solarBeams.get(bKey) === h && alive()) caster.playAction('beam', { hold: true }); } });
+                gameTimeout(() => { if (solarBeams.get(bKey) === h) cameraRig.shake(0.32, 280); }, b.charge ?? 700);
+                gameTimeout(() => endSolarBeam(caster, h, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: false }), (b.charge ?? 700) + (b.duration ?? 7000) + 500);
+            }
+            if (false) {
+            const b = data.beam;
+            if (!b) break;
             caster.facingLeft = b.ux < 0;
             const alive = () => !!game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.alive && caster.root.visible;
             endSolarBeam(caster);
@@ -828,6 +1036,7 @@ function elemSpell(caster, data, opponentId) {
             caster.playAction('beamCharge', { onComplete: () => { if (solarBeams.get(caster) === h && alive()) caster.playAction('beam', { hold: true }); } });
             gameTimeout(() => { if (solarBeams.get(caster) === h) cameraRig.shake(0.32, 280); }, b.charge ?? 700);
             gameTimeout(() => endSolarBeam(caster, h), (b.charge ?? 700) + (b.duration ?? 7000) + 500);   // dự phòng nếu lỡ mất 'beamEnd'
+            }
             break;
         }
         case 'haste':
@@ -885,7 +1094,7 @@ function onElemFx(d) {
             break;
         case 'beamTick': {
             // SolarBeam mỗi giây: đòn băng (Hàn Khí, giảm tốc đánh) + đòn lửa (tăng dần; đủ 5 tầng tia lửa to hẳn)
-            const h = caster && solarBeams.get(caster);
+            const h = solarBeams.get(elemChannelKey(d.casterId, d.casterIdx, !!d.shadow));
             h?.setStacks(d.stacks ?? 0, !!d.big);
             h?.pulse();
             cameraRig.shake(d.big ? 0.15 : 0.08, 140);
@@ -894,7 +1103,7 @@ function onElemFx(d) {
             break;
         }
         case 'beamEnd':
-            if (caster) endSolarBeam(caster);
+            endSolarBeam(caster, null, { casterId: d.casterId, casterIdx: d.casterIdx, shadow: !!d.shadow });
             break;
         case 'gemGift': {
             // đồng đội dùng 5 / đối thủ dùng 10 kỹ năng -> 1 luồng nguyên tố bay từ người vừa dùng kỹ năng về Elarion (+1 ngọc lên khay)
@@ -911,10 +1120,69 @@ function onElemFx(d) {
             });
             if (d.strike) {
                 const t = getView(d.targetId, d.strike.targetIndex);
-                if (t) { spawnCloudStrike(t.position, caster && rainClouds.get(caster)); elemHits([d.strike], d.targetId); }
+                if (t) { spawnCloudStrike(t.position, rainClouds.get(elemChannelKey(d.casterId, d.casterIdx, !!d.shadow))); elemHits([d.strike], d.targetId); }
             }
             break;
         case 'rainEnd':
+        {
+            const rKey = elemChannelKey(d.casterId, d.casterIdx, !!d.shadow);
+            rainClouds.get(rKey)?.stop();
+            rainClouds.delete(rKey);
+            break;
+        }
+        case 'shadowStart': {
+            // Bóng Nguyên Tố (Thần Thoại): để lại phân thân bóng tối đứng niệm & giữ mưa / tia, Elarion thật lướt lùi với tàn ảnh
+            const sKey = elemShadowKey(d.casterId, d.casterIdx);
+            elemShadows.get(sKey)?.stop();
+            const isEnemy = d.casterId !== myId();
+            const facingLeft = caster ? caster.facingLeft : isEnemy;
+            // bóng = bản sao hình Elarion THẬT (đúng nhân vật đang đánh, đứng ở chỗ Elarion vừa đứng)
+            const src = game.roomData?.players?.[d.casterId]?.squad?.[d.casterIdx] ?? { classId: 'elementalist' };
+            const shadowMember = { ...src, x: d.x, z: d.z ?? 0, statusEffects: [], alive: true, state: 'idle', queuedSkills: [] };
+            const shadowView = createCharacterView(shadowMember, game.classDefs?.elementalist ?? { skills: [] }, !isEnemy);
+            shadowView.facingLeft = facingLeft;
+            const sh = spawnElemShadow(shadowView, {
+                x: d.x,
+                z: d.z ?? 0,
+                spell: d.spell,
+                castTime: d.castTime ?? (d.spell === 'steam' ? 2000 : 700),
+                updateView: (dt) => {
+                    shadowView.updateVisual(dt, camera);
+                    shadowView.root.updateMatrixWorld(true);
+                },
+            });
+            elemShadows.set(sKey, sh);
+
+            if (caster) {
+                const retreatMs = d.retreatTime ?? 350;
+                const fx0 = d.fromX ?? d.x, fz0 = d.fromZ ?? (d.z ?? 0);
+                const tx = d.toX ?? caster.position.x, tz = d.toZ ?? caster.position.z;
+                caster.teleport(fx0, fz0);
+                if (caster.leapTo) {
+                    caster.leapTo(tx, tz, { duration: retreatMs / 1000, height: 0.35 });
+                } else {
+                    caster.teleport(tx, tz);
+                }
+                for (let i = 1; i <= 3; i++) {
+                    gameTimeout(() => {
+                        // dư ảnh tím dọc đường lùi (makeGhost(x, z, opts) -> { object, life, opacity })
+                        const g = caster.makeGhost?.(caster.position.x, caster.position.z, { tint: 0x8b5cf6, opacity: 0.5, life: 0.34 });
+                        if (g) spawnGhost(g.object, g.life, g.opacity);
+                    }, Math.round((retreatMs * i) / 4));
+                }
+            }
+            break;
+        }
+        case 'shadowEnd': {
+            const sKey = elemShadowKey(d.casterId, d.casterIdx);
+            const sh = elemShadows.get(sKey);
+            if (sh) {
+                sh.stop();
+                elemShadows.delete(sKey);
+            }
+            break;
+        }
+        case '_unusedRainEnd':
             if (caster) { rainClouds.get(caster)?.stop(); rainClouds.delete(caster); }
             break;
         case 'teamOrb':
@@ -1778,6 +2046,7 @@ export function registerCombatEvents(hooks = {}) {
 
     socket.on('battleStart', (data) => {
         buildBattleScene(data);
+        Object.values(game.views ?? {}).flat().forEach(v => { if (v?.member?.summon) ensureSummonTag(v); });
         hooks.onBattleStart?.(data);
     });
 
@@ -1790,6 +2059,10 @@ export function registerCombatEvents(hooks = {}) {
         }
         game.roomData = { ...game.roomData, players: data.players };
         syncState(data.players);
+        Object.values(game.views ?? {}).flat().forEach(v => {
+            if (v?.member?.classId === 'alchemist') ensureGoblinView(v);
+            if (v?.member?.summon) ensureSummonTag(v);
+        });
         hooks.onState?.(data.players);
     });
 
@@ -1803,7 +2076,10 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('battleEnd', (data) => {
         game.views[data.winnerId]?.forEach(view => view.celebrate?.());
     });
-    socket.on('squadResized', (data) => rebuildSquad(data.playerId, data.newSquad));
+    socket.on('squadResized', (data) => {
+        rebuildSquad(data.playerId, data.newSquad);
+        (game.views?.[data.playerId] ?? []).forEach(v => { if (v?.member?.summon) ensureSummonTag(v); });
+    });
     socket.on('guardBurst', onGuardBurst);
     socket.on('archerShots', onArcherShots);
     socket.on('reviveStart', onReviveStart);
@@ -1829,6 +2105,9 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('fireWard', onFireWard);
     socket.on('waterFx', onWaterFx);
     socket.on('elemFx', onElemFx);
+    socket.on('goblinFx', onGoblinFx);
+    socket.on('sylvaFx', (d) => onSylvaFx(d));
+    socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
     socket.on('castStart', onCastStart);
@@ -1869,6 +2148,14 @@ function onCastStart(data) {
         spawnRisingSparkles(v.position, { count: 12, color: 0xff8c2a, radius: 1.0 });
         return;
     }
+    if (v && (def?.type === 'goblin_bog' || def?.type === 'goblin_detonate')) {
+        ensureGoblinView(v);
+        v.playAction?.('charge', { hold: true });   // khuấy gậy như khuấy nồi
+        const castMs = data.castTime ?? (def.type === 'goblin_detonate' ? 1000 : 800);
+        if (def.type === 'goblin_detonate') startGoblinFloat(v, castMs + 850);
+        spawnGoblinCharge(v, { life: castMs / 1000 + 0.12, big: def.type === 'goblin_detonate' });
+        return;
+    }
     if (v && def?.type === 'fire_god') {
         // gồng Hỏa Thần: hạ người, vòng triệu hồi + hào quang lửa dưới chân
         v.playAction?.('charge', { hold: true });
@@ -1885,10 +2172,339 @@ function onCastStart(data) {
     }
     if (v && def?.type === 'golem_blizzard') { v.playAction?.('inhale', { hold: true }); spawnInhale(mouthOf(v), v.facingLeft ? -1 : 1, (data.castTime ?? 2000) / 1000); return; }
     if (v && def?.type === 'golem_aura') { v.flashMagicCircle?.((data.castTime ?? 1000) / 1000); spawnRisingSparkles(v.position, { count: 10, color: 0xb784ff, radius: 1 }); return; }
+    if (v && classId === 'sylva_eagle') {
+        v.playAction?.('cast', { hold: true });
+        v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
+        spawnRisingSparkles(v.position, { count: 8, color: 0xfde047, radius: 0.85 });
+        return;
+    }
     if (!v || def?.type !== 'charged_shot') return;
     v.playAction?.('cast', { hold: true });   // kéo căng dây, giữ nguyên tới lúc nhả
     spawnLyraCharge(v.position, (data.castTime ?? 2000) / 1000, { y: 1.1 + (v._hover ?? 0) });   // gió hút vào + vòng gió (tranh)
 }
 
 /** Dùng cho công cụ xem thử hiệu ứng (tools/fx-brakk.html, fx-ignar.html...) — gọi thẳng hàm xử lý sự kiện với dữ liệu giả */
-export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onFireHits, onFireGod, onCastStart };
+/** Sự kiện riêng của Grix (Lục Độc): độc rút máu, bình độc nổ, vạc đồng, đầm lầy đốt, đại bộc phá, độc lan, mục rữa, giáp độc */
+/** Luật Sinh Tử (1 đấu 1 quá 15s): mỗi 0,5s cả 2 mất 5% máu tối đa -> số máu mất màu cam trên đầu (chữ "SINH TỬ!": overlays.js) */
+function onSuddenDeath(d) {
+    if (d.kind !== 'tick') return;
+    (d.hits ?? []).forEach(h => {
+        const v = getView(h.targetId, h.targetIndex);
+        if (v) spawnDamageNumber(v.position, h.damage, 'hpcost');
+    });
+}
+function onGoblinFx(d) {
+    const caster = d.casterId != null ? getView(d.casterId, d.casterIdx) : null;
+    if (caster) ensureGoblinView(caster);
+    const opponentId = opponentIdOf(d.casterId);
+    switch (d.kind) {
+        case 'poisonTick': {
+            const t = getView(d.targetId ?? opponentId, d.targetIndex);
+            if (!t) break;
+            const e = d.effect;
+            if (e?.absorbed > 0) {
+                t.onGuardHit?.();
+                spawnDamageNumber(t.position, e.absorbed, 'absorb');
+            }
+            spawnPoisonTick(t.position, e?.damage ?? 0, { stacks: d.stacks ?? 1 });
+            break;
+        }
+        case 'flaskHit':
+        case 'bogTick':
+        case 'detonate': {
+            if (d.kind === 'flaskHit' && d.x != null) {
+                spawnFlaskSplash({ x: d.x, z: d.z }, { radius: d.radius ?? 3.5, kind: d.flaskKind ?? 'near' });
+                cameraRig.shake(0.14, 150);
+            }
+            if (d.kind === 'bogTick' && d.x != null) {
+                pulseGoblinBog(d.x, d.z, { radius: d.radius ?? 4.5 });
+            }
+            const now = gameNow();
+            (d.effects ?? []).forEach(e => {
+                const t = getView(opponentId, e.targetIndex);
+                if (!t) return;
+                showHit(t, e, { fx: false });
+                if (e.isMiss) return;
+                if (d.kind === 'flaskHit') spawnPoisonSplash(t.position, { size: 1.0 });
+                else if (d.kind === 'bogTick') spawnPoisonBubbles(t.position, { count: 3 });
+                else if (d.kind === 'detonate') {
+                    if (now - (t._goblinDetAt ?? -1e9) > 250) {
+                        spawnDetonateBurst(t.position, { stacks: e.stacks ?? 1 });
+                    }
+                }
+            });
+            if (d.kind === 'flaskHit') {
+                (d.heals ?? []).forEach(h => {
+                    const ally = getView(d.casterId, h.targetIndex);
+                    if (!ally) return;
+                    if (h.heal > 0) spawnDamageNumber(ally.position, h.heal, 'heal');
+                    spawnRisingSparkles(ally.position, { count: 7, color: 0x4ade80, radius: 0.75 });
+                    spawnPoisonBubbles(ally.position, { count: 3, heal: true });
+                });
+            }
+            break;
+        }
+        case 'cauldronCharge': {
+            chargeGoblinCauldrons(d.casterId, d.casterIdx, {
+                chargeMs: d.charge ?? 2000,
+                fallbackPos: caster?.position,
+            });
+            break;
+        }
+        case 'cauldronShot': {
+            shootGoblinCauldron(d.casterId, d.casterIdx, d.cauldron ?? 0, d.from, { x: d.x, z: d.z }, {
+                flightMs: d.flight ?? 550,
+                radius: d.radius ?? 4.5,
+                durationMs: d.duration ?? 5000,
+                onLand: () => cameraRig.shake(0.12, 130),
+            });
+            break;
+        }
+        case 'cauldronEnd': {
+            endGoblinCauldrons(d.casterId, d.casterIdx);
+            break;
+        }
+        case 'spread': {
+            const fromView = d.fromIndex != null ? getView(opponentId, d.fromIndex) : null;
+            const from = fromView ? chestOf(fromView, 0.9) : { x: d.x ?? 0, y: 0.9, z: d.z ?? 0 };
+            (d.toIndexes ?? []).forEach((idx, k) => {
+                const toView = getView(opponentId, idx);
+                if (!toView) return;
+                gameTimeout(() => {
+                    spawnPoisonWisp(from, () => chestOf(toView, 0.9), {
+                        duration: 0.38,
+                        onArrive: () => spawnPoisonSplash(toView.position, { size: 0.85 }),
+                    });
+                }, k * 45);
+            });
+            break;
+        }
+        case 'venomRot': {
+            const t = getView(d.targetId ?? opponentId, d.targetIndex);
+            if (t) spawnVenomRot(t, { rotTime: d.rotTime ?? 5000 });
+            break;
+        }
+        case 'wardUp': {
+            if (caster) {
+                spawnGoblinWardUp(caster);
+                if (d.shield > 0) spawnDamageNumber(caster.position, d.shield, 'shield');
+                cameraRig.shake(0.14, 150);
+            }
+            break;
+        }
+        case 'wardHit': {
+            const t = getView(d.targetId ?? opponentId, d.targetIndex);
+            if (caster && t) spawnWardHitSpit(caster, t);
+            break;
+        }
+        case 'wardDrain': {
+            if (caster) {
+                spawnWardDrain(caster);
+                if (d.heal > 0) spawnDamageNumber(caster.position, d.heal, 'heal');
+                spawnRisingSparkles(caster.position, { count: 5, color: 0x4ade80, radius: 0.65 });
+            }
+            break;
+        }
+        case 'wardBurst': {
+            const at = { x: d.x ?? caster?.position.x ?? 0, z: d.z ?? caster?.position.z ?? 0 };
+            spawnWardBurst(caster, at, { radius: d.radius ?? 3.5 });
+            cameraRig.shake(0.24, 220);
+            const hitSet = new Set([...(d.poisonedIndexes ?? []), ...(d.stunnedIndexes ?? [])]);
+            hitSet.forEach(idx => {
+                const t = getView(opponentId, idx);
+                if (t) {
+                    spawnPoisonSplash(t.position, { size: 0.9 });
+                    t.flashHit?.();
+                }
+            });
+            break;
+        }
+    }
+}
+
+/** Sự kiện riêng của Sylva (Lâm Linh, Triệu Hồi Sư) và các thú triệu hồi (Sói Rừng, Đại Bàng, Gấu Hộ Vệ, Thần Hươu) */
+const SYLVA_PET_FX = new Set(['howl', 'bite', 'pounce', 'windOrb', 'featherWave', 'eagleEye', 'bearCharge', 'bearGuard']);
+function onSylvaFx(d, waited = 0) {
+    // Thú vừa được gọi ra cùng nhịp với hiệu ứng của nó (Gấu ủi ngay khi ra sân, Sói tru, Ưng Nhãn): hình con thú chỉ có ở gói
+    //   stateUpdate kế tiếp -> chờ tối đa 0,9s rồi chạy, `lateMs` = phần đã trễ (Gấu ủi bù lại cho khớp server)
+    const petIdx = SYLVA_PET_FX.has(d.kind) ? d.summonIdx : d.kind === 'leafShield' ? d.targetIndex : null;
+    if (petIdx != null && d.casterId != null && !getView(d.casterId, petIdx) && waited < 900) {
+        gameTimeout(() => onSylvaFx(d, waited + 60), 60);
+        return;
+    }
+    if (waited) d = { ...d, lateMs: waited };
+    const caster = d.casterId != null && d.casterIdx != null ? getView(d.casterId, d.casterIdx) : null;
+    const summon = d.casterId != null && d.summonIdx != null ? getView(d.casterId, d.summonIdx) : null;
+    const opponentId = opponentIdOf(d.casterId);
+    const foeId = d.targetId ?? opponentId;
+
+    switch (d.kind) {
+        case 'summon': {
+            spawnSylvaSummon(d.x ?? summon?.position.x ?? caster?.position.x ?? 0, d.z ?? summon?.position.z ?? caster?.position.z ?? 0, {
+                summonType: d.summonType ?? 'wolf',
+            });
+            cameraRig.shake(d.summonType === 'bear' ? 0.18 : 0.12, 160);
+            break;
+        }
+        case 'summonEnd': {
+            if (summon) spawnSylvaSummonEnd(summon.position);
+            break;
+        }
+        case 'howl': {
+            const targets = (d.targetIndexes ?? []).map(i => getView(foeId, i)).filter(Boolean);
+            summon?.playAction?.('howl');
+            spawnWolfHowl(summon?.position ?? caster?.position, targets, { left: summon ? summon.facingLeft : d.casterId !== myId() });
+            cameraRig.shake(0.14, 150);
+            break;
+        }
+        case 'bite': {
+            const e = d.effect;
+            const t = e != null ? getView(foeId, e.targetIndex) : null;
+            summon?.playAction?.('attack');
+            if (summon && t) summon.facingLeft = t.position.x < summon.position.x;
+            spawnWolfBite(summon?.position, t?.position, { healed: (d.heal ?? 0) > 0, wolfView: summon });
+            if (t && e) showHit(t, e, { fx: false });
+            if (summon && d.heal > 0) spawnDamageNumber(summon.position, d.heal, 'heal');
+            break;
+        }
+        case 'pounce': {
+            const fx0 = d.fromX ?? summon?.position.x ?? 0;
+            const fz0 = d.fromZ ?? summon?.position.z ?? 0;
+            const tx = d.toX ?? fx0;
+            const tz = d.toZ ?? fz0;
+            if (summon) {
+                summon.facingLeft = tx < fx0;
+                summon.teleport(fx0, fz0, true);
+                if (summon.leapTo) summon.leapTo(tx, tz, { duration: 0.34, height: 1.75 });
+                else summon.teleport(tx, tz, false);
+                summon.playAction?.('pounce');
+            }
+            spawnWolfPounce({ x: fx0, z: fz0 }, { x: tx, z: tz });
+            gameTimeout(() => {
+                const e = d.effect;
+                const t = e != null ? getView(foeId, e.targetIndex) : null;
+                spawnWolfPounceImpact(t?.position ?? { x: tx, y: 0, z: tz });
+                if (t && e) showHit(t, e, { fx: false });
+                cameraRig.shake(0.14, 130);
+            }, 320);
+            break;
+        }
+        case 'windOrb': {
+            const t = getView(foeId, d.targetIndex ?? d.effect?.targetIndex);
+            const from = summon ? chestOf(summon, 1.15) : (caster ? chestOf(caster, 1.15) : { x: 0, y: 1.2, z: 0 });
+            const to = t ? chestOf(t, 0.95) : { x: d.pushed?.fromX ?? from.x, y: 1.0, z: d.pushed?.toZ ?? from.z };
+            if (summon) {
+                summon.facingLeft = to.x < from.x;
+                summon.playAction?.('release');
+            }
+            if (t && d.pushed) t.teleport(d.pushed.fromX ?? t.basePos.x, t.basePos.z, true);
+            spawnEagleWindOrb(from, to, {
+                duration: 0.25,
+                onHit: () => {
+                    if (t && d.effect) showHit(t, d.effect, { fx: false });
+                    if (t && d.pushed) {
+                        const pToX = d.pushed.toX ?? t.basePos.x;
+                        const pToZ = d.pushed.toZ ?? t.basePos.z;
+                        if (t.leapTo) t.leapTo(pToX, pToZ, { duration: 0.35, height: 0.65 });
+                        else t.teleport(pToX, pToZ, false);
+                    }
+                    cameraRig.shake(0.14, 130);
+                },
+            });
+            break;
+        }
+        case 'featherWave': {
+            if (summon && (d.wave ?? 0) === 0) summon.playAction?.('release');
+            spawnFeatherWave(d.points ?? [], {
+                radius: d.radius ?? 2.5,
+                onLand: () => {
+                    (d.effects ?? []).forEach(e => {
+                        const t = getView(foeId, e.targetIndex);
+                        if (t) showHit(t, e, { fx: false });
+                    });
+                    cameraRig.shake(0.08, 90);
+                },
+            });
+            break;
+        }
+        case 'eagleEye': {
+            if (summon) spawnEagleEyeAura(summon, d.duration ?? 5000);
+            break;
+        }
+        case 'bearCharge': {
+            if (summon && d.path?.length) startBearCharge(summon, d.path, { elapsedMs: d.lateMs ?? 0 });
+            cameraRig.shake(0.2, 200);
+            (d.effects ?? []).forEach(e => {
+                gameTimeout(() => {
+                    const t = getView(foeId, e.targetIndex);
+                    if (!t) return;
+                    showHit(t, e, { fx: false });
+                    if (e.isMiss) return;
+                    spawnBearHitImpact(t.position);
+                    if (t.leapTo && t.member?.alive !== false) {
+                        t.leapTo(t.basePos.x, t.basePos.z, { duration: 0.6, height: 2.2 });
+                    }
+                    cameraRig.shake(0.16, 130);
+                }, Math.max(0, (e.at ?? e.delay ?? 0) - (d.lateMs ?? 0)));
+            });
+            break;
+        }
+        case 'bearGuard': {
+            const t = getView(foeId, d.targetIndex ?? d.effect?.targetIndex);
+            if (summon && t) {
+                summon.facingLeft = t.position.x < summon.position.x;
+                summon.playAction?.('attack');
+            }
+            if (t) {
+                spawnBearHitImpact(t.position);
+                if (d.effect) showHit(t, d.effect, { fx: false });
+                if (d.pushed) {
+                    const toX = d.pushed.toX ?? t.basePos.x;
+                    const toZ = d.pushed.toZ ?? t.basePos.z;
+                    if (t.leapTo) t.leapTo(toX, toZ, { duration: 0.38, height: 0.75 });
+                    else t.teleport(toX, toZ, false);
+                }
+                if (d.taunt) spawnBearTauntMark(t);
+                cameraRig.shake(0.18, 150);
+            }
+            break;
+        }
+        case 'deer': {
+            const faceLeft = caster ? caster.facingLeft : (d.casterId !== myId());
+            spawnSpiritDeer(d.casterId, d.casterIdx, d.x ?? caster?.position.x ?? 0, d.z ?? caster?.position.z ?? 0, d.duration ?? 10000, { faceLeft });
+            cameraRig.shake(0.14, 160);
+            break;
+        }
+        case 'deerTick': {
+            const allyViews = [];
+            (d.heals ?? []).forEach(h => {
+                const v = getView(d.casterId, h.targetIndex);
+                if (!v) return;
+                allyViews.push(v);
+                if (h.heal > 0) spawnDamageNumber(v.position, h.heal, 'heal');
+            });
+            spawnDeerTick(d.casterId, d.casterIdx, allyViews);
+            break;
+        }
+        case 'deerEnd': {
+            endSpiritDeer(d.casterId, d.casterIdx);
+            break;
+        }
+        case 'leafShield': {
+            const v = getView(d.casterId, d.targetIndex);
+            if (v) {
+                spawnLeafShield(v, d.duration ?? 7000);
+                if (d.shield > 0) spawnDamageNumber(v.position, d.shield, 'shield');
+            }
+            break;
+        }
+        case 'forestMight': {
+            const squad = game.roomData?.players?.[d.casterId]?.squad ?? [];
+            const allies = squad.map((m, i) => (m?.alive ? getView(d.casterId, i) : null)).filter(Boolean);
+            spawnForestMight(allies, d.stacks ?? 1);
+            break;
+        }
+    }
+}
+
+export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onFireHits, onFireGod, onCastStart };

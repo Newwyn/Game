@@ -73,6 +73,22 @@ if (S === 'steam') {
   at(0.1, () => { vA[0].setLocomotion('channel'); spell('steam', { rain: { x: 2, z: 0, duration: 7000 } }); });
   at(1.2, () => fx({ kind: 'rainTick', heals: [{ targetIndex: 0, heal: 80 }, { targetIndex: 1, mana: 200 }], strike: { targetIndex: 1, damage: 120, isCrit: false } }));
 }
+// Bóng Nguyên Tố (lúc Bão Nguyên Tố): bóng hiện ở chỗ Elarion đứng, Elarion lùi 4 ô; bóng niệm rồi thi triển (mốc như server)
+if (S === 'shadow') {
+  at(0.1, () => { ela.statusEffects.push({ type: 'elem_storm', endTime: BIG }); __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: 2, type: 'elem_storm', effects: [] }); });
+  at(1.0, () => { fx({ kind: 'shadowStart', spell: 'steam', x: -4, z: 0, fromX: -4, fromZ: 0, toX: -8, toZ: 0, retreatTime: 350, castTime: 2000 }); ela.x = -8;
+    spell('steam', { rain: { x: -4, z: 0, duration: 7000, shadow: { x: -4, z: 0 }, delay: 2000 } }); });
+  for (let k = 1; k <= 7; k++) at(3.0 + k, () => fx({ kind: 'rainTick', shadow: true, heals: [{ targetIndex: 0, heal: 80 }, { targetIndex: 1, mana: 200 }], strike: { targetIndex: k % 3, damage: 120, isCrit: false } }));
+  at(10.1, () => { fx({ kind: 'rainEnd', reason: 'time', shadow: true }); fx({ kind: 'shadowEnd' }); });
+}
+if (S === 'shadowbeam') {
+  at(0.1, () => { ela.statusEffects.push({ type: 'elem_storm', endTime: BIG }); __fxTest.onSkillExecuted({ casterId: 'me', casterIdx: 0, skillIdx: 2, type: 'elem_storm', effects: [] }); });
+  at(1.0, () => { fx({ kind: 'shadowStart', spell: 'beams', x: -4, z: 0, fromX: -4, fromZ: 0, toX: -8, toZ: 0, retreatTime: 350, castTime: 700 }); ela.x = -8;
+    spell('beams', { beam: { ux: 1, uz: 0, charge: 700, duration: 10000, every: 1000, max: 5, len: 50, shadow: { x: -4, z: 0 } } }); });
+  for (let k = 1; k <= 10; k++) at(1.7 + (k - 0.5), () => { const st = Math.min(5, k); fx({ kind: 'beamTick', shadow: true, tick: k, stacks: st, big: st >= 5,
+    ice: hits([[0, 90], [1, 85], [2, 88]], { chill: k }), fire: hits([[0, 140 + k * 8], [1, 130 + k * 8], [2, 135 + k * 8]], { delay: 150 }) }); });
+  at(11.75, () => { fx({ kind: 'beamEnd', reason: 'time', shadow: true }); fx({ kind: 'shadowEnd' }); });
+}
 if (S === 'firebolt') {
   at(0.1, () => spell('firebolt', { firebolt: { x: 5.5, z: 0, grow: 2000, start: 300, radius: 4.5 } }));
   at(2.3, () => fx({ kind: 'fireboltHit', x: 5.5, z: 0, radius: 4.5, effects: hits([[0, 400], [1, 380]]) }));

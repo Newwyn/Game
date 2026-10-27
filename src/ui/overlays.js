@@ -54,6 +54,17 @@ function onCountdown(data) {
     }
 }
 
+/** Luật Sinh Tử bắt đầu (1 đấu 1 quá 15s): chữ lớn giữa màn hình 1,6s (dùng chung khung chữ đếm ngược) */
+function onSuddenDeath(data) {
+    if (data.kind !== 'start') return;
+    const overlay = $('countdown-overlay');
+    const text = $('countdown-text');
+    overlay.style.display = 'flex';
+    text.textContent = '⚔️ SINH TỬ!';
+    playBeep(300, 'sawtooth', 0.4);
+    setTimeout(() => { if (text.textContent === '⚔️ SINH TỬ!') overlay.style.display = 'none'; }, 1600);
+}
+
 function onPauseState(data) {
     const pauseMenu = $('pause-menu');
     const container = $('game-container');
@@ -111,6 +122,7 @@ function onBattleEnd(data) {
 
 export function registerOverlayEvents() {
     socket.on('countdown', onCountdown);
+    socket.on('suddenDeath', onSuddenDeath);
     socket.on('pauseState', onPauseState);
     socket.on('battleEnd', onBattleEnd);
 }

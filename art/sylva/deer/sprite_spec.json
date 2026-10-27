@@ -1,0 +1,30 @@
+{
+    "note":  "Than Huou (hieu ung, khong mau)",
+    "atlasScale":  0.6,
+    "maxWidth":  4096,
+    "pad":  6,
+    "calib":  "idle1",
+    "key":  "jade",
+    "sheets":  {
+                   "idle-bless":  {
+                                      "scale":  1,
+                                      "split":  true,
+                                      "file":  "art/sylva/deer/sprite-idle-bless.png",
+                                      "groups":  [
+                                                     [
+                                                         "idle",
+                                                         4,
+                                                         "heel"
+                                                     ],
+                                                     [
+                                                         "bless",
+                                                         4,
+                                                         "heel"
+                                                     ]
+                                                 ]
+                                  }
+               },
+    "out":  "src/assets/sprites/deer_sprite",
+    "meta":  "src/characters/sprite/deerSprite.json",
+    "format":  "webp"
+}

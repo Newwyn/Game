@@ -1,0 +1,75 @@
+{
+    "note":  "Gau Ho Ve (trieu hoi Sylva): idle do Codex ve (1536x1024), 4 tam con lai do Antigravity ve (1264x848 -\u003e scale 1.215). split: khung gau to cham nhau.",
+    "atlasScale":  0.55,
+    "maxWidth":  4096,
+    "pad":  6,
+    "calib":  "idle1",
+    "key":  "jade",
+    "footBand":  16,
+    "footMin":  25,
+    "solidFeet":  true,
+    "sheets":  {
+                   "idle":  {
+                                "scale":  1,
+                                "split":  true,
+                                "file":  "art/sylva/bear/sprite-idle.png",
+                                "groups":  [
+                                               [
+                                                   "idle",
+                                                   4,
+                                                   "heel"
+                                               ],
+                                               [
+                                                   "ready",
+                                                   4,
+                                                   "heel"
+                                               ]
+                                           ]
+                            },
+                   "attack":  {
+                                  "anchor":  "body",
+                                  "scale":  1.215,
+                                  "split":  true,
+                                  "file":  "art/sylva/bear/sprite-attack.png",
+                                  "ground":  "group"
+                              },
+                   "move":  {
+                                "scale":  1.215,
+                                "split":  true,
+                                "file":  "art/sylva/bear/sprite-move.png",
+                                "anchor":  "body"
+                            },
+                   "hurt-dead":  {
+                                     "scale":  1.215,
+                                     "split":  true,
+                                     "file":  "art/sylva/bear/sprite-hurt-dead.png",
+                                     "groups":  [
+                                                    [
+                                                        "hurt",
+                                                        4,
+                                                        "heel"
+                                                    ],
+                                                    [
+                                                        "dead",
+                                                        4,
+                                                        "heel"
+                                                    ]
+                                                ]
+                                 },
+                   "charge":  {
+                                  "scale":  1.215,
+                                  "split":  true,
+                                  "file":  "art/sylva/bear/sprite-charge.png",
+                                  "anchor":  "body"
+                              },
+                   "turn":  {
+                                "file":  "art/sylva/bear/sprite-turn.png",
+                                "scale":  1.215,
+                                "split":  true,
+                                "anchor":  "body"
+                            }
+               },
+    "out":  "src/assets/sprites/bear_sprite",
+    "meta":  "src/characters/sprite/bearSprite.json",
+    "format":  "webp"
+}

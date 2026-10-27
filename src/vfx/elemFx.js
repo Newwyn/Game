@@ -31,7 +31,7 @@ import fx2Url from '../assets/sprites/elarion_fx2.webp';
 import FX2 from './elarionFx2.json';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture, easeOut,
-    spawnHitSpark, spawnShockwave, spawnLightning, spawnRisingSparkles, spawnLandingDust,
+    spawnHitSpark, spawnShockwave, spawnLightning, spawnRisingSparkles, spawnLandingDust, spawnSmokeBurst,
 } from './vfx.js';
 import { spawnEmbers } from './fireFx.js';
 import { startBlizzard, startStorm } from './screenFx.js';
@@ -760,37 +760,250 @@ export function spawnSolarBeam({ getOrigin, ux = 1, uz = 0, len = 40, charge = 0
         pulse() { flick = 1; },
     };
 }
-/** Hơi Nước Bỏng: 1 MẢNG MÂY ĐEN LỚN phủ trận + trời tối, mưa xiên toàn màn hình — trả về { stop(), flash() } */
-export function spawnRainCloud(r) {
+/** Nhịp thở / đung đưa / nhấp nhô mềm mại cho tư thế thi triển (cả Elarion thật lẫn Bóng Nguyên Tố) */
+export function animateChannelPose(view, t, weight = 1) {
+    if (!view || !view.root?.visible || view.member?.alive === false) return;
+    if (view.sprite?.clips?.channel) view.sprite.clips.channel.fps = 2.2;
+    const breath = Math.sin(t * 3.4);
+    const sway = (Math.sin(t * 2.1) * 0.038 + Math.sin(t * 4.5) * 0.012) * weight;
+    const bob = (0.5 - 0.5 * Math.cos(t * 3.4)) * 0.085 * weight;
+    if (view.stand) {
+        view.stand.scale.set(1 - 0.02 * breath * weight, 1 + 0.034 * breath * weight, 1);
+    }
+    if (view.flip) {
+        view.flip.rotation.z = sway;
+        view.flip.position.y = bob;
+    }
+}
+export function resetChannelPose(view) {
+    if (!view) return;
+    if (view.stand) view.stand.scale.set(1, 1, 1);
+    if (view.flip) {
+        view.flip.rotation.z = 0;
+        view.flip.position.y = 0;
+    }
+}
+
+/** Hơi Nước Bỏng: đám mây giông cuồn cuộn trên vùng mưa + cột mưa rơi xuống đất + vòng nước bắn + chớp sét trong mây — trả về { stop(), flash() } */
+export function spawnRainCloud(r, caster = null) {
     const life = (r.duration ?? 7000) / 1000;
+    const cx = r.shadow?.x ?? r.x ?? 0;
+    const cz = r.shadow?.z ?? r.z ?? 0;
+    const FADE_IN = 0.4, FADE_OUT = 0.6;
     const g = new THREE.Group();
-    // 1 mảng mây đen lớn phủ ngang trận (giữ màu tranh: mây xanh đen, mưa trắng)
-    const W = 28, H = 9.5;
-    const c = sprite('rainCloud', H, { width: W, opacity: 0, color: 0xc8cdd8 });
-    c.position.set(r.x, 5.0, -1.2);
-    g.add(c);
-    const clouds = [{ c, q: { x: 0, y: 5.0 } }];
+
+    if (r.shadow) {
+        const sPos = { x: cx, z: cz };
+        groundRing(sPos, VIOLET, 2.6, 0.85);
+        flash(sPos, VIOLET, { size: 2.8, y: 1.5, life: 0.45, opacity: 0.55 });
+    }
+
+    // 1) Mây giông nhiều lớp (tranh rainCloud + các cụm mây xanh đen / tím sẫm cuồn cuộn dùng glowTexture)
+    const cloudBanks = [
+        { m: sprite('rainCloud', 5.2, { width: 15.5, opacity: 0, color: 0xb8c4dc }), ox: 0, oy: 5.15, oz: -0.35, w: 15.5, h: 5.2, op: 0.92, ph: 0, spd: 0.75 },
+        { m: sprite('rainCloud', 4.3, { width: 11.2, opacity: 0, color: 0x94a3b8 }), ox: -3.5, oy: 4.85, oz: -0.2, w: 11.2, h: 4.3, op: 0.8, ph: 1.9, spd: 0.9 },
+        { m: sprite('rainCloud', 4.4, { width: 11.4, opacity: 0, color: 0xa5b4fc }), ox: 3.4, oy: 4.95, oz: -0.25, w: 11.4, h: 4.4, op: 0.8, ph: 3.7, spd: 0.82 },
+    ];
+    cloudBanks.forEach(b => {
+        b.m.position.set(cx + b.ox, b.oy, cz + b.oz);
+        g.add(b.m);
+    });
+
+    const puffSpecs = [
+        { ox: -4.0, oy: 4.75, oz: -0.1, w: 6.8, h: 3.2, color: 0x0f172a, add: false, op: 0.68, ph: 0.4, spd: 1.1 },
+        { ox: -1.3, oy: 5.2,  oz: -0.05, w: 7.8, h: 3.6, color: 0x1e1b4b, add: false, op: 0.72, ph: 1.7, spd: 0.95 },
+        { ox: 1.6,  oy: 5.05, oz: -0.08, w: 7.5, h: 3.5, color: 0x2e1065, add: false, op: 0.66, ph: 3.1, spd: 1.05 },
+        { ox: 4.1,  oy: 4.8,  oz: -0.1, w: 6.6, h: 3.1, color: 0x1e293b, add: false, op: 0.65, ph: 4.6, spd: 1.15 },
+        // Quầng điện âm ỉ trong bụng mây (bừng sáng khi sét đánh)
+        { ox: -1.8, oy: 4.85, oz: 0.15, w: 6.2, h: 2.8, color: 0x8b5cf6, add: true, op: 0.28, ph: 0.9, spd: 1.8, glow: true },
+        { ox: 0.4,  oy: 5.0,  oz: 0.2,  w: 7.2, h: 3.1, color: 0x60a5fa, add: true, op: 0.25, ph: 2.4, spd: 1.6, glow: true },
+        { ox: 2.2,  oy: 4.8,  oz: 0.18, w: 5.8, h: 2.7, color: 0xc084fc, add: true, op: 0.26, ph: 4.0, spd: 2.0, glow: true },
+    ];
+    const puffs = puffSpecs.map(s => {
+        const mesh = fxPlane(glowTexture(), s.w, s.h, { additive: s.add, color: s.color, opacity: 0 });
+        mesh.position.set(cx + s.ox, s.oy, cz + s.oz);
+        g.add(mesh);
+        return { ...s, mesh };
+    });
+
+    // Sương mù mỏng sát mặt đất dưới chân cột mưa
+    const groundMistDark = fxPlane(glowTexture(), 13.5, 3.6, { additive: false, color: 0x0f172a, opacity: 0 });
+    groundMistDark.rotation.x = -Math.PI / 2;
+    groundMistDark.position.set(cx, FLOOR + 0.02, cz);
+    const groundMistGlow = fxPlane(glowTexture(), 11.5, 3.0, { additive: true, color: 0x38bdf8, opacity: 0 });
+    groundMistGlow.rotation.x = -Math.PI / 2;
+    groundMistGlow.position.set(cx, FLOOR + 0.03, cz);
+    g.add(groundMistDark, groundMistGlow);
+
+    // 2) Cột hạt mưa rơi trực tiếp từ đám mây xuống vùng đất bên dưới (giới hạn 26 vệt tái sử dụng)
+    const STREAK_COUNT = 26;
+    const streaks = [];
+    for (let i = 0; i < STREAK_COUNT; i++) {
+        const mesh = fxPlane(sparkTexture(), 0.11, 1.35, {
+            additive: true,
+            color: i % 3 === 0 ? 0x93c5fd : (i % 3 === 1 ? 0xe0f2fe : 0xc4b5fd),
+            opacity: 0,
+        });
+        mesh.rotation.z = -0.15;
+        g.add(mesh);
+        streaks.push({
+            mesh,
+            xOff: (Math.random() - 0.5) * 12.8,
+            zOff: (Math.random() - 0.5) * 3.0,
+            yProg: Math.random(),
+            speed: 1.85 + Math.random() * 0.75,
+            swayPh: Math.random() * Math.PI * 2,
+            baseOp: 0.36 + Math.random() * 0.32,
+        });
+    }
+
+    // 3) Vòng nước bắn + hạt nước nảy trên mặt đất (giới hạn 10 bộ tái sử dụng)
+    const SPLASH_COUNT = 10;
+    const splashes = [];
+    for (let i = 0; i < SPLASH_COUNT; i++) {
+        const ring = fxPlane(ringTexture(), 0.72, 0.72, {
+            additive: true,
+            color: i % 2 === 0 ? 0x7dd3fc : 0xc4b5fd,
+            opacity: 0,
+        });
+        ring.rotation.x = -Math.PI / 2;
+        const drop = fxPlane(glowTexture(), 0.24, 0.24, {
+            additive: true,
+            color: 0xbae6fd,
+            opacity: 0,
+        });
+        g.add(ring, drop);
+        splashes.push({
+            ring,
+            drop,
+            xOff: (Math.random() - 0.5) * 12.0,
+            zOff: (Math.random() - 0.5) * 2.8,
+            p: Math.random(),
+            spd: 1.55 + Math.random() * 0.85,
+        });
+    }
+
     const sky = startStorm({ duration: r.duration ?? 7000 });
-    let k = 0, stopAt = life;
+    let k = 0, stopAt = life, cloudFlash = 0.35, rumbleTimer = 0.55;
+
+    const sparkInsideCloud = (strong = false) => {
+        const ax = cx + (Math.random() - 0.5) * 7.5;
+        const ay = 4.65 + Math.random() * 0.65;
+        const bx = ax + (Math.random() < 0.5 ? -1 : 1) * (1.8 + Math.random() * 2.4);
+        const by = 4.55 + Math.random() * 0.7;
+        boltSeg({ x: ax, y: ay, z: cz + 0.2 }, { x: bx, y: by, z: cz + 0.2 }, { width: strong ? 1.25 : 0.8, life: strong ? 0.24 : 0.16 });
+    };
+
     const fx = addAnim(g, life, (p, f, dt) => {
         const t = f.age;
-        const target = t < 0.6 ? t / 0.6 : t > stopAt - 0.7 ? Math.max(0, (stopAt - t) / 0.7) : 1;
-        k += (target - k) * Math.min(1, dt * 6);
-        clouds.forEach(({ c, q }, i) => {
-            c.material.opacity = k;
-            c.position.x = r.x + q.x + Math.sin(t * 0.4 + i) * 0.4;
-            c.position.y = q.y + (1 - k) * 1.5;
+        const target = t < FADE_IN
+            ? t / FADE_IN
+            : t > stopAt - FADE_OUT
+                ? Math.max(0, (stopAt - t) / FADE_OUT)
+                : 1;
+        k += (target - k) * Math.min(1, dt * 9);
+        cloudFlash = Math.max(0, cloudFlash - dt * 3.8);
+
+        // Chớp sét âm ỉ tự nhiên bên trong bụng mây
+        rumbleTimer -= dt;
+        if (k > 0.45 && rumbleTimer <= 0) {
+            rumbleTimer = 0.65 + Math.random() * 0.75;
+            cloudFlash = Math.max(cloudFlash, 0.45);
+            sparkInsideCloud(false);
+        }
+
+        const dropLift = (1 - k) * 0.9;
+        cloudBanks.forEach((b, i) => {
+            const driftX = Math.sin(t * b.spd + b.ph) * 0.65 + Math.cos(t * 0.45 + i) * 0.25;
+            const driftY = Math.cos(t * (b.spd * 1.2) + b.ph) * 0.16;
+            const sx = 1 + 0.06 * Math.sin(t * 1.5 + b.ph);
+            const sy = 1 + 0.08 * Math.cos(t * 1.8 + b.ph);
+            b.m.position.set(cx + b.ox + driftX, b.oy + driftY + dropLift, cz + b.oz);
+            b.m.scale.set(sx, sy, 1);
+            b.m.material.opacity = k * b.op;
         });
+
+        puffs.forEach(pf => {
+            const dx = Math.sin(t * pf.spd + pf.ph) * 0.75;
+            const dy = Math.cos(t * (pf.spd * 1.15) + pf.ph) * 0.18;
+            const sx = 1 + 0.12 * Math.sin(t * 1.9 + pf.ph);
+            const sy = 1 + 0.14 * Math.cos(t * 2.2 + pf.ph);
+            pf.mesh.position.set(cx + pf.ox + dx, pf.oy + dy + dropLift, cz + pf.oz);
+            pf.mesh.scale.set(sx, sy, 1);
+            pf.mesh.rotation.z = 0.08 * Math.sin(t * 0.9 + pf.ph);
+            const flashBoost = pf.glow ? cloudFlash * 0.62 : 0;
+            const shimmer = pf.glow ? 0.8 + 0.2 * Math.sin(t * 8 + pf.ph) : 1;
+            pf.mesh.material.opacity = Math.min(1, k * (pf.op * shimmer + flashBoost));
+        });
+
+        groundMistDark.position.x = cx + Math.sin(t * 0.7) * 0.45;
+        groundMistDark.material.opacity = k * 0.34;
+        groundMistGlow.position.x = cx - Math.sin(t * 0.9) * 0.45;
+        groundMistGlow.material.opacity = k * (0.16 + cloudFlash * 0.18);
+
+        for (const s of streaks) {
+            s.yProg += dt * s.speed;
+            if (s.yProg >= 1) {
+                s.yProg -= 1;
+                s.xOff = (Math.random() - 0.5) * 12.8;
+                s.zOff = (Math.random() - 0.5) * 3.0;
+            }
+            const y = 4.75 - s.yProg * (4.75 - (FLOOR + 0.15));
+            const x = cx + s.xOff - s.yProg * 0.72 + Math.sin(t * 2.2 + s.swayPh) * 0.1;
+            const z = cz + s.zOff + 0.35;
+            s.mesh.position.set(x, y, z);
+            const env = s.yProg < 0.15 ? s.yProg / 0.15 : s.yProg > 0.88 ? (1 - s.yProg) / 0.12 : 1;
+            s.mesh.material.opacity = k * s.baseOp * env;
+        }
+
+        for (const sp of splashes) {
+            sp.p += dt * sp.spd;
+            if (sp.p >= 1) {
+                sp.p -= 1;
+                sp.xOff = (Math.random() - 0.5) * 12.0;
+                sp.zOff = (Math.random() - 0.5) * 2.8;
+            }
+            const sx = cx + sp.xOff, sz = cz + sp.zOff;
+            sp.ring.position.set(sx, FLOOR + 0.03, sz);
+            const rScale = 0.25 + easeOut(sp.p) * 0.95;
+            sp.ring.scale.set(rScale, rScale * 0.75, 1);
+            sp.ring.material.opacity = k * 0.52 * (1 - sp.p);
+
+            sp.drop.position.set(sx, FLOOR + 0.06 + Math.sin(sp.p * Math.PI) * 0.32, sz + 0.05);
+            sp.drop.scale.setScalar(0.6 + (1 - sp.p) * 0.5);
+            sp.drop.material.opacity = k * 0.65 * (1 - sp.p);
+        }
+
+        // 4) Cử động thở / đung đưa / nhấp nhô cho người đang thi triển mưa (cả Elarion thật lẫn Bóng)
+        if (caster) {
+            if (t >= stopAt - 0.05 || k <= 0.02) resetChannelPose(caster);
+            else animateChannelPose(caster, t, k);
+        }
     });
+
     return {
-        stop() { const t = fx.age; stopAt = Math.min(stopAt, t + 0.7); fx.life = Math.min(fx.life, t + 0.75); sky.stop(); },
-        flash() { sky.flash(); },
+        stop() {
+            const t = fx.age;
+            stopAt = Math.min(stopAt, t + FADE_OUT);
+            fx.life = Math.min(fx.life, t + FADE_OUT + 0.05);
+            sky.stop();
+            if (caster) {
+                caster.releaseHold?.('channel');
+                gameTimeout(() => resetChannelPose(caster), FADE_OUT * 1000);
+            }
+        },
+        flash() {
+            cloudFlash = 1;
+            sparkInsideCloud(true);
+            sparkInsideCloud(false);
+            sky.flash();
+        },
     };
 }
-/** Sét từ mây giông đánh xuống 1 đối thủ (sky = mây đang hiện để chớp sáng cả màn hình) */
+/** Sét từ mây giông đánh xuống 1 đối thủ (sky = mây đang hiện để chớp sáng cả mây lẫn màn hình) */
 export function spawnCloudStrike(pos, sky = null) {
-    const top = { x: pos.x - 0.8 + Math.random() * 0.6, y: 6.6, z: pos.z ?? 0 };
-    const mid = { x: pos.x + (Math.random() - 0.5) * 1.2, y: 3.4, z: pos.z ?? 0 };
+    const top = { x: pos.x - 0.7 + Math.random() * 0.6, y: 5.2, z: pos.z ?? 0 };
+    const mid = { x: pos.x + (Math.random() - 0.5) * 1.1, y: 2.8, z: pos.z ?? 0 };
     const bot = { x: pos.x, y: 0.2, z: pos.z ?? 0 };
     boltSeg(top, mid, { width: 1.9, life: 0.35 });
     boltSeg(mid, bot, { width: 1.9, life: 0.35 });
@@ -798,9 +1011,23 @@ export function spawnCloudStrike(pos, sky = null) {
     flash(pos, VIOLET, { size: 3.2, y: 0.6, life: 0.35, opacity: 0.6 });
     sky?.flash?.();
 }
-/** Mưa hồi máu trên 1 đồng đội (xanh) / hồi MP (lam) */
+/** Mưa hồi máu trên 1 đồng đội (sương lam-lục mềm mại dâng quanh người) / hồi MP (lam sáng) */
 export function spawnRainHeal(pos, mana = false) {
     pop('healDrops', pos, { size: 1.6, y: 1.7, life: 0.75, rise: -0.5, grow: 0.1, color: mana ? 0x9cc9ff : 0xffffff });
+    const mistColorA = mana ? 0x38bdf8 : 0x2dd4bf;
+    const mistColorB = mana ? 0x818cf8 : 0x34d399;
+    groundRing(pos, mistColorA, 1.35, 0.65);
+    for (let i = 0; i < 2; i++) {
+        const w = i === 0 ? 2.1 : 1.7, h = i === 0 ? 1.45 : 1.2;
+        const mist = fxPlane(glowTexture(), w, h, { additive: true, color: i === 0 ? mistColorA : mistColorB, opacity: 0 });
+        const ox = (i === 0 ? -0.18 : 0.2), oz = (pos.z ?? 0) + 0.55;
+        addAnim(mist, 0.85, (p, fx) => {
+            const env = p < 0.25 ? p / 0.25 : (1 - p) / 0.75;
+            fx.mesh.position.set(pos.x + ox + Math.sin(p * 4 + i) * 0.14, (pos.y ?? 0) + 0.25 + easeOut(p) * 1.15, oz);
+            fx.mesh.scale.set(0.8 + p * 0.55, 0.75 + p * 0.45, 1);
+            fx.mesh.material.opacity = 0.42 * env;
+        });
+    }
 }
 /** Tốc Lôi: chưởng thứ 2 */
 export function spawnPalmEcho(from, to, { onHit } = {}) {
@@ -997,6 +1224,195 @@ export function makeWardDome(height = 2.4) {
             sheen.material.opacity = k * (0.1 + 0.14 * frac) * (0.85 + 0.15 * Math.sin(t * 4));
         },
         dispose() { g.removeFromParent(); [back, sheen].forEach(m => { m.material.dispose(); m.geometry.dispose(); }); },
+    };
+}
+/**
+ * Bóng Nguyên Tố (Elarion): phân thân bóng tối đứng lại vị trí cũ niệm và giữ Hơi Nước Bỏng / Băng Hoại Hỏa Thiên.
+ * Tái sử dụng CharacterView của Elarion với nhuộm tím sẫm trong mờ + viền cộng sáng + khói đen tím mềm dưới chân.
+ */
+export function spawnElemShadow(view, { x, z = 0, spell, castTime = 700, updateView } = {}) {
+    // gỡ các thanh HUD & vòng tầm đánh khỏi bản sao bóng, đánh dấu sharedTexture cho toàn bộ mesh còn lại
+    for (const bar of [view.hpBar, view.castBar, view.shieldBar]) {
+        if (!bar) continue;
+        const obj = bar.mesh ?? bar;   // createBarSprite trả về chính sprite (không có .mesh)
+        obj.removeFromParent?.();
+        obj.visible = false;
+        bar.tex?.dispose?.();
+        obj.material?.map?.dispose?.();
+        obj.material?.dispose?.();
+    }
+    const toRemove = [];
+    view.root.traverse(o => {
+        if (o.isMesh && o !== view.shadow && o !== view.magicCircle && o !== view._spMesh && !view.materials?.includes(o.material)) {
+            toRemove.push(o);
+        }
+    });
+    toRemove.forEach(o => {
+        o.removeFromParent();
+        o.material?.dispose?.();
+        o.geometry?.dispose?.();
+    });
+    view.root.traverse(o => {
+        if (o.isMesh) o.userData.sharedTexture = true;
+    });
+
+    // nhuộm tím sẫm trong mờ cho thân + thêm lớp viền cộng sáng (additive rim)
+    const SHADOW_TINT = 0x7c3aed;
+    const RIM_COLOR = 0xc084fc;
+    const baseMats = view.materials ?? [];
+    baseMats.forEach(m => {
+        m.transparent = true;
+        m.depthWrite = false;
+        m.color.setHex(SHADOW_TINT);
+        m.opacity = 0;
+    });
+    let rimMat = null;
+    if (view._spMesh && view._leanG) {
+        rimMat = new THREE.MeshBasicMaterial({
+            map: view._spTex, color: RIM_COLOR, transparent: true, opacity: 0,
+            side: THREE.DoubleSide, alphaTest: 0.03, depthWrite: false, blending: THREE.AdditiveBlending,
+        });
+        const rimMesh = new THREE.Mesh(view._spMesh.geometry, rimMat);
+        rimMesh.position.set(0, 0.02, 0.02);
+        rimMesh.scale.set(1.045, 1.03, 1);
+        rimMesh.userData.sharedTexture = true;
+        rimMesh.userData.sharedGeometry = true;
+        view._leanG.add(rimMesh);
+    }
+    if (view.magicCircle?.material) {
+        view.magicCircle.material.color.setHex(0x8b5cf6);
+        view.magicCircle.material.opacity = 0;
+    }
+    if (view.shadow?.material) {
+        view.shadow.material.opacity = 0;
+    }
+
+    // khói đen tím mềm dưới chân + vòng ma pháp bóng tối
+    const smokeG = new THREE.Group();
+    const smokeDiscMat = new THREE.MeshBasicMaterial({
+        map: glowTexture(), color: 0x1e0b36, transparent: true, opacity: 0,
+        depthWrite: false, side: THREE.DoubleSide,
+    });
+    const smokeDisc = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.2), smokeDiscMat);
+    smokeDisc.rotation.x = -Math.PI / 2;
+    smokeDisc.position.set(0, FLOOR + 0.025, 0);
+    smokeDisc.userData.sharedTexture = true;
+    smokeG.add(smokeDisc);
+
+    const plumes = [];
+    for (let i = 0; i < 4; i++) {
+        const pm = new THREE.MeshBasicMaterial({
+            map: glowTexture(), color: i % 2 === 0 ? 0x1a0933 : 0x4c1d95,
+            transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
+        });
+        const pMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 1.05), pm);
+        pMesh.position.set((i - 1.5) * 0.36, FLOOR + 0.36 + (i % 2) * 0.12, (i % 2 ? 0.16 : -0.14));
+        pMesh.userData.sharedTexture = true;
+        smokeG.add(pMesh);
+        plumes.push({ mesh: pMesh, mat: pm, phase: i * 1.57, baseX: pMesh.position.x, baseY: pMesh.position.y });
+    }
+
+    const ringMesh = fxPlane(ringTexture(), 2.7, 2.7, { color: VIOLET, opacity: 0 });
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.position.set(0, FLOOR + 0.035, 0);
+    smokeG.add(ringMesh);
+    view.root.add(smokeG);
+
+    view.teleport(x, z);
+    view.position.set(x, 0, z);
+    view.root.position.set(x, 0, z);
+
+    // tư thế niệm trong castTime -> chuyển sang tư thế duy trì (mưa: cast -> channel, tia: beamCharge -> beam)
+    const holdPose = spell === 'beams' ? 'beam' : 'channel';
+    const chargePose = spell === 'beams' ? 'beamCharge' : 'cast';
+    let switched = false;
+    view.playAction(chargePose, { hold: true });
+    updateView?.(0);
+
+    // hiệu ứng bùng khói tím khi tách bóng
+    spawnSmokeBurst({ x, y: 0.25, z }, { count: 14, color: 0x2e1065, spread: 1.35, size: 0.9 });
+    flash({ x, z }, VIOLET, { size: 2.6, y: 1.2, life: 0.35, opacity: 0.65 });
+    groundRing({ x, z }, VIOLET, 2.4, 0.55);
+
+    const maxLife = 14;
+    let alpha = 0, stopping = false, stopAge = maxLife, wispTimer = 0;
+    const fx = addAnim(view.root, maxLife, (p, f, dt) => {
+        const t = f.age;
+        if (!switched && t * 1000 >= (castTime ?? 0)) {
+            switched = true;
+            view.releaseHold?.(chargePose);
+            view.playAction(holdPose, { hold: true });
+        }
+        const target = stopping
+            ? Math.max(0, (stopAge - t) / 0.38)
+            : (t < 0.22 ? t / 0.22 : 1);
+        alpha += (target - alpha) * Math.min(1, dt * 14);
+
+        updateView?.(dt);
+        animateChannelPose(view, t, alpha);
+        view.position.set(x, 0, z);
+        view.root.position.set(x, 0, z);
+
+        const pulse = 0.88 + 0.12 * Math.sin(t * 7);
+        baseMats.forEach(m => {
+            m.color.setHex(SHADOW_TINT);
+            m.opacity = alpha * 0.72 * pulse;
+        });
+        if (rimMat) {
+            rimMat.opacity = alpha * (0.34 + 0.14 * Math.sin(t * 9));
+        }
+        if (view.magicCircle?.material) {
+            view.magicCircle.material.opacity = alpha * 0.45;
+        }
+        if (view.shadow?.material) {
+            view.shadow.material.opacity = alpha * 0.5;
+        }
+
+        smokeDiscMat.opacity = alpha * 0.62;
+        smokeDisc.scale.setScalar(1 + 0.08 * Math.sin(t * 3.5));
+        ringMesh.material.opacity = alpha * (0.38 + 0.14 * Math.sin(t * 6));
+        ringMesh.rotation.z = t * 1.2;
+
+        plumes.forEach(pl => {
+            const w = Math.sin(t * 3.2 + pl.phase);
+            pl.mesh.position.x = pl.baseX + w * 0.16;
+            pl.mesh.position.y = pl.baseY + 0.07 * Math.cos(t * 2.6 + pl.phase);
+            pl.mesh.scale.set(1 + 0.12 * w, 1 + 0.1 * Math.cos(t * 3 + pl.phase), 1);
+            pl.mat.opacity = alpha * (0.46 + 0.12 * w);
+        });
+
+        wispTimer -= dt;
+        if (!stopping && alpha > 0.35 && wispTimer <= 0) {
+            wispTimer = 0.14;
+            const ang = Math.random() * Math.PI * 2, rad = 0.25 + Math.random() * 0.75;
+            const wx = x + Math.cos(ang) * rad, wz = z + Math.sin(ang) * rad * 0.55;
+            const wMat = new THREE.MeshBasicMaterial({
+                map: glowTexture(), color: Math.random() < 0.5 ? 0x2e1065 : 0x7c3aed,
+                transparent: true, opacity: 0.55 * alpha, depthWrite: false, side: THREE.DoubleSide,
+            });
+            const wMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.75), wMat);
+            wMesh.userData.sharedTexture = true;
+            addAnim(wMesh, 0.75, (q, wf) => {
+                wf.mesh.position.set(wx + Math.sin(q * 5 + ang) * 0.12, FLOOR + 0.2 + q * 1.35, wz + 0.2);
+                wf.mesh.scale.setScalar(0.7 + q * 0.85);
+                wf.mesh.material.opacity = 0.55 * alpha * (1 - q);
+            });
+        }
+    });
+
+    return {
+        view,
+        x,
+        z,
+        stop() {
+            if (stopping) return;
+            stopping = true;
+            const t = fx.age;
+            stopAge = t + 0.38;
+            fx.life = Math.min(fx.life, t + 0.42);
+            resetChannelPose(view);
+            spawnSmokeBurst({ x, y: 0.4, z }, { count: 10, color: 0x3b0764, spread: 1.1, size: 0.75 });
+        },
     };
 }
 export { sparkTexture };
