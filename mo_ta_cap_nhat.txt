@@ -1,0 +1,21 @@
+Do hoa Pixel: nut chon trong bang Tam dung + 1 ban ro nhat + hieu ung Ignar cung co o (cau lua roi ve lai)
+
+Thu che do Pixel (phim X) + Ignar pixel art day du + hieu ung pixel Ignar/Sylva
+
+- Do hoa Pixel: chon trong bang Tam dung (nut Do hoa), chi giu ban ro nhat
+- Ignar pixel: cau lua roi thang xuong; Ho Ve Than Lua co dong tac chuong + gam
+- Ignar pixel art: 10 tam dong tac chuyen tu tranh ve tay (tools/pixel_snap.py --convert)
+- 21 hieu ung lua pixel cho Ignar + 10 hieu ung pixel cho Sylva (thu vien pixelfx, MIT)
+
+Sylva hoan thien: hieu ung ve tay (9 tam) + Gau ui hien dung + phanh quay dau + Dai Bang con rieng
+
+- Hieu ung ve tay cua Sylva: 9 tam nen den (Antigravity 4, Codex 5) thay toan bo hieu ung ve bang code
+  (phi tieu la, long vu vang, cot la trieu hoi, song tru + nanh can, Cau Gio, Bao Long Vu, bui da + cu huc cua Gau, khien la, dau buff)
+- Gau ui: truoc day khong hien (lenh ui toi truoc hinh Gau) -> da sua; them 0,6s phanh + quay dau (tranh moi)
+- Dai Bang: con rieng (ra san phia truoc, lech hang, tam 7, bay nhanh hon), ban long vu vang rieng
+- Hieu ung thu (Soi tru, Ung Nhan, Khien La) cho hinh con thu xuat hien roi moi chay
+- Cap nhat DOCUMENTATION (muc 4.11) + NHAT_KY_CAP_NHAT
+
+Chi tiet: xem NHAT_KY_CAP_NHAT.md
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

@@ -1,0 +1,30 @@
+{
+ "note": "Hieu ung PIXEL cua Ignar (che do Pixel): pixelfx (MIT, C:/Users/Admin/pixelfx, src/fx/fire/ignar-*.js) thiet ke rieng cho game. Cung ten nhom + cung SO KHUNG voi atlas ve tay ignar_fx2 (fireFx.js giu nguyen ma). pick / n: chon khung.",
+ "src": "C:/Users/Admin/pixelfx/records",
+ "out": "src/assets/sprites/ignar_fx_px.png",
+ "meta": "src/vfx/ignarFxPx.json",
+ "maxWidth": 2048,
+ "groups": {
+  "hand": {"id": "fire/ignar-hand", "n": 4},
+  "ball": {"id": "fire/ignar-ball", "n": 4},
+  "hit": {"id": "fire/ignar-hit", "n": 4},
+  "swirl": {"id": "fire/ignar-swirl", "n": 4},
+  "boom": {"id": "fire/ignar-boom", "n": 8},
+  "meteor": {"id": "fire/ignar-meteor", "n": 4},
+  "flame": {"id": "fire/ignar-flame", "n": 4},
+  "warn": {"id": "fire/ignar-ground", "pick": [0]},
+  "scorch": {"id": "fire/ignar-ground", "pick": [1]},
+  "circleDim": {"id": "fire/ignar-ground", "pick": [2]},
+  "circleLit": {"id": "fire/ignar-ground", "pick": [3]},
+  "summonCircle": {"id": "fire/ignar-ground", "pick": [4]},
+  "shockRing": {"id": "fire/ignar-ground", "pick": [5]},
+  "slam": {"id": "fire/ignar-ground", "pick": [6]},
+  "breakIcon": {"id": "fire/ignar-ground", "pick": [7]},
+  "pillar": {"id": "fire/ignar-pillar", "pick": [1, 3, 6, 13, 15, 17, 22, 26]},
+  "aura": {"id": "fire/ignar-aura", "n": 4},
+  "wing": {"id": "fire/ignar-wing", "n": 4},
+  "palm": {"id": "fire/ignar-palm", "n": 4},
+  "shield": {"id": "fire/ignar-shield", "n": 4},
+  "guard": {"parts": [{"id": "fire/ignar-guard", "n": 4}, {"id": "fire/ignar-guard-throw", "pick": [4, 5]}, {"id": "fire/ignar-guard-roar", "pick": [6, 8]}], "tip": [29, -55]}
+ }
+}

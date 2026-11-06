@@ -15,13 +15,15 @@ export const FLOOR = -0.45;
 
 const ALL = [];   // mọi flipbook đã tạo (để tải sẵn atlas lên card đồ hoạ lúc vào trận — warmFlipbooks)
 
-export function makeFlipbook(url, meta) {
+/** pixel: tranh pixel (pixelfx) -> lọc NEAREST, không mipmap: phóng to giữ ô vuông sắc nét */
+export function makeFlipbook(url, meta, { pixel = false } = {}) {
     let base = null;
     const cache = {};
     function tex(group, i = 0) {
         const key = group + '#' + i;
         if (cache[key]) return cache[key];
         base ??= new THREE.TextureLoader().load(url, t => { t.colorSpace = THREE.SRGBColorSpace; });
+        if (pixel && !base.userData.pixel) { base.userData.pixel = true; base.magFilter = base.minFilter = THREE.NearestFilter; base.generateMipmaps = false; }
         base.colorSpace = THREE.SRGBColorSpace;
         const [W, H] = meta.size;
         const [x, y, w, h] = meta.groups[group].frames[i];

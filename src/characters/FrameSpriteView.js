@@ -22,11 +22,12 @@ import { GROUND_Y } from '../config.js';
 const texCache = new Map();
 // trạng thái đứng / di chuyển -> tên clip (như CutoutCharacterView)
 const LOCO_CLIP = { stunned: 'stunned', guarding: 'guard', cast: 'cast', fall: 'fall', victory: 'victoryIdle', channel: 'channel', beam: 'beam' };
-function spriteTexture(url) {
+function spriteTexture(url, pixel = false) {
     if (!texCache.has(url)) {
         const tex = new THREE.TextureLoader().load(url);
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.anisotropy = 8;
+        if (pixel) { tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; }   // pixel art: ô vuông sắc
         texCache.set(url, tex);
     }
     return texCache.get(url);
@@ -77,7 +78,7 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._spin.add(this._leanG);
         this.cutoutRoot.add(this._spin);
 
-        this._spTex = spriteTexture(sp.image);
+        this._spTex = spriteTexture(sp.image, sp.pixel);
         const geo = new THREE.PlaneGeometry(1, 1);
         const mat = new THREE.MeshBasicMaterial({ map: this._spTex, alphaToCoverage: true, side: THREE.DoubleSide, fog: false });
         mat.userData.baseShade = 1;

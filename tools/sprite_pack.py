@@ -273,7 +273,8 @@ def main(spec_path, debug=None):
     fanc = {}                                       # tên khung -> tâm đứng đặt tay ("anchorX", toạ độ khung đã co giãn)
     for sname, sh in spec['sheets'].items():
         rgba = load_sheet(os.path.join(ROOT, sh['file']), sh.get('key', spec.get('key')))
-        imgs, offs = split_frames(rgba, cuts=sh.get('cuts'), grid=spec.get('grid', [4, 2]) if sh.get('split') else None)
+        # minSize / attach (cả spec): tranh PIXEL nhỏ (Ignar pixel ~300x200) -> khung chỉ vài trăm điểm, mặc định 20000 / 60 là cho tranh 1536x1024
+        imgs, offs = split_frames(rgba, min_size=spec.get('minSize', 20000), attach=spec.get('attach', 60), cuts=sh.get('cuts'), grid=spec.get('grid', [4, 2]) if sh.get('split') else None)
         pts = sh.get('points', {})               # điểm gắn đánh dấu tay: {"số khung (1..)": {"tên": [x, y] trên tấm gốc}}
         groups = sh.get('groups', [[sname, len(imgs), sh.get('anchor', 'toe')]])
         need = sum(g[1] for g in groups)

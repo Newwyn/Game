@@ -8,6 +8,7 @@ import { net } from '../net/socket.js';
 import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
 import { cameraRig } from '../core/cameraRig.js';
+import { pixelMode, setPixelLevel } from '../core/scene.js';
 import { GAME_SPEEDS, timeState } from '../config.js';
 import { toggleStatPanel, setAllStatPanels } from './hud.js';
 import { setDisabledHeroes } from './progressTool.js';
@@ -26,6 +27,12 @@ export function updateSpeedButton(speed = timeState.speed) {
 export function applyPreferredSpeed() {
     net.setSpeed(preferredSpeed);
     updateSpeedButton(preferredSpeed);
+}
+
+/** Nút 🎨 Đồ họa trong bảng Tạm dừng */
+export function updateGfxButton() {
+    const b = document.getElementById('btn-gfx');
+    if (b) b.textContent = pixelMode.level ? '🎨 Đồ họa: PIXEL' : '🎨 Đồ họa: Vẽ tay';
 }
 
 export function updateShakeButton() {
@@ -87,6 +94,13 @@ const ACTIONS = {
     monsterLevel: (arg) => net.debugEnemyAction('monsterLevel', undefined, arg),
     backToMenu: () => net.backToMenu(),
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
+    // Đồ họa Vẽ tay <-> Pixel: tranh pixel nạp lúc tải trang -> lưu lựa chọn rồi tải lại (trận đang đánh chơi lại)
+    toggleGraphics: () => {
+        setPixelLevel(pixelMode.level ? 0 : 1);
+        const u = new URL(location.href);
+        u.searchParams.delete('pixel');   // ?pixel=... trên URL sẽ đè lựa chọn vừa lưu
+        location.replace(u.toString());
+    },
     toggleEnemyGod: () => {
         debugState.enemyGod = !debugState.enemyGod;
         setToggleLabel('btn-enemy-god', debugState.enemyGod, '🛡️ Quái bất tử');
@@ -191,6 +205,7 @@ function changePanelScale(id, step) {
 
 export function setupInput() {
     updateShakeButton();
+    updateGfxButton();
     document.addEventListener('click', onClick);
     window.addEventListener('keydown', onKeyDown);
     // Lăn chuột để zoom camera

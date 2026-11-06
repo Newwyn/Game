@@ -4,6 +4,8 @@
 // ============================================================
 import imageUrl from '../../assets/sprites/ignar_sprite.webp';
 import meta from './ignarSprite.json';
+import pxUrl from '../../assets/sprites/ignar_px.png';
+import pxMeta from './ignarPxSprite.json';
 
 const r = (pre, n) => Array.from({ length: n }, (_, i) => `${pre}${i + 1}`);
 
@@ -48,3 +50,8 @@ export const IGNAR_SPRITE = {
     // Lửa trên tay (px theo cỡ tấm attack; code nhân atlasScale)
     fire: { palmOffset: [-8, -30], gatherOffset: [0, 6] },
 };
+
+// Ignar PIXEL ART (chế độ Pixel — phím X / ?pixel=1|2): cùng động tác, tranh vẽ tay chuyển sang pixel bằng
+//   tools/pixel_snap.py --convert (ô 5 điểm, 24 màu, viền tối 1 ô) -> tools/sprite_pack.py art/ignar/pixel/sprite_spec.json.
+//   pixel: lọc NEAREST (ô vuông sắc). Toạ độ nhỏ đi 5 lần so với tranh gốc -> điểm lửa trên tay chia 5.
+export const IGNAR_PX_SPRITE = { ...IGNAR_SPRITE, image: pxUrl, meta: pxMeta, pixel: true, fire: { palmOffset: [-1.6, -6], gatherOffset: [0, 1.2] } };

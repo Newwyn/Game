@@ -11,7 +11,8 @@
 // Mỗi hành động trỏ tới một clip + thời điểm trúng đòn (hitTime, giây).
 import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { FrameSpriteView } from './FrameSpriteView.js';
-import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
+import { IGNAR_SPRITE, IGNAR_PX_SPRITE } from './sprite/ignarSprite.js';
+import { pixelMode } from '../core/scene.js';
 import { ROK_SPRITE } from './sprite/rokSprite.js';
 import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
 import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
@@ -211,7 +212,7 @@ const MAGE = {
     circleTint: 0xff5a00,
     palmFire: { joint: 'handF', offset: [PALM_FIRE[0], PALM_FIRE[1] - 70] },
     // Bản thử SPRITE (tranh AI, mỗi khung 1 hình): mặc định bật. ?ignar=cutout -> về khung xương · ?ignarIdle=A|B|C -> cách đứng
-    sprite: IGNAR_SPRITE,
+    sprite: pixelMode.level ? IGNAR_PX_SPRITE : IGNAR_SPRITE,   // chế độ Pixel: Ignar pixel art
     spriteParam: 'ignar',
     spriteIdleParam: 'ignarIdle',
     anims: {

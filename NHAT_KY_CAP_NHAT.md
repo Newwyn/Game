@@ -5,6 +5,19 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 02/11/2026 — Đồ họa Pixel: 1 bản rõ nhất, nút chọn trong bảng Tạm dừng, hiệu ứng Ignar cùng cỡ ô
+- **Chọn đồ họa trong bảng Tạm dừng:** nút **🎨 Đồ họa: Vẽ tay / PIXEL** (trang tải lại, trận đang đánh chơi lại). Bỏ phím X và 2 bản thô / mịn — chỉ còn bản rõ nhất (độ phân giải đầy đủ, ô pixel sắc).
+- **Hiệu ứng Ignar khớp với nhân vật:** vẽ lại cho cùng cỡ ô pixel với Ignar (trước đó nhiều hiệu ứng bị phóng to, ô to gấp 2-3 lần): **quả cầu lửa rơi vẽ lại hoàn toàn** (sao chổi lửa rực, không còn hòn đá tối), hào quang, khiên lửa, cánh lửa, Hộ Vệ Thần Lửa, các vòng phép dưới đất (có chữ rune).
+- **Sửa sau khi bạn thử:** quả cầu lửa rơi vẽ lại cho **rơi thẳng xuống, đuôi lửa dựng lên** (khớp hướng rơi trong game — trước vẽ bay chéo); **Hộ Vệ Thần Lửa có động tác chưởng** (vung tay lấy đà → chưởng ra, lửa loé ở lòng bàn tay, cầu lửa bay ra đúng từ tay) và **gầm** (ngửa đầu, dang tay) — trước bản pixel chỉ có dáng bay.
+- Đã thử (bấm thật): Tạm dừng → bấm 🎨 Đồ họa → trang tải lại, nút thành `PIXEL`, Ignar + hiệu ứng pixel hiện; chụp quả cầu lửa rơi, cánh lửa, vụ nổ, biển lửa. Build không lỗi.
+
+## 02/11/2026 — Thử CHẾ ĐỘ PIXEL · Ignar pixel art đầy đủ (nhân vật + hiệu ứng)
+- **Chế độ Pixel** (thử nghiệm, không thay bản thường): bấm **X** trong trận để đổi tắt → thô → mịn (nên dùng **mịn**); nhớ lựa chọn. Đổi xong tải lại trang để tranh pixel áp dụng đủ.
+- **Ignar pixel art:** cả 10 tấm động tác (đứng, đánh, chạy, trúng đòn, choáng, gục, thắng, 3 chiêu, gồng, rơi vào trận) chuyển từ tranh vẽ tay sang pixel art thật (ô vuông sắc, 24 màu, viền tối) bằng công cụ tự viết — **không tốn lượt vẽ Codex**.
+- **Toàn bộ hiệu ứng lửa của Ignar dạng pixel** (21 loại: lửa tay, cầu lửa, cầu xoáy, nổ, thiên thạch, biển lửa, cột lửa, hào quang, cánh lửa, khiên lửa, Hộ Vệ Thần Lửa, luồng chưởng, các vòng phép dưới đất...) — 3 trợ lý tự vẽ bằng code (thư viện pixelfx, giấy phép MIT), thiết kế riêng cho game.
+- **Sylva:** 10 hiệu ứng pixel (lá, triệu hồi, sóng tru, nanh, cầu gió, bụi gấu, cú húc, khiên lá); tranh Sylva vẫn bản vẽ tay.
+- Đã thử: chụp so sánh 3 chế độ; trận thật ở chế độ Pixel mịn (Ignar + Seraphine đấu Rok + Brakk, AUTO): thắng, hiệu ứng pixel hiện đúng, không lỗi. Build không lỗi.
+- Còn lệch khi bật Pixel: các tướng khác vẫn là tranh vẽ tay bị làm vỡ hạt; cây cối có viền chấm đen; vài vòng sáng vẽ bằng code còn mềm.
 ## 27/10/2026 — Nhân vật mới SYLVA (Lâm Linh) · class mới TRIỆU HỒI SƯ · hệ thống Triệu hồi · luật thua mới
 - **Luật thắng / thua mới:** hết **tướng** là THUA, kể cả còn Golem / thú triệu hồi (trước đây còn Golem là chưa thua). Triệu hồi bên thua biến mất. Luật Sinh Tử cũng chỉ đếm tướng.
 - **Hệ thống Triệu hồi:** nhãn chung **"Triệu hồi"** (hiện trên đầu): Golem, Vạc của Grix, Hộ Vệ Thần Chết của Zerith (chỉ thêm nhãn), thú của Sylva. Mỗi triệu hồi có luật riêng: có bị đánh không, có nhận buff / debuff không. **Golem** không nhận buff / debuff nào trừ Ấn Tử, nhưng **nhận hiệu ứng của Sylva**.
@@ -16,7 +29,7 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
   - Thú **không theo chỉ số Sylva**, có chỉ số riêng tăng theo cấp.
 - **Bảng chọn tướng** 11 nhân vật: 2 hàng 6 + 5, vẫn vừa màn hình 1280×720.
 - **Sửa sau khi bạn thử (27/10 chiều):** Gấu ủi trước đây không hiện (lệnh ủi tới trước khi hình Gấu kịp xuất hiện) → giờ chờ hình Gấu rồi chạy, bù phần trễ; Sói tru / Ưng Nhãn cũng vậy. Gấu ủi có thêm **0,6s phanh + quay đầu** (tranh mới) giữa lượt đi và lượt về. **Đại Bàng thành con riêng**: ra sân phía trước, lệch hàng, tầm đánh 7, bay nhanh hơn (không còn đi dính theo Sylva); bắn **lông vũ vàng** riêng (không bắn lá như Sylva); đạn đối thủ nhắm đúng chỗ nó bay.
-- **ĐANG LÀM DỞ — hiệu ứng vẽ tay của Sylva** (9 tấm nền đen, `art/sylva/fx2/`): đã có 4 tấm (lông vũ, cột lá triệu hồi, bụi đá + cú húc của Gấu, khiên lá + dấu buff), còn 5 tấm chờ vẽ (Antigravity + Codex hết lượt). Trong lúc chờ, hiệu ứng vẫn là bản vẽ bằng code.
+- **Hiệu ứng vẽ tay của Sylva — XONG (29/10):** 9 tấm nền đen (Antigravity 4, Codex 5) thay toàn bộ hiệu ứng vẽ bằng code: phi tiêu lá, lông vũ vàng của Đại Bàng, cột lá triệu hồi + vòng phép dưới chân, sóng tru + nanh cắn, Cầu Gió + nổ gió, Bão Lông Vũ cắm đất, bụi đá cuộn khi Gấu ủi + cú húc + hố nứt, vòm Khiên Lá, mắt ưng, mũi tên lá buff, dấu hồi máu, vòng ban phước Thần Hươu, dấu vuốt khiêu khích. Đã chụp thử từng chiêu ở trang xem thử + 1 trận thật (Sylva + Seraphine đấu Rok + Brakk, AUTO): hiệu ứng hiện đúng, không lỗi.
 - **Hình vẽ tay:** tạo hình 5 nhân vật (bạn đã duyệt) + **25 tấm động tác** (200 khung): Sylva 9 tấm, Sói 5, Đại Bàng 5 (bay lơ lửng), Gấu 5, Thần Hươu 1 (đứng thở + ngẩng sừng ban phước mỗi lần hồi máu). Codex vẽ 20 tấm; Codex hết lượt nên **Antigravity vẽ 5 tấm** (Đại Bàng niệm gió + 4 tấm Gấu). Ảnh chọn đội mới cho Sylva. Hiệu ứng (lá, sóng tru, lông vũ, khiên lá…) vẫn vẽ bằng code.
 - Đội làm: Claude (toàn bộ phần server vì Codex hết lượt dùng; sửa AI chọn chiêu; sửa 1 lỗi của Antigravity làm màn hình đứng hình số hồi chiêu); Antigravity (hiệu ứng, nhãn Triệu hồi, biểu tượng trạng thái, bảng chọn tướng).
 - Đã thử: trận tự động có Sylva (quái bất tử, 60s): đủ 3 kỹ năng, 2 thiên phú, mọi chiêu của Sói / Đại Bàng / Gấu đều ra, không lỗi; 2 đấu 2 thua khi còn Đại Bàng sống → xử thua đúng luật; 1 đấu 1 với 10 tướng: Sylva **thắng 4** (Rok, Seraphine, Nerissa, Elarion), thua 6. Trận thật trên trình duyệt (Sylva + Elarion đấu Rok + Brakk, AUTO): thắng, hiệu ứng + nhãn "Triệu hồi" hiện, không lỗi.
