@@ -43,11 +43,12 @@
 ### 4.1 Mở đầu game **(đã chốt — cách 2)**
 1. **Đoạn mở màn (1–2 phút)**: người chơi điều khiển **bản thân lúc còn đủ sức mạnh**, đánh với **một vị thần** — chiêu cực mạnh, cực đẹp. Cao trào → bị **phong ấn**, màn hình trắng xoá.
 2. **Tỉnh dậy mất trí nhớ** giữa đống đổ nát ở **làng biên giới tộc Người**; **đội tuần tra của Rok** tìm thấy, đưa về làng.
-3. **Hướng dẫn 10 phút đầu**: làm quen thế giới, đi lại, nói chuyện NPC, câu đố nhỏ → làng bị tấn công → **trận đầu tiên**: phát hiện mình "ra lệnh" được cho Rok, Jessica, Seraphine (Lyra gia nhập sau).
+3. **Hướng dẫn 10 phút đầu**: làm quen thế giới, đi lại, nói chuyện NPC, câu đố nhỏ → làng bị tấn công → **trận đầu tiên**: phát hiện mình "ra lệnh" được cho Rok, Jessica, Seraphine (Lyra gia nhập ở ải 12).
 - Đoạn mở màn dùng làm **video giới thiệu game** được.
 
 ### 4.2 Chương 1 **(đã chốt)**
 - Bắt đầu ở **tộc Người** = phó bản 20 ải đầu tiên (mục 3.3).
+- **(đã chốt — hướng A, Claude viết chi tiết)** Toàn bộ chương 1: xem **`CHUONG_1_TOC_NGUOI.md`** (20 ải, nhánh ải, NPC, bản đồ, thứ tự mở tính năng). Lyra gia nhập ở **ải 12** (cốt truyện chính, không phải nhánh).
 
 ## 5. Chủng tộc
 | Tộc | Chỉ số tộc | Đặc tính | Anh hùng |
