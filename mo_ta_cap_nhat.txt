@@ -1,3 +1,8 @@
+P3-P6: Ban do the gioi (12 khu man ngang, NPC, ruong, mo, 5 viec mo nhanh an, dich chuyen nhanh) + Cot truyen (tran mo man dau than, tinh day, loi thoai 20 ai, ket chuong, mo dan tinh nang) + Quai & 5 trum chuong 1 (tranh moi, giai doan 2, Valdric bung lua, can bang lai EXP x4) + Ham nguc do bo / trang suc, Quan an (than mat), Cua hang anh hung
+
+- Tranh nen, NPC, quai ve tren Google Flow
+- 54 bai kiem tra tu dong; gia lap can bang: node tools/sim_stage.js
+
 Trang bi (P2): roi do tu ai 6, mac / thao do, Lo ren (cuong hoa +10, tinh luyen, phan giai), 3 bo do toc Nguoi
 
 - Nut "Trang bi" o man chon ai: 6 o do, tui do, chi so tang nho do, bo do 2/4 mon

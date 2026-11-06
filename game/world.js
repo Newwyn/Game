@@ -39,7 +39,7 @@ const SCENES = {
         area: 'village', name: 'Giếng Cổ', width: 1900, bg: 'village_well',
         portals: [{ x: 1840, to: 'village_square', toX: 120, label: 'Quảng trường' }],
         npcs: [],
-        objects: [{ id: 'well', type: 'puzzle', puzzle: 'well', x: 900, icon: '🪨', label: 'Giếng Cổ' },
+        objects: [{ id: 'well', type: 'puzzle', puzzle: 'well', x: 900, icon: '✨', label: 'Giếng Cổ' },
             { id: 'well_chest', type: 'chest', x: 220, reward: { diamond: 20 }, hidden: true }],
     },
     village_street: {
@@ -103,7 +103,7 @@ const SCENES = {
         area: 'capital', name: 'Cung điện', width: 2000, bg: 'capital_castle',
         portals: [{ x: 60, to: 'capital_library', toX: 1680, label: 'Thư viện' }],
         npcs: [{ id: 'elise', x: 900 }],
-        objects: [{ id: 'crypt', type: 'secret', x: 1700, icon: '🕳️', label: 'Phiến đá lạ', needNo: 18, flag: 'loi_vao_ham_mo' }],
+        objects: [{ id: 'crypt', type: 'secret', x: 1700, icon: '✨', label: 'Phiến đá lạ', needNo: 18, flag: 'loi_vao_ham_mo' }],
     },
 };
 const START = { scene: 'village_square', x: 400 };

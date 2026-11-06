@@ -5,6 +5,45 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 (tối) — P3 → P6: BẢN ĐỒ THẾ GIỚI · CỐT TRUYỆN · QUÁI CHƯƠNG 1 · HẦM NGỤC / QUÁN ĂN / CỬA HÀNG
+Bạn treo máy, Claude làm một mạch. Codex bị chặn quyền đọc/ghi file trên Windows, máy không có lệnh `agy` (Antigravity) → Claude tự làm hết. **Toàn bộ tranh vẽ trên Google Flow** (tài khoản của bạn): 12 tranh nền + quán ăn, 6 NPC, 10 quái / trùm.
+
+### P3 — Bản đồ thế giới (bấm 📖 Cốt truyện ở Menu là vào đây)
+- **Màn ngang kiểu MapleStory**: đội đi lại (Rok dẫn đầu, Jessica · Seraphine · Lyra đi theo, dùng tranh chạy có sẵn). Điều khiển: ← → (A D) hoặc nút ◀ ▶ hoặc **bấm vào nền / NPC / đồ vật để đi tới** · ↑ / E / nút vàng để tương tác.
+- **12 khu**: Làng Ashford (Quảng trường · Giếng Cổ · Phố Lò rèn & Quán ăn) · Ngoại ô (Cánh đồng · Mỏ đá · Rừng Sương) · Đường Vương Đạo (Cầu Đá · Trạm gác — mở sau ải 10) · Kinh thành (Cổng thành · Khu chợ · Thư viện · Cung điện — mở sau ải 12).
+- **🧭 Bản đồ**: xem các khu, **bấm khu đã mở để dịch chuyển nhanh**.
+- **Rương** (mở 1 lần, có rương ẩn) · **mạch đá** ở Mỏ (đào được Đá Cường Hoá, hồi sau 4 giờ) · **NPC** có hội thoại theo tiến trình, dấu **!** (có việc) / **?** (trả việc).
+- **5 việc mở 5 nhánh ẩn**: Giếng Cổ (xoay 4 biểu tượng theo bài đồng dao của Bà Mira → N1) · Búa của bác Borin ở Mỏ đá (sau ải 4 → N2) · Lúa mì + Nấm cho cô Lena (sau ải 3 → N3, mở Quán ăn) · Xếp trang sách ở Thư viện (sau ải 16 → N4) · Phiến đá lạ ở Cung điện (sau ải 18 → N5 Hầm Mộ).
+- Vị trí, rương đã mở, việc đang làm đều được lưu.
+
+### P4 — Cốt truyện
+- **Mở màn** (lần đầu vào Cốt truyện): lời dẫn → **trận đấu Thần Ánh Sáng** với đội Lv60 SSS → loé trắng, *"Ngủ đi…"* → **tỉnh dậy ở Ashford**, Rok · Jessica · Seraphine tìm thấy.
+- **Lời thoại trước ải** (lần đầu vào, mức Cốt truyện) và **sau khi thắng lần đầu** cho cả 20 ải, theo đúng diễn biến chương 1; sau ải 20 có **kết chương** (Thánh Varkos, mở chương 2). Có nút **Bỏ qua**.
+- **Mở dần tính năng**: **AUTO chỉ có sau ải 2** (trước đó nút AUTO ẩn); màn kết quả hiện **"🔓 Mở khoá mới: …"** (AUTO, Khó, Trang bị, Lò rèn, Hầm ngục, Cửa hàng…).
+
+### P5 — Quái + 5 trùm chương 1
+- **Quái mới có tranh riêng**: Goblin Cướp · Goblin Ném Bom · Sói Rừng (dùng tranh sói của Sylva) · Lính Valoria · Mật Thám đội lốt Elf · Chiến Binh Lửa. Mỗi ải 3 quái đúng theo truyện.
+- **5 trùm**: Sói Đầu Đàn (ải 5) · Skarn Răng Sắt (ải 10) · Morwen — Hiệp Sĩ Đen (ải 15) · **Đại tướng Valdric (ải 20, dưới 50% máu bùng lửa — đổi hẳn sang tranh bốc lửa, hồi 10% máu, mạnh lên)** · Người Gác Mộ (nhánh N5). Trùm nào cũng có **giai đoạn 2** khi máu thấp (băng chữ đỏ giữa màn + biểu tượng 💢).
+- **Cân bằng bằng giả lập** (`node tools/sim_stage.js`): **EXP ải tăng ×4** (160 + 60n) để cấp anh hùng theo kịp cấp ải (trước đây tới ải 20 đội mới ~Lv10). Ở cấp dự kiến: ải thường thắng chắc, trùm ải 5 và ải 20 thắng khoảng 50% (chơi lại / mặc đồ là qua).
+
+### P6 — Hầm ngục · Quán ăn · Cửa hàng anh hùng (nút **🏰 Hầm ngục** ở màn chọn ải và trên bản đồ)
+- **Hầm ngục đồ bộ** (mở ở ải 15): 3 tầng (đồ cấp 10/20/30), tốn ⚡8 (thua hoàn 7), rơi **đồ 3 bộ tộc Người, Sử thi / Huyền thoại** + đá + vàng + EXP.
+- **Hầm ngục trang sức** (mở ở ải 16): **3 lượt / ngày**, thua không mất lượt, **mua thêm lượt 30 Kim Cương** (tối đa 3), rơi **Nhẫn / Dây chuyền** + Đá Tinh Luyện.
+- **Quán ăn** (mở sau việc của cô Lena): mời anh hùng 3 món (100 / 300 / 800 Vàng) → độ thân mật cấp 0–10, **mỗi cấp +1% Máu & Tấn công** (tính vào trận).
+- **Cửa hàng anh hùng** (mở sau ải 20): mua Ignar, Grix (600 💎), Zerith, Brakk, Nerissa, Sylva (800 💎), Elarion (1.200 💎) — hộp xác nhận ngay trên trang.
+- **Tool Test** thêm mục **"📖 Cốt truyện thử"**: mở khoá tới ải 6 / 10 / 16 / 20 (Lv30) + tặng 1.000 Kim Cương, 5.000 Vàng để thử nhanh.
+
+### Đã thử bằng chuột thật
+Mở màn → đấu thần → bị phong ấn → tỉnh dậy · đi lại 6 khu, mở 2 rương, đào mỏ · nhận + làm + trả việc cô Lena (đi bộ và dịch chuyển nhanh) · câu đố Giếng Cổ (sai → báo, đúng → mở nhánh) · lời thoại trước ải 1 · AUTO bị ẩn ở ải 1, hiện ở ải sau · quái mới trong trận · Valdric giai đoạn 2 · màn Hầm ngục (tầng khoá báo lý do, mua lượt, vào trận tầng 1) · Quán ăn (lên cấp thân mật, món đắt bị khoá khi thiếu vàng) · Cửa hàng (hộp xác nhận, mua Ignar). Giả lập: lời thoại sau ải + mở AUTO khi thắng ải 2 lần đầu; hầm đồ bộ / trang sức đánh trọn tới nhận thưởng. **54 bài kiểm tra tự động** đạt.
+
+### Còn lại / chưa thử bằng tay
+- Việc của bác Borin, xếp trang sách (Thư viện), Phiến đá Hầm Mộ: có bài kiểm tra tự động, chưa bấm tay từng bước.
+- Giao diện điện thoại: khung giả lập điện thoại của trình duyệt trong app bị lệch nên chưa xem được thật — đã làm sẵn bố cục hẹp.
+- "Đánh bằng mẹo" trên bản đồ (dụ sói vào bẫy, lẻn qua trạm gác…) và câu đố nhỏ khác: chưa làm.
+- Tranh Flow có dấu ✦ nhỏ của Google ở góc phải dưới (không xoá dấu này).
+
+---
+
 ## 06/11/2026 — TRANG BỊ (P2): rơi đồ, mặc đồ, Lò rèn (cường hoá · tinh luyện · phân giải), 3 bộ đồ tộc Người
 - **Màn chọn ải có nút mới "🎒 Trang bị"** (khoá tới khi qua ải 6). Gồm 2 tab:
   - **Trang bị:** chọn anh hùng, 6 ô (Vũ khí · Áo · Tay · Chân · Nhẫn · Dây chuyền), bảng chỉ số (phần tăng nhờ đồ ghi màu xanh), bộ đồ đang mặc (2/4 món), túi đồ lọc theo ô. Bấm món đồ → thẻ chi tiết: chỉ số chính, dòng phụ có thanh "nằm đâu trong khoảng", dòng ≥ 90% chữ vàng lấp lánh, nút Mặc / Tháo / 🔒 Khoá / Lò rèn.

@@ -361,7 +361,7 @@ function dialogHTML() {
 function puzzleHTML() {
     if (puzzle.kind === 'well') return `<div class="cp-confirm-backdrop">
         <div class="wd-puzzle" role="dialog">
-            <h3>🪨 Giếng Cổ</h3>
+            <h3>💧 Giếng Cổ</h3>
             <p>Bốn phiến đá khắc biểu tượng. Bấm để xoay từng phiến, xếp theo một thứ tự nào đó…</p>
             <div class="wd-dials">${puzzle.state.map((v, i) => `<button class="wd-dial" data-wd-dial="${i}">${v}</button>`).join('')}</div>
             ${puzzle.msg ? `<p class="wd-pz-msg">${puzzle.msg}</p>` : ''}
