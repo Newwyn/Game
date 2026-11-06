@@ -1,0 +1,1 @@
+{"image": "enemy_soldier.webp", "size": [439, 308], "atlasScale": 1, "frames": {"idle1": {"org": [100, 300], "top": 300, "rect": [4, 4, 201, 300]}, "attack1": {"org": [113, 294], "top": 294, "rect": [209, 4, 226, 294]}}}

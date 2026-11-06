@@ -18,6 +18,7 @@ export const progressNet = {
     set: (classId, patch) => socket.emit('debugProgress', { classId, ...patch }),
     rankUp: (classId) => socket.emit('rankUp', { classId }),
     gearGive: (set, level, rarity) => socket.emit('gearDebugGive', { set, level, rarity }),
+    campaign: (upTo, level) => socket.emit('debugCampaign', { upTo, level }),
 };
 
 /** Bảng tra (bậc, tộc, class) cho HUD */
@@ -117,6 +118,8 @@ export function renderProgressTool() {
         <div class="pt-section">Đội hình trong trận <span class="pt-cnt">${onIds.length}/4</span></div>
         <div class="pt-rosters">${roster}</div>
         ${onIds.map(id => heroCard(id, data.heroes[id])).join('')}
+        <div class="pt-section">📖 Cốt truyện thử <span class="pt-cnt">mở khoá ải</span></div>
+        <div class="pt-segs">${[[6, 0], [10, 0], [16, 0], [20, 30]].map(([n, lv]) => `<button class="pt-seg" style="--c:#60a5fa" data-pt="camp" data-v="${n}" data-lv="${lv}">Tới ải ${n}${lv ? ` · Lv${lv}` : ''}</button>`).join('')}</div>
         <div class="pt-section">🎒 Đồ thử <span class="pt-cnt">cấp ${gearLevel} · cam</span></div>
         <div class="pt-segs">${[10, 30, 60].map(l => `<button class="pt-seg${l === gearLevel ? ' on' : ''}" style="--c:#fb923c" data-pt="gearLv" data-v="${l}">Cấp ${l}</button>`).join('')}</div>
         <div class="pt-segs">
@@ -139,6 +142,7 @@ function onClick(e) {
     else if (pt === 'preset') progressNet.set(id, { preset: Number(v) });
     else if (pt === 'rankUp') progressNet.rankUp(id);
     else if (pt === 'gearLv') { gearLevel = Number(v); renderProgressTool(); }
+    else if (pt === 'camp') progressNet.campaign(Number(v), Number(b.dataset.lv) || 0);
     else if (pt === 'gear') progressNet.gearGive(v || null, gearLevel, 4);
 }
 

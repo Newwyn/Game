@@ -1,0 +1,1 @@
+{"image": "enemy_trapper.webp", "size": [598, 308], "atlasScale": 1, "frames": {"idle1": {"org": [99, 300], "top": 300, "rect": [4, 4, 198, 300]}, "attack1": {"org": [194, 297], "top": 297, "rect": [206, 4, 388, 297]}}}

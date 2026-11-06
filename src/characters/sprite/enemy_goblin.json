@@ -1,0 +1,1 @@
+{"image": "enemy_goblin.webp", "size": [588, 308], "atlasScale": 1, "frames": {"idle1": {"org": [120, 300], "top": 300, "rect": [4, 4, 240, 300]}, "attack1": {"org": [168, 292], "top": 292, "rect": [248, 4, 336, 292]}}}

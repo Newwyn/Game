@@ -11,6 +11,7 @@ import { hideBattleResult } from './overlays.js';
 import { showGear } from './gear.js';
 import { showWorld, hideWorld } from './world.js';
 import { playStory } from './story.js';
+import { showExtras } from './extras.js';
 
 const STAMINA_MAX = 360;
 const STAMINA_REGEN_SEC = 300;
@@ -431,6 +432,7 @@ export function renderCampaign() {
         <header class="cp-header">
             <div class="cp-title-row">
                 <button class="cp-back-btn" data-cp-back>← Menu</button>
+                <button class="cp-back-btn cp-gear-btn" data-cp-extras title="Hầm ngục · Quán ăn · Cửa hàng anh hùng">🏰 Hầm ngục</button>
                 <button class="cp-back-btn cp-gear-btn" data-cp-world title="Bản đồ thế giới: đi lại, NPC, rương, nhiệm vụ mở nhánh ẩn">🗺️ Thế giới</button>
                 <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : 'Mở khi qua ải 6'}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
                 <div class="cp-title-text">
@@ -521,11 +523,18 @@ export function openWorldHub() {
     showWorld({
         stages: () => { hideWorld(); net.campaignOpen(); showCampaign(); },
         gear: () => { hideWorld(); showGear(() => openWorldHub()); },
+        extras: () => { hideWorld(); showExtras(() => openWorldHub()); },
         back: () => { showModeMenu(); net.backToMenu(); },
     });
 }
 
 function onScreenClick(e) {
+    if (e.target.closest('[data-cp-extras]')) {
+        errorText = null;
+        hideCampaign();
+        showExtras(() => { net.campaignOpen(); showCampaign(); });
+        return;
+    }
     if (e.target.closest('[data-cp-world]')) {
         errorText = null;
         openWorldHub();
@@ -645,7 +654,9 @@ export function hideCampaign() {
     if (screenEl) screenEl.style.display = 'none';
 }
 
+let lastResultDungeon = false;
 export function renderStageResult(data = {}) {
+    lastResultDungeon = !!data.stage?.dungeon;
     hideBattleResult();
     hideCampaign();
 
@@ -676,7 +687,7 @@ export function renderStageResult(data = {}) {
         <div class="cp-result-badge">${win ? '🏆 Thắng' : '💀 Thua'}</div>
         <h2 class="cp-result-title">${win ? 'CHIẾN THẮNG!' : 'THẤT BẠI!'}</h2>
         <p class="cp-result-sub">
-            ${lastSelectedStage ? `Ải ${lastSelectedStage.no ?? ''}: ${lastSelectedStage.name ?? ''} · ` : ''}
+            ${lastSelectedStage ? `${lastSelectedStage.no ? `Ải ${lastSelectedStage.no}: ` : ''}${lastSelectedStage.name ?? ''} · ` : ''}
             ${win ? 'Đội của bạn đã vượt ải thành công!' : 'Đừng nản lòng, hãy nâng cấp đội hình và thử lại!'}
         </p>
 
@@ -741,7 +752,7 @@ export function renderStageResult(data = {}) {
         }).join('')}
         ` : `
         <div class="cp-refund-banner">
-            ⚡ Hoàn lại ${refund} thể lực
+            ${data.refundRun ? '💍 Thua không mất lượt hầm ngục' : `⚡ Hoàn lại ${refund} thể lực`}
         </div>
         `}
 
@@ -787,6 +798,7 @@ function onResultClick(e) {
     if (e.target.closest('[data-cp-continue]')) {
         hideResult();
         hideBattleResult();
+        if (lastResultDungeon) { lastResultDungeon = false; showExtras(() => { net.campaignOpen(); showCampaign(); }, 'dungeon'); return; }
         net.campaignOpen();
         showCampaign();
     }

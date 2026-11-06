@@ -48,4 +48,9 @@ export const net = {
     worldOpen: () => socket.emit('worldOpen'),
     worldMove: (scene, x, full = false) => socket.emit('worldMove', { scene, x, full }),
     worldInteract: (scene, target, answer) => socket.emit('worldInteract', { scene, target, answer }),
+    // 🏰 Hầm ngục · 🍲 Quán ăn · 🛒 Cửa hàng anh hùng
+    extrasOpen: () => socket.emit('extrasOpen'),
+    dungeonBuyRun: () => socket.emit('dungeonBuyRun'),
+    tavernFeed: (hero, food) => socket.emit('tavernFeed', { hero, food }),
+    shopBuy: (hero) => socket.emit('shopBuy', { hero }),
 };

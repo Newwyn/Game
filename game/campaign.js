@@ -89,7 +89,7 @@ function rewardsFor(id, diff, firstClear) {
     const n = s.no ?? s.baseNo;
     const diamond = s.flag ? 40 : [10, 30, 50, 100][s.boss];
     return {
-        exp: Math.round((40 + 15 * n) * d.exp),   // làm tròn: Khó ×1,5 có thể ra số lẻ
+        exp: Math.round((160 + 60 * n) * d.exp),   // P5 cân bằng: ×4 bản đầu (40 + 15n) để cấp anh hùng theo kịp cấp ải · Khó ×1,5 có thể ra số lẻ
         gold: Math.round((50 + 10 * n) * d.exp),
         stone: (1 + Math.floor(n / 5)) * d.stone,
         diamond: firstClear ? diamond * d.dia : 0,

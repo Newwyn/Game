@@ -6,6 +6,9 @@ const P = require('./progression'); // Level · Bậc · Tộc · chỉ số ri�
 const C = require('./game/campaign.js');   // Cốt truyện: mở khoá ải, thưởng, sở hữu anh hùng
 const ST = require('./game/stamina.js');   // Thể lực
 const G = require('./game/gear.js');   // Trang bị: đồ, mặc / tháo, lò rèn, rơi đồ
+const D = require('./game/dungeon.js');   // Hầm ngục đồ bộ / trang sức
+const TV = require('./game/tavern.js');   // Quán ăn: độ thân mật
+const SHOP = require('./game/shop.js');   // Cửa hàng anh hùng
 const STORY = require('./game/story.js');   // Lời thoại cốt truyện chương 1
 const WD = require('./game/world.js');   // Bản đồ thế giới: màn ngang, NPC, rương, mỏ, nhiệm vụ mở nhánh
 
@@ -592,7 +595,47 @@ const CLASS_DEFS = {
         threat: 0, mpAtk: 0, mpSec: 0,
         atkSpeed: 999999, range: 'melee', atkRange: 1.8, moveSpeed: 0,
         skills: [], passives: []
-    }
+    },
+    // ---------- QUÁI CHƯƠNG 1 (P5): tranh riêng (art), khung xương ẩn mượn của quái cũ (base) ----------
+    //   boss: trùm (máu ×BOSS_HP theo ải) · phase2: dưới ngưỡng máu -> giai đoạn 2 (+tấn công, +tốc đánh; Valdric đổi tranh bùng lửa)
+    c1_goblin: { name: 'Goblin Cướp', emoji: '👺', color: '#65a30d', art: 'goblin', base: 'monster_tank',
+        maxHp: 3600, maxMp: 1000, pAtk: 190, mAtk: 0, pDef: 170, mDef: 140, crit: 120, critDmg: 400, acc: 1000, dodge: 120, pen: 80, block: 50, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1200, range: 'melee', atkRange: 2.4, moveSpeed: 0.012, skills: [], passives: [] },
+    c1_trapper: { name: 'Goblin Ném Bom', emoji: '💣', color: '#a16207', art: 'trapper', base: 'monster_supporter', dmgType: 'magic',
+        maxHp: 3000, maxMp: 1000, pAtk: 0, mAtk: 220, pDef: 120, mDef: 200, crit: 100, critDmg: 300, acc: 1000, dodge: 100, pen: 100, block: 0, lifesteal: 0,
+        threat: 100, mpAtk: 150, mpSec: 50, atkSpeed: 1300, range: 'ranged', atkRange: 10, moveSpeed: 0.01, skills: [], passives: [] },
+    c1_wolf: { name: 'Sói Rừng', emoji: '🐺', color: '#64748b', art: 'wolf', base: 'monster_tank',
+        maxHp: 2900, maxMp: 1000, pAtk: 165, mAtk: 0, pDef: 140, mDef: 120, crit: 120, critDmg: 450, acc: 1050, dodge: 90, pen: 100, block: 0, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1000, range: 'melee', atkRange: 2.4, moveSpeed: 0.014, skills: [], passives: [] },
+    c1_soldier: { name: 'Lính Valoria', emoji: '⚔️', color: '#991b1b', art: 'soldier', base: 'monster_tank',
+        maxHp: 4500, maxMp: 1000, pAtk: 190, mAtk: 0, pDef: 260, mDef: 220, crit: 60, critDmg: 300, acc: 950, dodge: 50, pen: 60, block: 150, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1400, range: 'melee', atkRange: 2.4, moveSpeed: 0.01, skills: [], passives: [] },
+    c1_spy: { name: 'Mật Thám', emoji: '🥷', color: '#15803d', art: 'spy', base: 'monster_archer',
+        maxHp: 3400, maxMp: 1000, pAtk: 230, mAtk: 0, pDef: 120, mDef: 120, crit: 150, critDmg: 500, acc: 1100, dodge: 150, pen: 180, block: 0, lifesteal: 0,
+        threat: 100, mpAtk: 150, mpSec: 50, atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01, skills: [], passives: [] },
+    c1_fire: { name: 'Chiến Binh Lửa', emoji: '🔥', color: '#c2410c', art: 'fire', base: 'monster_tank', dmgType: 'magic',
+        maxHp: 4800, maxMp: 1000, pAtk: 0, mAtk: 240, pDef: 240, mDef: 240, crit: 100, critDmg: 400, acc: 1000, dodge: 60, pen: 120, block: 150, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1300, range: 'melee', atkRange: 2.6, moveSpeed: 0.01, skills: [], passives: [] },
+    b_wolf: { name: 'Sói Đầu Đàn', emoji: '🐺', color: '#7f1d1d', art: 'wolf', base: 'monster_tank', boss: true, scale: 1.35,
+        maxHp: 3800, maxMp: 1000, pAtk: 220, mAtk: 0, pDef: 200, mDef: 170, crit: 180, critDmg: 500, acc: 1100, dodge: 80, pen: 150, block: 0, lifesteal: 20,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 950, range: 'melee', atkRange: 2.8, moveSpeed: 0.014, skills: [], passives: [],
+        phase2: { at: 0.5, atkUp: 0.25, speedUp: 0.2, name: 'Vòng Cổ Ma Thuật', desc: 'Vòng cổ phát sáng: +25% tấn công, +20% tốc đánh' } },
+    b_skarn: { name: 'Skarn Răng Sắt', emoji: '👹', color: '#3f6212', art: 'skarn', base: 'monster_tank', boss: true, scale: 1.3,
+        maxHp: 5200, maxMp: 1000, pAtk: 280, mAtk: 0, pDef: 320, mDef: 220, crit: 120, critDmg: 500, acc: 1000, dodge: 60, pen: 150, block: 200, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1500, range: 'melee', atkRange: 3, moveSpeed: 0.01, skills: [], passives: [],
+        phase2: { at: 0.5, atkUp: 0.35, speedUp: 0.25, name: 'Cuồng Nộ', desc: 'Skarn nổi điên: +35% tấn công, +25% tốc đánh' } },
+    b_morwen: { name: 'Morwen — Hiệp Sĩ Đen', emoji: '🗡️', color: '#1e1b4b', art: 'morwen', base: 'monster_tank', boss: true, scale: 1.15,
+        maxHp: 4600, maxMp: 1000, pAtk: 250, mAtk: 0, pDef: 280, mDef: 260, crit: 150, critDmg: 600, acc: 1100, dodge: 120, pen: 150, block: 150, lifesteal: 50,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1150, range: 'melee', atkRange: 2.8, moveSpeed: 0.012, skills: [], passives: [],
+        phase2: { at: 0.4, atkUp: 0.2, speedUp: 0.3, name: 'Kiếm Đen', desc: 'Morwen dồn ép: +20% tấn công, +30% tốc đánh' } },
+    b_valdric: { name: 'Đại tướng Valdric', emoji: '🔥', color: '#b91c1c', art: 'valdric', base: 'monster_tank', boss: true, scale: 1.3,
+        maxHp: 5000, maxMp: 1000, pAtk: 260, mAtk: 0, pDef: 340, mDef: 300, crit: 150, critDmg: 500, acc: 1100, dodge: 80, pen: 200, block: 200, lifesteal: 0,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1300, range: 'melee', atkRange: 3, moveSpeed: 0.01, skills: [], passives: [],
+        phase2: { at: 0.5, atkUp: 0.3, speedUp: 0.2, heal: 0.1, name: 'Huy Hiệu Lửa Chiến', desc: 'Valdric bùng lửa: hồi 10% máu, +30% tấn công, +20% tốc đánh', art: true } },
+    b_warden: { name: 'Người Gác Mộ', emoji: '💀', color: '#334155', art: 'warden', base: 'monster_tank', boss: true, scale: 1.3, dmgType: 'magic',
+        maxHp: 5500, maxMp: 1000, pAtk: 0, mAtk: 280, pDef: 300, mDef: 340, crit: 100, critDmg: 400, acc: 1000, dodge: 60, pen: 150, block: 150, lifesteal: 80,
+        threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1400, range: 'melee', atkRange: 3, moveSpeed: 0.009, skills: [], passives: [],
+        phase2: { at: 0.5, atkUp: 0.3, speedUp: 0.15, name: 'Lời Nguyền Cổ', desc: 'Hút máu mạnh hơn: +30% tấn công' } },
 };
 
 // We will use 1 Assassins if TEST_MODE is active
@@ -633,6 +676,7 @@ function applyProgress(member, hero) {
     const def = CLASS_DEFS[member.classId];
     let st = P.computeStats(def, hero);
     if (hero.gear) st = G.applyGear(st, hero.gear, def.dmgType);   // đồ đang mặc (Cốt truyện / Test)
+    if (hero.aff) for (const k of ['maxHp', 'pAtk', 'mAtk']) st[k] = Math.round(st[k] * (1 + hero.aff));   // độ thân mật (quán ăn)
     member.gearSets = hero.gear?.effects ?? [];                    // bộ đủ 4 món -> hiệu ứng trong trận
     const hpRatio = member.maxHp ? member.hp / member.maxHp : 1;
     Object.assign(member, st);
@@ -708,12 +752,17 @@ function createMonsterSquad(level = 1, layout = MONSTER_SQUAD, opts = {}) {
 }
 /** Cốt truyện: đội quái theo ải + độ khó. Ải trùm: quái monster_tank ĐẦU TIÊN trong danh sách là trùm (máu ×BOSS_HP) */
 function createStageSquad({ id, diff }) {
+    const dg = D.findTier(id);
+    if (dg) {   // hầm ngục: quái theo tầng, trùm (b_*) máu ×1,5
+        const layout = dg.enemies.map(e => ({ ...e, boss: !!CLASS_DEFS[e.classId]?.boss }));
+        return createMonsterSquad(dg.lv, layout, { mul: 1, bossHp: 1.5 });
+    }
     const st = C.findStage(id);
     const d = C.DIFF[diff];
     const level = (st.level ?? st.baseNo ?? 1) + d.lv;
     let bossMarked = false;
     const layout = st.enemies.map(e => {
-        const boss = !!st.boss && !bossMarked && e.classId === 'monster_tank';
+        const boss = !!st.boss && !bossMarked && (CLASS_DEFS[e.classId]?.boss || e.classId === 'monster_tank');
         if (boss) bossMarked = true;
         return { ...e, boss };
     });
@@ -824,11 +873,13 @@ function progressOf(key) {
     G.ensureGear(pr);                   // save cũ: bổ sung túi đồ
     WD.ensureWorld(pr);                 // save cũ: bổ sung vị trí trên bản đồ thế giới
     pr.story ??= {};                    // mở màn / tỉnh dậy đã xem chưa
+    D.ensureDungeon(pr, Date.now());    // lượt hầm ngục trang sức theo ngày
+    TV.ensureTavern(pr);                // độ thân mật (quán ăn)
     return pr;
 }
 /** Cấp / bậc của 1 anh hùng kèm chỉ số đồ đang mặc */
 function heroWithGear(pr, id) {
-    return { ...pr.heroes[id], gear: G.gearBonus(G.equippedItems(pr, id)) };
+    return { ...pr.heroes[id], gear: G.gearBonus(G.equippedItems(pr, id)), aff: TV.bonus(pr.affinity?.[id]) };
 }
 function heroesWithGear(pr) {
     return Object.fromEntries(Object.keys(pr.heroes).map(id => [id, heroWithGear(pr, id)]));
@@ -842,6 +893,48 @@ function campaignPayload(pr, key) {
     return { chapter: C.chapterState(pr), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, features: [...C.features(pr)],
         squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
         story: { pre: STORY.pre, speakers: STORY.SPEAKERS } };
+}
+/** Kết thúc hầm ngục: thua hoàn chi phí; thắng -> đồ bộ / trang sức + đá + vàng + EXP */
+function finishDungeon(room, pr, win) {
+    const { id, classes, socketId } = room.stage;
+    const { kind, tier } = D.parseId(id);
+    const now = Date.now();
+    const r = D.applyResult(pr, { kind, tier, win }, now);
+    const res = { win, firstClear: !!r.firstTier, rewards: { exp: 0, gold: 0, stone: 0, diamond: 0 }, leveled: {}, newHeroes: [],
+        refund: r.refund ?? 0, refundRun: !!r.refundRun, drops: [], charms: 0, autoSalvaged: null, newFeatures: [] };
+    if (win) {
+        const loot = D.rollLoot(Math.random, kind, tier);
+        for (const spec of loot.items) {
+            const it = G.createItem(Math.random, spec, G.newId(pr));
+            if (G.addItem(pr, it)) { res.drops.push(G.describe(it)); continue; }
+            const v = G.salvageValue(it);
+            pr.wallet.stone += v.stone;
+            pr.items.refine_stone = (pr.items.refine_stone ?? 0) + v.refine;
+            res.autoSalvaged ??= { count: 0, stone: 0, refine: 0 };
+            res.autoSalvaged.count++; res.autoSalvaged.stone += v.stone; res.autoSalvaged.refine += v.refine;
+        }
+        pr.items.refine_stone = (pr.items.refine_stone ?? 0) + loot.refine;
+        res.rewards = { exp: 400 * tier, gold: loot.gold, stone: loot.stone, diamond: 0 };
+        pr.wallet.gold += loot.gold;
+        pr.wallet.stone += loot.stone;
+        for (const c of new Set(classes)) res.leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, res.rewards.exp);
+        res.refineGot = loot.refine;
+    }
+    P.saveAll(PROGRESS);
+    const t = D.findTier(id);
+    io.to(socketId).emit('stageResult', { ...res, stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
+}
+/** Gói dữ liệu màn Hầm ngục / Quán ăn / Cửa hàng anh hùng */
+function extrasPayload(pr, key) {
+    const feats = C.features(pr), now = Date.now();
+    const heroInfo = (id) => ({ id, name: CLASS_DEFS[id]?.name, title: CLASS_DEFS[id]?.title, emoji: CLASS_DEFS[id]?.emoji, className: CLASS_DEFS[id]?.className });
+    return {
+        wallet: pr.wallet, stamina: campaignPayload(pr).stamina, owned: pr.owned,
+        dungeon: D.state(pr, feats, now),
+        tavern: { open: TV.isOpen(pr), foods: TV.FOODS, heroes: TV.state(pr).map(h => ({ ...h, ...heroInfo(h.id) })) },
+        shop: { open: feats.has('heroShop'), list: SHOP.list(pr).map(h => ({ ...h, ...heroInfo(h.id) })) },
+        squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // bảng chọn đội khi vào hầm ngục
+    };
 }
 /** Rơi đồ khi thắng ải (từ khi đã qua ải 6) — túi đầy thì tự phân giải */
 function dropGear(pr, st, diff, firstClear) {
@@ -895,6 +988,7 @@ function finishStage(room, win) {
     room.stageApplied = true;
     const { id, diff, classes, key, socketId } = room.stage;
     const pr = progressOf(key);
+    if (D.parseId(id)) return finishDungeon(room, pr, win);
     const before = C.features(pr);
     const res = C.applyResult(pr, { id, diff, classes, win }, P, Date.now());
     const st = C.findStage(id);
@@ -1083,6 +1177,10 @@ function getEffectiveStats(member, now) {
             // Khiên cánh (lúc niệm): +thủ
             stats.pDef = Math.floor(stats.pDef * (1 + ef.defUp));
             stats.mDef = Math.floor(stats.mDef * (1 + ef.defUp));
+        }
+        if (ef.type === 'boss_phase2') {   // trùm giai đoạn 2
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.atkUp ?? 0))); stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.atkUp ?? 0)));
+            stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.speedUp ?? 0)));
         }
         // Bộ đồ (4 món): Hộ Vệ Vương Quốc +thủ cả đội · Chiến Lược Gia +tấn công cả đội
         if (ef.type === 'gear_def') { stats.pDef = Math.floor(stats.pDef * (1 + ef.value)); stats.mDef = Math.floor(stats.mDef * (1 + ef.value)); }
@@ -1464,6 +1562,20 @@ io.on('connection', (socket) => {
         if (data.clearItems) pr.items = {};
         afterProgress(data.classId === 'all' ? null : data.classId);
     });
+    // Tool Test: mở khoá Cốt truyện tới ải N (đánh dấu đã qua mức Cốt truyện) + đặt cấp cả đội — để thử ải sau / giả lập cân bằng
+    socket.on('debugCampaign', (data = {}) => {
+        if (rooms[socket.roomId]?.mode && rooms[socket.roomId].mode !== 'test') return;
+        const pr = progressOf(socket.progressKey);
+        const upTo = Math.max(0, Math.min(20, data.upTo | 0));
+        for (let i = 1; i <= upTo; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
+        if (upTo >= 12 && !pr.owned.includes('archer')) pr.owned.push('archer');
+        if (data.level) for (const id of HERO_IDS()) { pr.heroes[id].level = Math.max(1, Math.min(P.MAX_LEVEL, data.level | 0)); pr.heroes[id].rank = data.level > 40 ? 2 : data.level > 20 ? 1 : 0; }
+        pr.story.prologue = pr.story.wake = true;
+        pr.wallet.diamond += 1000; pr.wallet.gold += 5000;   // để thử Cửa hàng anh hùng / Quán ăn / mua lượt
+        P.saveAll(PROGRESS);
+        socket.emit('progressMsg', { ok: true, text: `Đã mở tới ải ${upTo}${data.level ? ` · cả đội Lv${data.level}` : ''} · +1000 Kim Cương · +5000 Vàng` });
+        afterProgress(null);
+    });
     if (TEST_MODE) {
         // AUTO-START with NPC
         const roomId = `room_test_${Date.now()}`;
@@ -1826,6 +1938,32 @@ io.on('connection', (socket) => {
         P.saveAll(PROGRESS);
     });
 
+    // ---------- HẦM NGỤC · QUÁN ĂN · CỬA HÀNG ANH HÙNG (P6) ----------
+    const extrasDo = (fn) => (d = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const r = fn ? fn(pr, d) : null;
+        if (r && !r.ok) return socket.emit('extrasResult', { ok: false, text: r.why });
+        if (r) { P.saveAll(PROGRESS); socket.emit('extrasResult', { ok: true, text: r.text }); }
+        socket.emit('extrasState', extrasPayload(pr, socket.progressKey));
+    };
+    socket.on('extrasOpen', extrasDo(null));
+    socket.on('dungeonBuyRun', extrasDo((pr) => {
+        const r = D.buyRun(pr, pr.wallet, Date.now());
+        return r.ok ? { ok: true, text: `Mua thêm 1 lượt Hầm ngục trang sức (−${D.DUNGEONS.jewel.buyCost} Kim Cương)` } : r;
+    }));
+    socket.on('tavernFeed', extrasDo((pr, d) => {
+        const r = TV.feed(pr, pr.wallet, String(d.hero), String(d.food));
+        if (!r.ok) return r;
+        const f = TV.FOODS[d.food], n = CLASS_DEFS[d.hero]?.name;
+        return { ok: true, text: `${n} rất thích ${f.name}! +${r.gained} thân mật${r.up ? ` · LÊN CẤP THÂN MẬT ${r.level}: +${r.level}% Máu & Tấn công` : ''}` };
+    }));
+    socket.on('shopBuy', extrasDo((pr, d) => {
+        const r = SHOP.buy(pr, pr.wallet, String(d.hero), C.features(pr));
+        if (!r.ok) return r;
+        pr.heroes[r.heroId] ??= { level: 1, rank: 0, exp: 0 };
+        return { ok: true, text: `🎉 ${CLASS_DEFS[r.heroId].name} gia nhập đội!` };
+    }));
+
     // ---------- TRANG BỊ: mặc / tháo / khoá · LÒ RÈN: cường hoá, tinh luyện, phân giải ----------
     const gearAction = (need, fn) => (data = {}) => {
         const pr = progressOf(socket.progressKey);
@@ -1928,9 +2066,17 @@ io.on('connection', (socket) => {
         const pr = progressOf(socket.progressKey);
         const now = Date.now();
         const classes = [...new Set((data.classes ?? []).filter(c => SQUAD_ORDER.includes(c)))];
-        const chk = C.canStart(pr, { id: data.id, diff: data.diff, classes }, now);
-        if (!chk.ok) return socket.emit('campaignError', { text: chk.why });
-        if (!ST.trySpend(pr.stamina, ST.COST[data.diff], now)) return socket.emit('campaignError', { text: 'Không đủ thể lực' });
+        const dg = D.parseId(data.id);
+        if (dg) {   // hầm ngục: luật riêng (thể lực / lượt theo ngày)
+            data.diff = 'story';
+            const chk = D.canStart(pr, { ...dg, classes }, C.features(pr), now);
+            if (!chk.ok) return socket.emit('campaignError', { text: chk.why });
+            D.spend(pr, dg.kind, now);
+        } else {
+            const chk = C.canStart(pr, { id: data.id, diff: data.diff, classes }, now);
+            if (!chk.ok) return socket.emit('campaignError', { text: chk.why });
+            if (!ST.trySpend(pr.stamina, ST.COST[data.diff], now)) return socket.emit('campaignError', { text: 'Không đủ thể lực' });
+        }
         pr.campaignPick = classes;   // nhớ đội hình lần sau
         P.saveAll(PROGRESS);
         stopLoop(room);
@@ -1947,9 +2093,11 @@ io.on('connection', (socket) => {
         room.countdown = 3;
         room.lastTick = Date.now();
         room.winner = null;
-        const st = C.findStage(data.id);
-        player.autoMode = false;
-        player.squad.forEach(m => { m.autoOn = false; });
+        const st = C.findStage(data.id) ?? { ...D.findTier(data.id), id: data.id, no: null };
+        if (!C.features(pr).has('auto')) {   // AUTO chưa mở (trước ải 3): tắt hẳn
+            player.autoMode = false;
+            player.squad.forEach(m => { m.autoOn = false; });
+        }
         io.to(socket.roomId).emit('battleStart', { roomId: socket.roomId, players: room.players, classDefs: CLASS_DEFS, mode: 'campaign',
             stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff }, features: [...C.features(pr)] });
         socket.emit('memberToggles', { disabled: player.disabledClasses });
@@ -4226,6 +4374,18 @@ function afterHpLoss(m) {
     checkJudgement(m);
     checkGoblinWard(m);
     checkGearGuard(m);
+    checkBossPhase(m);
+}
+/** Trùm chương 1: máu dưới ngưỡng -> giai đoạn 2 (1 lần): +tấn công, +tốc đánh, (Valdric) hồi máu + đổi tranh bùng lửa */
+function checkBossPhase(m) {
+    const ph = CLASS_DEFS[m.classId]?.phase2, now = curRoom?.clock;
+    if (!ph || !m.alive || m.phase2On || now == null || m.hp > m.maxHp * ph.at) return;
+    m.phase2On = true;
+    if (ph.heal) m.hp = Math.min(m.maxHp, m.hp + Math.round(m.maxHp * ph.heal));
+    m.statusEffects.push({ type: 'boss_phase2', name: ph.name, desc: ph.desc, atkUp: ph.atkUp, speedUp: ph.speedUp, art: !!ph.art,
+        endTime: Number.MAX_SAFE_INTEGER, noCleanse: true });
+    const at = locate(m);
+    if (at) io.to(curRoom.id).emit('bossPhase', { casterId: at.pid, casterIdx: at.idx, name: ph.name, text: ph.desc });
 }
 /** Cả đội (còn sống) nhận 1 buff — làm mới nếu đang có cùng loại */
 function teamBuff(pid, type, value, ms, now) {

@@ -28,6 +28,7 @@ import { setupModeMenu } from './ui/modeMenu.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
 import { setupWorld } from './ui/world.js';
+import { setupExtras } from './ui/extras.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
@@ -73,6 +74,8 @@ setupCampaign();
 setupGear();
 // 🗺️ Bản đồ thế giới (nơi xuất phát của Cốt truyện)
 setupWorld();
+// 🏰 Hầm ngục · Quán ăn · Cửa hàng anh hùng
+setupExtras();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
 // Tool phe quái: cấp quái hiện tại
@@ -80,6 +83,15 @@ socket.on('monsterLevel', (d) => {
     const a = document.getElementById('monster-level-label'), b = document.getElementById('monster-level-big');
     if (a) a.textContent = `Lv${d.level}`;
     if (b) b.textContent = d.level;
+});
+
+// Trùm vào giai đoạn 2 (P5): băng chữ giữa màn hình 2,5 giây
+socket.on('bossPhase', (d) => {
+    const el = document.createElement('div');
+    el.className = 'boss-phase-banner';
+    el.innerHTML = `<b>💢 ${d.name}</b><small>${d.text ?? ''}</small>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
 });
 
 // Server xác nhận danh sách nhân vật bị tắt (sau khi bấm nút bật/tắt)

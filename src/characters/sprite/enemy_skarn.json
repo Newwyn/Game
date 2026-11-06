@@ -1,0 +1,1 @@
+{"image": "enemy_skarn.webp", "size": [642, 308], "atlasScale": 1, "frames": {"idle1": {"org": [154, 300], "top": 300, "rect": [4, 4, 307, 300]}, "attack1": {"org": [162, 280], "top": 280, "rect": [315, 4, 323, 280]}}}

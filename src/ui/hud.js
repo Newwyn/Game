@@ -388,6 +388,7 @@ function effectInfo(ef, m) {
             ? ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} (bộ đồ 4 món)`];
         case 'gear_def': return ['🧩', '#93c5fd', 'Hộ Vệ Vương Quốc', `Cả đội +${pc(ef.value)}% thủ`];
+        case 'boss_phase2': return ['💢', '#f87171', ef.name ?? 'Giai đoạn 2', ef.desc ?? 'Trùm mạnh lên'];
         case 'gear_travel': return ['🧩', '#4ade80', 'Lữ Khách', `Đồng đội khác tộc: +${pc(ef.value)}% sát thương`];
         case 'gear_atk': return ['🧩', '#fbbf24', 'Chiến Lược Gia', `Cả đội +${pc(ef.value)}% tấn công`];
         case 'grabbed': return ['✊', '#f97316', 'Bị túm', 'Bị Brakk nhấc bổng — sắp bị quật xuống đất', true];

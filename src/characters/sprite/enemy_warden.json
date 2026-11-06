@@ -1,0 +1,1 @@
+{"image": "enemy_warden.webp", "size": [554, 308], "atlasScale": 1, "frames": {"idle1": {"org": [102, 300], "top": 300, "rect": [4, 4, 204, 300]}, "attack1": {"org": [169, 217], "top": 217, "rect": [212, 4, 338, 217]}}}

@@ -130,6 +130,9 @@ export class FrameSpriteView extends CutoutCharacterView {
 
     /** Đổi khung: mặt phẳng đúng cỡ khung (atlas cắt sát), gốc = tâm đứng dưới chân */
     _setFrame(name) {
+        // trùm giai đoạn 2 (Valdric bùng lửa): đổi sang khung p2_* nếu tranh có
+        const p2 = this.sprite.phase2?.[name];
+        if (p2 && this.member?.statusEffects?.some(ef => ef.type === 'boss_phase2' && ef.art)) name = p2;
         if (name === this._frame) return;
         const meta = this.sprite.meta, f = meta.frames[name];
         if (!f) return;

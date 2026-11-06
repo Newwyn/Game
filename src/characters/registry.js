@@ -35,6 +35,7 @@ import {
     SECONDARY as ASSASSIN2_SECONDARY, LOCOMOTION as ASSASSIN2_LOCOMOTION,
 } from './cutout/assassin2Clips.js';
 import { creatureVisual } from './cutout/creatureRig.js';
+import { enemyVisual } from './sprite/enemySprites.js';
 import { ROK2_RIG as ROK_RIG } from './cutout/rok2Rig.js'; // bản 2: bộ tranh vẽ riêng cho gắn xương
 import {
     rokClips, SKIN_KEYS as ROK_SKINS, DEFAULT_SKINS as ROK_DEFAULT_SKINS,
@@ -453,7 +454,10 @@ function useSprite(visual) {
 }
 
 export function createCharacterView(member, classDef, isMyTeam) {
-    const make = CHARACTER_VISUALS[member.classId];
+    // quái chương 1 (P5): có tranh riêng -> sprite; chưa có tranh -> hình quái cũ theo `base`
+    const make = CHARACTER_VISUALS[member.classId] ?? (classDef?.art
+        ? (m) => enemyVisual(classDef, m) ?? creatureVisual(classDef.base ?? 'monster_tank', m.color)
+        : null);
     if (make) {
         const visual = make(member);
         return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);

@@ -1,0 +1,1 @@
+{"image": "enemy_spy.webp", "size": [580, 308], "atlasScale": 1, "frames": {"idle1": {"org": [104, 300], "top": 300, "rect": [4, 4, 207, 300]}, "attack1": {"org": [180, 296], "top": 296, "rect": [215, 4, 361, 296]}}}

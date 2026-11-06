@@ -22,7 +22,7 @@
 - Độ khó: cấp quái **+0 / +5 / +10**, máu & tấn công quái **×1 / ×1,25 / ×1,6**. Trùm: máu **×2** (trùm nhỏ, ải 5/15), **×3** (giữa chương, ải 10), **×4** (cuối, ải 20).
 - Mở khoá: Cốt truyện ải n cần qua Cốt truyện ải n−1. Khó ải n cần qua Cốt truyện ải n **và** đã qua Cốt truyện ải 4. Địa ngục cần qua **cả 20 ải Khó**. Nhánh cần cờ (`flags`) — P3 đặt cờ; N5 cần thêm qua Cốt truyện ải 18.
 - Anh hùng sở hữu mặc định: **Jessica (assassin), Rok (warrior), Seraphine (priest)**; **Lyra (archer)** thêm khi lần đầu qua Cốt truyện ải 12.
-- Thưởng mỗi lần thắng (ải số n, nhánh dùng n của ải gốc): EXP mỗi anh hùng ra trận `40 + 15n`; Vàng `50 + 10n`; Đá `1 + floor(n/5)`; nhân **×1 / ×1,5 / ×2** (EXP, Vàng) và **×1 / ×2 / ×3** (Đá) theo độ khó. Kim Cương **chỉ lần đầu qua**: ải thường 10, trùm nhỏ 30, giữa chương 50, cuối 100 (×1 Khó, ×2 Địa ngục); nhánh 40.
+- Thưởng mỗi lần thắng (ải số n, nhánh dùng n của ải gốc): EXP mỗi anh hùng ra trận `40 + 15n` (**P5 nâng ×4 → `160 + 60n`** để cấp anh hùng theo kịp cấp ải); Vàng `50 + 10n`; Đá `1 + floor(n/5)`; nhân **×1 / ×1,5 / ×2** (EXP, Vàng) và **×1 / ×2 / ×3** (Đá) theo độ khó. Kim Cương **chỉ lần đầu qua**: ải thường 10, trùm nhỏ 30, giữa chương 50, cuối 100 (×1 Khó, ×2 Địa ngục); nhánh 40.
 
 ## Review Focus
 1. Save cũ (không có `wallet`, `stamina`, `campaign`, `owned`) → mở chế độ Cốt truyện vẫn chạy, nhận giá trị mặc định. → test ở Task 2.

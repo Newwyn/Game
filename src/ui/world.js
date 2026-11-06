@@ -32,7 +32,7 @@ const AREA_SKY = { village: ['#fcd9a0', '#f6a96b'], outskirts: ['#bfe3ff', '#9fd
 let root = null, canvas = null, ctx = null, hud = null;
 let data = null;             // worldState
 let scene = null;            // màn hiện tại (từ data.scenes)
-let open = false, onStages = null, onGear = null, onBack = null;
+let open = false, onStages = null, onGear = null, onBack = null, onExtras = null;
 const keys = new Set();
 const player = { x: 400, face: 1, moving: false, t: 0, target: null, then: null, trail: [] };
 let followers = [];           // [{ id, x, face, moving, t }]
@@ -316,6 +316,7 @@ function renderHud() {
         <div class="wd-btns">
             <button class="cp-back-btn" data-wd-stages>📖 Chọn ải</button>
             <button class="cp-back-btn" data-wd-gear>🎒 Trang bị</button>
+            <button class="cp-back-btn" data-wd-extras>🏰 Hầm ngục</button>
             <button class="cp-back-btn" data-wd-map>🧭 Bản đồ</button>
         </div>
     </div>
@@ -340,8 +341,9 @@ function mapHTML() {
     return `<div class="cp-confirm-backdrop" data-wd-map-close>
         <div class="wd-map" role="dialog">
             <h3>🧭 Bản đồ tộc Người</h3>
+            <p class="gr-hint">Bấm vào khu đã mở để dịch chuyển nhanh tới đó.</p>
             ${Object.values(areas).map(a => `<div class="wd-map-area"><b>${a.name}</b><div>${a.list.map(s =>
-                `<span class="wd-map-scene${s.id === scene.id ? ' here' : ''}${s.open ? '' : ' locked'}">${s.open ? '' : '🔒 '}${s.name}${s.id === scene.id ? ' 📍' : ''}</span>`).join('')}</div>
+                `<button class="wd-map-scene${s.id === scene.id ? ' here' : ''}${s.open ? '' : ' locked'}" data-wd-travel="${s.id}" ${s.open ? '' : 'disabled'}>${s.open ? '' : '🔒 '}${s.name}${s.id === scene.id ? ' 📍' : ''}</button>`).join('')}</div>
                 ${a.list[0].open ? '' : `<small>Mở khi qua ải ${a.list[0].needNo}</small>`}</div>`).join('')}
             <button class="cp-btn-cancel" data-wd-map-close>Đóng</button>
         </div></div>`;
@@ -411,8 +413,16 @@ function onHudClick(e) {
     if (q('[data-wd-back]')) { save(true); hideWorld(); onBack?.(); return; }
     if (q('[data-wd-stages]')) { save(true); onStages?.(); return; }
     if (q('[data-wd-gear]')) { save(true); onGear?.(); return; }
+    if (q('[data-wd-extras]')) { save(true); onExtras?.(); return; }
     if (q('[data-wd-map]')) { mapOpen = true; renderHud(); return; }
     if (e.target.matches('[data-wd-map-close]') || q('button[data-wd-map-close]')) { mapOpen = false; renderHud(); return; }
+    const tv = q('[data-wd-travel]');
+    if (tv) {   // dịch chuyển nhanh tới khu đã mở (đứng ở đầu khu)
+        mapOpen = false;
+        if (tv.dataset.wdTravel !== scene.id) goScene(tv.dataset.wdTravel, 300);
+        else renderHud();
+        return;
+    }
     if (q('[data-wd-act]')) { interact(nearest()); return; }
     if (q('[data-wd-next]')) { nextLine(); return; }
     if (q('[data-wd-pz-close]')) { puzzle = null; renderHud(); return; }
@@ -493,8 +503,8 @@ function onResult(r) {
 }
 
 // ---------- mở / đóng ----------
-export function showWorld({ stages, gear, back } = {}) {
-    onStages = stages ?? onStages; onGear = gear ?? onGear; onBack = back ?? onBack;
+export function showWorld({ stages, gear, back, extras } = {}) {
+    onStages = stages ?? onStages; onGear = gear ?? onGear; onBack = back ?? onBack; onExtras = extras ?? onExtras;
     el().style.display = 'block';
     document.body.classList.add('selecting-squad', 'in-world');
     open = true;

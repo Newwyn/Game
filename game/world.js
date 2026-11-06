@@ -158,7 +158,8 @@ function npcDialog(pr, id) {
         const has = q.items.every(it => w.bag[it]);
         if (st === 'done') return { lines: id === 'borin'
             ? ['Búa về tay rồi, ta lại gõ được cả ngày! Ghé lò rèn bất cứ lúc nào.', 'À, trong Mỏ Sâu có lối đi ta mới đào thông — cẩn thận Goblin nhé. (Đã mở nhánh N2)']
-            : ['Bữa tiệc vui quá! Cả làng nhớ ơn các cháu.', '(Đã mở nhánh N3 · Bữa Tiệc Làng)'], quest: 'done' };
+            : ['Bữa tiệc vui quá! Cả làng nhớ ơn các cháu.', '(Đã mở nhánh N3 · Bữa Tiệc Làng)',
+                'Quán ăn của ta mở cửa rồi — mời đồng đội ăn để thêm thân thiết nhé! (nút 🏰 Hầm ngục → 🍲 Quán ăn)'], quest: 'done' };
         if (!cleared(pr, q.needNo)) return { lines: id === 'borin'
             ? ['Lò rèn đang nguội vì Goblin quấy phá ngoài mỏ đá…', `Dẹp yên mỏ đá (qua ải ${q.needNo}) rồi ghé lại nhé.`]
             : ['Làng đang loạn, quán ta đóng cửa tạm.', `Khi rừng bớt nguy hiểm (qua ải ${q.needNo}) ta sẽ nhờ các cháu một việc.`] };
