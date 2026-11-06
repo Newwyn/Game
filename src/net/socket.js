@@ -32,4 +32,7 @@ export const net = {
     },
     chooseMode: (mode) => socket.emit('chooseMode', { mode }),
     backToMenu: () => socket.emit('backToMenu'),
+    campaignOpen: () => socket.emit('campaignOpen'),
+    startStage: (data) => socket.emit('startStage', data),
+    buyStamina: () => socket.emit('buyStamina'),
 };
