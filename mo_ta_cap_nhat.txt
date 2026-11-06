@@ -1,3 +1,5 @@
+Don thu muc: xoa 117 anh/video xem truoc cu + tranh goc va cong cu Pixel
+
 Nhip khung don danh co luc hon: giu khung lay da + khung trung lau hon (moc sat thuong khong doi)
 
 Bo che do Do hoa Pixel: Ignar + Sylva ve lai tranh ve tay (giu tranh goc pixel trong art/)

@@ -5,6 +5,12 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — Dọn thư mục game
+- Xoá **117 ảnh / video xem trước cũ** trong `Claude outputs/` (so sánh các bản đã bỏ: khung xương, assassin 2D, các bản Rok / Ignar cũ...). Giữ 3 file câu lệnh vẽ (`PROMPTS_FX-3.md`, `PROMPTS_ICONS.md`, `PROMPTS_SPRITE-3.md`) + 2 ảnh trận đấu mới.
+- Xoá tranh gốc + công cụ Pixel (`art/ignar/pixel`, `art/sylva/pixel`, `art/pixel_fx_src`, `tools/pixel_snap.py`, `tools/pixelfx_pack.py`) — đã chốt bỏ Pixel.
+- Trên máy (không có trên GitHub): xoá đồ nháp của đội AI trong `.team/` (nhật ký, bản vá, tranh nháp ~59 MB); giữ `.team/pyenv` (Python có sẵn công cụ đóng gói tranh).
+- Mọi file đã xoá vẫn lấy lại được từ lịch sử git (trừ đồ nháp `.team/`). Build không lỗi.
+
 ## 06/11/2026 — Nhịp khung đòn đánh có lực hơn (mọi nhân vật, không đổi gameplay)
 - Mọi đòn đánh / kỹ năng dạng tranh từng khung (mode `strike`) chia lại thời gian từng khung: **khung đầu lướt nhanh, khung lấy đà ngay trước cú đánh giữ lâu nhất**, **khung trúng giữ lâu cho thấy lực**, các khung thu về nhanh dần.
 - **Mốc gây sát thương và độ dài đòn KHÔNG đổi** (chỉ chia lại thời gian bên trong) → tốc độ đánh, choáng, đóng băng... giữ nguyên.
