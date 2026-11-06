@@ -12,7 +12,8 @@ const SPEAKERS = {
     assassin: { name: 'Jessica', portrait: 'assassin' },
     priest: { name: 'Seraphine', portrait: 'priest' },
     archer: { name: 'Lyra', portrait: 'archer' },
-    me: { name: '???', emoji: '✴️' },
+    me: { name: '???', emoji: '✴️', me: true },   // nhân vật chính: tên + chân dung lấy theo hồ sơ Nam / Nữ (server.js điền)
+    stranger: { name: 'Cô gái áo tím', portrait: 'assassin' },
     voice: { name: 'Giọng nói', emoji: '🌌' },
     sys: { name: '', emoji: '📜' },
     mira: { name: 'Bà Mira', art: 'mira', emoji: '👵' },
@@ -41,19 +42,18 @@ const intro = {
     ],
     wake: [
         ['sys', 'Ngoại ô làng Ashford — biên giới Vương quốc Valoria.'],
-        ['assassin', 'Này, còn sống không? Đống đổ nát này cháy cả đêm rồi đấy.'],
-        ['priest', 'Người này bị thương nặng… Khoan, trên tay có một dấu ấn lạ.'],
-        ['warrior', 'Ta là Rok, đội trưởng tuần tra biên giới. Ngươi là ai, từ đâu tới?'],
-        ['me', '…Ta không nhớ gì cả.'],
-        ['warrior', 'Vậy về làng trước đã. Bà Mira sẽ biết phải làm gì.'],
-        ['sys', 'Đi lại bằng ← → (hoặc bấm vào nền), ↑ / E để nói chuyện. Tìm Bà Mira ở quảng trường.'],
+        ['warrior', 'Này! {Cau} còn sống không? Đống đổ nát này cháy cả đêm rồi.'],
+        ['warrior', 'Ta là Rok, đội trưởng tuần tra biên giới. Trên tay {cau} có một dấu ấn lạ… {Cau} là ai?'],
+        ['me', '…Ta không nhớ gì cả. Chỉ nhớ mỗi cái tên: {ten}.'],
+        ['warrior', 'Được rồi, {ten}. Làng Ashford ở phía tây — về đó trước, Bà Mira sẽ biết phải làm gì.'],
+        ['sys', 'Đi bằng phím mũi tên / W A S D (hoặc phím ảo), nút A (E / Enter) để nói chuyện, nút B (Space) để nhảy. Đi về phía tây tới làng Ashford.'],
     ],
 };
 
 const pre = {
-    1: [['mira', 'Goblin lại kéo tới cổng làng!'], ['warrior', 'Đi thôi. Ngươi… cứ đứng sau bọn ta.'], ['me', '(Có một sợi dây vô hình nối ta với họ… như thể ta có thể ra lệnh.)'], ['sys', 'Bấm vào ô kỹ năng của từng anh hùng để ra lệnh.']],
-    2: [['priest', 'Ruộng lúa đang cháy! Phải đuổi bọn chúng đi.'], ['sys', 'Kỹ năng tốn Orb — năng lượng tích dần khi đánh. Xem thanh Orb dưới mỗi anh hùng.']],
-    3: [['assassin', 'Rừng Sương… sói ở đây không bình thường. Mắt chúng đỏ quạch.'], ['sys', 'Đã mở AUTO: các anh hùng tự dùng kỹ năng khi đủ Orb.']],
+    1: [['mira', 'Goblin lại kéo tới cổng làng!'], ['warrior', '{Cau} cứ đứng sau ta, {ten}.'], ['me', '(Có một sợi dây vô hình nối ta với Rok… như thể ta có thể ra lệnh.)'], ['sys', 'Bấm vào ô kỹ năng của anh hùng để ra lệnh.']],
+    2: [['warrior', 'Ruộng lúa đang cháy… Khoan, có mai phục!'], ['stranger', 'Đông thế này mà chỉ có hai người? Để ta giúp một tay.'], ['sys', 'Kỹ năng tốn Orb — năng lượng tích dần khi đánh. Cô gái áo tím chiến đấu cùng đội trong trận này.']],
+    3: [['priest', 'Thảo dược quý mọc sâu trong Rừng Sương. Mọi người đi cùng ta nhé?'], ['assassin', 'Sói ở đây không bình thường. Mắt chúng đỏ quạch.'], ['sys', 'Đã mở AUTO: các anh hùng tự dùng kỹ năng khi đủ Orb. Seraphine chiến đấu cùng đội trong trận này.']],
     4: [['warrior', 'Goblin đào trộm ở mỏ đá cũ. Chúng tìm gì ở đó?']],
     5: [['assassin', 'Con sói đầu đàn kia… có vòng cổ phát sáng.'], ['priest', 'Ma thuật trói buộc. Ai đó đang điều khiển nó!']],
     6: [['warrior', 'Trạm canh bị đốt. Cẩn thận bẫy.']],
@@ -74,9 +74,9 @@ const pre = {
 };
 
 const post = {
-    1: [['warrior', 'Ngươi… vừa ra lệnh cho bọn ta? Và bọn ta làm theo.'], ['me', 'Ta cũng không hiểu. Chỉ biết… ta nhìn thấy trận đánh rõ hơn các ngươi.']],
-    2: [['mira', 'Cảm ơn các cháu. Ruộng còn cứu được một nửa.']],
-    3: [['assassin', 'Lũ sói này bị dồn ra từ sâu trong rừng. Có kẻ đứng sau.']],
+    1: [['warrior', '{Cau}… vừa ra lệnh cho ta? Và ta làm theo như thể đã quen từ lâu.'], ['me', 'Ta cũng không hiểu. Chỉ biết… ta nhìn thấy trận đánh rõ hơn.']],
+    2: [['warrior', 'Cô là ai? Đánh giỏi thật.'], ['stranger', 'Ta tên Jessica. Thế thôi — đừng hỏi thêm.'], ['assassin', 'Nhưng {cau} kia… ra lệnh trận đánh cũng ra gì đấy. Ta đi cùng một đoạn vậy.'], ['sys', 'JESSICA gia nhập đội! Thân thế của cô vẫn còn là một bí ẩn…']],
+    3: [['priest', 'Đủ thảo dược rồi! Cảm ơn mọi người… và cảm ơn {cau}, {ten}.'], ['priest', 'Lũ sói này bị dồn ra từ sâu trong rừng — có kẻ đứng sau. Ta sẽ đi cùng mọi người.'], ['sys', 'SERAPHINE gia nhập đội!']],
     4: [['warrior', 'Chúng đào tìm quặng xanh — loại dùng để rèn vũ khí.'], ['sys', 'Đã mở độ khó KHÓ cho các ải đã qua.']],
     5: [['priest', 'Vòng cổ vỡ rồi. Con sói chỉ là một con vật bị lợi dụng…']],
     6: [['warrior', 'Trong đống tro có trang bị còn dùng được.'], ['sys', 'Đã mở TRANG BỊ: bấm 🎒 để mặc đồ cho anh hùng.']],

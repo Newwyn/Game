@@ -15,6 +15,7 @@ function spriteOf(art) {
     const meta = METAS[`./enemy_${art}.json`], image = IMAGES[`../../assets/sprites/enemy_${art}.webp`];
     if (!meta || !image) return null;
     const p2 = !!meta.frames.p2_idle1;
+    const walk = !!meta.frames.walk1;   // 2 khung đi bộ (tools/enemy_walk_pack.py)
     const still = (f) => ({ mode: 'still', frames: [f] });
     return {
         image, meta,
@@ -22,7 +23,7 @@ function spriteOf(art) {
         defaultIdle: 'C',
         clips: {
             attack: { mode: 'strike', frames: ['idle1', 'attack1', 'attack1', 'idle1'], release: 2 },
-            move: still('idle1'), ready: still('idle1'), hurt: still('idle1'), stunned: still('idle1'),
+            move: walk ? { mode: 'clip', frames: ['walk1', 'idle1', 'walk2', 'idle1'], noLift: true } : still('idle1'), ready: still('idle1'), hurt: still('idle1'), stunned: still('idle1'),
             dead: still('idle1'), fall: still('idle1'), land: still('idle1'), victory: still('idle1'), victoryIdle: still('idle1'),
             ...(p2 ? {
                 p2_idle: still('p2_idle1'),
@@ -30,7 +31,7 @@ function spriteOf(art) {
             } : {}),
         },
         // giai đoạn 2 (Valdric bùng lửa): dùng khung p2_* — FrameSpriteView đọc `phase2`
-        phase2: p2 ? { idle1: 'p2_idle1', attack1: 'p2_attack1' } : null,
+        phase2: p2 ? { idle1: 'p2_idle1', attack1: 'p2_attack1', walk1: 'p2_idle1', walk2: 'p2_idle1' } : null,
         lean: [],
     };
 }

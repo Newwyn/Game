@@ -4,6 +4,7 @@
 // ============================================================
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 const ART = import.meta.glob('../assets/world/*.webp', { eager: true, import: 'default' });
+const HERO = import.meta.glob('../assets/overworld/hero_*.webp', { eager: true, import: 'default' });
 
 let root = null, lines = [], speakers = {}, i = 0, done = null;
 
@@ -24,6 +25,8 @@ function el() {
     return root;
 }
 function face(sp) {
+    // nhân vật chính: dáng đứng nhìn thẳng trong bộ tranh đi bộ Nam / Nữ
+    if (sp?.me) return `<span class="st-hero" style="background-image:url(${HERO[`../assets/overworld/hero_${sp.gender === 'f' ? 'f' : 'm'}.webp`]})"></span>`;
     if (sp?.portrait && PORTRAITS[`../assets/portraits/${sp.portrait}.png`]) return `<img src="${PORTRAITS[`../assets/portraits/${sp.portrait}.png`]}" alt="">`;
     if (sp?.art && ART[`../assets/world/npc_${sp.art}.webp`]) return `<img class="npc" src="${ART[`../assets/world/npc_${sp.art}.webp`]}" alt="">`;
     return `<span>${sp?.emoji ?? '💬'}</span>`;

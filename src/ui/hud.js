@@ -8,6 +8,7 @@ import { socket } from '../net/socket.js';
 import gemF from '../assets/ui/gem_f.png';
 import gemI from '../assets/ui/gem_i.png';
 import gemB from '../assets/ui/gem_b.png';
+const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, import: 'default' });
 
 const GEM_ICON = { f: gemF, i: gemI, b: gemB };
 const GEM_NAME = { f: 'Hỏa', i: 'Băng', b: 'Lôi' };
@@ -101,6 +102,11 @@ function fillCardInfo(card, member, def, i) {
         if (!btn) return;
         const ic = btn.querySelector('.skill-icon');
         if (ic) ic.textContent = sk.name;
+        // hình kỹ năng (vẽ bằng AI) nằm dưới chữ; thiếu hình thì giữ kiểu chữ cũ
+        const art = SKILL_ART[`../assets/skills/${member.classId}_${s}.webp`];
+        let bg = btn.querySelector('.sk-art');
+        if (art) { if (!bg) { bg = document.createElement('span'); bg.className = 'sk-art'; btn.prepend(bg); } bg.style.backgroundImage = `url(${art})`; btn.classList.add('has-art'); }
+        else { bg?.remove(); btn.classList.remove('has-art'); }
         const cost = btn.querySelector('.cost');
         if (cost) cost.textContent = costLabel(sk);
         btn.title = `${sk.name} — ${costLabel(sk)}${sk.minOrbs ? ' (đốt dần tới khi hết)' : ''}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'}${sk.active ? ' sau khi múa xong' : ''} (click để ra lệnh)`;

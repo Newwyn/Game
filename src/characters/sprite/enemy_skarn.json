@@ -1,1 +1,1 @@
-{"image": "enemy_skarn.webp", "size": [642, 308], "atlasScale": 1, "frames": {"idle1": {"org": [154, 300], "top": 300, "rect": [4, 4, 307, 300]}, "attack1": {"org": [162, 280], "top": 280, "rect": [315, 4, 323, 280]}}}
+{"image": "enemy_skarn.webp", "size": [1317, 308], "atlasScale": 1, "frames": {"idle1": {"org": [154, 300], "top": 300, "rect": [4, 4, 307, 300]}, "attack1": {"org": [162, 280], "top": 280, "rect": [315, 4, 323, 280]}, "walk1": {"org": [165, 300], "top": 300, "rect": [646, 4, 330, 300]}, "walk2": {"org": [166, 300], "top": 300, "rect": [980, 4, 333, 300]}}}

@@ -13,13 +13,17 @@ test('20 ải đúng thứ tự, phần, cấp và trùm', () => {
         assert.equal(s.id, `c1-${String(no).padStart(2, '0')}`);
         assert.equal(s.part, no <= 10 ? 'lang' : no <= 12 ? 'duong' : 'kinh');
         assert.equal(s.boss, ({ 5: 1, 10: 2, 15: 1, 20: 3 })[no] || 0);
-        assert.equal(s.enemies.length, 3);
+        assert.equal(s.enemies.length, no === 1 ? 2 : 3);   // ải 1 chỉ có Rok -> 2 quái
         // ải trùm: quái đầu là trùm (b_*), ải thường không có trùm
         assert.equal(s.enemies[0].classId.startsWith('b_'), !!s.boss);
         assert.ok(s.enemies.slice(1).every(e => !e.classId.startsWith('b_')));
     }
     assert.equal(C.stages[0].name, 'Đêm ở cổng làng');
     assert.equal(C.stages[19].name, 'Đại tướng Valdric');
+    // cốt truyện: Jessica (ải 2) và Seraphine (ải 3) đi cùng rồi gia nhập, Lyra gia nhập ở ải 12
+    assert.deepEqual([C.stages[1].guests, C.stages[1].joins], [['assassin'], ['assassin']]);
+    assert.deepEqual([C.stages[2].guests, C.stages[2].joins], [['priest'], ['priest']]);
+    assert.deepEqual(C.stages[11].joins, ['archer']);
 });
 test('5 nhánh đúng tên, cờ và điều kiện N5', () => {
     assert.deepEqual(C.branches.map(b => b.name), ['Dưới Giếng Cổ', 'Mỏ Sâu', 'Bữa Tiệc Làng', 'Trang Sách Bị Xé', 'Hầm Mộ']);

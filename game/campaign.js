@@ -20,7 +20,7 @@ function ensureCampaign(pr, now) {
     for (const [key, value] of Object.entries(W.defaultWallet())) pr.wallet[key] ??= value;
     pr.stamina ??= {};
     for (const [key, value] of Object.entries(S.defaultStamina(now))) pr.stamina[key] ??= value;
-    pr.owned ??= ['assassin', 'warrior', 'priest'];
+    pr.owned ??= ['warrior'];   // bắt đầu chỉ có Rok — Jessica (ải 2), Seraphine (ải 3), Lyra (ải 12) gia nhập theo cốt truyện
     pr.campaign ??= {};
     pr.campaign.cleared ??= {};
     for (const diff of DIFFS) pr.campaign.cleared[diff] ??= {};
@@ -58,7 +58,7 @@ function chapterState(pr) {
         cleared(pr, s.id, diff) ? 'cleared' : isUnlocked(pr, s.id, diff).ok ? 'open' : 'locked',
     ]));
     return {
-        stages: chapter.stages.map(({ id, no, name, part, boss }) => ({ id, no, name, part, boss, status: status({ id }) })),
+        stages: chapter.stages.map(({ id, no, name, part, boss, guests }) => ({ id, no, name, part, boss, guests, status: status({ id }) })),
         branches: chapter.branches.map(({ enemies, ...s }) => ({ ...s, status: status(s) })),
     };
 }
@@ -118,9 +118,9 @@ function applyResult(pr, { id, diff, classes, win }, P, now) {
         result.leveled[classId] = P.addExp(pr.heroes[classId], result.rewards.exp);
     }
     pr.campaign.cleared[diff][id] = true;
-    if (firstClear && diff === 'story' && id === 'c1-12' && !pr.owned.includes('archer')) {
-        pr.owned.push('archer');
-        result.newHeroes.push('archer');
+    // anh hùng gia nhập khi lần đầu qua ải (mức Cốt truyện): ải có `joins` trong chapter1.js
+    for (const hero of (firstClear && diff === 'story' ? findStage(id).joins ?? [] : [])) {
+        if (!pr.owned.includes(hero)) { pr.owned.push(hero); result.newHeroes.push(hero); }
     }
     return result;
 }

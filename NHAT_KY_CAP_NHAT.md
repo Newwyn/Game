@@ -5,6 +5,51 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 07/11/2026 (đêm) — BẢN ĐỒ KIỂU POKÉMON · NHÂN VẬT CHÍNH NAM / NỮ · TRUYỆN MỚI (Rok → Jessica ải 2 → Seraphine ải 3) · ICON KỸ NĂNG · QUÁI CÓ DÁNG ĐI · CHỐNG GIẬT LAG
+Bạn đi ngủ, Claude làm một mạch rồi đẩy GitHub. Tranh vẽ bằng **Codex** (nhân vật đi bộ, đồ vật, icon kỹ năng, dáng đi của quái) và **Google Flow** (5 bản đồ). Máy không có `agy` → Claude tự viết code.
+
+### 1. Chống giật lag
+- **Màn tải trước** khi vào game (thanh %): tải + giải nén toàn bộ tranh, đẩy dần lên card đồ hoạ → hết khựng 1,7 giây lúc vào trận (khung chậm nhất còn ~42 ms).
+- Kho texture dùng chung (`src/core/textures.js`), tranh nhân vật thu nhỏ 75% (86 MB → 66 MB).
+
+### 2. Bản đồ thế giới làm lại kiểu Pokémon (Game Boy Advance)
+- **Nhìn từ trên xuống, đi theo ô vuông**: phím mũi tên / W A S D hoặc **D-pad ảo** góc trái. Bấm nhanh = quay mặt / đi 1 ô, giữ = đi liên tục. Camera giữ nhân vật ở giữa, dừng ở mép bản đồ.
+- **Nút A** (E / Enter / Z / nút đỏ): nói chuyện, nhặt đồ, mở rương, đọc bảng ở **ô phía trước mặt**. **Nút B** (Space / X / nút tím): **nhảy** — nhảy qua được vật cản mỏng 1 ô (hàng rào…).
+- **5 bản đồ** (tranh Flow, 43 × 24 ô): Ngoại ô (cánh đồng, cối xay, mỏ — **điểm bắt đầu**) · Làng Ashford (quảng trường + bảng ải, giếng, lò rèn, quán) · Rừng Sương · Đường Vương Đạo (cầu, trạm gác — mở sau ải 10) · Kinh thành Valoria (nhà thờ, thư viện, chợ, lâu đài — mở sau ải 12).
+  - Đi ra **mép bản đồ** để sang khu khác: Ngoại ô ⇄ Làng (phía tây) · Ngoại ô ⇄ Rừng (phía đông) · Làng → Đường (phía nam) · Đường → Kinh thành (phía đông, vào qua cổng thành).
+  - 🧭 **Bản đồ**: dịch chuyển nhanh tới khu đã mở.
+- **16 NPC có tranh đi bộ 4 hướng** (Bà Mira, bác Borin, cô Lena, Seraphine, Rok, Jessica, lính gác, Lão Corvin, Công chúa Elise, Sơ Agnes, thương nhân, nông dân, dân làng, bé Pip…). Dân làng **tự đi lại** quanh chỗ đứng, **quay mặt về phía bạn** khi nói chuyện. Dấu **!** = có việc, **?** = trả việc.
+- Hộp thoại kiểu Pokémon (khung trắng, tên người nói), lời thoại hiện ngay trên bản đồ.
+- Rương / lúa / nấm / thảo dược / búa / trang sách / bảng ải vẽ bằng tranh AI, đứng trên ô; rương mở rồi đổi sang tranh rương mở.
+
+### 3. Nhân vật chính Nam / Nữ
+- Lần đầu vào 📖 Cốt truyện: màn **"Bạn là ai?"** — chọn **Nam / Nữ** (xem trước tranh) + **đặt tên** (2–14 chữ, sai thì báo ngay trên khung).
+- **Lời thoại tự đổi theo giới tính**: Rok gọi "cậu" hay "cô", "anh"/"chị", "chàng trai"/"cô gái"… và gọi đúng tên bạn. Khung thoại cốt truyện hiện **tranh nhân vật chính** thay cho biểu tượng.
+- Nhân vật chính là người đi trên bản đồ (không còn cả đội đi theo).
+
+### 4. Truyện mới — nhận đồng đội theo ải
+- **Lúc đầu chỉ có Rok** (ải 1 chỉ 2 quái, quái yếu hơn để 1 người đánh được).
+- **Ải 2 — Jessica**: qua ải 1 xong ra **Ngoại ô**, đi vào đoạn đường có **3 Goblin đứng chờ** → bị vây đánh, **cô gái áo tím bí ẩn** nhảy xuống ứng cứu → vào thẳng màn chọn đội, **Jessica đánh cùng (khách)** → thắng thì **Jessica gia nhập đội**. (Danh tính của cô để dành cho truyện sau.)
+- **Ải 3 — Seraphine**: sau ải 2, Seraphine ở **giếng làng Ashford** (dấu !) nhờ hái **thảo dược ở Rừng Sương** → mang về → nói chuyện tiếp → **hộ tống cô vào rừng** (ải 3, Seraphine đánh cùng) → thắng thì **Seraphine gia nhập**.
+- Màn chọn đội ghi rõ "✨ Jessica đi cùng"; khách luôn có cấp bằng người cao nhất trong đội. Trận mở từ bản đồ → thắng xong **quay về bản đồ**.
+- Có thể vào ải 2 / 3 thẳng từ bảng ải (khách vẫn đi cùng).
+- Độ khó: ải 1 quái ×0,5, ải 2 ×0,6, ải 3 ×0,8 (chỉ mức Cốt truyện) — giả lập 4/4 trận thắng.
+
+### 5. Icon kỹ năng + quái có dáng đi
+- **33 icon kỹ năng** (11 anh hùng × 3 chiêu, Codex vẽ) hiện trên ô kỹ năng trong trận; chưa đủ Orb thì icon xám, đủ thì sáng màu.
+- **9 loại quái** (Goblin, Goblin Ném Bom, Lính, Mật Thám, Chiến Binh Lửa, Skarn, Morwen, Valdric, Người Gác Mộ) có thêm **2 khung bước chân** → khi di chuyển trên trận không còn "trượt" đứng yên.
+
+### Đã thử bằng chuột / phím thật (trình duyệt trong app, người chơi thử mới tinh)
+Màn chọn Nam/Nữ (đổi giới tính giữ tên đã gõ; tên 1 chữ → báo lỗi) → mở màn → tỉnh dậy (lời thoại "Cô…" đúng giới tính Nữ) → đi bộ Ngoại ô → sang Làng → nói chuyện Rok → đọc bảng ải → **ải 1 chỉ Rok: thắng** (icon kỹ năng, quái bước chân) → ra Ngoại ô, gặp 3 Goblin → hội thoại → **ải 2 có Jessica: thắng, "Jessica gia nhập đội!"** → dịch chuyển nhanh → Seraphine nhận việc → Rừng Sương nhặt thảo dược (nút A ảo) → thử nhảy (B) → trả việc → hộ tống → **ải 3 có Seraphine (AUTO): thắng, "Seraphine gia nhập đội!"**. **58 bài kiểm tra tự động** đạt (thêm 5 bài kiểm tra bản đồ khớp dữ liệu server).
+
+### Còn lại / chưa làm
+- **Trận đấu trên điện thoại**: hàng thẻ anh hùng + dòng hướng dẫn rộng hơn màn hình (có từ trước) → trình duyệt điện thoại thu nhỏ cả trang. Bản đồ vẫn dùng được (nút, D-pad đủ), nhưng nên làm lại bố cục trận cho màn dọc.
+- Việc bác Borin, trang sách, Phiến đá Hầm Mộ, lính / Corvin / Elise ở Kinh thành: logic có bài kiểm tra, chưa đi bộ tới bấm tay.
+- Chưa có nhạc / tiếng bước chân; chưa có "cỏ cao gặp quái ngẫu nhiên".
+- Muốn chỉnh chỗ đi được / vị trí NPC: sửa `tools/build_maps.py` (OPS, LAYOUT) rồi chạy lại — xem `TIEP_TUC.md`.
+
+---
+
 ## 06/11/2026 (tối) — P3 → P6: BẢN ĐỒ THẾ GIỚI · CỐT TRUYỆN · QUÁI CHƯƠNG 1 · HẦM NGỤC / QUÁN ĂN / CỬA HÀNG
 Bạn treo máy, Claude làm một mạch. Codex bị chặn quyền đọc/ghi file trên Windows, máy không có lệnh `agy` (Antigravity) → Claude tự làm hết. **Toàn bộ tranh vẽ trên Google Flow** (tài khoản của bạn): 12 tranh nền + quán ăn, 6 NPC, 10 quái / trùm.
 

@@ -1,1 +1,1 @@
-{"image": "enemy_trapper.webp", "size": [598, 308], "atlasScale": 1, "frames": {"idle1": {"org": [99, 300], "top": 300, "rect": [4, 4, 198, 300]}, "attack1": {"org": [194, 297], "top": 297, "rect": [206, 4, 388, 297]}}}
+{"image": "enemy_trapper.webp", "size": [1008, 308], "atlasScale": 1, "frames": {"idle1": {"org": [99, 300], "top": 300, "rect": [4, 4, 198, 300]}, "attack1": {"org": [194, 297], "top": 297, "rect": [206, 4, 388, 297]}, "walk1": {"org": [103, 300], "top": 300, "rect": [602, 4, 206, 300]}, "walk2": {"org": [96, 300], "top": 300, "rect": [812, 4, 192, 300]}}}

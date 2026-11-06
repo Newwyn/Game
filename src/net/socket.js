@@ -46,7 +46,7 @@ export const net = {
     gearDebugGive: (data) => socket.emit('gearDebugGive', data),
     // 🗺️ Bản đồ thế giới
     worldOpen: () => socket.emit('worldOpen'),
-    worldMove: (scene, x, full = false) => socket.emit('worldMove', { scene, x, full }),
+    worldMove: (scene, x, y, face, full = false) => socket.emit('worldMove', { scene, x, y, face, full }),
     worldInteract: (scene, target, answer) => socket.emit('worldInteract', { scene, target, answer }),
     // 🏰 Hầm ngục · 🍲 Quán ăn · 🛒 Cửa hàng anh hùng
     extrasOpen: () => socket.emit('extrasOpen'),

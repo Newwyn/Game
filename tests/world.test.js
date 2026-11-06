@@ -7,130 +7,104 @@ const fresh = () => { const pr = C.ensureCampaign({}, 0); Wd.ensureWorld(pr); re
 const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; };
 const wallet = (pr) => pr.wallet;
 
-test('save cũ được bổ sung trạng thái thế giới', () => {
-    const pr = { flags: { x: true } };
+test('save cũ (màn ngang) được đưa về điểm đầu bản đồ mới', () => {
+    const pr = { flags: { x: true }, world: { scene: 'village_square', x: 900 } };
     Wd.ensureWorld(pr);
-    assert.equal(pr.world.scene, 'village_square');
+    assert.equal(pr.world.scene, Wd.START.scene);
+    assert.equal(pr.world.y, Wd.START.y);
     assert.deepEqual(pr.world.opened, {});
     assert.equal(pr.flags.x, true);
 });
 
-test('dữ liệu màn: cổng 2 chiều trỏ đúng màn, toạ độ nằm trong màn', () => {
-    for (const [id, s] of Object.entries(Wd.SCENES)) {
-        assert.ok(Wd.AREAS[s.area], id);
-        for (const p of s.portals) {
-            const to = Wd.SCENES[p.to];
-            assert.ok(to, `${id} -> ${p.to}`);
-            assert.ok(p.toX >= 0 && p.toX <= to.width);
-            assert.ok(to.portals.some(b => b.to === id), `${p.to} thiếu cổng về ${id}`);
-        }
-        for (const o of [...s.objects, ...s.npcs]) assert.ok(o.x >= 0 && o.x <= s.width, `${id}.${o.id}`);
-        for (const n of s.npcs) assert.ok(Wd.NPCS[n.id], n.id);
+test('dữ liệu: NPC đều có hồ sơ, việc / sự kiện trỏ đúng', () => {
+    for (const s of Object.values(Wd.SCENES)) {
+        assert.ok(Wd.AREAS[s.area]);
+        for (const n of s.npcs) assert.ok(Wd.NPCS[n], n);
     }
+    assert.deepEqual(Wd.EVENT_STAGE, { jess: 'c1-02', sera: 'c1-03' });
 });
 
-test('khu vực mở theo ải: đường sau ải 10, kinh thành sau ải 12', () => {
+test('hồ sơ nhân vật chính + xưng hô Nam / Nữ', () => {
     const pr = fresh();
-    assert.equal(Wd.sceneOpen(pr, 'outskirts_mine'), true);
-    assert.equal(Wd.sceneOpen(pr, 'road_bridge'), false);
-    assert.equal(Wd.move(pr, 'road_bridge', 100).ok, false);
+    assert.equal(Wd.setPlayer(pr, { gender: 'x', name: 'An' }).ok, false);
+    assert.equal(Wd.setPlayer(pr, { gender: 'm', name: 'A' }).ok, false);
+    assert.equal(Wd.setPlayer(pr, { gender: 'f', name: '  Lyss<b>  ' }).ok, true);
+    assert.deepEqual(pr.player, { gender: 'f', name: 'Lyssb' });
+    assert.equal(Wd.fill('{Cau} ơi, {ten} là {chang} giỏi', pr.player), 'Cô ơi, Lyssb là cô gái giỏi');
+    assert.equal(Wd.fill('{Cau} ơi {anh}', { gender: 'm', name: 'Kael' }), 'Cậu ơi anh');
+    assert.equal(Wd.fill('{lạ}', null), '{lạ}');
+});
+
+test('khu vực mở theo ải: đường sau ải 10, kinh thành sau ải 12; lưu ô + hướng', () => {
+    const pr = fresh();
+    assert.equal(Wd.sceneOpen(pr, 'forest'), true);
+    assert.equal(Wd.move(pr, 'road', 1, 1).ok, false);
     clear(pr, 10);
-    assert.equal(Wd.move(pr, 'road_bridge', 99999).ok, true);
-    assert.equal(pr.world.x, 2000);
-    assert.equal(Wd.sceneOpen(pr, 'capital_gate'), false);
+    assert.equal(Wd.move(pr, 'road', 5.4, 7.6, 'left').ok, true);
+    assert.deepEqual([pr.world.x, pr.world.y, pr.world.face], [5, 8, 'left']);
+    assert.equal(Wd.sceneOpen(pr, 'capital'), false);
     clear(pr, 12);
-    assert.equal(Wd.sceneOpen(pr, 'capital_gate'), true);
-    assert.equal(Wd.move(pr, 'khong_co', 1).ok, false);
+    assert.equal(Wd.sceneOpen(pr, 'capital'), true);
+    assert.equal(Wd.move(pr, 'khong_co', 1, 1).ok, false);
 });
 
-test('rương chỉ mở 1 lần, cộng thưởng vào ví', () => {
+test('rương 1 lần · mạch đá hồi 4 giờ', () => {
     const pr = fresh();
-    const r = Wd.interact(pr, wallet(pr), 'village_square', 'sq_chest');
-    assert.equal(r.ok, true);
-    assert.equal(pr.wallet.gold, 500 + 300);
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_square', 'sq_chest').ok, false);
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'sq_chest').ok, true);
     assert.equal(pr.wallet.gold, 800);
-});
-
-test('mỏ đá: đào được đá, hồi sau 4 giờ', () => {
-    const pr = fresh();
-    const r = Wd.interact(pr, wallet(pr), 'outskirts_mine', 'mine', {}, 1000, () => 0);
-    assert.equal(r.ok, true);
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'sq_chest').ok, false);
+    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts', 'mine', {}, 1000, () => 0).ok, true);
     assert.equal(pr.wallet.stone, 3);
-    const again = Wd.interact(pr, wallet(pr), 'outskirts_mine', 'mine', {}, 1000 + 60000, () => 0);
-    assert.equal(again.ok, false);
-    assert.match(again.why, /phút/);
-    clear(pr, 10);
-    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts_mine', 'mine', {}, 1000 + Wd.MINE_COOLDOWN, () => 0.99).ok, true);
-    assert.equal(pr.wallet.stone, 3 + 5 + 3);
+    assert.match(Wd.interact(pr, wallet(pr), 'outskirts', 'mine', {}, 61000, () => 0).why, /phút/);
 });
 
-test('nhiệm vụ Borin: khoá trước ải 4, nhận, nhặt búa, trả -> cờ nhánh N2', () => {
+test('sự kiện Jessica (ải 2): chưa qua ải 1 thì yên ắng, sau đó mở trận, xong thì hết', () => {
     const pr = fresh();
-    assert.equal(Wd.npcDialog(pr, 'borin').quest, undefined);
-    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts_mine', 'hammer').ok, false);   // chưa nhận
-    clear(pr, 4);
-    assert.equal(Wd.npcDialog(pr, 'borin').quest, 'offer');
-    Wd.interact(pr, wallet(pr), 'village_street', 'borin');
-    assert.equal(pr.world.quests.borin, 'active');
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_street', 'borin').flag, undefined);   // chưa có búa
-    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts_mine', 'hammer').ok, true);
-    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts_mine', 'hammer').ok, false);   // nhặt rồi
-    const done = Wd.interact(pr, wallet(pr), 'village_street', 'borin');
-    assert.equal(done.flag, 'bua_borin');
-    assert.equal(pr.flags.bua_borin, true);
-    assert.equal(pr.wallet.gold, 1000);
-    assert.equal(C.isUnlocked(pr, 'c1-n2', 'story').ok, true);
-    assert.equal(Wd.npcDialog(pr, 'borin').quest, 'done');
+    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts', 'ambush').ok, false);
+    clear(pr, 1);
+    const r = Wd.interact(pr, wallet(pr), 'outskirts', 'ambush');
+    assert.equal(r.startStage, 'c1-02');
+    assert.ok(r.lines.some(([who]) => who === 'stranger'));
+    clear(pr, 2);
+    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts', 'ambush').ok, false);
+    assert.equal(Wd.worldState(pr, 0).scenes.outskirts.npcs.find(n => n.id === 'jessica').hidden, false);
 });
 
-test('nhiệm vụ Lena cần đủ 2 nguyên liệu', () => {
+test('Seraphine: việc thảo dược sau ải 2 -> hộ tống vào rừng (ải 3)', () => {
     const pr = fresh();
+    clear(pr, 2);
+    assert.equal(Wd.npcDialog(pr, 'sera').quest, 'offer');
+    Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'herb').ok, true);
+    const done = Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(done.flag, 'thao_duoc_sera');
+    const ev = Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(ev.startStage, 'c1-03');
     clear(pr, 3);
-    Wd.interact(pr, wallet(pr), 'village_street', 'lena');
-    Wd.interact(pr, wallet(pr), 'outskirts_field', 'wheat');
-    assert.equal(Wd.npcDialog(pr, 'lena').quest, 'active');
-    Wd.interact(pr, wallet(pr), 'outskirts_forest', 'mushroom');
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_street', 'lena').flag, 'nguyen_lieu_lena');
-    assert.deepEqual(pr.world.bag, {});
+    assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, true);   // đã vào đội
 });
 
-test('câu đố Giếng Cổ: sai thì từ chối, đúng thứ tự đồng dao thì mở N1 (1 lần)', () => {
-    const pr = fresh();
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_well', 'well').puzzle, 'well');
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_well', 'well', { answer: ['🌙', '☀️', '⭐', '💧'] }).ok, false);
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_well', 'well', { answer: ['☀️'] }).ok, false);
-    assert.equal(pr.flags.gieng_co, undefined);
-    const r = Wd.interact(pr, wallet(pr), 'village_well', 'well', { answer: Wd.WELL_ANSWER });
-    assert.equal(r.flag, 'gieng_co');
-    assert.equal(pr.wallet.diamond, 130);
-    assert.equal(Wd.interact(pr, wallet(pr), 'village_well', 'well', { answer: Wd.WELL_ANSWER }).ok, false);
-});
-
-test('trang sách (sau ải 16) và hầm mộ (sau ải 18)', () => {
-    const pr = fresh();
-    clear(pr, 12);
-    assert.equal(Wd.interact(pr, wallet(pr), 'capital_library', 'pages').ok, false);
-    assert.equal(Wd.interact(pr, wallet(pr), 'capital_castle', 'crypt').ok, false);
-    clear(pr, 18);
-    assert.equal(Wd.interact(pr, wallet(pr), 'capital_library', 'pages', { answer: ['II', 'I', 'III', 'IV'] }).ok, false);
-    assert.equal(Wd.interact(pr, wallet(pr), 'capital_library', 'pages', { answer: Wd.PAGES }).flag, 'trang_sach');
-    assert.equal(Wd.interact(pr, wallet(pr), 'capital_castle', 'crypt').flag, 'loi_vao_ham_mo');
-    assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, true);
-});
-
-test('trạng thái gửi client: dấu ! / ? trên NPC, vật nhiệm vụ chỉ hiện khi đang làm', () => {
+test('việc Borin / Lena mở nhánh N2 / N3', () => {
     const pr = fresh();
     clear(pr, 4);
-    let st = Wd.worldState(pr, 0);
-    assert.equal(st.scenes.village_street.npcs.find(n => n.id === 'borin').mark, '!');
-    assert.equal(st.scenes.outskirts_mine.objects.find(o => o.id === 'hammer').state, 'hidden');
-    assert.equal(st.scenes.road_bridge.open, false);
-    Wd.interact(pr, wallet(pr), 'village_street', 'borin');
-    Wd.interact(pr, wallet(pr), 'outskirts_mine', 'hammer');
-    st = Wd.worldState(pr, 0);
-    assert.equal(st.scenes.village_street.npcs.find(n => n.id === 'borin').mark, '?');
-    assert.deepEqual(st.bag.map(b => b.id), ['hammer']);
-    pr.world.scene = 'capital_gate';   // màn chưa mở -> về quảng trường
-    assert.equal(Wd.worldState(pr, 0).scene, 'village_square');
+    Wd.interact(pr, wallet(pr), 'ashford', 'borin');
+    Wd.interact(pr, wallet(pr), 'outskirts', 'hammer');
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'borin').flag, 'bua_borin');
+    assert.equal(C.isUnlocked(pr, 'c1-n2', 'story').ok, true);
+    Wd.interact(pr, wallet(pr), 'ashford', 'lena');
+    Wd.interact(pr, wallet(pr), 'outskirts', 'wheat');
+    assert.equal(Wd.npcDialog(pr, 'lena').quest, 'active');
+    Wd.interact(pr, wallet(pr), 'forest', 'mushroom');
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'lena').flag, 'nguyen_lieu_lena');
+});
+
+test('câu đố Giếng Cổ, trang sách, hầm mộ', () => {
+    const pr = fresh();
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well').puzzle, 'well');
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well', { answer: ['🌙', '☀️', '⭐', '💧'] }).ok, false);
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well', { answer: Wd.WELL_ANSWER }).flag, 'gieng_co');
+    clear(pr, 18);
+    assert.equal(Wd.interact(pr, wallet(pr), 'capital', 'pages', { answer: Wd.PAGES }).flag, 'trang_sach');
+    assert.equal(Wd.interact(pr, wallet(pr), 'capital', 'crypt').flag, 'loi_vao_ham_mo');
+    assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, true);
 });

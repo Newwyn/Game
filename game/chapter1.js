@@ -5,7 +5,7 @@ function squad(...list) {
 }
 
 const rows = [
-    ['Đêm ở cổng làng', squad(['c1_goblin', 'Goblin Cướp'], ['c1_goblin', 'Goblin Cướp'], ['c1_trapper', 'Goblin Ném Bom'])],
+    ['Đêm ở cổng làng', squad(['c1_goblin', 'Goblin Cướp'], ['c1_trapper', 'Goblin Ném Bom'])],   // chỉ có Rok -> 2 quái
     ['Cánh đồng cháy', squad(['c1_goblin', 'Goblin Cướp'], ['c1_trapper', 'Goblin Đốt Ruộng'], ['c1_trapper', 'Goblin Đốt Ruộng'])],
     ['Rừng Sương', squad(['c1_wolf', 'Sói Rừng'], ['c1_wolf', 'Sói Rừng'], ['c1_wolf', 'Sói Rừng'])],
     ['Mỏ đá bỏ hoang', squad(['c1_goblin', 'Goblin Đào Trộm'], ['c1_goblin', 'Goblin Cướp'], ['c1_trapper', 'Goblin Ném Bom'])],
@@ -26,6 +26,13 @@ const rows = [
     ['Tường thành rực lửa', squad(['c1_fire', 'Chiến Binh Lửa'], ['c1_fire', 'Chiến Binh Lửa'], ['c1_spy', 'Lính Nỏ'])],
     ['Đại tướng Valdric', squad(['b_valdric', 'Đại tướng Valdric'], ['c1_fire', 'Chiến Binh Lửa'], ['c1_fire', 'Chiến Binh Lửa'])],
 ];
+// Cốt truyện: anh hùng đi cùng (khách, không cần sở hữu) và gia nhập khi lần đầu qua ải
+const STORY_PARTY = {
+    1: { power: 0.5 },                                               // chỉ có Rok
+    2: { guests: ['assassin'], joins: ['assassin'], power: 0.6 },   // bị Goblin vây đánh — Jessica xuất hiện ứng cứu
+    3: { guests: ['priest'], joins: ['priest'], power: 0.8 },       // hộ tống Seraphine vào Rừng Sương hái thảo dược
+    12: { joins: ['archer'] },                          // giải cứu Lyra ở trạm gác
+};
 const stages = rows.map(([name, enemies], i) => {
     const no = i + 1;
     return {
@@ -33,6 +40,7 @@ const stages = rows.map(([name, enemies], i) => {
         part: no <= 10 ? 'lang' : no <= 12 ? 'duong' : 'kinh',
         level: no, boss: ({ 5: 1, 10: 2, 15: 1, 20: 3 })[no] || 0,
         enemies,
+        ...(STORY_PARTY[no] ?? {}),
     };
 });
 

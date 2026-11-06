@@ -8,7 +8,7 @@ test('bổ sung save cũ và giữ dữ liệu đã có', () => {
     const pr = fresh();
     assert.deepEqual(pr, {
         wallet: { gold: 500, diamond: 100, stone: 0 }, stamina: { value: 360, lastAt: 0 },
-        owned: ['assassin', 'warrior', 'priest'], flags: {},
+        owned: ['warrior'], flags: {},
         campaign: { cleared: { story: {}, hard: {}, hell: {} } },
     });
     pr.wallet.gold = 7;

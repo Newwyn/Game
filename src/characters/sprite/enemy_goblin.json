@@ -1,1 +1,1 @@
-{"image": "enemy_goblin.webp", "size": [588, 308], "atlasScale": 1, "frames": {"idle1": {"org": [120, 300], "top": 300, "rect": [4, 4, 240, 300]}, "attack1": {"org": [168, 292], "top": 292, "rect": [248, 4, 336, 292]}}}
+{"image": "enemy_goblin.webp", "size": [1066, 308], "atlasScale": 1, "frames": {"idle1": {"org": [120, 300], "top": 300, "rect": [4, 4, 240, 300]}, "attack1": {"org": [168, 292], "top": 292, "rect": [248, 4, 336, 292]}, "walk1": {"org": [116, 300], "top": 300, "rect": [592, 4, 232, 300]}, "walk2": {"org": [117, 300], "top": 300, "rect": [828, 4, 234, 300]}}}

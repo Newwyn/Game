@@ -525,6 +525,25 @@ export function openWorldHub() {
         gear: () => { hideWorld(); showGear(() => openWorldHub()); },
         extras: () => { hideWorld(); showExtras(() => openWorldHub()); },
         back: () => { showModeMenu(); net.backToMenu(); },
+        // sự kiện trên bản đồ (bị Goblin vây, hộ tống Seraphine…) -> vào thẳng màn chọn đội của ải đó
+        stage: (id) => { hideWorld(); pendingWorldStage = id; net.campaignOpen(); },
+    });
+}
+let pendingWorldStage = null, battleFromWorld = false;   // trận mở từ sự kiện bản đồ -> thắng xong quay lại bản đồ
+const GUEST_NAME = { assassin: 'Jessica', priest: 'Seraphine', archer: 'Lyra' };
+/** Ải có khách cốt truyện: ghi chú trên màn chọn đội ("+ Jessica đi cùng") */
+const guestNote = (item) => item?.guests?.length ? ` · ✨ ${item.guests.map(g => GUEST_NAME[g] ?? g).join(', ')} đi cùng` : '';
+function openWorldStage(id) {
+    const found = findStageOrBranch(id);
+    if (!found) { openWorldHub(); return; }
+    const { item } = found;
+    currentDiff = 'story';
+    battleFromWorld = true;
+    lastSelectedStage = { id, diff: 'story', name: item.name, no: item.no };
+    hideCampaign();
+    openCampaignSquadSelect({
+        id, diff: 'story', stageLabel: `Ải ${item.no}: ${item.name} (Cốt truyện · ⚡${DIFF_META.story?.cost ?? 4})${guestNote(item)}`,
+        owned: state.owned, heroes: state.heroes, onBack: () => openWorldHub(),
     });
 }
 
@@ -609,11 +628,12 @@ function onScreenClick(e) {
         }
         const cost = DIFF_META[currentDiff]?.cost ?? 4;
         errorText = null;
+        battleFromWorld = false;
         lastSelectedStage = { id, diff: currentDiff, name: item.name, no: item.no };
         const diffName = DIFF_META[currentDiff]?.name ?? 'Cốt truyện';
-        const stageLabel = isBranch
+        const stageLabel = (isBranch
             ? `Nhánh ${item.name} (${diffName} · ⚡${cost})`
-            : `Ải ${item.no}: ${item.name} (${diffName} · ⚡${cost})`;
+            : `Ải ${item.no}: ${item.name} (${diffName} · ⚡${cost})`) + guestNote(item);
         hideCampaign();
         const openSquad = () => openCampaignSquadSelect({
             id,
@@ -633,6 +653,7 @@ export function renderCampaignState(payload) {
     if (payload) {
         state = normalizeState(payload);
     }
+    if (pendingWorldStage) { const id = pendingWorldStage; pendingWorldStage = null; openWorldStage(id); return; }
     renderCampaign();
     ensureScreenEl().style.display = 'flex';
     document.body.classList.add('selecting-squad');
@@ -799,6 +820,7 @@ function onResultClick(e) {
         hideResult();
         hideBattleResult();
         if (lastResultDungeon) { lastResultDungeon = false; showExtras(() => { net.campaignOpen(); showCampaign(); }, 'dungeon'); return; }
+        if (battleFromWorld) { battleFromWorld = false; openWorldHub(); return; }
         net.campaignOpen();
         showCampaign();
     }

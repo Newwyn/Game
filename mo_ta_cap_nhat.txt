@@ -1,3 +1,9 @@
+Ban do kieu Pokemon (di theo o, nhay, NPC di lai, 5 ban do ve tren Flow) + nhan vat chinh Nam/Nu (loi thoai doi theo gioi tinh) + truyen moi: Rok mot minh, Jessica vao doi o ai 2, Seraphine o ai 3 + 33 icon ky nang + quai co dang di + man tai truoc chong giat lag
+
+- Tranh di bo 16 NPC, do vat, icon ky nang, dang di cua quai: Codex ve
+- Huong dan lam tiep o may khac: TIEP_TUC.md
+- 58 bai kiem tra tu dong
+
 P3-P6: Ban do the gioi (12 khu man ngang, NPC, ruong, mo, 5 viec mo nhanh an, dich chuyen nhanh) + Cot truyen (tran mo man dau than, tinh day, loi thoai 20 ai, ket chuong, mo dan tinh nang) + Quai & 5 trum chuong 1 (tranh moi, giai doan 2, Valdric bung lua, can bang lai EXP x4) + Ham nguc do bo / trang suc, Quan an (than mat), Cua hang anh hung
 
 - Tranh nen, NPC, quai ve tren Google Flow

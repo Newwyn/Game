@@ -27,7 +27,7 @@ export function getTexture(url, { pixel = false } = {}) {
 }
 
 const SPRITES = import.meta.glob('../assets/sprites/*.{webp,png}', { eager: true, import: 'default' });
-const OTHER = import.meta.glob('../assets/{world,portraits,ui,icons}/*.{webp,png}', { eager: true, import: 'default' });
+const OTHER = import.meta.glob('../assets/{world,portraits,ui,icons,maps,overworld,skills}/*.{webp,png}', { eager: true, import: 'default' });
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 
 /** Nạp trước toàn bộ tranh. onProgress(phần 0..1, chữ) */

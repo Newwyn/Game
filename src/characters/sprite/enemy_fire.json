@@ -1,1 +1,1 @@
-{"image": "enemy_fire.webp", "size": [524, 348], "atlasScale": 1, "frames": {"idle1": {"org": [120, 300], "top": 300, "rect": [4, 4, 239, 300]}, "attack1": {"org": [136, 340], "top": 340, "rect": [247, 4, 273, 340]}}}
+{"image": "enemy_fire.webp", "size": [1026, 348], "atlasScale": 1, "frames": {"idle1": {"org": [120, 300], "top": 300, "rect": [4, 4, 239, 300]}, "attack1": {"org": [136, 340], "top": 340, "rect": [247, 4, 273, 340]}, "walk1": {"org": [122, 300], "top": 300, "rect": [528, 4, 245, 300]}, "walk2": {"org": [122, 300], "top": 300, "rect": [777, 4, 245, 300]}}}

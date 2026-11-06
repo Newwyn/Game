@@ -15,7 +15,7 @@ const WD = require('./game/world.js');   // Bản đồ thế giới: màn ngang
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.npm_lifecycle_event === 'dev' ? 3000 : (process.env.PORT || 3000);   // npm run dev: vite (5173) chuyển socket sang 3000
 
 // Client được Vite build vào dist/ (chạy `npm run build` hoặc `npm start`).
 // Khi phát triển, dùng `npm run dev` và mở http://localhost:5173 (Vite tự reload khi sửa code).
@@ -766,7 +766,8 @@ function createStageSquad({ id, diff }) {
         if (boss) bossMarked = true;
         return { ...e, boss };
     });
-    return createMonsterSquad(level, layout, { mul: d.mul, bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
+    // power: ải mở đầu (ít người) quái yếu hơn — chỉ áp ở mức Cốt truyện
+    return createMonsterSquad(level, layout, { mul: d.mul * (diff === 'story' ? st.power ?? 1 : 1), bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
 }
 /** Chế độ ĐẤU: mọi nhân vật Lv60 SSS */
 const MAX_HEROES = () => Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: P.MAX_LEVEL, rank: P.MAX_RANK }]));
@@ -779,7 +780,15 @@ function enemySquadFor(room) {
 /** Đội hình phe mình theo chế độ phòng */
 function mySquadFor(room, p) {
     const own = room.mode === 'test' || room.mode === 'campaign';   // Test / Cốt truyện: cấp + bậc thật của người chơi
-    return createSquad(p.side, p.disabledClasses, own ? heroesWithGear(progressOf(p.progressKey)) : MAX_HEROES());
+    const heroes = own ? heroesWithGear(progressOf(p.progressKey)) : MAX_HEROES();
+    // khách mời cốt truyện: ít nhất bằng cấp cao nhất của đội người chơi chọn
+    const guests = room.mode === 'campaign' ? room.stage?.guests ?? [] : [];
+    if (guests.length) {
+        const own = room.stage.classes.filter(c => !guests.includes(c));
+        const top = Math.max(1, ...own.map(c => heroes[c]?.level ?? 1));
+        for (const g of guests) if ((heroes[g]?.level ?? 1) < top) heroes[g] = { ...heroes[g], level: top };
+    }
+    return createSquad(p.side, p.disabledClasses, heroes);
 }
 
 function createSquad(side, disabled = [], heroes = null) {
@@ -892,7 +901,7 @@ function campaignPayload(pr, key) {
     const nextInSec = st.value >= ST.MAX ? 0 : Math.max(1, Math.ceil((ST.REGEN_SEC * 1000 - (now - st.lastAt)) / 1000));
     return { chapter: C.chapterState(pr), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, features: [...C.features(pr)],
         squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
-        story: { pre: STORY.pre, speakers: STORY.SPEAKERS } };
+        story: { pre: Object.fromEntries(Object.entries(STORY.pre).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) } };
 }
 /** Kết thúc hầm ngục: thua hoàn chi phí; thắng -> đồ bộ / trang sức + đá + vàng + EXP */
 function finishDungeon(room, pr, win) {
@@ -935,6 +944,13 @@ function extrasPayload(pr, key) {
         shop: { open: feats.has('heroShop'), list: SHOP.list(pr).map(h => ({ ...h, ...heroInfo(h.id) })) },
         squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // bảng chọn đội khi vào hầm ngục
     };
+}
+/** Lời thoại cốt truyện điền theo nhân vật chính Nam / Nữ ({cau}, {ten}…) */
+const fillLines = (lines, pr) => lines?.map(([who, text]) => [who, WD.fill(text, pr.player)]) ?? null;
+function speakersFor(pr) {
+    const sp = { ...STORY.SPEAKERS };
+    sp.me = { ...sp.me, name: pr.player?.name ?? '???', gender: pr.player?.gender ?? 'm' };
+    return sp;
 }
 /** Rơi đồ khi thắng ải (từ khi đã qua ải 6) — túi đầy thì tự phân giải */
 function dropGear(pr, st, diff, firstClear) {
@@ -995,8 +1011,8 @@ function finishStage(room, win) {
     res.newFeatures = [...C.features(pr)].filter(f => !before.has(f));
     if (win && res.firstClear && diff === 'story') {
         const lines = STORY.postFor(id);
-        res.story = lines ? [...lines, ...(id === 'c1-20' ? STORY.ending : [])] : null;
-        res.speakers = STORY.SPEAKERS;
+        res.story = lines ? fillLines([...lines, ...(id === 'c1-20' ? STORY.ending : [])], pr) : null;
+        res.speakers = speakersFor(pr);
     }
     Object.assign(res, win ? dropGear(pr, st, diff, res.firstClear) : { drops: [], charms: 0, autoSalvaged: null });
     P.saveAll(PROGRESS);
@@ -1568,7 +1584,8 @@ io.on('connection', (socket) => {
         const pr = progressOf(socket.progressKey);
         const upTo = Math.max(0, Math.min(20, data.upTo | 0));
         for (let i = 1; i <= upTo; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
-        if (upTo >= 12 && !pr.owned.includes('archer')) pr.owned.push('archer');
+        for (const [n, hero] of [[2, 'assassin'], [3, 'priest'], [12, 'archer']]) if (upTo >= n && !pr.owned.includes(hero)) pr.owned.push(hero);
+        pr.player ??= { gender: 'm', name: 'Kael' };
         if (data.level) for (const id of HERO_IDS()) { pr.heroes[id].level = Math.max(1, Math.min(P.MAX_LEVEL, data.level | 0)); pr.heroes[id].rank = data.level > 40 ? 2 : data.level > 20 ? 1 : 0; }
         pr.story.prologue = pr.story.wake = true;
         pr.wallet.diamond += 1000; pr.wallet.gold += 5000;   // để thử Cửa hàng anh hùng / Quán ăn / mua lượt
@@ -1979,14 +1996,22 @@ io.on('connection', (socket) => {
     const itemOf = (pr, id) => pr.gear.items[id];
     // ---------- BẢN ĐỒ THẾ GIỚI: đi lại giữa các màn, nói chuyện NPC, rương, mỏ đá, câu đố ----------
     const worldPayload = (pr) => ({ ...WD.worldState(pr, Date.now()), wallet: pr.wallet, story: pr.story,
-        storyText: { intro: STORY.intro, speakers: STORY.SPEAKERS },
+        storyText: { intro: Object.fromEntries(Object.entries(STORY.intro).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) },
         party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) });
+    // tạo nhân vật chính (Nam / Nữ + tên) — làm 1 lần trước mở màn, đổi lại được ở Menu
+    socket.on('playerSetup', (d = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const r = WD.setPlayer(pr, d);
+        if (!r.ok) return socket.emit('worldError', { text: r.why });
+        P.saveAll(PROGRESS);
+        socket.emit('worldState', worldPayload(pr));
+    });
     socket.on('worldOpen', () => {
         socket.emit('worldState', worldPayload(progressOf(socket.progressKey)));
     });
     socket.on('worldMove', (d = {}) => {
         const pr = progressOf(socket.progressKey);
-        const r = WD.move(pr, String(d.scene ?? ''), Number(d.x));
+        const r = WD.move(pr, String(d.scene ?? ''), Number(d.x), Number(d.y), String(d.face ?? ''));
         if (!r.ok) return socket.emit('worldError', { text: r.why });
         P.saveAll(PROGRESS);
         if (d.full) socket.emit('worldState', worldPayload(pr));   // đổi màn: gửi lại trạng thái
@@ -1995,9 +2020,9 @@ io.on('connection', (socket) => {
         const pr = progressOf(socket.progressKey);
         const answer = Array.isArray(d.answer) ? d.answer.map(String).slice(0, 8) : undefined;
         const r = WD.interact(pr, pr.wallet, String(d.scene ?? ''), String(d.target ?? ''), { answer }, Date.now());
-        if (!r.ok) return socket.emit('worldResult', { ok: false, text: r.why, target: d.target });
+        if (!r.ok) return socket.emit('worldResult', { ok: false, text: WD.fill(r.why, pr.player), target: d.target });
         P.saveAll(PROGRESS);
-        socket.emit('worldResult', { ...r, target: d.target });
+        socket.emit('worldResult', { ...r, lines: fillLines(r.lines, pr), text: r.text && WD.fill(r.text, pr.player), speakers: speakersFor(pr), target: d.target });
         socket.emit('worldState', worldPayload(pr));
     });
     socket.on('gearOpen', () => {
@@ -2081,9 +2106,10 @@ io.on('connection', (socket) => {
         P.saveAll(PROGRESS);
         stopLoop(room);
         room.mode = 'campaign';
-        room.stage = { id: data.id, diff: data.diff, classes, key: socket.progressKey, socketId: socket.id };
+        const guests = (C.findStage(data.id)?.guests ?? []).filter(g => !classes.includes(g)).slice(0, Math.max(0, MAX_SQUAD - classes.length));
+        room.stage = { id: data.id, diff: data.diff, classes: [...classes, ...guests], guests, key: socket.progressKey, socketId: socket.id };
         room.stageApplied = false;
-        player.disabledClasses = pickToDisabled(classes);
+        player.disabledClasses = pickToDisabled([...classes, ...guests]);
         const npc = Object.values(room.players).find(p => p !== player);
         player.squad = mySquadFor(room, player);
         if (npc) { npc.squad = enemySquadFor(room); npc.autoMode = false; npc.debugGodMode = false; }
