@@ -1112,3 +1112,6 @@ body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: n
     .ss-card { min-height: 44px; }
 }
 
+
+/* Đang ở màn chọn (chế độ / ải / đội hình): ẩn bảng tool Test phía sau — trên điện thoại bảng này tràn ngang màn hình */
+body.selecting-squad #progress-tool, body.selecting-squad #enemy-debug-controls { display: none !important; }

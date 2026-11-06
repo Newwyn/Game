@@ -5,6 +5,18 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — CHẾ ĐỘ CỐT TRUYỆN (P1): chương 1 tộc Người — 20 ải + 5 nhánh, 3 độ khó, thể lực, ví tiền, thưởng
+- **Menu có thẻ mới "📖 Cốt truyện"** (đứng đầu). Màn chọn ải: ví (Vàng · Kim Cương · Đá Cường Hoá), thể lực `x/360` + thời gian hồi điểm kế + nút **Mua** (hộp xác nhận trên trang: 50 Kim Cương → +60), 3 tab **Cốt truyện / Khó / Địa ngục** (tab khoá ghi lý do), 20 ải chia 3 phần (Làng Ashford · Đường Vương Đạo · Kinh thành Valoria), ải trùm viền nổi bật, nhánh ẩn chỉ hiện khi đã mở.
+- **Luật** (chi tiết `BAN_THIET_KE_GAME.md`, `CHUONG_1_TOC_NGUOI.md`): qua ải trước mới mở ải sau; Khó mở sau ải 4; Địa ngục mở khi qua hết 20 ải Khó; thể lực tối đa 360, hồi 1 điểm / 5 phút, mỗi trận tốn 4 / 6 / 10, thua hoặc bỏ trận hoàn (chi phí − 1); thưởng EXP · Vàng · Đá mỗi lần thắng, **Kim Cương chỉ lần đầu qua** (ải thường 10, trùm nhỏ 30, giữa chương 50, cuối 100).
+- **Anh hùng sở hữu**: bắt đầu có Jessica, Rok, Seraphine; **Lyra gia nhập khi lần đầu qua ải 12**. Bảng chọn đội Cốt truyện chỉ hiện anh hùng đã có, dùng cấp / bậc thật, nhớ đội lần trước.
+- **Rok là tộc Người** (trước ghi nhầm Rồng).
+- Quái các ải **tạm dùng 3 quái cũ** (đổi tên theo truyện: Goblin Cướp, Sói Đầu Đàn, Skarn Răng Sắt, Đại tướng Valdric...); quái + trùm thật làm ở P5. Ải trùm: trùm máu ×2 / ×3 / ×4.
+- Chống gian lận nhẹ: bấm "Vào trận" 2 lần chỉ trừ 1 lần; về Menu / "Chơi lại" / thoát giữa ải = bỏ trận; Cốt truyện không có tool.
+- Code: `game/` (wallet, stamina, chapter1, campaign — Codex làm), `src/ui/campaign.js` + chọn đội (Antigravity làm), nối server (Claude). **22 bài kiểm tra tự động** (`npm test`).
+- Sửa thêm: ở các màn chọn, bảng tool Test phía sau bị ẩn (trên điện thoại từng tràn ngang).
+- Đã thử bằng chuột thật: Menu → Cốt truyện → ải 2 khoá có lý do, tab Khó khoá có lý do → ải 1 chọn đội (đúng 3 anh hùng) → thắng: +55 EXP mỗi tướng, +60 Vàng, +1 Đá, +10 Kim Cương, cả đội lên cấp → ải 2 mở → mua thể lực (Kim Cương 110 → 60, thể lực 356 → 416) → vào ải 2 rồi về Menu: THẤT BẠI, hoàn 3 thể lực. Chế độ Test / Đấu vẫn như cũ. Build + test không lỗi.
+- **Còn lại**: thanh kỹ năng 4 nhân vật trong trận chưa vừa màn hình điện thoại (có từ trước).
+
 ## 06/11/2026 — Dọn thư mục game
 - Xoá **117 ảnh / video xem trước cũ** trong `Claude outputs/` (so sánh các bản đã bỏ: khung xương, assassin 2D, các bản Rok / Ignar cũ...). Giữ 3 file câu lệnh vẽ (`PROMPTS_FX-3.md`, `PROMPTS_ICONS.md`, `PROMPTS_SPRITE-3.md`) + 2 ảnh trận đấu mới.
 - Xoá tranh gốc + công cụ Pixel (`art/ignar/pixel`, `art/sylva/pixel`, `art/pixel_fx_src`, `tools/pixel_snap.py`, `tools/pixelfx_pack.py`) — đã chốt bỏ Pixel.
