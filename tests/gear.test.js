@@ -57,17 +57,19 @@ test('mô tả: tên, chữ chỉ số, thanh dòng phụ, chữ vàng', () => {
     assert.equal(d.subs[0].key, 'crit');
     assert.equal(d.subs[0].gold, true);
     assert.equal(d.subs[0].pct, 0.95);
-    assert.equal(d.wearLevel, 51);
+    assert.equal(d.wearLevel, 60);
     const set = G.describe(G.createItem(seq(0), { slot: 'armor', level: 10, rarity: 2, set: 'lu_khach' }, 's'));
     assert.equal(set.name, 'Áo Lữ Khách');
     assert.equal(set.main[0].text, '+400 Máu');
 });
 
-test('mặc được khi cấp anh hùng ≥ cấp đồ − 9', () => {
+test('đồ cấp 10 mặc từ Lv1, từ cấp 20 phải đủ đúng cấp đồ', () => {
     assert.equal(G.canWear(1, { level: 10 }).ok, true);
-    assert.equal(G.canWear(10, { level: 20 }).ok, false);
-    assert.match(G.canWear(10, { level: 20 }).why, /Lv11/);
-    assert.equal(G.canWear(11, { level: 20 }).ok, true);
+    assert.equal(G.canWear(19, { level: 20 }).ok, false);
+    assert.match(G.canWear(19, { level: 20 }).why, /Lv20/);
+    assert.equal(G.canWear(20, { level: 20 }).ok, true);
+    assert.equal(G.canWear(59, { level: 60 }).ok, false);
+    assert.equal(G.canWear(60, { level: 60 }).ok, true);
 });
 
 test('mặc, đổi món cùng ô, chuyển đồ giữa 2 anh hùng', () => {

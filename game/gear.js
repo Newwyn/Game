@@ -128,7 +128,7 @@ function describe(item) {
     return {
         id: item.id, slot: item.slot, slotName: info.name, icon: info.icon,
         name: set ? `${info.name} ${set.name}` : `${info.name} ${r.name}`,
-        level: item.level, wearLevel: Math.max(1, item.level - 9),
+        level: item.level, wearLevel: wearLevel(item),
         rarity: item.rarity, rarityName: r.name, color: r.color,
         set: item.set, setName: set?.name ?? null, enhance: item.enhance, locked: !!item.locked,
         main: item.main.map(m => {
@@ -142,8 +142,10 @@ function describe(item) {
     };
 }
 
+/** Cấp anh hùng tối thiểu để mặc: đồ cấp 10 mặc từ Lv1, từ cấp 20 trở lên phải đủ đúng cấp đồ */
+const wearLevel = (item) => (item.level <= 10 ? 1 : item.level);
 function canWear(heroLevel, item) {
-    const need = Math.max(1, item.level - 9);
+    const need = wearLevel(item);
     return heroLevel >= need ? { ok: true } : { ok: false, why: `Cần anh hùng Lv${need} trở lên` };
 }
 

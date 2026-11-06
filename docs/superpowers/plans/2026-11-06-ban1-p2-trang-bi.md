@@ -12,7 +12,7 @@
 - **Tấn công** trên đồ cộng vào `pAtk` nếu nhân vật đánh vật lý, `mAtk` nếu đánh phép (`dmgType`).
 - Save cũ không có `pr.gear` → tự bổ sung `{ items:{}, equipped:{}, nextId:1 }`. Chế độ Test / Đấu không đổi hành vi khi không mặc đồ (Đấu không tính đồ).
 - 6 ô: `weapon` Vũ khí ⚔️ · `armor` Áo 🥋 · `hands` Tay 🧤 · `legs` Chân 👢 · `ring` Nhẫn 💍 · `necklace` Dây chuyền 📿.
-- Cấp đồ 10…60. **Mặc được khi cấp anh hùng ≥ cấp đồ − 9** (đồ 10 mặc từ Lv1, đồ 20 từ Lv11…) — vì ải 6 anh hùng mới ~Lv5.
+- Cấp đồ 10…60. **Đồ cấp 10 mặc từ Lv1; từ cấp 20 trở lên phải có anh hùng ≥ cấp đồ** (bạn chốt 06/11/2026).
 - Độ hiếm 0–4: Thường (trắng) · Tốt (xanh lá) · Hiếm (xanh dương) · Sử thi (tím) · Huyền thoại (cam). Số dòng phụ **1 / 2 / 3 / 4 / 4**.
 - Chỉ số chính & dòng phụ theo bảng 9.4 / 9.5; nhân **hệ số cấp** (10=20% · 20=35% · 30=50% · 40=65% · 50=80% · 60=100%) × **hệ số độ hiếm** (60/70/80/90/100%). Chân có 2 chỉ số chính (Thủ vật lý + Thủ phép).
 - Cường hoá: bảng 9.7 (tỉ lệ 100,100,100,100,100,80,65,50,35,20%; chính +5×5, +8, +9, +11, +13, +16%); từ +8 hỏng tụt 1 cấp; **tích may mắn +5% mỗi lần hỏng, về 0 khi thành công**; **Bùa May Mắn** +10% (1 bùa / lần). Đá: cấp 10=1 · 20=2 · 30=3 · 40=5 · 50=7 · 60=10 viên, ×2 (+6/+7), ×3 (+8/+9), ×4 (+10). Phí Vàng = `cấp đồ × 5 × cấp đích`. Mốc **+5**: các dòng phụ +10%.
