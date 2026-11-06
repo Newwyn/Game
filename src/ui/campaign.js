@@ -8,6 +8,7 @@ import { net, socket } from '../net/socket.js';
 import { openCampaignSquadSelect } from './squadSelect.js';
 import { showModeMenu } from './modeMenu.js';
 import { hideBattleResult } from './overlays.js';
+import { showGear } from './gear.js';
 
 const STAMINA_MAX = 360;
 const STAMINA_REGEN_SEC = 300;
@@ -427,6 +428,7 @@ export function renderCampaign() {
         <header class="cp-header">
             <div class="cp-title-row">
                 <button class="cp-back-btn" data-cp-back>← Menu</button>
+                <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : 'Mở khi qua ải 6'}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
                 <div class="cp-title-text">
                     <h1>📖 CHƯƠNG 1: ${(chapter.name ?? 'Ngọn Lửa Gây Chiến').toUpperCase()}</h1>
                     <p>Tộc Người · Làng Ashford · Đường Vương Đạo · Kinh thành Valoria</p>
@@ -505,7 +507,22 @@ function whyStageLocked(item, isBranch, diff) {
     return `Hãy qua ải ${prevNo} ở mức Cốt truyện trước`;
 }
 
+function hasFeature(key) {
+    return (state.features ?? []).includes(key);
+}
+
 function onScreenClick(e) {
+    if (e.target.closest('[data-cp-gear]')) {
+        if (!hasFeature('gear')) {
+            errorText = '🔒 Trang bị mở khi qua ải 6 ở mức Cốt truyện';
+            renderCampaign();
+            return;
+        }
+        errorText = null;
+        hideCampaign();
+        showGear(() => { net.campaignOpen(); showCampaign(); });
+        return;
+    }
     if (e.target.closest('[data-cp-back]')) {
         confirmBuyOpen = false;
         errorText = null;
@@ -684,6 +701,8 @@ export function renderStageResult(data = {}) {
             </div>
         </div>` : ''}
 
+        ${dropsHTML(data)}
+
         ${newHeroes.includes('archer') ? `
         <div class="cp-new-hero-banner">
             <span class="cp-nh-icon">🏹</span>
@@ -710,6 +729,22 @@ export function renderStageResult(data = {}) {
 
     box.style.display = 'flex';
     document.body.classList.add('selecting-squad');
+}
+
+/** Đồ rơi + bùa + đồ tự phân giải (túi đầy) ở màn kết quả */
+function dropsHTML(data) {
+    const drops = Array.isArray(data.drops) ? data.drops : [];
+    const auto = data.autoSalvaged;
+    if (!drops.length && !data.charms && !auto) return '';
+    return `
+        <div class="cp-leveled-box cp-drops-box">
+            <h4>🎒 Đồ rơi${data.firstClear && lastSelectedStage?.no === 6 ? ' — đã mở Trang bị! Bấm "🎒 Trang bị" ở màn chọn ải để mặc' : ''}</h4>
+            <div class="cp-leveled-list">
+                ${drops.map(it => `<span class="cp-leveled-chip cp-drop-chip" style="--rc:${it.color}">${it.icon} <b>${it.name}</b> · Cấp ${it.level}</span>`).join('')}
+                ${data.charms ? `<span class="cp-leveled-chip">🍀 <b>Bùa May Mắn</b> ×${data.charms}</span>` : ''}
+            </div>
+            ${auto ? `<p class="cp-drop-auto">Túi đầy: ${auto.count} món tự phân giải → +${auto.stone} Đá Cường Hoá${auto.refine ? ` · +${auto.refine} Đá Tinh Luyện` : ''}</p>` : ''}
+        </div>`;
 }
 
 function hideResult() {

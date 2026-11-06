@@ -383,6 +383,13 @@ function effectInfo(ef, m) {
         case 'brakk_shield': return ef.dormant
             ? ['🛡', '#fdba74', 'Khiên Vảy Rồng', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🛡', '#fdba74', 'Khiên Vảy Rồng', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} · cộng dồn Chấn Địa + Khí Thế Đấu Trường`];
+        // ---- Bộ đồ (4 món) ----
+        case 'gear_shield': return ef.dormant
+            ? ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', 'Đang có khiên khác dày hơn hứng đòn']
+            : ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} (bộ đồ 4 món)`];
+        case 'gear_def': return ['🧩', '#93c5fd', 'Hộ Vệ Vương Quốc', `Cả đội +${pc(ef.value)}% thủ`];
+        case 'gear_travel': return ['🧩', '#4ade80', 'Lữ Khách', `Đồng đội khác tộc: +${pc(ef.value)}% sát thương`];
+        case 'gear_atk': return ['🧩', '#fbbf24', 'Chiến Lược Gia', `Cả đội +${pc(ef.value)}% tấn công`];
         case 'grabbed': return ['✊', '#f97316', 'Bị túm', 'Bị Brakk nhấc bổng — sắp bị quật xuống đất', true];
         case 'lone_dragon': return ['🐲', '#f59e0b', 'Độc Long', `Chỉ còn 1 mình Brakk trên sân: sát thương ×${(1 + (ef.value ?? 1)).toFixed(0)}`];
         // ---- Elarion (Tam Nguyên) + Golem ----

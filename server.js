@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const P = require('./progression'); // Level · Bậc · Tộc · chỉ số riêng class · cấp kỹ năng
 const C = require('./game/campaign.js');   // Cốt truyện: mở khoá ải, thưởng, sở hữu anh hùng
 const ST = require('./game/stamina.js');   // Thể lực
+const G = require('./game/gear.js');   // Trang bị: đồ, mặc / tháo, lò rèn, rơi đồ
 
 const app = express();
 const server = http.createServer(app);
@@ -628,7 +629,9 @@ function skillsOf(member) {
 /** Gán chỉ số nền theo level / bậc / tộc lên nhân vật (giữ tỉ lệ máu hiện tại nếu đang trong trận) */
 function applyProgress(member, hero) {
     const def = CLASS_DEFS[member.classId];
-    const st = P.computeStats(def, hero);
+    let st = P.computeStats(def, hero);
+    if (hero.gear) st = G.applyGear(st, hero.gear, def.dmgType);   // đồ đang mặc (Cốt truyện / Test)
+    member.gearSets = hero.gear?.effects ?? [];                    // bộ đủ 4 món -> hiệu ứng trong trận
     const hpRatio = member.maxHp ? member.hp / member.maxHp : 1;
     Object.assign(member, st);
     member.hp = Math.max(member.alive === false ? 0 : 1, Math.round(st.maxHp * hpRatio));
@@ -725,7 +728,7 @@ function enemySquadFor(room) {
 /** Đội hình phe mình theo chế độ phòng */
 function mySquadFor(room, p) {
     const own = room.mode === 'test' || room.mode === 'campaign';   // Test / Cốt truyện: cấp + bậc thật của người chơi
-    return createSquad(p.side, p.disabledClasses, own ? progressOf(p.progressKey).heroes : MAX_HEROES());
+    return createSquad(p.side, p.disabledClasses, own ? heroesWithGear(progressOf(p.progressKey)) : MAX_HEROES());
 }
 
 function createSquad(side, disabled = [], heroes = null) {
@@ -736,7 +739,7 @@ function createSquad(side, disabled = [], heroes = null) {
 
     let order = SQUAD_ORDER.filter(c => !disabled.includes(c));
     if (order.length === 0) order = [SQUAD_ORDER[0]];
-    return order.map((classId, index) => {
+    const squad = order.map((classId, index) => {
         const def = CLASS_DEFS[classId];
         // Đội hình: cận chiến đứng trước, đánh xa đứng sau (tầm càng xa đứng càng lùi)
         let xOffset = def.atkRange >= 6 ? -direction * (2 + def.atkRange * 0.5) : index * 0.5 * direction;
@@ -760,6 +763,12 @@ function createSquad(side, disabled = [], heroes = null) {
         m.mp = Math.min(m.maxMp, m.mp);
         return m;
     });
+    // Bộ Lữ Khách (4 món): mỗi đồng đội KHÁC TỘC +6% sát thương (tối đa +18%)
+    for (const m of squad) {
+        m.luKhach = m.gearSets.includes('lu_khach') ? Math.min(3, squad.filter(o => o !== m && o.race !== m.race).length) * 0.06 : 0;
+        if (m.luKhach) m.statusEffects.push({ type: 'gear_travel', value: m.luKhach, endTime: Number.MAX_SAFE_INTEGER });   // biểu tượng trên HUD (duy trì cả trận)
+    }
+    return squad;
 }
 
 // ------------------------------------------------------------
@@ -793,8 +802,8 @@ function squadSelectPayload(key, mode = 'test') {
         selected,
         enemySelected: SQUAD_ORDER.filter(c => !enemyDisabled.includes(c)),
         heroes: pool.map(id => {
-            const def = CLASS_DEFS[id], h = duel ? { level: P.MAX_LEVEL, rank: P.MAX_RANK } : pr.heroes[id];
-            const st = P.computeStats(def, h);
+            const def = CLASS_DEFS[id], h = duel ? { level: P.MAX_LEVEL, rank: P.MAX_RANK } : heroWithGear(pr, id);
+            const st = h.gear ? G.applyGear(P.computeStats(def, h), h.gear, def.dmgType) : P.computeStats(def, h);   // có đồ đang mặc
             return {
                 id, name: def.name, title: def.title, className: def.className, emoji: def.emoji, color: def.color,
                 race: P.RACE_DEFS[def.race]?.name ?? '', raceEmoji: P.RACE_DEFS[def.race]?.emoji ?? '',
@@ -810,7 +819,15 @@ function progressOf(key) {
     for (const id of HERO_IDS()) pr.heroes[id] ??= { level: 1, rank: 0, exp: 0 };
     pr.items ??= {};
     C.ensureCampaign(pr, Date.now());   // save cũ: bổ sung ví, thể lực, anh hùng sở hữu, tiến độ Cốt truyện
+    G.ensureGear(pr);                   // save cũ: bổ sung túi đồ
     return pr;
+}
+/** Cấp / bậc của 1 anh hùng kèm chỉ số đồ đang mặc */
+function heroWithGear(pr, id) {
+    return { ...pr.heroes[id], gear: G.gearBonus(G.equippedItems(pr, id)) };
+}
+function heroesWithGear(pr) {
+    return Object.fromEntries(Object.keys(pr.heroes).map(id => [id, heroWithGear(pr, id)]));
 }
 /** Gói dữ liệu màn chọn ải (thể lực hồi theo thời gian thật trước khi gửi) */
 function campaignPayload(pr, key) {
@@ -821,6 +838,52 @@ function campaignPayload(pr, key) {
     return { chapter: C.chapterState(pr), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, features: [...C.features(pr)],
         squad: key ? squadSelectPayload(key, 'campaign') : undefined };   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
 }
+/** Rơi đồ khi thắng ải (từ khi đã qua ải 6) — túi đầy thì tự phân giải */
+function dropGear(pr, st, diff, firstClear) {
+    const out = { drops: [], charms: 0, autoSalvaged: null };
+    if (!C.features(pr).has('gear')) return out;
+    const d = G.rollDrops(Math.random, { no: st.no ?? st.baseNo, boss: st.boss ?? 0, diff, firstClear });
+    for (const spec of d.items) {
+        const it = G.createItem(Math.random, spec, G.newId(pr));
+        if (G.addItem(pr, it)) { out.drops.push(G.describe(it)); continue; }
+        const v = G.salvageValue(it);
+        out.autoSalvaged ??= { count: 0, stone: 0, refine: 0 };
+        out.autoSalvaged.count++; out.autoSalvaged.stone += v.stone; out.autoSalvaged.refine += v.refine;
+        pr.wallet.stone += v.stone;
+        pr.items.refine_stone = (pr.items.refine_stone ?? 0) + v.refine;
+    }
+    if (d.charms) { pr.items.luck_charm = (pr.items.luck_charm ?? 0) + d.charms; out.charms = d.charms; }
+    return out;
+}
+/** Gói dữ liệu màn Trang bị: anh hùng sở hữu (chỉ số có đồ, 6 ô), túi đồ, ví, nguyên liệu, giá cường hoá / tinh luyện */
+function gearPayload(pr) {
+    const feats = C.features(pr);
+    const enhance = {}, refine = {};
+    const salvage = {};
+    for (const it of Object.values(pr.gear.items)) { enhance[it.id] = G.enhanceInfo(it); refine[it.id] = G.refineInfo(it); salvage[it.id] = G.salvageValue(it); }
+    return {
+        heroes: pr.owned.filter(id => CLASS_DEFS[id]).map(id => {
+            const def = CLASS_DEFS[id], h = heroWithGear(pr, id);
+            const slots = pr.gear.equipped[id] ?? {};
+            const sets = Object.entries(h.gear.sets).map(([sid, count]) => ({ id: sid, name: G.SETS[sid].name, count,
+                twoText: G.SETS[sid].twoText, fourText: G.SETS[sid].fourText }));
+            return {
+                id, name: def.name, title: def.title, emoji: def.emoji, color: def.color, level: h.level, rankName: P.RANKS[h.rank].name,
+                race: P.RACE_DEFS[def.race]?.name ?? '', dmgType: def.dmgType,
+                base: P.computeStats(def, h), stats: G.applyGear(P.computeStats(def, h), h.gear, def.dmgType),
+                equipped: Object.fromEntries(G.SLOTS.map(sl => [sl, slots[sl] && pr.gear.items[slots[sl]] ? G.describe(pr.gear.items[slots[sl]]) : null])),
+                sets,
+            };
+        }),
+        bag: G.bagItems(pr).map(G.describe),
+        invMax: G.INV_MAX, wallet: pr.wallet,
+        mats: { refine_stone: pr.items.refine_stone ?? 0, luck_charm: pr.items.luck_charm ?? 0 },
+        features: { gear: feats.has('gear'), forge: feats.has('forge') },
+        setInfo: Object.fromEntries(Object.entries(G.SETS).map(([sid, st]) => [sid, { name: st.name, twoText: st.twoText, fourText: st.fourText }])),
+        slots: G.SLOTS.map(sl => ({ id: sl, ...G.SLOT_INFO[sl] })), rarities: G.RARITIES.map(({ id, name, color }) => ({ id, name, color })),
+        enhance, refine, salvage,
+    };
+}
 /** Kết thúc ải Cốt truyện (thắng / thua / hoà / bỏ trận) — chỉ áp 1 lần mỗi trận */
 function finishStage(room, win) {
     if (room.mode !== 'campaign' || !room.stage || room.stageApplied) return;
@@ -828,8 +891,9 @@ function finishStage(room, win) {
     const { id, diff, classes, key, socketId } = room.stage;
     const pr = progressOf(key);
     const res = C.applyResult(pr, { id, diff, classes, win }, P, Date.now());
-    P.saveAll(PROGRESS);
     const st = C.findStage(id);
+    Object.assign(res, win ? dropGear(pr, st, diff, res.firstClear) : { drops: [], charms: 0, autoSalvaged: null });
+    P.saveAll(PROGRESS);
     io.to(socketId).emit('stageResult', { ...res, stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
         wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
@@ -863,7 +927,7 @@ function progressPayload(key) {
         const g = P.CLASS_GROWTH[def.classGroup];
         heroes[id] = {
             ...h, name: def.name, title: def.title, rankName: P.RANKS[h.rank].name, skillLevel: h.rank + 1, cap: P.RANKS[h.rank].cap,
-            expNext: P.expToNext(h.level), stats: P.computeStats(def, h),
+            expNext: P.expToNext(h.level), stats: G.applyGear(P.computeStats(def, h), heroWithGear(pr, id).gear, def.dmgType),
             race: def.race, classGroup: def.classGroup,
             talents: talentInfo(def, h),
             rankCheck: P.checkRankUp(h, pr.items),
@@ -1008,6 +1072,9 @@ function getEffectiveStats(member, now) {
             stats.pDef = Math.floor(stats.pDef * (1 + ef.defUp));
             stats.mDef = Math.floor(stats.mDef * (1 + ef.defUp));
         }
+        // Bộ đồ (4 món): Hộ Vệ Vương Quốc +thủ cả đội · Chiến Lược Gia +tấn công cả đội
+        if (ef.type === 'gear_def') { stats.pDef = Math.floor(stats.pDef * (1 + ef.value)); stats.mDef = Math.floor(stats.mDef * (1 + ef.value)); }
+        if (ef.type === 'gear_atk') { stats.pAtk = Math.floor(stats.pAtk * (1 + ef.value)); stats.mAtk = Math.floor(stats.mAtk * (1 + ef.value)); }
         if (ef.type === 'guard_aura') {
             // Dựng Khiên của Chiến Binh: cả đội cứng hơn
             stats.pDef = Math.floor(stats.pDef * (1 + (ef.value ?? 0.2)));
@@ -1069,7 +1136,7 @@ function isBehind(attacker, target) {
 //     khiên còn lại thành "dormant": mất máu khiên nhưng VẪN giữ hiệu ứng buff (vd +thủ, kháng choáng, cánh miễn choáng) tới hết thời gian.
 //   · Khiên ĐẶC TRƯNG (signature, vd Dựng Khiên của Chiến Binh) luôn được dùng, bất kể máu khiên khác nhiều hơn.
 // ============================================================
-const SHIELD_TYPES = new Set(['guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield']);
+const SHIELD_TYPES = new Set(['guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield']);
 const isSignatureShield = (ef) => ef.type === 'guard';
 
 /** Khiên đang hứng sát thương (null nếu không có) */
@@ -1177,6 +1244,7 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     const at = raceTrait(attacker);
     if (at?.key === 'elf_agile' && attacker.elfReady) { damage *= 1 + at.value; attacker.elfReady = false; }
     if (at?.key === 'devil_pact' && attacker.maxHp > 0 && attacker.hp / attacker.maxHp < 0.3) damage *= 1 + at.value;
+    if (attacker.luKhach) damage *= 1 + attacker.luKhach;   // Bộ Lữ Khách (4 món): đồng đội khác tộc
     if (at?.key === 'goblin_opportunist' && target.statusEffects?.some(ef => (ef.type === 'stun' || ef.type === 'knocked') && ef.endTime > now)) damage *= 1 + at.value;
 
     // 5. BLOCK CHECK (Only if not Crit)
@@ -1335,7 +1403,7 @@ io.on('connection', (socket) => {
         const player = room?.players[socket.id];
         if (player) {
             // áp ngay chỉ số mới lên nhân vật đang trong trận (giữ tỉ lệ máu)
-            player.squad.forEach(m => { if (!classId || m.classId === classId) applyProgress(m, progressOf(socket.progressKey).heroes[m.classId]); });
+            player.squad.forEach(m => { if (!classId || m.classId === classId) applyProgress(m, heroWithGear(progressOf(socket.progressKey), m.classId)); });
             broadcastState(socket.roomId);
         }
         socket.emit('progressUpdate', progressPayload(socket.progressKey));
@@ -1704,6 +1772,76 @@ io.on('connection', (socket) => {
         if (!ST.buy(pr.stamina, pr.wallet)) return socket.emit('campaignError', { text: `Cần ${ST.BUY.diamond} Kim Cương để mua thể lực` });
         P.saveAll(PROGRESS);
         socket.emit('campaignState', campaignPayload(pr, socket.progressKey));
+    });
+    // ---------- TRANG BỊ: mặc / tháo / khoá · LÒ RÈN: cường hoá, tinh luyện, phân giải ----------
+    const gearAction = (need, fn) => (data = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const feats = C.features(pr);
+        if (!feats.has('gear')) return socket.emit('gearError', { text: 'Trang bị mở khi qua ải 6' });
+        if (need === 'forge' && !feats.has('forge')) return socket.emit('gearError', { text: 'Lò rèn mở khi qua ải 10' });
+        const res = fn(pr, data);
+        if (res && res.ok === false) return socket.emit('gearError', { text: res.why });
+        P.saveAll(PROGRESS);
+        if (res?.text) socket.emit('gearResult', res);
+        socket.emit('gearState', gearPayload(pr));
+    };
+    const itemOf = (pr, id) => pr.gear.items[id];
+    socket.on('gearOpen', () => {
+        const pr = progressOf(socket.progressKey);
+        socket.emit('gearState', gearPayload(pr));
+    });
+    socket.on('gearEquip', gearAction('gear', (pr, d) => {
+        if (!pr.owned.includes(d.hero) || !pr.heroes[d.hero]) return { ok: false, why: 'Bạn chưa sở hữu anh hùng này' };
+        return G.equip(pr, d.hero, pr.heroes[d.hero].level, d.itemId);
+    }));
+    socket.on('gearUnequip', gearAction('gear', (pr, d) => G.unequip(pr, d.hero, d.slot)));
+    socket.on('gearLock', gearAction('gear', (pr, d) => {
+        const it = itemOf(pr, d.itemId);
+        if (!it) return { ok: false, why: 'Không tìm thấy món đồ' };
+        it.locked = !it.locked;
+        return { ok: true };
+    }));
+    socket.on('gearSalvage', gearAction('forge', (pr, d) => {
+        const r = G.salvage(pr, pr.wallet, d.itemIds);
+        return r.ok ? { ...r, action: 'salvage', text: `Phân giải ${r.count} món: +${r.stone} Đá Cường Hoá${r.refine ? ` · +${r.refine} Đá Tinh Luyện` : ''}` } : r;
+    }));
+    socket.on('gearEnhance', gearAction('forge', (pr, d) => {
+        const it = itemOf(pr, d.itemId);
+        if (!it) return { ok: false, why: 'Không tìm thấy món đồ' };
+        const r = G.enhance(pr, pr.wallet, it, Math.random, { charm: !!d.charm });
+        if (!r.ok) return r;
+        return { ...r, action: 'enhance', itemId: it.id, text: r.success ? `Thành công! +${r.from} → +${r.to}`
+            : r.to < r.from ? `Thất bại — tụt về +${r.to}` : `Thất bại — giữ +${r.to} (tích may mắn +5%)` };
+    }));
+    socket.on('gearRefine', gearAction('forge', (pr, d) => {
+        const it = itemOf(pr, d.itemId);
+        if (!it) return { ok: false, why: 'Không tìm thấy món đồ' };
+        const r = G.refine(pr, pr.wallet, it, Math.random, Number(d.line));
+        if (!r.ok) return r;
+        const t = (sub) => G.describe({ ...it, subs: [sub], main: [] }).subs[0].text;
+        return { ok: true, action: 'refine', itemId: it.id, line: Number(d.line), text: `${t(r.before)} → ${t(r.after)}` };
+    }));
+    // Tool Test: nhận đồ thử (đủ bộ 4 món + nhẫn, dây chuyền) — chỉ ở chế độ Test
+    socket.on('gearDebugGive', (data = {}) => {
+        const room = rooms[socket.roomId];
+        if (room?.mode !== 'test') return;
+        const pr = progressOf(socket.progressKey);
+        const set = G.SETS[data.set] ? data.set : null;
+        const level = G.LEVELS.includes(Number(data.level)) ? Number(data.level) : 10;
+        const rarity = Math.max(0, Math.min(4, Number(data.rarity) || 0));
+        let n = 0;
+        for (const slot of G.SLOTS) {
+            if (set && !G.SET_SLOTS.includes(slot)) continue;
+            if (G.addItem(pr, G.createItem(Math.random, { slot, level, rarity, set }, G.newId(pr)))) n++;
+        }
+        pr.items.refine_stone = (pr.items.refine_stone ?? 0) + 5;
+        pr.items.luck_charm = (pr.items.luck_charm ?? 0) + 3;
+        pr.wallet.stone += 200; pr.wallet.gold += 5000;
+        // mở sẵn Trang bị + Lò rèn (đánh dấu đã qua ải 1–10 Cốt truyện) để thử ngay
+        for (let i = 1; i <= 10; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
+        P.saveAll(PROGRESS);
+        socket.emit('progressMsg', { ok: n > 0, text: n ? `🎒 Nhận ${n} món${set ? ` bộ ${G.SETS[set].name}` : ''} cấp ${level} · +5 Đá Tinh Luyện · +3 Bùa · +200 Đá · +5000 Vàng · đã mở Trang bị + Lò rèn (Menu → Cốt truyện → 🎒)`
+            : 'Túi đồ đã đầy (100 món)' });
     });
     socket.on('startStage', (data = {}) => {
         const room = rooms[socket.roomId];
@@ -2538,6 +2676,11 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     let isSpecialBackstab = false;
     curRoom = room;
 
+    // Bộ Chiến Lược Gia (4 món): dùng kỹ năng >= 3 Orb -> hoàn 1 Orb, cả đội +10% tấn công 5s
+    if (!opts.free && (skillDef.orbCost ?? 0) >= 3 && member.gearSets?.includes('chien_luoc')) {
+        member.mp = Math.min(member.maxMp, member.mp + ORB_COST);
+        teamBuff(casterId, 'gear_atk', 0.1, 5000, now);
+    }
     // Diễn động tác: đứng yên tới hết `lock`; HỒI CHIÊU bắt đầu tính sau khi diễn xong
     const lock = skillLock(skillDef, member, opponentData, now);
     member.actionUntil = now + lock;
@@ -4004,6 +4147,26 @@ function afterHpLoss(m) {
     checkFireWard(m);
     checkJudgement(m);
     checkGoblinWard(m);
+    checkGearGuard(m);
+}
+/** Cả đội (còn sống) nhận 1 buff — làm mới nếu đang có cùng loại */
+function teamBuff(pid, type, value, ms, now) {
+    for (const a of curRoom.players[pid].squad) {
+        if (!a.alive) continue;
+        a.statusEffects = a.statusEffects.filter(ef => ef.type !== type);
+        a.statusEffects.push({ type, value, endTime: now + ms, duration: ms });
+    }
+}
+/** Bộ Hộ Vệ Vương Quốc (4 món): LẦN ĐẦU máu < 50% -> khiên 15% máu tối đa 10s, cả đội +5% thủ 6s */
+function checkGearGuard(m) {
+    const now = curRoom?.clock;
+    if (!m.alive || now == null || m.hoVeDone || !m.gearSets?.includes('ho_ve') || m.hp >= m.maxHp * 0.5) return;
+    const at = locate(m);
+    if (!at) return;
+    m.hoVeDone = true;
+    const hp = Math.round(m.maxHp * 0.15);
+    addShield(m, { type: 'gear_shield', endTime: now + 10000, duration: 10000, hp, maxHp: hp }, now);
+    teamBuff(at.pid, 'gear_def', 0.05, 6000, now);
 }
 const hasReviveGuard = (m, now) => !!m?.statusEffects?.some(ef => ef.type === 'revive_guard' && ef.endTime > now);
 function isJudged(m, now) {

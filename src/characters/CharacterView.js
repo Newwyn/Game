@@ -194,7 +194,7 @@ export class CharacterView {
 
         // Thanh vận chiêu
         const now = gameNow();
-        const shield = member.alive && member.statusEffects?.find(ef => (ef.type === 'guard' || ef.type === 'holy_shield' || ef.type === 'brakk_shield' || ef.type === 'fire_ward' || ef.type === 'water_shield') && ef.endTime > now && ef.maxHp && ef.hp > 0);
+        const shield = member.alive && member.statusEffects?.find(ef => (ef.type === 'guard' || ef.type === 'holy_shield' || ef.type === 'brakk_shield' || ef.type === 'fire_ward' || ef.type === 'water_shield' || ef.type === 'gear_shield') && ef.endTime > now && ef.maxHp && ef.hp > 0);
         this.shieldBar.visible = !!shield;
         if (shield) updateBarSprite(this.shieldBar, shield.hp / shield.maxHp);
         const castDef = this.classDef.skills?.[member.castingSkillId];

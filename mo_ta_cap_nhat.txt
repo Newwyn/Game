@@ -1,3 +1,12 @@
+Trang bi (P2): roi do tu ai 6, mac / thao do, Lo ren (cuong hoa +10, tinh luyen, phan giai), 3 bo do toc Nguoi
+
+- Nut "Trang bi" o man chon ai: 6 o do, tui do, chi so tang nho do, bo do 2/4 mon
+- Lo ren (mo o ai 10): cuong hoa ti le giam dan, tu +8 hong tut cap, tich may man, Bua May Man; tinh luyen 1 dong; phan giai ra da
+- Roi do khi thang ai (ai 6 chac chan roi Vu khi), tui toi da 100 mon
+- 3 bo toc Nguoi: Ho Ve Vuong Quoc, Chien Luoc Gia, Lu Khach (hieu ung 4 mon trong tran)
+- Tool Test: muc "Do thu" de nhan do + mo san Trang bi
+- 37 bai kiem tra tu dong
+
 Che do Cot truyen (P1): chuong 1 toc Nguoi 20 ai + 5 nhanh, 3 do kho, the luc, vi tien, thuong, Lyra gia nhap o ai 12, Rok la toc Nguoi
 
 Don thu muc: xoa 117 anh/video xem truoc cu + tranh goc va cong cu Pixel

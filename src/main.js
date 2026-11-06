@@ -26,6 +26,7 @@ import { setupProgressTool } from './ui/progressTool.js';
 import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
 import { setupCampaign } from './ui/campaign.js';
+import { setupGear } from './ui/gear.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
@@ -61,6 +62,8 @@ setupProgressTool();
 setupSquadSelect();
 // 📖 Chế độ Cốt truyện (chọn ải + kết quả)
 setupCampaign();
+// 🎒 Trang bị + Lò rèn (mở từ màn chọn ải)
+setupGear();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
 // Tool phe quái: cấp quái hiện tại

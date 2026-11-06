@@ -5,6 +5,19 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — TRANG BỊ (P2): rơi đồ, mặc đồ, Lò rèn (cường hoá · tinh luyện · phân giải), 3 bộ đồ tộc Người
+- **Màn chọn ải có nút mới "🎒 Trang bị"** (khoá tới khi qua ải 6). Gồm 2 tab:
+  - **Trang bị:** chọn anh hùng, 6 ô (Vũ khí · Áo · Tay · Chân · Nhẫn · Dây chuyền), bảng chỉ số (phần tăng nhờ đồ ghi màu xanh), bộ đồ đang mặc (2/4 món), túi đồ lọc theo ô. Bấm món đồ → thẻ chi tiết: chỉ số chính, dòng phụ có thanh "nằm đâu trong khoảng", dòng ≥ 90% chữ vàng lấp lánh, nút Mặc / Tháo / 🔒 Khoá / Lò rèn.
+  - **🔨 Lò rèn** (mở khi qua ải 10): **Cường hoá** +1 → +10 (tỉ lệ 100…80/65/50/35/20%, từ +8 hỏng tụt 1 cấp, hỏng thì tích may mắn +5%, Bùa May Mắn +10%, mốc +5 dòng phụ +10%) · **Tinh luyện** (chọn 1 dòng, roll lại ngẫu nhiên, tốn Đá Tinh Luyện + Vàng) · **Phân giải** nhiều món → Đá Cường Hoá + Đá Tinh Luyện (hộp xác nhận ngay trên trang; đồ đang mặc / đã khoá không phân giải được).
+- **Rơi đồ:** thắng ải Cốt truyện từ ải 6 trở đi rơi 1 món (ải trùm thêm 1 món), chỉ 4 ô Vũ khí/Áo/Tay/Chân, độ hiếm Thường → Hiếm (Khó / Địa ngục hiếm hơn + có Bùa May Mắn). **Lần đầu qua ải 6 chắc chắn rơi Vũ khí Tốt.** Túi tối đa 100 món, đầy thì đồ rơi tự phân giải. Màn kết quả hiện đồ rơi.
+- **Mặc được khi cấp anh hùng ≥ cấp đồ − 9** (đồ cấp 10 mặc từ Lv1, cấp 20 từ Lv11…). Mình chọn vậy vì tới ải 6 anh hùng mới khoảng Lv5 — bạn muốn đổi thì nói.
+- **Đồ cộng chỉ số thật vào trận** (Cốt truyện + Test; chế độ Đấu không tính đồ). Tấn công trên đồ tự cộng vào đánh vật lý hoặc phép.
+- **3 bộ tộc Người** (4 món Vũ khí/Áo/Tay/Chân): Hộ Vệ Vương Quốc (2: +10% Thủ · 4: lần đầu máu < 50% khiên 15% máu tối đa + cả đội +5% thủ 6s) · Chiến Lược Gia (2: +15% hồi năng lượng · 4: dùng kỹ năng ≥ 3 Orb hoàn 1 Orb + cả đội +10% tấn công 5s) · Lữ Khách (2: +8% Tấn công · 4: +6% sát thương mỗi đồng đội khác tộc, tối đa +18%). Có biểu tượng 🧩 trên thanh hiệu ứng trong trận. **Đồ bộ tạm chỉ lấy được bằng tool Test** — hầm ngục đồ bộ làm ở P6.
+- **Tool Test** có mục "🎒 Đồ thử": nhận đồ cam cấp 10/30/60 (6 ô thường hoặc đủ 1 bộ) + đá, bùa, vàng, và mở sẵn Trang bị + Lò rèn.
+- Code: `game/gear.js` (luật đồ, 15 bài kiểm tra mới → tổng **37 bài**), `src/ui/gear.js` (màn Trang bị), nối `server.js`. Lần này Codex và Antigravity không chạy được (Codex bị chặn quyền đọc/ghi file, máy không còn lệnh `agy`) nên Claude làm hết.
+- Đã thử bằng chuột thật: bản lưu mới → ải 1–5 không rơi đồ → ải 6 rơi Vũ khí Tốt → mặc / tháo / khoá / chuyển cho Rok → chỉ số trong trận tăng đúng → nhận 3 bộ → đủ 4/4 → Lò rèn: +0 → +10, hỏng tụt cấp, tích may mắn, bùa, tinh luyện, phân giải (huỷ rồi xác nhận) → đồ cấp 60 bị chặn mặc kèm lý do → trận Test quái Lv60: khiên Hộ Vệ, buff Chiến Lược, Lữ Khách +6% đều bật.
+- **Chưa thử bằng tay:** túi đầy 100 món tự phân giải (đã có bài kiểm tra tự động cho túi đầy); giao diện trên điện thoại thật (đã đo không tràn ngang ở khổ hẹp).
+
 ## 06/11/2026 — CHẾ ĐỘ CỐT TRUYỆN (P1): chương 1 tộc Người — 20 ải + 5 nhánh, 3 độ khó, thể lực, ví tiền, thưởng
 - **Menu có thẻ mới "📖 Cốt truyện"** (đứng đầu). Màn chọn ải: ví (Vàng · Kim Cương · Đá Cường Hoá), thể lực `x/360` + thời gian hồi điểm kế + nút **Mua** (hộp xác nhận trên trang: 50 Kim Cương → +60), 3 tab **Cốt truyện / Khó / Địa ngục** (tab khoá ghi lý do), 20 ải chia 3 phần (Làng Ashford · Đường Vương Đạo · Kinh thành Valoria), ải trùm viền nổi bật, nhánh ẩn chỉ hiện khi đã mở.
 - **Luật** (chi tiết `BAN_THIET_KE_GAME.md`, `CHUONG_1_TOC_NGUOI.md`): qua ải trước mới mở ải sau; Khó mở sau ải 4; Địa ngục mở khi qua hết 20 ải Khó; thể lực tối đa 360, hồi 1 điểm / 5 phút, mỗi trận tốn 4 / 6 / 10, thua hoặc bỏ trận hoàn (chi phí − 1); thưởng EXP · Vàng · Đá mỗi lần thắng, **Kim Cương chỉ lần đầu qua** (ải thường 10, trùm nhỏ 30, giữa chương 50, cuối 100).

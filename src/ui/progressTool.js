@@ -10,12 +10,14 @@ import { socket } from '../net/socket.js';
 
 let data = null;          // gói progressUpdate mới nhất
 let msg = null;           // { ok, text, t }
+let gearLevel = 10;       // cấp đồ thử
 let disabled = new Set(); // nhân vật đang TẮT (không ra trận)
 const collapsedHeroes = new Set();
 
 export const progressNet = {
     set: (classId, patch) => socket.emit('debugProgress', { classId, ...patch }),
     rankUp: (classId) => socket.emit('rankUp', { classId }),
+    gearGive: (set, level, rarity) => socket.emit('gearDebugGive', { set, level, rarity }),
 };
 
 /** Bảng tra (bậc, tộc, class) cho HUD */
@@ -115,6 +117,14 @@ export function renderProgressTool() {
         <div class="pt-section">Đội hình trong trận <span class="pt-cnt">${onIds.length}/4</span></div>
         <div class="pt-rosters">${roster}</div>
         ${onIds.map(id => heroCard(id, data.heroes[id])).join('')}
+        <div class="pt-section">🎒 Đồ thử <span class="pt-cnt">cấp ${gearLevel} · cam</span></div>
+        <div class="pt-segs">${[10, 30, 60].map(l => `<button class="pt-seg${l === gearLevel ? ' on' : ''}" style="--c:#fb923c" data-pt="gearLv" data-v="${l}">Cấp ${l}</button>`).join('')}</div>
+        <div class="pt-segs">
+            <button class="pt-seg" style="--c:#e5e7eb" data-pt="gear" data-v="">6 ô thường</button>
+            <button class="pt-seg" style="--c:#93c5fd" data-pt="gear" data-v="ho_ve">Bộ Hộ Vệ</button>
+            <button class="pt-seg" style="--c:#fbbf24" data-pt="gear" data-v="chien_luoc">Bộ Chiến Lược</button>
+            <button class="pt-seg" style="--c:#4ade80" data-pt="gear" data-v="lu_khach">Bộ Lữ Khách</button>
+        </div>
         ${showMsg ? `<div class="pt-msg ${msg.ok ? 'ok' : 'bad'}">${msg.text}</div>` : ''}`;
 }
 
@@ -128,6 +138,8 @@ function onClick(e) {
     else if (pt === 'rank') progressNet.set(id, { rank: Number(v) });
     else if (pt === 'preset') progressNet.set(id, { preset: Number(v) });
     else if (pt === 'rankUp') progressNet.rankUp(id);
+    else if (pt === 'gearLv') { gearLevel = Number(v); renderProgressTool(); }
+    else if (pt === 'gear') progressNet.gearGive(v || null, gearLevel, 4);
 }
 
 export function setupProgressTool() {

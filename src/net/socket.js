@@ -35,4 +35,13 @@ export const net = {
     campaignOpen: () => socket.emit('campaignOpen'),
     startStage: (data) => socket.emit('startStage', data),
     buyStamina: () => socket.emit('buyStamina'),
+    // 🎒 Trang bị + Lò rèn
+    gearOpen: () => socket.emit('gearOpen'),
+    gearEquip: (hero, itemId) => socket.emit('gearEquip', { hero, itemId }),
+    gearUnequip: (hero, slot) => socket.emit('gearUnequip', { hero, slot }),
+    gearLock: (itemId) => socket.emit('gearLock', { itemId }),
+    gearSalvage: (itemIds) => socket.emit('gearSalvage', { itemIds }),
+    gearEnhance: (itemId, charm) => socket.emit('gearEnhance', { itemId, charm }),
+    gearRefine: (itemId, line) => socket.emit('gearRefine', { itemId, line }),
+    gearDebugGive: (data) => socket.emit('gearDebugGive', data),
 };
