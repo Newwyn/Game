@@ -25,6 +25,7 @@ import { socket } from './net/socket.js';
 import { setupProgressTool } from './ui/progressTool.js';
 import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
+import { setupCampaign } from './ui/campaign.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
@@ -35,12 +36,19 @@ registerCombatEvents({
     onWaiting: (data) => showWaiting(data.message),
     onBattleStart: (data) => {
         resetMemberAuto();   // AUTO từng tướng: gửi lại lựa chọn đã nhớ cho trận mới
-        // Chế độ: ĐẤU -> ẩn mọi tool test (CSS body.mode-duel)
-        const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero';
+        // Chế độ: ĐẤU / CỐT TRUYỆN -> ẩn mọi tool test (CSS body.mode-duel)
+        const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero' || data.mode === 'campaign';
         document.body.classList.toggle('mode-duel', duel);
         if (duel) resetDebugToggles();
         applyStatsPreference();   // Đấu: ẩn bảng chỉ số mặc định (phím I để hiện, nhớ lựa chọn)
         enterBattleUI(data); updateHUD(data.players); applyPreferredSpeed();
+        if (data.mode === 'campaign') {
+            const badge = document.querySelector('.top-label');
+            if (badge) {
+                const st = data.stage;
+                badge.textContent = st ? `📖 ẢI ${st.no ?? ''} · ${(st.name ?? 'CỐT TRUYỆN').toUpperCase()}` : '📖 CỐT TRUYỆN';
+            }
+        }
         renderMemberToggles(data.classDefs, data.players?.[myId()]?.disabledClasses);
     },
     onSpeed: (speed) => updateSpeedButton(speed),
@@ -51,7 +59,9 @@ registerCombatEvents({
 setupProgressTool();
 // ⚔️ Chọn đội hình trước trận (1-4 nhân vật)
 setupSquadSelect();
-// 🏠 Chọn chế độ (Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
+// 📖 Chế độ Cốt truyện (chọn ải + kết quả)
+setupCampaign();
+// 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
 // Tool phe quái: cấp quái hiện tại
 socket.on('monsterLevel', (d) => {

@@ -550,6 +550,8 @@ body.selecting-squad #combat-hud, body.selecting-squad #controls-hint { opacity:
     transition: transform .15s, border-color .15s, box-shadow .15s;
 }
 .mm-card:hover { transform: translateY(-4px); }
+.mm-card.campaign { border-color: rgba(251, 191, 36, .45); box-shadow: 0 0 22px rgba(251, 191, 36, .12); }
+.mm-card.campaign:hover { border-color: #fde68a; box-shadow: 0 10px 32px rgba(251, 191, 36, .4); }
 .mm-card.test:hover { border-color: #14b8a6; box-shadow: 0 10px 30px rgba(20,184,166,.3); }
 .mm-card.duel:hover { border-color: #f59e0b; box-shadow: 0 10px 30px rgba(245,158,11,.35); }
 .mm-icon { font-size: 52px; }
@@ -696,3 +698,417 @@ body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: n
 .gem-slot.i { background: linear-gradient(160deg, #f0fdff, #67e8f9 45%, #0e7490); filter: drop-shadow(0 0 4px #67e8f9); }
 .gem-slot.b { background: linear-gradient(160deg, #faf5ff, #c084fc 45%, #5b21b6); filter: drop-shadow(0 0 4px #b784ff); }
 .tp-elem .tp-chip { font-size: 10px; padding: 4px 2px; }
+
+/* ============================================================
+   📖 CHẾ ĐỘ CỐT TRUYỆN (CAMPAIGN) — Chọn ải & Kết quả
+   ============================================================ */
+#campaign-screen {
+    display: none; position: fixed; inset: 0; z-index: 125; align-items: center; justify-content: center;
+    padding: clamp(6px, 1.4vh, 18px) clamp(8px, 1.6vw, 22px); box-sizing: border-box;
+    background: radial-gradient(ellipse at 50% 25%, rgba(30, 41, 80, .88), rgba(5, 8, 18, .96));
+    backdrop-filter: blur(8px); font-family: 'Outfit', sans-serif; color: #e2e8f0;
+    overflow: hidden;
+}
+
+.cp-container {
+    position: relative; display: flex; flex-direction: column; gap: clamp(8px, 1.2vh, 12px);
+    width: min(1220px, 100%); max-width: 100%; height: min(94vh, calc(100dvh - 16px));
+    background: rgba(15, 23, 42, 0.96); border: 1px solid rgba(251, 191, 36, .28); border-radius: 18px;
+    padding: clamp(10px, 1.5vh, 18px) clamp(12px, 1.8vw, 22px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .7), 0 0 32px rgba(251, 191, 36, .08);
+    overflow: hidden; box-sizing: border-box;
+}
+
+.cp-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding-bottom: clamp(6px, 1vh, 10px); border-bottom: 1px solid rgba(148, 163, 184, .18);
+    flex-shrink: 0;
+}
+
+.cp-title-row {
+    display: flex; align-items: center; gap: 12px; min-width: 0;
+}
+
+.cp-back-btn {
+    background: rgba(30, 41, 59, .9); border: 1.5px solid rgba(148, 163, 184, .45); color: #e2e8f0;
+    border-radius: 10px; padding: 8px 14px; min-height: 44px; font: 700 13.5px 'Outfit', sans-serif;
+    cursor: pointer; transition: border-color .15s, background .15s, transform .15s; flex-shrink: 0;
+}
+.cp-back-btn:hover { border-color: #fde68a; color: #fde68a; background: rgba(51, 65, 85, .9); transform: translateY(-1px); }
+
+.cp-title-text { min-width: 0; }
+.cp-title-text h1 {
+    margin: 0; font-size: clamp(16px, 2.2vh, 22px); letter-spacing: 2px; color: #fde68a;
+    text-shadow: 0 0 18px rgba(251, 191, 36, .35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cp-title-text p {
+    margin: 2px 0 0; font-size: clamp(11px, 1.35vh, 12.5px); color: #94a3b8;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.cp-resource-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+.cp-wallet-item {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; min-height: 38px;
+    background: rgba(30, 41, 59, .85); border: 1px solid rgba(148, 163, 184, .28); border-radius: 10px;
+    font-size: 13px;
+}
+.cp-wallet-item.gold { border-color: rgba(251, 191, 36, .4); }
+.cp-wallet-item.gold b { color: #fde68a; }
+.cp-wallet-item.diamond { border-color: rgba(56, 189, 248, .4); }
+.cp-wallet-item.diamond b { color: #7dd3fc; }
+.cp-wallet-item.stone { border-color: rgba(168, 85, 247, .4); }
+.cp-wallet-item.stone b { color: #d8b4fe; }
+.cp-res-icon { font-size: 15px; line-height: 1; }
+.cp-res-label { color: #94a3b8; font-size: 12px; font-weight: 600; }
+.cp-res-val { font-weight: 800; font-size: 14px; }
+
+.cp-stamina-box {
+    display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 11px;
+    background: rgba(30, 41, 59, .92); border: 1.5px solid rgba(34, 197, 94, .45); border-radius: 11px;
+}
+.cp-stamina-main {
+    display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.cp-stamina-val { color: #86efac; font-size: 14px; font-weight: 800; }
+.cp-stamina-timer {
+    font-size: 11.5px; color: #94a3b8; background: rgba(15, 23, 42, .75);
+    padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, .2);
+}
+.cp-stamina-timer.full { color: #4ade80; border-color: rgba(74, 222, 128, .3); }
+
+.cp-buy-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706); border: 1px solid #fde68a; color: #0f172a;
+    font: 800 13px 'Outfit', sans-serif; border-radius: 8px; padding: 6px 12px; min-height: 36px;
+    cursor: pointer; transition: transform .15s, filter .15s; flex-shrink: 0;
+}
+.cp-buy-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+/* Thông báo lỗi trên màn Cốt truyện */
+.cp-error-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: rgba(127, 29, 29, .82); border: 1.5px solid #f87171; color: #fecaca;
+    border-radius: 10px; padding: 8px 12px; font-size: 13.5px; font-weight: 600; flex-shrink: 0;
+}
+.cp-error-close {
+    background: transparent; border: 1px solid rgba(254, 202, 202, .45); color: #fecaca;
+    border-radius: 7px; min-width: 32px; min-height: 32px; cursor: pointer; font-weight: 800;
+}
+
+/* 3 tab độ khó */
+.cp-diff-tabs {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; flex-shrink: 0;
+}
+.cp-diff-tab {
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
+    padding: 8px 12px; min-height: 52px; border-radius: 12px; cursor: pointer; font-family: inherit;
+    background: rgba(30, 41, 59, .75); border: 1.5px solid rgba(148, 163, 184, .25); color: #cbd5e1;
+    transition: border-color .15s, background .15s, box-shadow .15s; text-align: left;
+}
+.cp-diff-tab:hover { border-color: rgba(253, 230, 138, .55); }
+.cp-diff-tab.active {
+    background: linear-gradient(135deg, rgba(251, 191, 36, .2), rgba(217, 119, 6, .12));
+    border-color: #fbbf24; color: #fff; box-shadow: 0 0 18px rgba(251, 191, 36, .22);
+}
+.cp-diff-tab.locked {
+    opacity: .68; background: rgba(15, 23, 42, .75); border-style: dashed;
+}
+.cp-diff-main {
+    display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 6px;
+    font-size: 14px;
+}
+.cp-diff-main b { color: #fde68a; }
+.cp-diff-tab.locked .cp-diff-main b { color: #94a3b8; }
+.cp-diff-cost {
+    font-size: 11.5px; font-weight: 800; color: #86efac;
+    background: rgba(22, 101, 52, .45); border: 1px solid rgba(74, 222, 128, .35);
+    padding: 1px 7px; border-radius: 999px;
+}
+.cp-diff-sub {
+    font-size: 11.5px; color: #94a3b8; line-height: 1.25;
+}
+
+/* Thân cuộn danh sách ải */
+.cp-scroll-body {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 14px; padding-right: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, .35) transparent;
+}
+.cp-scroll-body::-webkit-scrollbar { width: 6px; }
+.cp-scroll-body::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, .35); border-radius: 999px; }
+
+.cp-part-section {
+    background: rgba(2, 6, 23, .45); border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 14px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 9px;
+}
+.cp-branches-section {
+    border-color: rgba(45, 212, 191, .35); background: rgba(13, 42, 48, .28);
+}
+.cp-part-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.cp-part-header h3 {
+    margin: 0; font-size: 14.5px; color: #fde68a; letter-spacing: .5px;
+}
+.cp-part-header h3 small { color: #94a3b8; font-weight: 500; font-size: 12px; margin-left: 4px; }
+.cp-part-progress { font-size: 12px; color: #94a3b8; }
+.cp-part-progress b { color: #4ade80; }
+
+.cp-stage-grid {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
+}
+
+.cp-stage-card {
+    position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+    gap: 5px; padding: 9px 10px; min-height: 82px; border-radius: 11px; cursor: pointer;
+    font-family: inherit; text-align: left; color: #e2e8f0; min-width: 0;
+    background: linear-gradient(180deg, rgba(30, 41, 59, .92), rgba(15, 23, 42, .96));
+    border: 1.5px solid rgba(148, 163, 184, .28);
+    transition: transform .14s, border-color .14s, box-shadow .14s, opacity .14s;
+}
+.cp-stage-card.open {
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, .25), 0 6px 18px rgba(251, 191, 36, .16);
+}
+.cp-stage-card.cleared {
+    border-color: rgba(74, 222, 128, .55);
+    background: linear-gradient(180deg, rgba(20, 50, 42, .82), rgba(15, 23, 42, .95));
+}
+.cp-stage-card.locked {
+    opacity: .52; filter: grayscale(.45); border-color: rgba(100, 116, 139, .3);
+}
+.cp-stage-card:not(.locked):hover {
+    transform: translateY(-2px); border-color: #fde68a;
+    box-shadow: 0 8px 22px rgba(251, 191, 36, .25);
+}
+
+/* Viền nổi bật cho ải Trùm (boss 1 = trùm nhỏ, 2 = giữa chương, 3 = trùm cuối) */
+.cp-stage-card.boss.boss-mini {
+    border-width: 2px; border-color: #f59e0b;
+    background: linear-gradient(180deg, rgba(69, 39, 15, .88), rgba(15, 23, 42, .96));
+}
+.cp-stage-card.boss.boss-mid {
+    border-width: 2px; border-color: #f97316;
+    background: linear-gradient(180deg, rgba(88, 28, 20, .9), rgba(15, 23, 42, .96));
+    box-shadow: 0 0 16px rgba(249, 115, 22, .25);
+}
+.cp-stage-card.boss.boss-final {
+    border-width: 2px; border-color: #ef4444;
+    background: linear-gradient(180deg, rgba(105, 18, 32, .92), rgba(20, 14, 34, .98));
+    box-shadow: 0 0 20px rgba(239, 68, 68, .32);
+}
+
+.cp-stage-top {
+    display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 4px; flex-wrap: wrap;
+}
+.cp-stage-no {
+    font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px;
+}
+.cp-boss-tag {
+    font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 999px;
+    background: rgba(245, 158, 11, .22); color: #fde68a; border: 1px solid rgba(251, 191, 36, .45);
+}
+.cp-boss-tag.boss-mid { background: rgba(249, 115, 22, .25); color: #fed7aa; border-color: #fb923c; }
+.cp-boss-tag.boss-final { background: rgba(239, 68, 68, .28); color: #fecaca; border-color: #f87171; }
+
+.cp-stage-badge {
+    font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 999px; margin-left: auto;
+}
+.cp-stage-badge.cleared { background: rgba(34, 197, 94, .22); color: #86efac; border: 1px solid rgba(74, 222, 128, .45); }
+.cp-stage-badge.open { background: rgba(251, 191, 36, .22); color: #fde68a; border: 1px solid rgba(251, 191, 36, .5); }
+.cp-stage-badge.locked { background: rgba(71, 85, 105, .35); color: #cbd5e1; }
+
+.cp-stage-name {
+    font-size: 13.5px; font-weight: 800; color: #f8fafc; line-height: 1.25;
+    width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.cp-stage-meta {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    font-size: 11px; color: #94a3b8;
+}
+.cp-stage-hint {
+    font-size: 10.5px; color: #fcd34d; background: rgba(251, 191, 36, .1);
+    border-radius: 6px; padding: 2px 6px; width: 100%;
+}
+.cp-branch-empty {
+    font-size: 12.5px; color: #94a3b8; padding: 6px 4px; font-style: italic;
+}
+
+/* Hộp xác nhận mua thể lực ngay trên trang */
+.cp-confirm-backdrop {
+    position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+    background: rgba(2, 6, 23, .78); backdrop-filter: blur(4px); padding: 16px;
+}
+.cp-confirm-box {
+    width: min(400px, 92vw); background: rgba(15, 23, 42, .98);
+    border: 2px solid #fbbf24; border-radius: 16px; padding: 22px 24px;
+    text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, .85), 0 0 24px rgba(251, 191, 36, .25);
+    display: flex; flex-direction: column; gap: 10px;
+}
+.cp-confirm-box h3 { margin: 0; font-size: 20px; color: #fde68a; }
+.cp-confirm-question { margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #f8fafc; }
+.cp-confirm-meta { margin: 0; font-size: 13px; color: #94a3b8; }
+.cp-confirm-Meta b, .cp-confirm-meta b { color: #e2e8f0; }
+.cp-confirm-actions {
+    display: flex; gap: 10px; justify-content: center; margin-top: 8px;
+}
+.cp-btn-cancel, .cp-btn-confirm {
+    flex: 1; min-height: 44px; padding: 10px 16px; border-radius: 10px;
+    font: 800 14px 'Outfit', sans-serif; cursor: pointer;
+}
+.cp-btn-cancel {
+    background: rgba(30, 41, 59, .9); border: 1.5px solid rgba(148, 163, 184, .45); color: #cbd5e1;
+}
+.cp-btn-cancel:hover { border-color: #94a3b8; color: #fff; }
+.cp-btn-confirm {
+    background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #0f172a;
+    box-shadow: 0 6px 18px rgba(245, 158, 11, .4);
+}
+.cp-btn-confirm:hover { filter: brightness(1.1); }
+
+/* ---------- Màn kết quả trận Cốt truyện (stageResult) ---------- */
+#campaign-result {
+    display: none; position: fixed; inset: 0; z-index: 150; align-items: center; justify-content: center;
+    padding: 16px; box-sizing: border-box;
+    background: rgba(6, 10, 22, 0.88); backdrop-filter: blur(10px);
+    font-family: 'Outfit', sans-serif; color: #e2e8f0; overflow-y: auto;
+}
+.cp-result-card {
+    width: min(520px, 94vw); background: rgba(15, 23, 42, 0.97);
+    border: 2px solid rgba(251, 191, 36, .45); border-radius: 22px;
+    padding: clamp(20px, 3vh, 32px) clamp(18px, 3vw, 32px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .85), 0 0 36px rgba(251, 191, 36, .2);
+    display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+    animation: resultPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.cp-result-card.lose {
+    border-color: rgba(239, 68, 68, .5);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .85), 0 0 36px rgba(239, 68, 68, .2);
+}
+.cp-result-badge {
+    font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+    padding: 4px 14px; border-radius: 999px;
+    background: rgba(251, 191, 36, .18); color: #fde68a; border: 1px solid rgba(251, 191, 36, .45);
+}
+.cp-result-card.lose .cp-result-badge {
+    background: rgba(239, 68, 68, .18); color: #fca5a5; border-color: rgba(239, 68, 68, .45);
+}
+.cp-result-title {
+    margin: 0; font-size: clamp(28px, 4.5vh, 42px); font-weight: 900; letter-spacing: 2px;
+    color: #fde68a; text-shadow: 0 4px 24px rgba(251, 191, 36, .45);
+}
+.cp-result-card.lose .cp-result-title {
+    color: #f87171; text-shadow: 0 4px 24px rgba(239, 68, 68, .45);
+}
+.cp-result-sub { margin: 0; font-size: 14px; color: #94a3b8; }
+
+.cp-result-rewards {
+    width: 100%; background: rgba(2, 6, 23, .55); border: 1px solid rgba(148, 163, 184, .2);
+    border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.cp-result-rewards h3 {
+    margin: 0; font-size: 13px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px;
+}
+.cp-reward-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+}
+.cp-reward-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: rgba(30, 41, 59, .8); border: 1px solid rgba(148, 163, 184, .22); border-radius: 10px;
+    text-align: left;
+}
+.cp-rw-icon { font-size: 18px; }
+.cp-rw-name { font-size: 12px; color: #94a3b8; flex: 1; }
+.cp-rw-val { font-size: 14px; font-weight: 800; color: #fde68a; }
+
+.cp-first-clear-banner {
+    width: 100%; padding: 10px 14px; border-radius: 12px; font-size: 15px; font-weight: 800;
+    background: linear-gradient(135deg, rgba(56, 189, 248, .22), rgba(251, 191, 36, .22));
+    border: 1.5px solid #7dd3fc; color: #e0f2fe;
+    box-shadow: 0 0 18px rgba(56, 189, 248, .25);
+}
+
+.cp-leveled-box {
+    width: 100%; background: rgba(20, 83, 45, .3); border: 1px solid rgba(74, 222, 128, .4);
+    border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.cp-leveled-box h4 { margin: 0; font-size: 13px; color: #86efac; }
+.cp-leveled-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.cp-leveled-chip {
+    background: rgba(15, 23, 42, .8); border: 1px solid rgba(74, 222, 128, .45);
+    color: #bbf7d0; padding: 4px 10px; border-radius: 999px; font-size: 13px;
+}
+
+.cp-new-hero-banner {
+    width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+    padding: 12px 16px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, .28), rgba(245, 158, 11, .28));
+    border: 2px solid #fbbf24; box-shadow: 0 0 24px rgba(251, 191, 36, .35);
+}
+.cp-nh-icon { font-size: 34px; flex-shrink: 0; }
+.cp-nh-text { display: flex; flex-direction: column; gap: 2px; }
+.cp-nh-text b { font-size: 17px; color: #fde68a; }
+.cp-nh-text small { font-size: 12.5px; color: #e2e8f0; }
+
+.cp-refund-banner {
+    width: 100%; padding: 12px 16px; border-radius: 12px; font-size: 15px; font-weight: 800;
+    background: rgba(30, 41, 59, .85); border: 1.5px solid #38bdf8; color: #bae6fd;
+}
+
+.cp-result-actions { width: 100%; margin-top: 4px; }
+.cp-continue-btn {
+    width: 100%; min-height: 48px; padding: 12px 24px; border-radius: 12px;
+    background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #0f172a;
+    font: 900 16px 'Outfit', sans-serif; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, .45); transition: transform .15s, filter .15s;
+}
+.cp-continue-btn:hover { filter: brightness(1.08); transform: translateY(-2px); }
+
+/* Responsive cho màn nhỏ / điện thoại (390x844) */
+@media (max-width: 960px) {
+    .cp-stage-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+    #mode-menu { overflow-y: auto; align-items: flex-start; padding: 16px 10px; }
+    .mm-box { width: 100%; max-width: 100%; padding: 8px 6px; margin: auto 0; }
+    .mm-box h1 { font-size: 26px; letter-spacing: 3px; }
+    .mm-box p { margin: 4px 0 14px; font-size: 13px; }
+    .mm-row { gap: 12px; flex-direction: column; align-items: center; }
+    .mm-card { width: min(350px, 100%); min-height: 44px; padding: 14px 16px; gap: 6px; }
+    .mm-icon { font-size: 36px; }
+    .mm-card b { font-size: 18px; }
+    .mm-back { min-height: 44px; padding: 10px 20px; }
+
+    #campaign-screen { padding: 6px; }
+    .cp-container { height: calc(100dvh - 12px); max-height: calc(100dvh - 12px); padding: 10px; border-radius: 14px; }
+    .cp-header { flex-direction: column; align-items: stretch; gap: 8px; }
+    .cp-title-row { width: 100%; }
+    .cp-title-text h1 { font-size: 15px; letter-spacing: 1px; white-space: normal; line-height: 1.2; }
+    .cp-title-text p { font-size: 11px; white-space: normal; }
+    .cp-resource-bar { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .cp-wallet-item { padding: 5px 6px; font-size: 11.5px; justify-content: center; flex-wrap: wrap; gap: 3px; }
+    .cp-res-label { font-size: 10.5px; }
+    .cp-stamina-box { grid-column: 1 / -1; justify-content: space-between; padding: 6px 8px 6px 10px; }
+    .cp-buy-btn { min-height: 44px; min-width: 68px; padding: 8px 14px; font-size: 14px; }
+    .cp-back-btn { min-height: 44px; padding: 8px 12px; }
+    .cp-error-close { min-height: 44px; min-width: 44px; }
+
+    .cp-diff-tabs { grid-template-columns: 1fr; gap: 6px; }
+    .cp-diff-tab { min-height: 46px; padding: 7px 12px; }
+
+    .cp-stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .cp-stage-card { min-height: 78px; padding: 8px 9px; }
+    .cp-stage-name { font-size: 12.5px; }
+
+    .cp-reward-grid { grid-template-columns: 1fr; }
+
+    /* Squad select trên điện thoại: không tràn ngang, nút >= 44px */
+    .ss-foot { flex-wrap: wrap; gap: 8px; }
+    .ss-count { width: 100%; text-align: center; order: -1; }
+    .ss-quick, .ss-go { min-height: 44px; flex: 1 1 auto; justify-content: center; }
+    .ss-card { min-height: 44px; }
+}
+

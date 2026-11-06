@@ -6,6 +6,7 @@
 //        - Đấu với quái : đội của bạn vs 3 quái mặc định (Lv60)
 //        - Đấu với tướng: chọn đội 1P (bạn) và 2P (AI) rồi đấu
 import { net, socket } from '../net/socket.js';
+import { showCampaign } from './campaign.js';
 
 let root = null;
 let step = 'main';
@@ -21,6 +22,12 @@ function el() {
         const m = b.dataset.mode;
         if (m === 'duel') { step = 'duel'; render(); return; }
         if (m === 'back') { step = 'main'; render(); return; }
+        if (m === 'campaign') {
+            hide();
+            net.campaignOpen();
+            showCampaign();
+            return;
+        }
         hide();
         net.chooseMode(m);
     });
@@ -38,6 +45,7 @@ function render() {
         <h1>LEGEND OF CAPSULES</h1>
         <p>Chọn chế độ</p>
         <div class="mm-row">
+            ${card('campaign', '📖', 'Cốt truyện', 'Chương 1: Ngọn Lửa Gây Chiến · vượt ải nhận thưởng, mở khoá tính năng & anh hùng', 'campaign')}
             ${card('test', '🧪', 'Test', 'Đánh quái · có tool tăng cấp, bất tử, skill miễn phí… để thử nhân vật', 'test')}
             ${card('duel', '⚔️', 'Đấu', 'Không có tool · mọi nhân vật Lv60 SSS', 'duel')}
         </div>
@@ -53,7 +61,7 @@ function render() {
     </div>`;
 }
 
-function show() {
+export function showModeMenu() {
     step = 'main';
     render();
     el().style.display = 'flex';
@@ -64,6 +72,7 @@ function hide() {
 }
 
 export function setupModeMenu() {
-    socket.on('mainMenu', show);
+    socket.on('mainMenu', showModeMenu);
     socket.on('squadSelect', hide);
+    socket.on('campaignState', hide);
 }

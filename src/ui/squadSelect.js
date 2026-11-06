@@ -6,14 +6,70 @@
 //   Đấu với tướng      : 2 bảng 1P (bạn) và 2P (AI điều khiển)
 // Bấm thẻ để chọn / bỏ chọn, nút "Bỏ chọn tất cả" xoá hết (cả 1P lẫn 2P), nhớ lựa chọn lần trước (server lưu).
 // Phím: 1-9 chọn cho 1P, Enter = xác nhận.
-import { socket } from '../net/socket.js';
+import { net, socket } from '../net/socket.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 const portrait = (id) => PORTRAITS[`../assets/portraits/${id}.png`];
 const RANK_COLORS = ['#94a3b8', '#60a5fa', '#c084fc', '#fbbf24'];
-const MODE_TITLE = { test: '🧪 TEST · CHỌN ĐỘI HÌNH', duel_monster: '⚔️ ĐẤU VỚI QUÁI', duel_hero: '⚔️ ĐẤU VỚI TƯỚNG' };
+const MODE_TITLE = {
+    test: '🧪 TEST · CHỌN ĐỘI HÌNH',
+    duel_monster: '⚔️ ĐẤU VỚI QUÁI',
+    duel_hero: '⚔️ ĐẤU VỚI TƯỚNG',
+    campaign: '📖 CỐT TRUYỆN · CHỌN ĐỘI HÌNH',
+};
 
-let state = null;   // { heroes, sides: { p1:Set, p2:Set }, min, max, mode, dual }
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner'];
+const FALLBACK_HEROES = {
+    assassin: { id: 'assassin', name: 'Jessica', title: 'Lôi Ám', className: 'Sát Thủ', emoji: '🥷', color: '#1e293b', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1260, atk: 231 },
+    warrior: { id: 'warrior', name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 3360, atk: 158 },
+    archer: { id: 'archer', name: 'Lyra', title: 'Phong Tiễn', className: 'Cung Thủ', emoji: '🏹', color: '#0f766e', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1000, atk: 200 },
+    priest: { id: 'priest', name: 'Seraphine', title: 'Thánh Quang', className: 'Tu Sĩ', emoji: '✨', color: '#ca8a04', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1155, atk: 189 },
+    mage: { id: 'mage', name: 'Ignar', title: 'Hỏa Ngục', className: 'Phù Thủy', emoji: '🔥', color: '#b91c1c', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 998, atk: 231 },
+    reaper: { id: 'reaper', name: 'Zerith', title: 'U Minh', className: 'Sát Thủ', emoji: '💀', color: '#9f1239', race: 'Devil', raceEmoji: '😈', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1150, atk: 235 },
+    wrestler: { id: 'wrestler', name: 'Brakk', title: 'Cuồng Đấu', className: 'Chiến Binh', emoji: '🐉', color: '#b45309', race: 'Dragon', raceEmoji: '🐉', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 4600, atk: 180 },
+    dancer: { id: 'dancer', name: 'Nerissa', title: 'Thủy Vũ', className: 'Tu Sĩ', emoji: '🌊', color: '#0891b2', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1050, atk: 170 },
+    elementalist: { id: 'elementalist', name: 'Elarion', title: 'Tam Nguyên', className: 'Phù Thủy', emoji: '🔮', color: '#7c3aed', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1300, atk: 276 },
+    alchemist: { id: 'alchemist', name: 'Grix', title: 'Lục Độc', className: 'Phù Thủy', emoji: '🧪', color: '#65a30d', race: 'Goblin', raceEmoji: '👺', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 900, atk: 200 },
+    summoner: { id: 'summoner', name: 'Sylva', title: 'Lâm Linh', className: 'Triệu Hồi Sư', emoji: '🦌', color: '#16a34a', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 950, atk: 190 },
+};
+
+let lastProgress = null;
+let lastClassDefs = null;
+let lastCampaignPick = null;
+
+function buildHeroForCampaign(id, providedHero) {
+    const base = { ...(FALLBACK_HEROES[id] ?? { id, name: id, title: '', className: '', emoji: '⚔️', color: '#475569', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1000, atk: 150 }) };
+    const def = lastClassDefs?.[id];
+    if (def) {
+        base.name = def.name ?? base.name;
+        base.title = def.title ?? base.title;
+        base.className = def.className ?? base.className;
+        base.emoji = def.emoji ?? base.emoji;
+        base.color = def.color ?? base.color;
+        base.dmgType = def.dmgType ?? base.dmgType;
+    }
+    const ph = lastProgress?.heroes?.[id];
+    if (ph) {
+        base.level = ph.level ?? base.level;
+        base.rank = ph.rank ?? base.rank;
+        base.rankName = ph.rankName ?? base.rankName;
+        if (ph.stats) {
+            base.hp = ph.stats.maxHp ?? base.hp;
+            base.atk = Math.max(ph.stats.pAtk ?? 0, ph.stats.mAtk ?? 0) || base.atk;
+        }
+        const raceDef = lastProgress?.meta?.races?.[ph.race ?? def?.race];
+        if (raceDef) {
+            base.race = raceDef.name ?? base.race;
+            base.raceEmoji = raceDef.emoji ?? base.raceEmoji;
+        }
+    }
+    if (providedHero && typeof providedHero === 'object') {
+        Object.assign(base, providedHero);
+    }
+    return base;
+}
+
+let state = null;   // { heroes, sides: { p1:Set, p2:Set }, min, max, mode, dual, stageId?, diff?, stageLabel?, onBack? }
 let root = null;
 
 function el() {
@@ -55,9 +111,12 @@ function render() {
     const { min, max, dual, mode } = state;
     const n1 = state.sides.p1.size, n2 = state.sides.p2.size;
     const ok = n1 >= min && (!dual || n2 >= min);
-    const sub = mode === 'test' ? `Chọn ${min} – ${max} nhân vật ra trận`
+    const sub = mode === 'campaign'
+        ? `${state.stageLabel ? `${state.stageLabel} · ` : ''}Chọn ${min} – ${max} anh hùng đã sở hữu ra trận`
+        : mode === 'test' ? `Chọn ${min} – ${max} nhân vật ra trận`
         : mode === 'duel_monster' ? `Chọn ${min} – ${max} nhân vật · mọi nhân vật Lv60 SSS · quái Lv60 · không có tool`
         : `Mỗi bên ${min} – ${max} nhân vật · Lv60 SSS · 2P do AI điều khiển · không có tool`;
+    const goText = mode === 'campaign' ? 'Vào trận' : mode === 'test' ? 'Xác nhận vào trận' : 'Vào đấu';
     box.innerHTML = `
     <div class="ss-box${dual ? ' dual' : ''}">
         <div class="ss-head">
@@ -74,10 +133,10 @@ function render() {
         </div>` : grid('p1', false)}
         </div>
         <div class="ss-foot">
-            <button class="ss-quick" data-ss-back>← Chọn chế độ</button>
+            <button class="ss-quick" data-ss-back>← ${mode === 'campaign' ? 'Chọn ải' : 'Chọn chế độ'}</button>
             <span class="ss-count">${dual ? `🔵 1P: <b>${n1}</b>/${max} · 🔴 2P: <b>${n2}</b>/${max}` : `Đã chọn <b>${n1}</b> / ${max}`}</span>
             <button class="ss-quick" data-ss-clear ${n1 + (dual ? n2 : 0) ? '' : 'disabled'}>✕ Bỏ chọn tất cả</button>
-            <button class="ss-go" data-ss-go ${ok ? '' : 'disabled'}>⚔️ ${mode === 'test' ? 'Xác nhận vào trận' : 'Vào đấu'}</button>
+            <button class="ss-go" data-ss-go ${ok ? '' : 'disabled'}>⚔️ ${goText}</button>
         </div>
         ${state.error ? `<div class="ss-err">${state.error}</div>` : ''}
     </div>`;
@@ -93,10 +152,17 @@ function toggle(side, id) {
 
 function confirm() {
     if (!state) return;
-    const { min, dual } = state;
+    const { min, dual, mode } = state;
     if (state.sides.p1.size < min || (dual && state.sides.p2.size < min)) return;
     // giữ thứ tự đội hình chuẩn của server (đứng trước / sau)
     const list = (side) => state.heroes.map(h => h.id).filter(id => state.sides[side].has(id));
+    if (mode === 'campaign') {
+        const classes = list('p1');
+        lastCampaignPick = classes;
+        net.startStage({ id: state.stageId, diff: state.diff, classes });
+        hide();
+        return;
+    }
     socket.emit('confirmSquad', { classes: list('p1'), enemyClasses: dual ? list('p2') : undefined });
     hide();
 }
@@ -110,7 +176,13 @@ function onClick(e) {
         state.error = null;
         return render();
     }
-    if (e.target.closest('[data-ss-back]')) { hide(); socket.emit('backToMenu'); return; }
+    if (e.target.closest('[data-ss-back]')) {
+        const onBack = state?.mode === 'campaign' ? state.onBack : null;
+        hide();
+        if (onBack) { onBack(); return; }
+        socket.emit('backToMenu');
+        return;
+    }
     if (e.target.closest('[data-ss-go]')) confirm();
 }
 
@@ -122,13 +194,46 @@ function onKey(e) {
 }
 
 function show(data) {
+    const ownedSet = data.mode === 'campaign' && Array.isArray(data.owned) ? new Set(data.owned) : null;
+    const rawHeroes = Array.isArray(data.heroes) ? data.heroes : [];
+    const heroes = ownedSet ? rawHeroes.filter(h => ownedSet.has(h.id)) : rawHeroes;
+    const validIds = new Set(heroes.map(h => h.id));
+    const sel = (data.selected ?? []).filter(id => validIds.has(id)).slice(0, data.max ?? 4);
     state = {
-        heroes: data.heroes, min: data.min ?? 1, max: data.max ?? 4, mode: data.mode ?? 'test', dual: !!data.dual, error: null,
-        sides: { p1: new Set(data.selected), p2: new Set(data.enemySelected ?? data.selected) },
+        heroes, min: data.min ?? 1, max: data.max ?? 4, mode: data.mode ?? 'test', dual: !!data.dual, error: null,
+        stageId: data.stageId, diff: data.diff, stageLabel: data.stageLabel, onBack: data.onBack,
+        sides: { p1: new Set(sel.length ? sel : heroes.slice(0, data.max ?? 4).map(h => h.id)), p2: new Set(data.enemySelected ?? sel) },
     };
     render();
-    root.style.display = 'flex';
+    el().style.display = 'flex';
     document.body.classList.add('selecting-squad');
+}
+
+/** Mở bảng chọn đội cho chế độ Cốt truyện: chỉ hiện anh hùng trong `owned`, tối đa 4 */
+export function openCampaignSquadSelect({ id, diff, stageLabel, owned = ['assassin', 'warrior', 'priest'], heroes: providedHeroes, onBack }) {
+    const ownedSet = new Set(Array.isArray(owned) && owned.length ? owned : ['assassin', 'warrior', 'priest']);
+    const providedMap = Array.isArray(providedHeroes)
+        ? Object.fromEntries(providedHeroes.map(h => [h.id, h]))
+        : (providedHeroes ?? {});
+    const order = [
+        ...SQUAD_ORDER.filter(hid => ownedSet.has(hid)),
+        ...[...ownedSet].filter(hid => !SQUAD_ORDER.includes(hid)),
+    ];
+    const heroes = order.map(hid => buildHeroForCampaign(hid, providedMap[hid]));
+    const defaultPick = (lastCampaignPick ?? order).filter(hid => ownedSet.has(hid)).slice(0, 4);
+    show({
+        heroes,
+        owned: [...ownedSet],
+        selected: defaultPick.length ? defaultPick : order.slice(0, 4),
+        min: 1,
+        max: 4,
+        mode: 'campaign',
+        dual: false,
+        stageId: id,
+        diff,
+        stageLabel,
+        onBack,
+    });
 }
 
 function hide() {
@@ -139,8 +244,14 @@ function hide() {
 export const isSquadSelectOpen = () => !!root && root.style.display !== 'none';
 
 export function setupSquadSelect() {
+    socket.on('progressUpdate', (d) => { lastProgress = d; });
+    socket.on('battleStart', (d) => {
+        if (d?.classDefs) lastClassDefs = d.classDefs;
+        if (d?.mode && d.mode !== 'menu') hide();
+    });
     socket.on('squadSelect', show);
-    socket.on('squadSelectError', (d) => { if (state) { state.error = d.text; render(); root.style.display = 'flex'; } });
+    socket.on('squadSelectError', (d) => { if (state) { state.error = d.text; render(); el().style.display = 'flex'; } });
+    socket.on('campaignError', hide);
     socket.on('countdown', hide);
     socket.on('mainMenu', hide);
     window.addEventListener('keydown', onKey, true);
