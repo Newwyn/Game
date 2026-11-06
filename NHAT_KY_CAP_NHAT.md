@@ -5,6 +5,13 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — THỬ NGHIỆM CÁCH 1 (nhánh `thu/rok-xuong-mem`, chưa vào game): Rok bản 3 tranh từng khung, làm MƯỢT hơn
+- **Trang thử** `tools/thu-rok-khung.html` (http://localhost:5173/tools/thu-rok-khung.html): Rok hiện tại (8 khung) đứng cạnh Rok mới (16 khung).
+- **8 khung chen giữa** do Codex vẽ (`art/rok/sprite/sprite-attack-mid.png`): chỗ giật nhất (kiếm trên đầu -> kiếm chém xuống) giờ có 3 khung vung qua; thêm khung lấy đà, khung dư âm, khung thu kiếm. Atlas thử: `sprite_spec_thu.json` -> `rok_sprite_thu.webp` (2 khung nhấc chân được chỉnh `anchorX` cho khỏi trượt ngang).
+- **Nhịp mới:** giữ lâu ở thế lấy đà, vung rất nhanh, **khựng 0,07s khi trúng**, thu kiếm êm; nhún người + loé nhẹ + tia lửa + bụi + rung màn hình; **vệt chém hình trăng khuyết**.
+- **Đổi skin bằng màu trên chính tranh bản 3:** Gốc (xanh hoàng gia), Hồng Ngọc (đỏ), Lục Bảo (xanh lá), Hắc Kỵ Sĩ (tím + giáp tối). Mắt đổi màu theo skin (chung dải màu xanh với áo choàng).
+- Video so sánh: `Claude outputs/rok_khung_muot_so_sanh.mp4`.
+
 ## 06/11/2026 — THỬ NGHIỆM (nhánh `thu/rok-xuong-mem`, chưa vào game): Rok khung xương mềm + đổi skin / vũ khí
 - **Trang thử riêng** `tools/thu-rok-mem.html` (chạy `npm run dev` rồi mở http://localhost:5173/tools/thu-rok-mem.html). Game chính không đổi.
 - **Rok kiểu "xương mềm" (giống Spine):** dùng bộ tranh tách bộ phận bản 2 (áo đỏ, tóc nâu). Tóc, áo choàng, khăn **uốn cong** và **đung đưa theo quán tính**; động tác có **lấy đà, vượt quá rồi bật lại, khựng hình khi trúng**; chuyển động tác hoà dần, không giật.

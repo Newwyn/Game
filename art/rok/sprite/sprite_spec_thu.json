@@ -1,0 +1,61 @@
+{
+ "note": "THỬ NGHIỆM (tools/thu-rok-khung.html): tấm chém + 8 khung chen giữa do Codex vẽ (sprite-attack-mid.png). Tranh AI cua nguoi dung (giu nguyen, chi tach nen + can chan + co gian). idle/attack: PNG trong suot san (key alpha); con lai nen xanh, key matte (giu vien den manh cua kiem). scale: dua moi tam ve cung co (do bang kich thuoc dau + do trung khit dang thu the so voi idle), x0.85 cho nhe.",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "sheets": {
+  "idle": {
+   "file": "art/rok/sprite/sprite-idle.png",
+   "key": "alpha",
+   "scale": 0.85,
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "attack": {
+   "file": "art/rok/sprite/sprite-attack.png",
+   "key": "alpha",
+   "scale": 1.02,
+   "anchor": "heel",
+   "points": {
+    "4": {
+     "tip": [
+      1515,
+      420
+     ]
+    }
+   }
+  },
+  "attackmid": {
+   "file": "art/rok/sprite/sprite-attack-mid.png",
+   "scale": 1.02,
+   "groups": [
+    [
+     "mid",
+     8,
+     "heel"
+    ]
+   ],
+   "anchorX": {
+    "1": 201,
+    "2": 571,
+    "3": 923,
+    "4": 1262
+   }
+  }
+ },
+ "out": "src/assets/sprites/rok_sprite_thu",
+ "meta": "src/characters/soft/rokSpriteThu.json",
+ "format": "webp"
+}
