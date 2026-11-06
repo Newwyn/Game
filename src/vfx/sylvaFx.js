@@ -10,9 +10,6 @@ import deerMeta from '../characters/sprite/deerSprite.json';
 import { GROUND_Y, gameNow, gameTimeout } from '../config.js';
 import fxUrl from '../assets/sprites/sylva_fx2.webp';
 import FXM from './sylvaFx2.json';
-import pxUrl from '../assets/sprites/sylva_px.png';
-import PXM from './sylvaPx.json';
-import { pixelMode } from '../core/scene.js';
 import { makeFlipbook, FLOOR as FB_FLOOR, loopFrame } from './flipbook.js';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture,
@@ -29,11 +26,8 @@ const GOLD_WARM = 0xfacc15;
 const ARMOR_RED = 0xef4444;
 
 // Hiệu ứng vẽ tay (atlas sylva_fx2: art/sylva/fx2/PROMPTS_FX.md, tools/fx_grid_pack.py art/sylva/fx2/fx2_spec.json)
-//   Chế độ Pixel (phím X / ?pixel=1|2): nhóm nào có bản pixel (atlas sylva_px — pixelfx, tools/pixelfx_pack.py art/sylva/pixel/pixel_spec.json)
-//   thì dùng bản pixel, còn lại dùng tranh vẽ tay. Cùng tên nhóm -> mọi hàm bên dưới giữ nguyên.
 const FBH = makeFlipbook(fxUrl, FXM);
-const FBP = pixelMode.level ? makeFlipbook(pxUrl, PXM, { pixel: true }) : null;
-const fbOf = (g) => (FBP && PXM.groups[g] ? FBP : FBH);
+const fbOf = () => FBH;
 const FB = {
     count: (g) => fbOf(g).count(g),
     frames: (g, h, o) => { const fb = fbOf(g), m = fb.frames(g, h, o); m.userData.fb = fb; return m; },

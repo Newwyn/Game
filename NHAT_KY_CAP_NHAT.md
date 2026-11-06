@@ -5,6 +5,12 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — Bỏ chế độ Đồ họa PIXEL, Ignar + Sylva về lại tranh vẽ tay
+- Chốt phong cách chung **tranh vẽ tay bản 3** cho cả đội: Ignar và hiệu ứng Ignar / Sylva luôn dùng bản vẽ tay.
+- Bỏ nút **🎨 Đồ họa** trong bảng Tạm dừng và tham số `?pixel=` trên đường dẫn. Máy nào trước đây đã bật Pixel cũng tự về vẽ tay.
+- Gỡ 6 file tranh pixel khỏi game (game nhẹ hơn ~1,3 MB). **Tranh gốc pixel vẫn giữ** ở `art/ignar/pixel`, `art/sylva/pixel`, `art/pixel_fx_src` + công cụ `tools/pixel_snap.py`, `tools/pixelfx_pack.py` (cần thì lấy lại từ lịch sử git).
+- Đã thử (bấm thật): máy đã lưu Pixel + `?pixel=1` → vào Đấu với tướng, đội Rok / Seraphine / Ignar / Sylva: Ignar, Sylva tranh vẽ tay, không lỗi; bảng Tạm dừng không còn nút Đồ họa. Build không lỗi.
+
 ## 06/11/2026 — Trận đấu DỄ NHÌN hơn (áp cho mọi nhân vật, không vẽ thêm gì)
 - **Chế độ Đấu ẩn bảng chỉ số mặc định** (trước chỉ ẩn bảng tool, bảng chỉ số vẫn che 1/5 màn hình). Phím **I** vẫn hiện / ẩn, và game **nhớ lựa chọn riêng cho Test và Đấu**. Chế độ Test vẫn hiện sẵn như cũ.
 - **Số sát thương gọn:** số trúng cùng một người xếp thành CỘT (số mới đẩy số cũ lên, không đè nhau); số thường vừa, **chí mạng to + nảy**; số phụ (BLOCK, khiên, MISS...) nhỏ và mờ hơn; tối đa 28 số cùng lúc.

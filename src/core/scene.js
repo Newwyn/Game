@@ -25,30 +25,12 @@ scene.background = createSkyTexture();
 export const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
 // Vị trí camera do core/cameraRig.js điều khiển (góc chéo cố định bám theo nhân vật)
 
-// ------------------------------------------------------------
-// ĐỒ HỌA PIXEL: nhân vật / hiệu ứng có bản pixel art (Ignar; hiệu ứng Sylva) dùng bản đó, lọc NEAREST (ô vuông sắc) ở độ phân giải
-//   đầy đủ (bản rõ nhất). Chọn trong bảng Tạm dừng (nút 🎨 Đồ họa — tải lại trang) hoặc ?pixel=0|1 trên URL; nhớ trong trình duyệt.
-// ------------------------------------------------------------
-function readPixelLevel() {
-    try {
-        const q = new URLSearchParams(location.search).get('pixel');
-        if (q != null) { localStorage.setItem('pixelMode', +q ? '1' : '0'); return +q ? 1 : 0; }
-        return +(localStorage.getItem('pixelMode') ?? 0) ? 1 : 0;   // bản cũ lưu 1 / 2 -> đều là Pixel
-    } catch { return 0; }
-}
-export const pixelMode = { level: readPixelLevel() };
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 // Màn hình độ phân giải cao (laptop chỉnh 150-200%): vẽ tối đa 1,5 điểm ảnh / điểm màn hình — số điểm ảnh phải tô giảm tới ~44%,
 // nhìn gần như không khác (nhân vật / hiệu ứng là tranh, không phải chữ nhỏ)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-/** Đổi đồ họa Vẽ tay (0) / Pixel (1), nhớ lại; tranh pixel nạp lúc tải trang -> người gọi tải lại trang */
-export function setPixelLevel(level) {
-    pixelMode.level = level ? 1 : 0;
-    try { localStorage.setItem('pixelMode', String(pixelMode.level)); } catch { /* chế độ riêng tư */ }
-    return pixelMode.level;
-}
 /** Giữ shader đã biên dịch suốt phiên chơi. Mặc định three.js xoá shader khi vật liệu cuối cùng dùng nó bị huỷ (hiệu ứng tan)
  *  -> lần sau hiệu ứng đó hiện lại phải BIÊN DỊCH LẠI giữa trận (Windows / ANGLE: 50-200ms mỗi lần = giật). Đánh dấu "đang dùng"
  *  thêm 1 lần cho mỗi shader để không bao giờ bị xoá (số shader có hạn, ~20-30). Gọi sau mỗi lần vẽ. */

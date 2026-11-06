@@ -11,18 +11,12 @@
 import * as THREE from 'three';
 import fxUrl from '../assets/sprites/ignar_fx2.webp';
 import FX from './ignarFx2.json';
-import pxUrl from '../assets/sprites/ignar_fx_px.png';
-import PXM from './ignarFxPx.json';
-import { pixelMode } from '../core/scene.js';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark, spawnShockwave, fxBudget } from './vfx.js';
 
 import { makeFlipbook, FLOOR, loopFrame, weighted, fadeInOut } from './flipbook.js';
 
-// Chế độ Pixel (phím X / ?pixel=1|2): nhóm nào có bản pixel (atlas ignar_fx_px — pixelfx, tools/pixelfx_pack.py art/ignar/pixel/fx_spec.json,
-//   cùng tên + cùng SỐ KHUNG) thì dùng bản pixel, còn lại tranh vẽ tay -> mọi hàm bên dưới giữ nguyên.
 const FBH = makeFlipbook(fxUrl, FX);
-const FBP = pixelMode.level ? makeFlipbook(pxUrl, PXM, { pixel: true }) : null;
-const fbOf = (g) => (FBP && PXM.groups[g] ? FBP : FBH);
+const fbOf = () => FBH;
 const FB = {
     count: (g) => fbOf(g).count(g),
     frames: (g, h, o) => { const fb = fbOf(g), m = fb.frames(g, h, o); m.userData.fb = fb; return m; },
@@ -369,7 +363,7 @@ export function makeFireGuardian() {
     glow.position.y = 0.2;
     const body = fxFrames('guard', H);
     g.add(glow, body);
-    const tip = (body.userData.fb === FBP ? PXM : FX).groups.guard.tip ?? [80, 0];   // điểm bàn tay theo atlas đang dùng (pixel / vẽ tay)
+    const tip = FX.groups.guard.tip ?? [80, 0];   // điểm bàn tay trên tranh Hộ Vệ
     const u = body.userData.fx.u;
     let seq = null, t = 0, appear = 0;
     const play = (steps) => { seq = { steps, i: 0, left: steps[0][1] }; setFx(body, steps[0][0]); };
