@@ -3,6 +3,8 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const P = require('./progression'); // Level · Bậc · Tộc · chỉ số riêng class · cấp kỹ năng
+const C = require('./game/campaign.js');   // Cốt truyện: mở khoá ải, thưởng, sở hữu anh hùng
+const ST = require('./game/stamina.js');   // Thể lực
 
 const app = express();
 const server = http.createServer(app);
@@ -672,17 +674,23 @@ function monsterScale(level) {
     out.crit = 1 + (L - 1) * 0.004;   // chí mạng / chính xác / xuyên tăng nhẹ
     return (_mScale[L] = out);
 }
-function createMonsterSquad(level = 1) {
+/**
+ * layout: [[classId, x, z], ...] (mặc định 3 quái) hoặc [{ classId, name, x, z, boss }] (ải Cốt truyện — name hiện theo truyện)
+ * opts.mul: nhân máu + tấn công (độ khó) · opts.bossHp: nhân thêm máu cho quái có boss: true
+ */
+function createMonsterSquad(level = 1, layout = MONSTER_SQUAD, opts = {}) {
     const sc = monsterScale(level);
     const rank = monsterRankFor(level);
-    return MONSTER_SQUAD.map(([classId, x, z]) => {
+    const mul = opts.mul ?? 1;
+    return layout.map((e) => {
+        const { classId, x, z, name, boss } = Array.isArray(e) ? { classId: e[0], x: e[1], z: e[2] } : e;
         const def = CLASS_DEFS[classId];
-        const hp = Math.round(def.maxHp * sc.maxHp);
+        const hp = Math.round(def.maxHp * sc.maxHp * mul * (boss ? (opts.bossHp ?? 1) : 1));
         return {
-            classId, name: def.name, emoji: def.emoji, color: def.color,
+            classId, name: name ?? def.name, emoji: def.emoji, color: def.color, boss: !!boss,
             level, rank, rankName: P.RANKS[rank].name,
             hp, maxHp: hp, mp: 0, maxMp: def.maxMp,
-            pAtk: Math.round(def.pAtk * sc.atk), mAtk: Math.round(def.mAtk * sc.atk),
+            pAtk: Math.round(def.pAtk * sc.atk * mul), mAtk: Math.round(def.mAtk * sc.atk * mul),
             pDef: Math.round(def.pDef * sc.pDef), mDef: Math.round(def.mDef * sc.mDef),
             crit: Math.round(def.crit * sc.crit), critDmg: def.critDmg, acc: Math.round(def.acc * Math.min(1.15, sc.crit)), dodge: def.dodge,
             pen: Math.round(def.pen * sc.crit), block: def.block, lifesteal: def.lifesteal,
@@ -693,16 +701,31 @@ function createMonsterSquad(level = 1) {
         };
     });
 }
+/** Cốt truyện: đội quái theo ải + độ khó. Ải trùm: quái monster_tank ĐẦU TIÊN trong danh sách là trùm (máu ×BOSS_HP) */
+function createStageSquad({ id, diff }) {
+    const st = C.findStage(id);
+    const d = C.DIFF[diff];
+    const level = (st.level ?? st.baseNo ?? 1) + d.lv;
+    let bossMarked = false;
+    const layout = st.enemies.map(e => {
+        const boss = !!st.boss && !bossMarked && e.classId === 'monster_tank';
+        if (boss) bossMarked = true;
+        return { ...e, boss };
+    });
+    return createMonsterSquad(level, layout, { mul: d.mul, bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
+}
 /** Chế độ ĐẤU: mọi nhân vật Lv60 SSS */
 const MAX_HEROES = () => Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: P.MAX_LEVEL, rank: P.MAX_RANK }]));
 /** Đội hình phe quái / phe 2P theo chế độ phòng */
 function enemySquadFor(room) {
     if (room.mode === 'duel_hero') return createSquad('right', room.enemyDisabled ?? [], MAX_HEROES());
+    if (room.mode === 'campaign') return createStageSquad(room.stage);
     return createMonsterSquad(room.mode === 'test' ? (room.monsterLevel ?? 1) : P.MAX_LEVEL);
 }
 /** Đội hình phe mình theo chế độ phòng */
 function mySquadFor(room, p) {
-    return createSquad(p.side, p.disabledClasses, room.mode === 'test' ? progressOf(p.progressKey).heroes : MAX_HEROES());
+    const own = room.mode === 'test' || room.mode === 'campaign';   // Test / Cốt truyện: cấp + bậc thật của người chơi
+    return createSquad(p.side, p.disabledClasses, own ? progressOf(p.progressKey).heroes : MAX_HEROES());
 }
 
 function createSquad(side, disabled = [], heroes = null) {
@@ -758,14 +781,18 @@ function pickToDisabled(pick) {
 }
 function squadSelectPayload(key, mode = 'test') {
     const pr = progressOf(key);
-    const duel = mode !== 'test';
-    const disabled = pickToDisabled(duel ? pr.duelPick : pr.squadPick);
+    const campaign = mode === 'campaign';   // Cốt truyện: chỉ anh hùng đã sở hữu, cấp / bậc thật
+    const duel = mode !== 'test' && !campaign;
+    const disabled = pickToDisabled(campaign ? pr.campaignPick : duel ? pr.duelPick : pr.squadPick);
     const enemyDisabled = pickToDisabled(pr.duelEnemyPick);
+    const pool = campaign ? SQUAD_ORDER.filter(c => pr.owned.includes(c)) : SQUAD_ORDER;
+    let selected = pool.filter(c => !disabled.includes(c));
+    if (campaign && !selected.length) selected = pool.slice(0, MAX_SQUAD);
     return {
         min: 1, max: MAX_SQUAD, mode, dual: mode === 'duel_hero',
-        selected: SQUAD_ORDER.filter(c => !disabled.includes(c)),
+        selected,
         enemySelected: SQUAD_ORDER.filter(c => !enemyDisabled.includes(c)),
-        heroes: SQUAD_ORDER.map(id => {
+        heroes: pool.map(id => {
             const def = CLASS_DEFS[id], h = duel ? { level: P.MAX_LEVEL, rank: P.MAX_RANK } : pr.heroes[id];
             const st = P.computeStats(def, h);
             return {
@@ -782,7 +809,29 @@ function progressOf(key) {
     const pr = PROGRESS[key] ??= P.defaultProgress(HERO_IDS());
     for (const id of HERO_IDS()) pr.heroes[id] ??= { level: 1, rank: 0, exp: 0 };
     pr.items ??= {};
+    C.ensureCampaign(pr, Date.now());   // save cũ: bổ sung ví, thể lực, anh hùng sở hữu, tiến độ Cốt truyện
     return pr;
+}
+/** Gói dữ liệu màn chọn ải (thể lực hồi theo thời gian thật trước khi gửi) */
+function campaignPayload(pr, key) {
+    const now = Date.now();
+    ST.regen(pr.stamina, now);
+    const st = pr.stamina;
+    const nextInSec = st.value >= ST.MAX ? 0 : Math.max(1, Math.ceil((ST.REGEN_SEC * 1000 - (now - st.lastAt)) / 1000));
+    return { chapter: C.chapterState(pr), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, features: [...C.features(pr)],
+        squad: key ? squadSelectPayload(key, 'campaign') : undefined };   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
+}
+/** Kết thúc ải Cốt truyện (thắng / thua / hoà / bỏ trận) — chỉ áp 1 lần mỗi trận */
+function finishStage(room, win) {
+    if (room.mode !== 'campaign' || !room.stage || room.stageApplied) return;
+    room.stageApplied = true;
+    const { id, diff, classes, key, socketId } = room.stage;
+    const pr = progressOf(key);
+    const res = C.applyResult(pr, { id, diff, classes, win }, P, Date.now());
+    P.saveAll(PROGRESS);
+    const st = C.findStage(id);
+    io.to(socketId).emit('stageResult', { ...res, stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
+        wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Điền số liệu vào mô tả thiên phú: {value%} (tỉ lệ ×100) · {value‰} (phần nghìn -> %) · {key} (số thường) */
 function fillTalentDesc(desc, r) {
@@ -1596,6 +1645,7 @@ io.on('connection', (socket) => {
     socket.on('backToMenu', () => {
         const room = rooms[socket.roomId];
         if (!room || !room.players[socket.id]) return;
+        finishStage(room, false);   // đang đánh ải Cốt truyện mà về Menu = bỏ trận (hoàn chi phí − 1)
         stopLoop(room);
         room.status = 'menu';
         room.winner = null;
@@ -1642,6 +1692,54 @@ io.on('connection', (socket) => {
         startBattleLoop(socket.roomId);
     });
 
+    // ---------- CỐT TRUYỆN (chương 1): màn chọn ải · vào ải · mua thể lực ----------
+    socket.on('campaignOpen', () => {
+        const room = rooms[socket.roomId];
+        if (!room || !room.players[socket.id]) return;
+        socket.emit('campaignState', campaignPayload(progressOf(socket.progressKey), socket.progressKey));
+    });
+    socket.on('buyStamina', () => {
+        const pr = progressOf(socket.progressKey);
+        ST.regen(pr.stamina, Date.now());
+        if (!ST.buy(pr.stamina, pr.wallet)) return socket.emit('campaignError', { text: `Cần ${ST.BUY.diamond} Kim Cương để mua thể lực` });
+        P.saveAll(PROGRESS);
+        socket.emit('campaignState', campaignPayload(pr, socket.progressKey));
+    });
+    socket.on('startStage', (data = {}) => {
+        const room = rooms[socket.roomId];
+        const player = room?.players[socket.id];
+        if (!room || !player) return;
+        // chống bấm 2 lần: trận đang đếm ngược / đang đánh (chưa phân thắng thua) thì bỏ qua
+        if (['starting', 'active', 'paused'].includes(room.status) && !room.winner) return;
+        const pr = progressOf(socket.progressKey);
+        const now = Date.now();
+        const classes = [...new Set((data.classes ?? []).filter(c => SQUAD_ORDER.includes(c)))];
+        const chk = C.canStart(pr, { id: data.id, diff: data.diff, classes }, now);
+        if (!chk.ok) return socket.emit('campaignError', { text: chk.why });
+        if (!ST.trySpend(pr.stamina, ST.COST[data.diff], now)) return socket.emit('campaignError', { text: 'Không đủ thể lực' });
+        pr.campaignPick = classes;   // nhớ đội hình lần sau
+        P.saveAll(PROGRESS);
+        stopLoop(room);
+        room.mode = 'campaign';
+        room.stage = { id: data.id, diff: data.diff, classes, key: socket.progressKey, socketId: socket.id };
+        room.stageApplied = false;
+        player.disabledClasses = pickToDisabled(classes);
+        const npc = Object.values(room.players).find(p => p !== player);
+        player.squad = mySquadFor(room, player);
+        if (npc) { npc.squad = enemySquadFor(room); npc.autoMode = false; npc.debugGodMode = false; }
+        player.debugNoMana = false; player.debugGodMode = false; room.enemyGodMode = false;   // Cốt truyện: không có tool
+        room.pending = [];
+        room.status = 'starting';
+        room.countdown = 3;
+        room.lastTick = Date.now();
+        room.winner = null;
+        const st = C.findStage(data.id);
+        io.to(socket.roomId).emit('battleStart', { roomId: socket.roomId, players: room.players, classDefs: CLASS_DEFS, mode: 'campaign',
+            stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff } });
+        socket.emit('memberToggles', { disabled: player.disabledClasses });
+        startBattleLoop(socket.roomId);
+    });
+
     socket.on('togglePause', () => {
         const roomId = socket.roomId;
         if (!roomId || !rooms[roomId]) return;
@@ -1662,6 +1760,14 @@ io.on('connection', (socket) => {
         const roomId = socket.roomId;
         if (!roomId || !rooms[roomId]) return;
         const room = rooms[roomId];
+        if (room.mode === 'campaign') {
+            // Cốt truyện: "Chơi lại" không miễn phí thể lực -> tính bỏ trận, người chơi chọn ải lại từ màn chọn ải
+            stopLoop(room);
+            finishStage(room, false);
+            room.status = 'menu';
+            io.to(roomId).emit('pauseState', { paused: false, isBotMatch: room.isBotMatch });
+            return;
+        }
         
         if (room.interval) {
             clearInterval(room.interval);
@@ -1696,6 +1802,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         if (waitingPlayer === socket.id) waitingPlayer = null;
         if (socket.roomId && rooms[socket.roomId]) {
+            finishStage(rooms[socket.roomId], false);   // thoát giữa ải Cốt truyện = bỏ trận
             if (rooms[socket.roomId].interval) {
                 clearInterval(rooms[socket.roomId].interval);
             }
@@ -5548,12 +5655,14 @@ function checkWinCondition(roomId) {
     if (dead.length >= 2) {
         room.winner = 'draw';
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
+        finishStage(room, false);   // Cốt truyện: hoà = thua
         return;
     }
     const loserId = dead[0];
     const winnerId = ids.find(id => id !== loserId);
     room.winner = winnerId;
     io.to(roomId).emit('battleEnd', { winnerId, loserId });
+    finishStage(room, !room.players[winnerId]?.isNPC);
 }
 
 server.listen(PORT, () => {

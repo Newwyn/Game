@@ -142,7 +142,7 @@
 **Interfaces:**
 - Consumes: Task 2–5.
 - Produces (sự kiện socket):
-  - client → server `campaignOpen` → server emit `campaignState` `{ chapter: chapterState(pr), wallet, stamina: { value, max: 360, nextInSec }, owned, features: [...] }`.
+  - client → server `campaignOpen` → server emit `campaignState` `{ chapter: chapterState(pr), wallet, stamina: { value, max: 360, nextInSec }, owned, features: [...], squad }` — `squad` = dữ liệu bảng chọn đội giống sự kiện `squadSelect` (mode `'campaign'`, chỉ anh hùng sở hữu, cấp / bậc thật, `selected` = đội lần trước).
   - client → server `startStage` `{ id, diff, classes }` → nếu `!canStart` emit `campaignError { text }`; nếu ok: trừ thể lực, `room.mode = 'campaign'`, `room.stage = { id, diff, classes }`, dựng đội, emit `battleStart` như `confirmSquad` (kèm `mode: 'campaign'`, `stage: { id, no, name, diff }`), `startBattleLoop`.
   - khi trận kết thúc trong `checkWinCondition` (và khi `backToMenu` lúc đang đánh): nếu `room.mode === 'campaign'` và chưa áp → `applyResult` (thua khi hoà / bỏ trận) → `P.saveAll` → emit `stageResult` (kết quả `applyResult` + `wallet`, `stamina`).
   - client → server `buyStamina` → `stamina.buy` → emit `campaignState`.
