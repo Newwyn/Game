@@ -85,7 +85,8 @@
 - Kim Cương miễn phí phải **đủ** để người không nạp vẫn mua được anh hùng mới sau vài tuần chơi.
 
 ## 8. Thể lực **(đã chốt có thể lực; chi tiết là đề xuất)**
-- Tự hồi theo thời gian (**đề xuất** 1 điểm / 5 phút), mua thêm bằng Kim Cương.
+- **(đã chốt)** Tối đa **360**, tự hồi **1 điểm / 5 phút**, mua thêm bằng Kim Cương (50 Kim Cương → +60).
+- **(đã chốt)** Mỗi trận tốn **Cốt truyện 4 · Khó 6 · Địa ngục 10**; thua / bỏ trận hoàn lại (chi phí − 1).
 - Tốn thể lực: **ải cốt truyện** (Cốt truyện < Khó < Địa ngục), **hầm ngục đồ bộ**. **(đề xuất)** đánh thua chỉ mất một ít.
 - **Không** tốn: bản đồ thế giới (đề xuất); **hầm ngục nhẫn / dây chuyền** tính theo **lượt mỗi ngày** (đề xuất 3 lượt, mua thêm bằng Kim Cương).
 

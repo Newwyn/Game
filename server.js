@@ -60,7 +60,7 @@ const CLASS_DEFS = {
     // Rok (Thiết Hộ) — class CHIẾN BINH: khiên lớn, đứng đầu hàng giữ quái, máu & thủ cao, đánh chậm
     warrior: {
         name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569', dmgType: 'physical',
-        classGroup: 'warrior', race: 'dragon',
+        classGroup: 'warrior', race: 'human',
         maxHp: 3200, maxMp: 5000, pAtk: 150, mAtk: 0, pDef: 220, mDef: 160,
         crit: 80, critDmg: 500, acc: 1000, dodge: 50, pen: 50, block: 250, lifesteal: 0,
         threat: 100,
