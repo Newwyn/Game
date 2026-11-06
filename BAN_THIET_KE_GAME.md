@@ -28,6 +28,11 @@
 - Mỗi ải **3 độ khó: Cốt truyện → Khó → Địa ngục**.
 - **(đề xuất)** Quét nhanh ải đã đánh qua ở mức tốt nhất (vẫn tốn thể lực).
 
+### 3.3 Phó bản 20 ải (mỗi tộc 1 phó bản cốt truyện) **(đã chốt)**
+- **20 ải**: 1–4 làm quen → **5 trùm nhỏ** → 6–9 → **10 trùm giữa chương** (mở tính năng mới) → 11–14 → **15 trùm nhỏ** → 16–19 → **20 trùm cuối tộc**.
+- **Khó** mở khi qua ải đó ở mức Cốt truyện; **Địa ngục** mở khi qua **hết 20 ải mức Khó**.
+- **Nhánh ải**: mỗi phó bản **3–5 nhánh**, **mở bằng việc làm ngoài bản đồ thế giới** (giải câu đố, giúp NPC, tìm vật phẩm ẩn). Thưởng: **mở tính năng** (VD lò rèn, quán ăn), **anh hùng gia nhập** (VD Lyra), **cốt truyện ẩn** (manh mối Thất Thánh, tộc cổ xưa).
+
 ## 4. Cốt truyện
 - **(đã chốt)** **Chiến tranh giữa các chủng tộc** — tộc nào cũng muốn mạnh nhất. Song song có **những người muốn hòa bình**, cùng phát triển, khám phá thế giới.
 - **(đã chốt)** Phản diện: **thần thánh** và **phản thần** — **không ác tuyệt đối**; có quy luật, mong muốn riêng nên vô tình thành phản diện.
@@ -42,7 +47,7 @@
 - Đoạn mở màn dùng làm **video giới thiệu game** được.
 
 ### 4.2 Chương 1 **(đã chốt)**
-- Bắt đầu ở **tộc Người**. **(đề xuất)** khoảng 5–10 ải.
+- Bắt đầu ở **tộc Người** = phó bản 20 ải đầu tiên (mục 3.3).
 
 ## 5. Chủng tộc
 | Tộc | Chỉ số tộc | Đặc tính | Anh hùng |
@@ -69,6 +74,14 @@
 ## 7. Quay thưởng (gacha) & cửa hàng **(đã chốt)**
 - Gacha **chỉ** cho **vũ khí độc quyền (unique)** và **thời trang**.
 - Thời trang: có loại **mua thẳng**, có loại **phải quay**.
+
+## 7b. Tiền tệ **(đã chốt)**
+| | Vàng | Kim Cương |
+|---|---|---|
+| Độ hiếm | Phổ biến | Hiếm — chủ yếu **nạp** |
+| Kiếm ở đâu | Ải, **bản đồ thế giới**, bán đồ | Nạp; miễn phí một ít: lần đầu qua ải, rương ẩn / câu đố trên **bản đồ thế giới**, thành tựu, nhiệm vụ ngày |
+| Dùng để | Phí cường hoá, phí tinh luyện, cửa hàng NPC, quán ăn | Mua anh hùng, quay thưởng, thể lực, thêm lượt hầm ngục nhẫn |
+- Kim Cương miễn phí phải **đủ** để người không nạp vẫn mua được anh hùng mới sau vài tuần chơi.
 
 ## 8. Thể lực **(đã chốt có thể lực; chi tiết là đề xuất)**
 - Tự hồi theo thời gian (**đề xuất** 1 điểm / 5 phút), mua thêm bằng Kim Cương.
@@ -139,15 +152,19 @@ Tối đa **+10**; +1 → +5 chắc chắn; từ +6 giảm dần; **từ +8 tr�
 - **(đề xuất)** Mốc **+5**: 4 dòng phụ +10%. Mốc **+10**: món đồ **phát sáng** (vũ khí sáng trong trận).
 - Vật phẩm: **Bùa May Mắn** (+10%, 1 bùa / lần); **(đề xuất)** **Đá Bảo Hộ** (không tụt cấp); **(đề xuất)** **tích may mắn** +5% mỗi lần hỏng (về 0 khi thành công).
 - Giả lập: không bùa trung bình **~63 lần đập** / món lên +10; có tích may mắn **~56 lần**.
+- **Đá Cường Hoá (đã chốt)** — 1 loại đá, số lượng tăng theo cấp đồ. Mỗi lần đập: cấp 10 = 1 · 20 = 2 · 30 = 3 · 40 = 5 · 50 = 7 · 60 = 10 viên; **×2** khi đập +6/+7, **×3** khi +8/+9, **×4** khi +10. (+ phí Vàng)
+- Tổng trung bình / món: cấp 10 → +5: 5 · +7: ~10 · +10: ~150 viên | cấp 30 → 15 · ~31 · ~450 | cấp 60 → 50 · ~105 · **~1500**.
+- **Nguồn đá**: rơi ở ải (Khó / Địa ngục nhiều hơn), **mỏ đá trên bản đồ thế giới**, nhiệm vụ ngày, **phân giải đồ thừa thành đá** (đồ chỉ số ngẫu nhiên → món nào nhặt cũng có giá trị, túi khỏi đầy).
 
 ## 10. Bộ đồ theo tộc — 3 bộ / tộc = 15 bộ **(đã chốt có 3 bộ; nội dung là đề xuất)**
+- **(đã chốt — cách A)** Mỗi tộc đúng **1 bộ Tấn công · 1 bộ Phòng thủ · 1 bộ Hỗ trợ / Đặc biệt**, mang tính cách tộc → vùng tộc nào cũng đáng đi. Bàn kỹ từng tộc khi làm tới tộc đó; **tộc Người đã chốt**, các tộc khác là nháp, sẽ chỉnh theo cách A.
 - Bộ gồm **4 món: Vũ khí · Áo · Tay · Chân** (nhẫn, dây chuyền **không** thuộc bộ). Thưởng khi mặc **2 món** và **4 món**. Ai / tộc nào cũng mặc được; phối 2 + 2 được.
 
 | Tộc | Bộ | 2 món | 4 món |
 |---|---|---|---|
-| 🧑 Người | Hộ Vệ Vương Quốc (thủ) | +10% Thủ | Lần đầu máu < 50%: khiên 15% máu tối đa, cả đội +5% thủ 6 giây |
-| 🧑 Người | Chiến Lược Gia (hỗ trợ) | +15% Hồi năng lượng | Dùng kỹ năng 3 Orb → hoàn 1 Orb, cả đội +10% Tấn công 5 giây |
-| 🧑 Người | Lữ Khách (đoàn kết) | +8% Tấn công | Mỗi đồng đội **khác tộc**: +4% mọi chỉ số (tối đa 3) |
+| 🧑 Người ✅ | Hộ Vệ Vương Quốc (phòng thủ) | +10% Thủ | Lần đầu máu < 50%: khiên 15% máu tối đa, cả đội +5% thủ 6 giây |
+| 🧑 Người ✅ | Chiến Lược Gia (hỗ trợ) | +15% Hồi năng lượng | Dùng kỹ năng 3 Orb → hoàn 1 Orb, cả đội +10% Tấn công 5 giây |
+| 🧑 Người ✅ | Lữ Khách (tấn công) | +8% Tấn công | Mỗi đồng đội **khác tộc**: +6% sát thương (tối đa 3 người = +18%) |
 | 🧝 Elf | Gió Rừng (tấn công) | +3% Né | Né được: hồi 3% máu, đòn kế chắc chắn chí mạng |
 | 🧝 Elf | Tinh Linh Ánh Trăng (hỗ trợ) | +10% Tấn công | Hồi máu / khiên +20%; mỗi 10 giây gỡ 1 hiệu ứng xấu khỏi đồng đội ít máu nhất |
 | 🧝 Elf | Mũi Tên Bạc (đánh xa) | +4% Tốc đánh | Mỗi đòn thường thứ 4 bắn thêm đòn phụ 50% vào kẻ địch ngẫu nhiên |
@@ -167,7 +184,8 @@ Tối đa **+10**; +1 → +5 chắc chắn; từ +6 giảm dần; **từ +8 tr�
 - Cần **máy chủ online** chạy liên tục: tài khoản, lưu dữ liệu trên máy chủ, ghép trận, chống gian lận, **tiền thuê máy chủ hàng tháng**.
 
 ## 12. Lộ trình phát hành **(đề xuất)**
-1. **Bản 1 — chơi một mình**: hướng dẫn + mở màn, 1 vùng thế giới nhỏ (vài màn ngang, vài NPC, vài câu đố), chương 1 (5–10 ải, đủ 3 độ khó), trang bị cơ bản, lưu trên máy. **Mục tiêu: cho người thật chơi thử.** Làm sẵn nền móng để lắp online sau không phải đập đi.
+- **(đã chốt)** Làm **trọn từng tộc** (đủ gameplay + cốt truyện của tộc đó) rồi mới sang tộc khác.
+1. **Bản 1 — tộc Người hoàn chỉnh, chơi một mình**: mở màn + hướng dẫn, vùng thế giới tộc Người (màn ngang, NPC, câu đố, tài nguyên), **phó bản 20 ải + nhánh ải**, đủ 3 độ khó, trang bị + 3 bộ đồ tộc Người, cường hoá, lưu trên máy. **Mục tiêu: cho người thật chơi thử.** Làm sẵn nền móng để lắp online sau không phải đập đi.
 2. **Bản 2 — online cơ bản**: tài khoản, lưu trên máy chủ, PVP.
 3. **Bản 3 — cộng đồng**: khu gặp nhau, bang hội, chiến tranh bang hội, PVP xếp hạng.
 - Âm thanh: làm **sau** khi xong cốt truyện / thế giới / cách chơi.
