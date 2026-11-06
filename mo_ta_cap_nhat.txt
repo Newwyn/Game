@@ -1,3 +1,5 @@
+Nhip khung don danh co luc hon: giu khung lay da + khung trung lau hon (moc sat thuong khong doi)
+
 Bo che do Do hoa Pixel: Ignar + Sylva ve lai tranh ve tay (giu tranh goc pixel trong art/)
 
 Tran dau de nhin hon: an bang chi so o che do Dau, so sat thuong xep cot, mau phe xanh/do, giam choi hieu ung

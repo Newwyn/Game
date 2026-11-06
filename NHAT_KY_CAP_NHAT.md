@@ -5,6 +5,13 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — Nhịp khung đòn đánh có lực hơn (mọi nhân vật, không đổi gameplay)
+- Mọi đòn đánh / kỹ năng dạng tranh từng khung (mode `strike`) chia lại thời gian từng khung: **khung đầu lướt nhanh, khung lấy đà ngay trước cú đánh giữ lâu nhất**, **khung trúng giữ lâu cho thấy lực**, các khung thu về nhanh dần.
+- **Mốc gây sát thương và độ dài đòn KHÔNG đổi** (chỉ chia lại thời gian bên trong) → tốc độ đánh, choáng, đóng băng... giữ nguyên.
+- Ví dụ Rok chém: trước 3 khung lấy đà 0,08s đều nhau → giờ 0,05s / 0,08s / giữ 0,11s rồi chém; khung trúng 0,12s.
+- Không thêm khựng khi trúng đòn (game nhịp nhanh, có nhiều hiệu ứng choáng / đóng băng riêng).
+- Đã thử: trận Đấu với tướng (Jessica, Rok, Zerith, Brakk vs đội AI), AUTO, không lỗi. Build không lỗi.
+
 ## 06/11/2026 — Bỏ chế độ Đồ họa PIXEL, Ignar + Sylva về lại tranh vẽ tay
 - Chốt phong cách chung **tranh vẽ tay bản 3** cho cả đội: Ignar và hiệu ứng Ignar / Sylva luôn dùng bản vẽ tay.
 - Bỏ nút **🎨 Đồ họa** trong bảng Tạm dừng và tham số `?pixel=` trên đường dẫn. Máy nào trước đây đã bật Pixel cũng tự về vẽ tay.

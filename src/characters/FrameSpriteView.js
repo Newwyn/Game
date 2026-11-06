@@ -42,6 +42,33 @@ function idleMode(sprite, key) {
     return sprite.defaultIdle;
 }
 
+// ---------- Nhịp khung đòn đánh (mode strike) ----------
+// Trước mốc ra đòn: khung đầu lướt nhanh, khung LẤY ĐÀ cuối (ngay trước cú đánh) giữ lâu nhất -> cú đánh bật ra dứt khoát.
+// Sau mốc ra đòn: khung TRÚNG giữ lâu cho thấy lực, các khung thu về nhanh dần.
+// Trọng số chỉ chia lại thời gian trong từng đoạn — tổng thời gian và mốc gây sát thương giữ nguyên.
+const _wCache = new Map();
+function preWeights(n) {
+    const key = 'pre' + n;
+    if (!_wCache.has(key)) _wCache.set(key, cumulative(Array.from({ length: n }, (_, i) => (n === 1 ? 1 : 0.7 + 0.8 * i / (n - 1)))));
+    return _wCache.get(key);
+}
+function postWeights(n) {
+    const key = 'post' + n;
+    if (!_wCache.has(key)) _wCache.set(key, cumulative(Array.from({ length: n }, (_, i) => (i === 0 ? 1.6 : 1.15 - 0.35 * (i - 1) / Math.max(1, n - 2)))));
+    return _wCache.get(key);
+}
+/** trọng số -> mốc cộng dồn chuẩn hoá 0..1 (phần tử i = điểm KẾT THÚC khung i) */
+function cumulative(w) {
+    const sum = w.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    return w.map(x => (acc += x) / sum);
+}
+/** u (0..1 trong đoạn) -> thứ tự khung theo mốc cộng dồn */
+function weightedIndex(u, ends) {
+    for (let i = 0; i < ends.length; i++) if (u < ends[i]) return i;
+    return ends.length - 1;
+}
+
 export class FrameSpriteView extends CutoutCharacterView {
     constructor(member, classDef, isMyTeam, visual) {
         super(member, classDef, isMyTeam, visual);
@@ -144,8 +171,9 @@ export class FrameSpriteView extends CutoutCharacterView {
                 const dur = this.actions[src]?.getClip().duration ?? 0.6;
                 const h = Math.min(this._hitOf[src] ?? dur * 0.4, dur * 0.9);
                 const pre = cfg.release - 1, post = n - pre;
-                k = time < h ? Math.min(pre - 1, Math.floor(time / (h / pre)))
-                    : pre + Math.min(post - 1, Math.floor((time - h) / ((dur - h) / post)));
+                // Nhịp có lực: chia lại thời gian TRONG từng đoạn (mốc ra đòn h và độ dài đòn không đổi -> gameplay giữ nguyên)
+                k = time < h ? Math.min(pre - 1, weightedIndex(time / h, preWeights(pre)))
+                    : pre + Math.min(post - 1, weightedIndex((time - h) / (dur - h), postWeights(post)));
             } else if (cfg.mode === 'clip') {
                 const dur = cfg.dur ?? (this.actions[name]?.getClip().duration || 1);
                 k = Math.min(n - 1, Math.floor(((time % dur) / dur) * n + 1e-6));
