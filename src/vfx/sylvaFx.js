@@ -5,6 +5,7 @@
 //   Màu rừng thiêng: lá xanh (#22c55e / #86efac), nâu vỏ cây (#78350f / #a16207), ánh vàng (#fde047 / #facc15).
 //   Tái sử dụng geometry (planeGeo qua fxPlane), texture canvas lưu cache, tự thu hồi trong updateVfx(dt).
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import deerUrl from '../assets/sprites/deer_sprite.webp';
 import deerMeta from '../characters/sprite/deerSprite.json';
 import { GROUND_Y, gameNow, gameTimeout } from '../config.js';
@@ -822,7 +823,7 @@ function deerKey(casterId, casterIdx) {
 let deerTexCache = null;
 function deerTexture() {
     if (!deerTexCache) {
-        deerTexCache = new THREE.TextureLoader().load(deerUrl);
+        deerTexCache = getTexture(deerUrl);
         deerTexCache.colorSpace = THREE.SRGBColorSpace;
     }
     return deerTexCache;

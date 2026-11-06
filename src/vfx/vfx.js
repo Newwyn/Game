@@ -3,6 +3,7 @@
 // ============================================================
 // Mọi hiệu ứng được cập nhật trong updateVfx(dt) mỗi frame — không dùng setInterval.
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import { textureView } from './texView.js';
 import seraFxUrl from '../assets/sprites/sera_fx.png';
 import seraFxMeta from './seraFx.json';
@@ -1439,7 +1440,7 @@ let seraFxBase = null;
 export function getSeraFxTexture(name) {
     TEX.seraFx ??= {};
     if (TEX.seraFx[name]) return TEX.seraFx[name];
-    seraFxBase ??= new THREE.TextureLoader().load(seraFxUrl, t => { t.colorSpace = THREE.SRGBColorSpace; });
+    seraFxBase ??= getTexture(seraFxUrl);   // kho chung
     seraFxBase.colorSpace = THREE.SRGBColorSpace;
     const [W, H] = seraFxMeta.atlasSize;
     const [x, y, w, h] = seraFxMeta.parts[name].rect;

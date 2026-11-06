@@ -8,6 +8,7 @@
 //   const d = FB.decal('circle', x, z, r); // hình nằm trên mặt đất
 // Hình vẽ chế độ THƯỜNG (giữ màu đậm trên nền cỏ sáng); quầng sáng phụ vẽ cộng sáng bằng fxPlane() của vfx.js.
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import { textureView } from './texView.js';
 import { camera } from '../core/scene.js';
 
@@ -22,7 +23,7 @@ export function makeFlipbook(url, meta, { pixel = false } = {}) {
     function tex(group, i = 0) {
         const key = group + '#' + i;
         if (cache[key]) return cache[key];
-        base ??= new THREE.TextureLoader().load(url, t => { t.colorSpace = THREE.SRGBColorSpace; });
+        base ??= getTexture(url);   // kho chung (đã nạp sẵn ở màn tải)
         if (pixel && !base.userData.pixel) { base.userData.pixel = true; base.magFilter = base.minFilter = THREE.NearestFilter; base.generateMipmaps = false; }
         base.colorSpace = THREE.SRGBColorSpace;
         const [W, H] = meta.size;

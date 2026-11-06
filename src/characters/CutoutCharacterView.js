@@ -19,6 +19,7 @@
 //     skins : { tên: {rect, pivot, angle?, scale?} } các hình thay thế nhau, skin = hình mặc định
 // Nhân vật trong atlas phải nhìn sang PHẢI; nhìn trái thì lật gương.
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import { CharacterView } from './CharacterView.js';
 import { GROUND_Y, gameNow } from '../config.js';
 import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
@@ -45,10 +46,7 @@ const Z_STEP = 0.02; // khoảng cách theo trục z giữa các lớp mảnh (d
 const texCache = new Map();
 function loadTexture(url) {
     if (!texCache.has(url)) {
-        const tex = new THREE.TextureLoader().load(url);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
-        texCache.set(url, tex);
+        texCache.set(url, getTexture(url));   // kho chung
     }
     return texCache.get(url);
 }

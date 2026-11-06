@@ -24,6 +24,7 @@
 // phía trước — người bên trong vẫn rõ (như vòm khiên Brakk / khiên Seraphine).
 //   Ngọc Nguyên Tố: f = Hỏa · i = Băng · b = Lôi
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import { textureView } from './texView.js';
 import fxUrl from '../assets/sprites/elarion_fx.png';
 import fxMeta from './elarionFx.json';
@@ -50,7 +51,7 @@ const texCache = {};
 function tex(name) {
     if (texCache[name]) return texCache[name];
     // nạp xong atlas: tạo sẵn mọi hình (hình dùng lần đầu không bị trễ 1 nhịp)
-    base ??= new THREE.TextureLoader().load(fxUrl, t => { t.colorSpace = THREE.SRGBColorSpace; Object.keys(fxMeta.parts).forEach(tex); });
+    base ??= getTexture(fxUrl);   // kho chung
     base.colorSpace = THREE.SRGBColorSpace;
     base.anisotropy = 4;
     const [W, H] = fxMeta.atlasSize;

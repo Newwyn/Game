@@ -1413,3 +1413,14 @@ body.no-auto #btn-auto, body.no-auto .card-auto { display: none !important; }
     .ex-aff-face { width: 80px; height: 96px; }
     .ex-foods { grid-template-columns: 1fr; }
 }
+
+/* ⏳ Màn tải trước */
+#loading-screen { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: radial-gradient(ellipse at 50% 30%, #1e293b, #020617); font-family: 'Outfit', sans-serif; color: #e2e8f0; transition: opacity .4s; }
+#loading-screen.done { opacity: 0; pointer-events: none; }
+.ld-box { width: min(460px, 100%); text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.ld-box h1 { margin: 0; font-size: clamp(22px, 5vw, 34px); letter-spacing: 4px; color: #fde68a; text-shadow: 0 0 20px rgba(251, 191, 36, .4); }
+.ld-bar { height: 12px; border-radius: 8px; background: rgba(148, 163, 184, .2); overflow: hidden; border: 1px solid rgba(251, 191, 36, .35); }
+.ld-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f59e0b, #fde68a); transition: width .15s; }
+.ld-text { margin: 0; font-weight: 700; font-size: 14px; }
+.ld-box small { color: #94a3b8; }

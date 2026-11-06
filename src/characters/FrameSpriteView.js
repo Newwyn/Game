@@ -16,6 +16,7 @@
 // Lưu ý: KHÔNG đặt tên SpriteCharacterView.js (cap_nhat_github.bat đang xoá tên đó).
 // ============================================================
 import * as THREE from 'three';
+import { getTexture } from '../core/textures.js';
 import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { GROUND_Y } from '../config.js';
 
@@ -24,11 +25,7 @@ const texCache = new Map();
 const LOCO_CLIP = { stunned: 'stunned', guarding: 'guard', cast: 'cast', fall: 'fall', victory: 'victoryIdle', channel: 'channel', beam: 'beam' };
 function spriteTexture(url, pixel = false) {
     if (!texCache.has(url)) {
-        const tex = new THREE.TextureLoader().load(url);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
-        if (pixel) { tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; }   // pixel art: ô vuông sắc
-        texCache.set(url, tex);
+        texCache.set(url, getTexture(url, { pixel }));   // kho chung (đã nạp sẵn ở màn tải)
     }
     return texCache.get(url);
 }

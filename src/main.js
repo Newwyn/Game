@@ -11,7 +11,8 @@
 //   ui/          HUD, overlay, input
 // CSS được nạp qua <link> trong index.html (tránh nháy giao diện khi tải)
 
-import { mountRenderer } from './core/scene.js';
+import { mountRenderer, renderer } from './core/scene.js';
+import { runLoadingScreen } from './ui/loading.js';
 import { buildEnvironment } from './core/environment.js';
 import { cameraRig } from './core/cameraRig.js';
 import { timeState } from './config.js';
@@ -32,6 +33,8 @@ import { setupExtras } from './ui/extras.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
+// ⏳ tải trước mọi tranh (thanh %), đẩy sẵn lên card đồ hoạ -> vào trận không khựng
+runLoadingScreen(renderer);
 buildEnvironment();
 setupInput();
 registerOverlayEvents();
