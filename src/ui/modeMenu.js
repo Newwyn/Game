@@ -6,7 +6,7 @@
 //        - Đấu với quái : đội của bạn vs 3 quái mặc định (Lv60)
 //        - Đấu với tướng: chọn đội 1P (bạn) và 2P (AI) rồi đấu
 import { net, socket } from '../net/socket.js';
-import { showCampaign } from './campaign.js';
+import { showCampaign, openWorldHub } from './campaign.js';
 
 let root = null;
 let step = 'main';
@@ -22,10 +22,9 @@ function el() {
         const m = b.dataset.mode;
         if (m === 'duel') { step = 'duel'; render(); return; }
         if (m === 'back') { step = 'main'; render(); return; }
-        if (m === 'campaign') {
+        if (m === 'campaign') {   // Cốt truyện: vào bản đồ thế giới (nơi xuất phát), từ đó chọn ải / trang bị
             hide();
-            net.campaignOpen();
-            showCampaign();
+            openWorldHub();
             return;
         }
         hide();

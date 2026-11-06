@@ -9,6 +9,8 @@ import { openCampaignSquadSelect } from './squadSelect.js';
 import { showModeMenu } from './modeMenu.js';
 import { hideBattleResult } from './overlays.js';
 import { showGear } from './gear.js';
+import { showWorld, hideWorld } from './world.js';
+import { playStory } from './story.js';
 
 const STAMINA_MAX = 360;
 const STAMINA_REGEN_SEC = 300;
@@ -225,6 +227,7 @@ function normalizeState(raw = {}) {
         owned,
         features,
         heroes: raw.squad?.heroes ?? raw.heroes ?? state?.heroes ?? null,   // server gửi dữ liệu bảng chọn đội trong `squad`
+        story: raw.story ?? state?.story ?? null,   // lời thoại trước ải (P4)
     };
 }
 
@@ -428,6 +431,7 @@ export function renderCampaign() {
         <header class="cp-header">
             <div class="cp-title-row">
                 <button class="cp-back-btn" data-cp-back>← Menu</button>
+                <button class="cp-back-btn cp-gear-btn" data-cp-world title="Bản đồ thế giới: đi lại, NPC, rương, nhiệm vụ mở nhánh ẩn">🗺️ Thế giới</button>
                 <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : 'Mở khi qua ải 6'}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
                 <div class="cp-title-text">
                     <h1>📖 CHƯƠNG 1: ${(chapter.name ?? 'Ngọn Lửa Gây Chiến').toUpperCase()}</h1>
@@ -511,7 +515,22 @@ function hasFeature(key) {
     return (state.features ?? []).includes(key);
 }
 
+/** Bản đồ thế giới là nơi xuất phát của Cốt truyện: từ đó mở màn chọn ải / trang bị, quay về Menu */
+export function openWorldHub() {
+    hideCampaign();
+    showWorld({
+        stages: () => { hideWorld(); net.campaignOpen(); showCampaign(); },
+        gear: () => { hideWorld(); showGear(() => openWorldHub()); },
+        back: () => { showModeMenu(); net.backToMenu(); },
+    });
+}
+
 function onScreenClick(e) {
+    if (e.target.closest('[data-cp-world]')) {
+        errorText = null;
+        openWorldHub();
+        return;
+    }
     if (e.target.closest('[data-cp-gear]')) {
         if (!hasFeature('gear')) {
             errorText = '🔒 Trang bị mở khi qua ải 6 ở mức Cốt truyện';
@@ -587,7 +606,7 @@ function onScreenClick(e) {
             ? `Nhánh ${item.name} (${diffName} · ⚡${cost})`
             : `Ải ${item.no}: ${item.name} (${diffName} · ⚡${cost})`;
         hideCampaign();
-        openCampaignSquadSelect({
+        const openSquad = () => openCampaignSquadSelect({
             id,
             diff: currentDiff,
             stageLabel,
@@ -595,6 +614,9 @@ function onScreenClick(e) {
             heroes: state.heroes,
             onBack: () => showCampaign(),
         });
+        // lần đầu vào ải (mức Cốt truyện): xem lời thoại trước
+        const pre = currentDiff === 'story' && st !== 'cleared' && !isBranch ? state.story?.pre?.[item.no] : null;
+        if (pre) playStory(pre, state.story.speakers, openSquad); else openSquad();
     }
 }
 
@@ -701,6 +723,7 @@ export function renderStageResult(data = {}) {
             </div>
         </div>` : ''}
 
+        ${unlockHTML(data)}
         ${dropsHTML(data)}
 
         ${newHeroes.includes('archer') ? `
@@ -729,6 +752,15 @@ export function renderStageResult(data = {}) {
 
     box.style.display = 'flex';
     document.body.classList.add('selecting-squad');
+}
+
+const FEATURE_NAMES = { orb: 'Năng lượng Orb', auto: 'AUTO (tự dùng kỹ năng)', hard: 'Độ khó Khó', gear: 'Trang bị 🎒', forge: 'Lò rèn 🔨',
+    setDungeon: 'Hầm ngục đồ bộ', jewelDungeon: 'Hầm ngục trang sức', hell: 'Độ khó Địa ngục', heroShop: 'Cửa hàng anh hùng' };
+/** Tính năng vừa mở khoá sau trận */
+function unlockHTML(data) {
+    const list = (data.newFeatures ?? []).filter(f => FEATURE_NAMES[f]);
+    if (!list.length) return '';
+    return `<div class="cp-first-clear-banner cp-unlock-banner">🔓 Mở khoá mới: ${list.map(f => `<b>${FEATURE_NAMES[f]}</b>`).join(' · ')}</div>`;
 }
 
 /** Đồ rơi + bùa + đồ tự phân giải (túi đầy) ở màn kết quả */
@@ -774,7 +806,9 @@ export function setupCampaign() {
     });
 
     socket.on('stageResult', (data) => {
-        renderStageResult(data);
+        // thắng ải lần đầu: lời thoại sau ải (kết chương sau ải 20) rồi mới hiện bảng kết quả
+        if (data?.story?.length) { hideBattleResult(); playStory(data.story, data.speakers, () => renderStageResult(data)); }
+        else renderStageResult(data);
     });
 
     socket.on('battleStart', (data) => {

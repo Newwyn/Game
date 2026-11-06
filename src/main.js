@@ -27,6 +27,7 @@ import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
+import { setupWorld } from './ui/world.js';
 import { myId } from './state.js';
 
 mountRenderer(document.getElementById('game-container'));
@@ -38,11 +39,17 @@ registerCombatEvents({
     onBattleStart: (data) => {
         resetMemberAuto();   // AUTO từng tướng: gửi lại lựa chọn đã nhớ cho trận mới
         // Chế độ: ĐẤU / CỐT TRUYỆN -> ẩn mọi tool test (CSS body.mode-duel)
-        const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero' || data.mode === 'campaign';
+        const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero' || data.mode === 'campaign' || data.mode === 'prologue';
+        // Cốt truyện: AUTO chỉ có khi đã mở (qua ải 2)
+        document.body.classList.toggle('no-auto', data.mode === 'campaign' && !(data.features ?? []).includes('auto'));
         document.body.classList.toggle('mode-duel', duel);
         if (duel) resetDebugToggles();
         applyStatsPreference();   // Đấu: ẩn bảng chỉ số mặc định (phím I để hiện, nhớ lựa chọn)
         enterBattleUI(data); updateHUD(data.players); applyPreferredSpeed();
+        if (data.mode === 'prologue') {
+            const badge = document.querySelector('.top-label');
+            if (badge) badge.textContent = '✴️ MỞ MÀN · ĐẤU THẦN';
+        }
         if (data.mode === 'campaign') {
             const badge = document.querySelector('.top-label');
             if (badge) {
@@ -64,6 +71,8 @@ setupSquadSelect();
 setupCampaign();
 // 🎒 Trang bị + Lò rèn (mở từ màn chọn ải)
 setupGear();
+// 🗺️ Bản đồ thế giới (nơi xuất phát của Cốt truyện)
+setupWorld();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
 // Tool phe quái: cấp quái hiện tại

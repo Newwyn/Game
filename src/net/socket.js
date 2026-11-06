@@ -44,4 +44,8 @@ export const net = {
     gearEnhance: (itemId, charm) => socket.emit('gearEnhance', { itemId, charm }),
     gearRefine: (itemId, line) => socket.emit('gearRefine', { itemId, line }),
     gearDebugGive: (data) => socket.emit('gearDebugGive', data),
+    // 🗺️ Bản đồ thế giới
+    worldOpen: () => socket.emit('worldOpen'),
+    worldMove: (scene, x, full = false) => socket.emit('worldMove', { scene, x, full }),
+    worldInteract: (scene, target, answer) => socket.emit('worldInteract', { scene, target, answer }),
 };
