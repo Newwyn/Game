@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { textureView } from './texView.js';
 import seraFxUrl from '../assets/sprites/sera_fx.png';
 import seraFxMeta from './seraFx.json';
-import { scene } from '../core/scene.js';
+import { scene, fxDim } from '../core/scene.js';
 import { drawLionHead } from './lionSpirit.js';
 import { drawGuardian } from './guardianSpirit.js';
 import { drawWindSpirit } from './windSpirit.js';
@@ -52,29 +52,44 @@ const DMG_STYLE = {
     share:  { color: '#fbbf24', text: v => `◈ -${v}` },  // Rok gánh sát thương thay người được nối dây
 };
 
+// Số phụ (chặn, khiên, né...): nhỏ + mờ hơn để số sát thương chính nổi bật
+const DMG_MINOR = new Set(['miss', 'block', 'absorb', 'shield', 'hpcost', 'share']);
+const DMG_MAX = 28;          // tối đa số cùng lúc
+const DMG_COLUMN_X = 0.7;    // số trúng cùng mục tiêu (lệch < 0.7) xếp chung 1 cột
+const DMG_COLUMN_AGE = 0.6;  // ... nếu số cũ mới hiện chưa quá 0.6s
+
 export function spawnDamageNumber(pos, value, type = 'normal') {
     const style = DMG_STYLE[type] ?? DMG_STYLE.normal;
-    const isCrit = type === 'crit';
-    const sprite = canvasSprite(128, 64, ctx => {
-        ctx.font = isCrit ? '900 42px Outfit' : '900 28px Outfit';
+    const isCrit = type === 'crit', minor = DMG_MINOR.has(type);
+    const sprite = canvasSprite(160, 64, ctx => {
+        ctx.font = isCrit ? '900 44px Outfit' : minor ? '800 24px Outfit' : '900 30px Outfit';
         ctx.textAlign = 'center';
         ctx.fillStyle = style.color;
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = isCrit ? 6 : 4;
+        ctx.lineWidth = isCrit ? 7 : minor ? 4 : 5;
+        ctx.lineJoin = 'round';
         const text = style.text(value);
-        ctx.strokeText(text, 64, 44);
-        ctx.fillText(text, 64, 44);
+        ctx.strokeText(text, 80, 44);
+        ctx.fillText(text, 80, 44);
     });
+    const base = isCrit ? [3.0, 1.2] : minor ? [1.7, 0.68] : [2.0, 0.8];
+    sprite.scale.set(base[0], base[1], 1);
 
-    if (isCrit) sprite.scale.set(3.0, 1.5, 1);
-    else if (type === 'miss' || type === 'block' || type === 'absorb' || type === 'shield' || type === 'hpcost' || type === 'share') sprite.scale.set(2.0, 1.0, 1);
-    else sprite.scale.set(1.8, 0.9, 1);
-
-    sprite.position.set(pos.x + (Math.random() - 0.5) * 0.5, pos.y + 3, pos.z + 0.5);
+    // Xếp cột: số mới hiện ở dưới cùng, đẩy các số vừa hiện của cùng mục tiêu lên trên -> không đè nhau
+    for (const d of damageNumbers) {
+        if (d.age < DMG_COLUMN_AGE && Math.abs(d.x0 - pos.x) < DMG_COLUMN_X && Math.abs(d.z0 - pos.z) < DMG_COLUMN_X) d.lift += isCrit ? 0.62 : 0.42;
+    }
+    const y0 = pos.y + 2.7;
+    sprite.position.set(pos.x + (Math.random() - 0.5) * 0.3, y0, pos.z + 0.5);
+    sprite.renderOrder = isCrit ? 31 : minor ? 29 : 30;
     scene.add(sprite);
-    // tối đa 36 số cùng lúc: số cũ nhất mờ nhanh để nhường chỗ (trận đông từng có ~80 số chồng nhau)
-    if (damageNumbers.length >= 36) { const old = damageNumbers.find(d => d.life > 0.15); if (old) old.life = 0.15; }
-    damageNumbers.push({ sprite, life: 1.2, vy: isCrit ? 0.06 : 0.04 });
+    // đông quá: số cũ nhất mờ nhanh để nhường chỗ
+    if (damageNumbers.length >= DMG_MAX) { const old = damageNumbers.find(d => d.life > 0.15); if (old) old.life = 0.15; }
+    damageNumbers.push({
+        sprite, base, y0, x0: pos.x, z0: pos.z, age: 0, rise: 0, lift: 0, liftCur: 0,
+        life: isCrit ? 1.35 : minor ? 0.85 : 1.1, vy: isCrit ? 0.035 : 0.025,
+        alpha: minor ? 0.72 : 1, pop: isCrit ? 0.6 : minor ? 0 : 0.25,
+    });
 }
 
 // ------------------------------------------------------------
@@ -1326,11 +1341,19 @@ function updateSeals(dt) {
 // ------------------------------------------------------------
 export function updateVfx(dt) {
     const k = dt * 60; // các hằng số gốc được viết cho 60 FPS
+    // Giảm chói: càng nhiều hiệu ứng đang sống, hiệu ứng cộng sáng càng mờ bớt (tối đa −40%) -> không phủ trắng nhân vật
+    fxDim.k += ((1 - 0.4 * fxLoad()) - fxDim.k) * Math.min(1, dt * 6);
 
     damageNumbers = damageNumbers.filter(dn => {
         dn.life -= 0.02 * k;
-        dn.sprite.position.y += dn.vy * k;
-        dn.sprite.material.opacity = Math.max(0, dn.life);
+        dn.age += dt;
+        dn.rise += dn.vy * k;
+        dn.liftCur += (dn.lift - dn.liftCur) * Math.min(1, dt * 16);   // trượt êm lên chỗ mới khi bị số sau đẩy
+        dn.sprite.position.y = dn.y0 + dn.rise + dn.liftCur;
+        // nảy lúc mới hiện (chí mạng nảy to nhất)
+        const pop = 1 + dn.pop * Math.max(0, 1 - dn.age / 0.14);
+        dn.sprite.scale.set(dn.base[0] * pop, dn.base[1] * pop, 1);
+        dn.sprite.material.opacity = Math.max(0, Math.min(1, dn.life * 2)) * dn.alpha;
         if (dn.life <= 0) { disposeObject(dn.sprite); return false; }
         return true;
     });

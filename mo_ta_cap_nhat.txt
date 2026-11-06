@@ -1,3 +1,10 @@
+Tran dau de nhin hon: an bang chi so o che do Dau, so sat thuong xep cot, mau phe xanh/do, giam choi hieu ung
+
+- Che do Dau: bang chi so an mac dinh (phim I hien lai, game nho lua chon rieng Test / Dau)
+- So sat thuong: xep cot theo nguoi trung don, chi mang to + nay, so phu (BLOCK, khien, MISS) nho va mo
+- Phan biet phe: dia sang duoi chan xanh (minh) / do (dich), thanh mau dich mau do, vien theo mau phe
+- Giam choi: nhieu hieu ung no cung luc thi hieu ung cong sang tu mo bot (toi da 40%)
+
 Do hoa Pixel: nut chon trong bang Tam dung + 1 ban ro nhat + hieu ung Ignar cung co o (cau lua roi ve lai)
 
 Thu che do Pixel (phim X) + Ignar pixel art day du + hieu ung pixel Ignar/Sylva

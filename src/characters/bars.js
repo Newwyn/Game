@@ -3,21 +3,22 @@
 // ============================================================
 import * as THREE from 'three';
 
-export function createBarSprite(color) {
+/** frame: màu viền (VD màu phe), mặc định xám */
+export function createBarSprite(color, frame = '#555') {
     const canvas = document.createElement('canvas');
     canvas.width = 128; canvas.height = 16;
     const ctx = canvas.getContext('2d');
     const texture = new THREE.CanvasTexture(canvas);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
     sprite.scale.set(1.5, 0.18, 1);
-    sprite.userData = { canvas, ctx, texture, color, lastPct: -1 };
+    sprite.userData = { canvas, ctx, texture, color, frame, lastPct: -1 };
     updateBarSprite(sprite, 1);
     return sprite;
 }
 
 /** mark: vạch NGƯỠNG TỬ (Ấn Tử của Zerith) tại tỉ lệ máu `mark` (0 = không vẽ) */
 export function updateBarSprite(sprite, percent, mark = 0) {
-    const { ctx, texture, color } = sprite.userData;
+    const { ctx, texture, color, frame } = sprite.userData;
     const pct = Math.max(0, Math.min(1, percent || 0));
     // Chỉ vẽ lại khi giá trị đổi (tránh upload texture lên GPU 20 lần/giây vô ích)
     if (Math.abs(pct - sprite.userData.lastPct) < 0.002 && mark === (sprite.userData.lastMark ?? 0)) return;
@@ -25,7 +26,7 @@ export function updateBarSprite(sprite, percent, mark = 0) {
     sprite.userData.lastMark = mark;
     ctx.clearRect(0, 0, 128, 16);
     ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, 128, 16);
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, 128, 16);
+    ctx.strokeStyle = frame; ctx.lineWidth = frame === '#555' ? 1 : 3; ctx.strokeRect(0.5, 0.5, 127, 15);
     ctx.fillStyle = color;
     ctx.fillRect(2, 2, 124 * pct, 12);
     if (mark > 0) {

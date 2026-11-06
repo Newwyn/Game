@@ -5,6 +5,13 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — Trận đấu DỄ NHÌN hơn (áp cho mọi nhân vật, không vẽ thêm gì)
+- **Chế độ Đấu ẩn bảng chỉ số mặc định** (trước chỉ ẩn bảng tool, bảng chỉ số vẫn che 1/5 màn hình). Phím **I** vẫn hiện / ẩn, và game **nhớ lựa chọn riêng cho Test và Đấu**. Chế độ Test vẫn hiện sẵn như cũ.
+- **Số sát thương gọn:** số trúng cùng một người xếp thành CỘT (số mới đẩy số cũ lên, không đè nhau); số thường vừa, **chí mạng to + nảy**; số phụ (BLOCK, khiên, MISS...) nhỏ và mờ hơn; tối đa 28 số cùng lúc.
+- **Phân biệt 2 phe:** đĩa sáng dưới chân **xanh = phe mình, đỏ = phe địch**; thanh máu phe địch màu đỏ, viền thanh máu theo màu phe. Hai bên chọn trùng tướng vẫn biết ai là ai. Chết thì đĩa tắt; tàng hình thì đĩa mờ theo. Vòng tầm đánh mờ bớt cho đỡ rối.
+- **Giảm chói:** càng nhiều hiệu ứng đang nổ, mọi hiệu ứng cộng sáng tự mờ bớt (tối đa 40%), không còn phủ trắng nhân vật.
+- Đã thử (bấm thật, trận Đấu với tướng 1P vs 2P, AUTO): bảng chỉ số ẩn, số đọc được, đĩa xanh / đỏ rõ; phím I đổi và nhớ đúng qua nhiều trận, cả Test lẫn Đấu. Build không lỗi.
+
 ## 02/11/2026 — Đồ họa Pixel: 1 bản rõ nhất, nút chọn trong bảng Tạm dừng, hiệu ứng Ignar cùng cỡ ô
 - **Chọn đồ họa trong bảng Tạm dừng:** nút **🎨 Đồ họa: Vẽ tay / PIXEL** (trang tải lại, trận đang đánh chơi lại). Bỏ phím X và 2 bản thô / mịn — chỉ còn bản rõ nhất (độ phân giải đầy đủ, ô pixel sắc).
 - **Hiệu ứng Ignar khớp với nhân vật:** vẽ lại cho cùng cỡ ô pixel với Ignar (trước đó nhiều hiệu ứng bị phóng to, ô to gấp 2-3 lần): **quả cầu lửa rơi vẽ lại hoàn toàn** (sao chổi lửa rực, không còn hòn đá tối), hào quang, khiên lửa, cánh lửa, Hộ Vệ Thần Lửa, các vòng phép dưới đất (có chữ rune).

@@ -20,7 +20,7 @@ import { updateViews } from './combat/battleScene.js';
 import { updateVfx } from './vfx/vfx.js';
 import { updateHUD, resetMemberAuto } from './ui/hud.js';
 import { registerOverlayEvents, enterBattleUI, showWaiting } from './ui/overlays.js';
-import { setupInput, applyPreferredSpeed, updateSpeedButton, renderMemberToggles, resetDebugToggles } from './ui/input.js';
+import { setupInput, applyPreferredSpeed, updateSpeedButton, renderMemberToggles, resetDebugToggles, applyStatsPreference } from './ui/input.js';
 import { socket } from './net/socket.js';
 import { setupProgressTool } from './ui/progressTool.js';
 import { setupSquadSelect } from './ui/squadSelect.js';
@@ -39,6 +39,7 @@ registerCombatEvents({
         const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero';
         document.body.classList.toggle('mode-duel', duel);
         if (duel) resetDebugToggles();
+        applyStatsPreference();   // Đấu: ẩn bảng chỉ số mặc định (phím I để hiện, nhớ lựa chọn)
         enterBattleUI(data); updateHUD(data.players); applyPreferredSpeed();
         renderMemberToggles(data.classDefs, data.players?.[myId()]?.disabledClasses);
     },

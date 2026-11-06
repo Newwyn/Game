@@ -167,6 +167,24 @@ function makeDraggable(el) {
 // Bật / tắt từng nhân vật ra trận (Công cụ Test) — mỗi nhân vật phe mình có 1 nút
 // ------------------------------------------------------------
 let memberDefs = null;
+// ---------- Bảng chỉ số trái / phải ----------
+// Mặc định: chế độ Test HIỆN (để soi chỉ số), chế độ Đấu ẨN (màn hình gọn); bấm I đổi và nhớ lựa chọn theo chế độ
+const statsKey = () => (document.body.classList.contains('mode-duel') ? 'statsDuel' : 'statsTest');
+export function setStatsVisible(show, remember = false) {
+    for (const id of ['left-stats', 'right-stats']) {
+        const el = document.getElementById(id);
+        if (el) el.style.visibility = show ? '' : 'hidden';
+    }
+    if (remember) try { localStorage.setItem(statsKey(), show ? '1' : '0'); } catch { /* chế độ riêng tư */ }
+}
+/** Gọi khi vào trận (sau khi đã gắn class mode-duel) */
+export function applyStatsPreference() {
+    let saved = null;
+    try { saved = localStorage.getItem(statsKey()); } catch { /* chế độ riêng tư */ }
+    const duel = document.body.classList.contains('mode-duel');
+    setStatsVisible(saved == null ? !duel : saved === '1');
+}
+
 export function renderMemberToggles(classDefs, disabled = []) {
     if (classDefs) memberDefs = classDefs;
     setDisabledHeroes(disabled); // nút ON/OFF nằm trong thẻ nhân vật của Tool Phe Mình
@@ -244,13 +262,11 @@ export function setupInput() {
         title.classList.add('panel-title-toggle');
         title.addEventListener('click', (e) => { if (!e.target.closest('[data-ui-scale]')) panel.classList.toggle('panel-collapsed'); });
     }
-    // Phím I: ẩn / hiện toàn bộ bảng chỉ số
+    // Phím I: ẩn / hiện toàn bộ bảng chỉ số (nhớ riêng cho chế độ Test và Đấu)
     window.addEventListener('keydown', (e) => {
         if (e.code !== 'KeyI' || e.target.closest?.('input, textarea')) return;
-        for (const id of ['left-stats', 'right-stats']) {
-            const el = document.getElementById(id);
-            if (el) el.style.visibility = el.style.visibility === 'hidden' ? '' : 'hidden';
-        }
+        const shown = document.getElementById('left-stats')?.style.visibility !== 'hidden';
+        setStatsVisible(!shown, true);
     });
     ['enemy-debug-controls', 'progress-tool', 'left-stats', 'right-stats'].forEach(id => {
         const el = document.getElementById(id);

@@ -20,6 +20,27 @@ import { SERVER_TICK_MS, GROUND_Y, timeState, gameNow } from '../config.js';
 const LUNGE_DURATION = 0.25; // giây
 const LUNGE_DISTANCE = 0.4;
 
+// ---------- Màu phe ----------
+export const TEAM_COLOR = { mine: '#38bdf8', enemy: '#f43f5e' };
+let _discTex = null, _discGeo = null;
+/** Vòng elip mềm (viền đậm, giữa trong) dưới chân — dùng chung cho mọi nhân vật */
+function teamDiscTexture() {
+    if (_discTex) return _discTex;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const r = g.createRadialGradient(64, 64, 18, 64, 64, 62);
+    r.addColorStop(0, 'rgba(255,255,255,0.28)');
+    r.addColorStop(0.6, 'rgba(255,255,255,0.5)');
+    r.addColorStop(0.78, 'rgba(255,255,255,1)');
+    r.addColorStop(0.9, 'rgba(255,255,255,0.7)');
+    r.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+    _discTex = new THREE.CanvasTexture(c);
+    _discTex.colorSpace = THREE.SRGBColorSpace;
+    return _discTex;
+}
+function teamDiscGeo() { return _discGeo ??= new THREE.PlaneGeometry(1.45, 0.8); }
+
 export class CharacterView {
     constructor(member, classDef, isMyTeam) {
         this.member = member;
@@ -51,7 +72,8 @@ export class CharacterView {
         this.opacityOverride = null;
 
         // Thanh máu + thanh vận chiêu
-        this.hpBar = createBarSprite('#22c55e');
+        // Màu theo PHE: phe mình thanh máu xanh lá viền xanh, phe địch thanh máu đỏ viền đỏ (2 bên chọn trùng tướng vẫn phân biệt được)
+        this.hpBar = createBarSprite(isMyTeam ? '#22c55e' : '#ef4444', isMyTeam ? TEAM_COLOR.mine : TEAM_COLOR.enemy);
         this.hpBar.position.y = 3.0;
         this.root.add(this.hpBar);
         this.castBar = createBarSprite('#facc15');
@@ -65,17 +87,29 @@ export class CharacterView {
         this.shieldBar.visible = false;
         this.root.add(this.shieldBar);
 
-        // Vòng tầm đánh dưới chân
+        // Vòng tầm đánh dưới chân (mờ, chỉ để tham khảo)
         const ring = new THREE.Mesh(
-            new THREE.RingGeometry(classDef.atkRange, classDef.atkRange + 0.1, 32),
+            new THREE.RingGeometry(classDef.atkRange, classDef.atkRange + 0.08, 48),
             new THREE.MeshBasicMaterial({
                 color: isMyTeam ? '#22c55e' : '#ff4444',
-                transparent: true, opacity: 0.3, side: THREE.DoubleSide,
+                transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false,
             })
         );
         ring.rotation.x = -Math.PI / 2;
         ring.position.y = GROUND_Y + 0.02;
         this.root.add(ring);
+
+        // Đĩa sáng màu phe ngay dưới chân: nhìn là biết ai phe nào kể cả khi 2 đội lao vào nhau
+        const disc = new THREE.Mesh(teamDiscGeo(), new THREE.MeshBasicMaterial({
+            map: teamDiscTexture(), color: isMyTeam ? TEAM_COLOR.mine : TEAM_COLOR.enemy,
+            transparent: true, opacity: 1, depthWrite: false, side: THREE.DoubleSide, fog: false,
+        }));
+        disc.rotation.x = -Math.PI / 2;
+        disc.position.y = GROUND_Y + 0.03;
+        disc.renderOrder = 1;
+        disc.userData.sharedGeometry = true; disc.userData.sharedTexture = true;
+        this.root.add(disc);
+        this.teamDisc = disc;
 
         this.root.position.copy(this.basePos);
     }
@@ -173,6 +207,7 @@ export class CharacterView {
 
         // Chết: ẩn thanh máu (+ ép dẹt với hình tạm)
         this.hpBar.visible = member.alive;
+        if (this.teamDisc) this.teamDisc.visible = member.alive;
         const squash = !member.alive && this.squashOnDeath;
         this.root.scale.set(1, squash ? 0.4 : 1, 1);
         this.root.position.y = squash ? -0.35 : 0;
@@ -233,6 +268,7 @@ export class CharacterView {
         if (this.opacityOverride != null) target = this.opacityOverride;
         this.opacity += (target - this.opacity) * (1 - Math.pow(0.9, dt * 60));
         this.setOpacity(this.opacity);
+        if (this.teamDisc) this.teamDisc.material.opacity = Math.min(1, this.opacity);   // tàng hình: đĩa phe mờ theo (không lộ chỗ đứng)
 
         // Địch tàng hình: ẩn hẳn (kể cả thanh máu) khi đã mờ hết
         this.root.visible = !(isStealth && !this.isLocalPlayer && this.opacity < 0.02);

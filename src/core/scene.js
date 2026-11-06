@@ -61,9 +61,20 @@ export function keepShaders() {
  *  từng mảnh (trận đông vài trăm mảnh = tốn CPU nặng). Game toàn mặt phẳng 2D nên vẽ 1 lần là đủ, nhìn không khác.
  *  Hình khối 3D (cầu, vòm) giữ nguyên cách vẽ 2 lần. */
 const FLAT = new Set(['PlaneGeometry', 'ShapeGeometry', 'CircleGeometry', 'RingGeometry']);
-THREE.Material.prototype.onBeforeRender = function (r, s, c, geometry) {
+THREE.Material.prototype.onBeforeRender = function (r, s, c, geometry, object) {
     if (this.side === THREE.DoubleSide && this.transparent && !this.forceSinglePass && FLAT.has(geometry?.type)) this.forceSinglePass = true;
+    // Giảm chói: lúc nhiều chiêu nổ cùng lúc, mọi hiệu ứng CỘNG SÁNG mờ bớt theo fxDim.k (chỉ trong lần vẽ này, vẽ xong trả lại)
+    if (fxDim.k < 1 && this.blending === THREE.AdditiveBlending && this.__op == null) {
+        this.__op = this.opacity;
+        this.opacity *= fxDim.k;
+        object.onAfterRender = restoreOpacity;
+    }
 };
+/** Hệ số độ sáng chung của hiệu ứng cộng sáng (vfx.js cập nhật mỗi khung theo số hiệu ứng đang sống) */
+export const fxDim = { k: 1 };
+function restoreOpacity(r, s, c, g, material) {
+    if (material?.__op != null) { material.opacity = material.__op; material.__op = null; }
+}
 
 // Ánh sáng kiểu "chiều nắng ấm" (tham khảo Tree of Savior): trời vàng nhạt, phản xạ xanh lá từ mặt đất.
 scene.add(new THREE.HemisphereLight(0xfff2dc, 0x4f6e38, 1.35));
