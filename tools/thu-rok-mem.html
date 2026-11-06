@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thử Rok khung xương mềm</title>
+<!-- Trang THỬ: Rok bản khung xương mềm (tóc / áo choàng uốn cong, động tác có lấy đà) + đổi skin + đổi vũ khí,
+     đặt cạnh bản tranh từng khung hiện tại để so. Chạy `npm run dev` rồi mở http://localhost:5173/tools/thu-rok-mem.html
+     Không đụng tới game chính. -->
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#1d2a33;font-family:system-ui,"Segoe UI",sans-serif}
+  canvas{display:block}
+  #panel{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(1100px,calc(100% - 24px));
+    background:rgba(16,22,30,.86);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;color:#e9eef3;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px)}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}
+  .lbl{width:84px;font-size:13px;color:#9fb0bf;font-weight:600}
+  button{font:600 13px system-ui,"Segoe UI",sans-serif;color:#e9eef3;background:#2a3846;border:1px solid #3b4d5f;border-radius:8px;
+    padding:6px 11px;cursor:pointer}
+  button:hover{background:#34475a}
+  button.on{background:#e8b84a;color:#1c1405;border-color:#f3cf74}
+  #title{position:fixed;top:12px;left:50%;transform:translateX(-50%);color:#fff;font-weight:700;font-size:15px;
+    background:rgba(0,0,0,.45);padding:6px 14px;border-radius:20px;white-space:nowrap}
+  .tag{position:fixed;top:52px;color:#fff;font:700 14px system-ui;background:rgba(0,0,0,.5);padding:4px 10px;border-radius:6px;
+    transform:translateX(-50%);white-space:nowrap}
+  #tagOld{display:none}
+  @media (max-width:700px){.lbl{width:100%}}
+</style></head>
+<body>
+<div id="title">Rok · bản khung xương mềm (thử nghiệm)</div>
+<div class="tag" id="tagNew">MỚI · xương mềm</div>
+<div class="tag" id="tagOld">CŨ · tranh từng khung</div>
+<div id="panel">
+  <div class="row"><span class="lbl">Động tác</span><span id="acts" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="lbl">Skin</span><span id="skins" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="lbl">Vũ khí</span><span id="weps" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="lbl">Xem</span>
+    <button id="spd1" class="on">Tốc độ thường</button><button id="spd05">Chậm ½</button><button id="spd025">Rất chậm ¼</button>
+    <button id="cmp">So với bản cũ</button><button id="auto">Tự chạy lần lượt</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { scene, camera, renderer } from '../src/core/scene.js';
+import { buildSoftRig, updateBenders } from '../src/characters/soft/softRig.js';
+import { SoftAnimator } from '../src/characters/soft/softAnimator.js';
+import { SwordTrail, Particles } from '../src/characters/soft/softFx.js';
+import { ROK_SOFT_RIG, ROK_SOFT, ROK_SKINS, ROK_WEAPONS, ROK_CLIPS, ROK_ACTIONS } from '../src/characters/soft/rokSoft.js';
+import { ROK_SPRITE } from '../src/characters/sprite/rokSprite.js';
+
+const GROUND = -0.5, HEIGHT = 2.6;
+const Q = new URLSearchParams(location.search);
+const ZOOM = +(Q.get('zoom') || 1);   // ?zoom=2: phóng to để soi chi tiết · ?ui=0: ẩn bảng nút
+if (Q.get('ui') === '0') document.getElementById('panel').style.display = 'none';
+document.body.appendChild(renderer.domElement);
+function resize() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// ---------- Rok mềm ----------
+const tex = await new THREE.TextureLoader().loadAsync(ROK_SOFT_RIG.image);
+tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+const rok = buildSoftRig(ROK_SOFT_RIG, tex, HEIGHT, ROK_SOFT);
+const holder = new THREE.Group();       // vị trí + hướng nhìn
+holder.add(rok.root);
+holder.position.y = GROUND;
+scene.add(holder);
+const anim = new SoftAnimator(rok.parts, rok.skins, HEIGHT);
+
+// bóng dưới chân
+function blob() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(0,0,0,.45)'); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = GROUND + 0.01; scene.add(m); return m;
+}
+const shadowNew = blob(), shadowOld = blob();
+
+// ---------- Rok cũ (tranh từng khung) để so ----------
+const sp = ROK_SPRITE, meta = sp.meta;
+const spTex = await new THREE.TextureLoader().loadAsync(sp.image);
+spTex.colorSpace = THREE.SRGBColorSpace;
+const tops = Object.keys(meta.frames).filter(k => /^idle\d/.test(k)).map(k => meta.frames[k].top).sort((a, b) => a - b);
+const U = HEIGHT / tops[tops.length >> 1];
+const old = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: spTex, alphaToCoverage: true, fog: false, side: THREE.DoubleSide }));
+old.frustumCulled = false; old.visible = false; old.position.y = GROUND; scene.add(old);
+function setOldFrame(name) {
+  const f = meta.frames[name]; if (!f) return;
+  const [W, H] = meta.size, [x, y, w, h] = f.rect, [ox, oy] = f.org;
+  const x0 = -ox * U, x1 = (w - ox) * U, y1 = oy * U, y0 = (oy - h) * U;
+  const g = old.geometry;
+  g.attributes.position.array.set([x0, y1, 0, x1, y1, 0, x0, y0, 0, x1, y0, 0]); g.attributes.position.needsUpdate = true;
+  g.attributes.uv.array.set([x / W, 1 - y / H, (x + w) / W, 1 - y / H, x / W, 1 - (y + h) / H, (x + w) / W, 1 - (y + h) / H]); g.attributes.uv.needsUpdate = true;
+}
+const r = (p, n) => Array.from({ length: n }, (_, i) => p + (i + 1));
+// động tác cũ tương ứng (cùng độ dài với bản mới để chạy song song)
+const OLD = {
+  idle: { f: r('idle', 4), loop: true, fps: 4 }, ready: { f: ['ready1'], loop: true, fps: 1 }, move: { f: r('move', 8), loop: true, fps: 15 },
+  attack: { f: r('attack', 8) }, bash: { f: r('bash', 8) }, taunt: { f: r('taunt', 8) },
+  guard: { f: ['guard1', 'guard2', 'guard3', 'guard4', 'guard3', 'guard4'] }, hurt: { f: r('hurt', 4) }, victory: { f: r('victory', 4) },
+};
+
+// ---------- Hiệu ứng ----------
+const trail = new SwordTrail(scene);
+const fx = new Particles(scene);
+
+// mũi kiếm / chuôi kiếm (toạ độ thế giới) — lấy theo tấm tranh kiếm
+const swordJoint = rok.parts.sword;
+const swordArt = swordJoint.children.find(c => c.isGroup);
+const swordMesh = swordArt.children.find(c => c.isMesh);
+const sw = swordMesh.geometry.parameters;
+const endA = new THREE.Vector3(swordMesh.position.x, swordMesh.position.y + sw.height / 2, 0);
+const endB = new THREE.Vector3(swordMesh.position.x, swordMesh.position.y - sw.height / 2, 0);
+const TIP_LOCAL = endA.length() > endB.length() ? endA : endB;
+const BASE_LOCAL = TIP_LOCAL.clone().multiplyScalar(0.45);
+const _tip = new THREE.Vector3(), _base = new THREE.Vector3(), _tmp = new THREE.Vector3();
+function swordPoints() { _tip.copy(TIP_LOCAL); swordArt.localToWorld(_tip); _base.copy(BASE_LOCAL); swordArt.localToWorld(_base); }
+function shieldCenter(out) { rok.parts.shield.getWorldPosition(out); return out; }
+
+// ---------- Trạng thái ----------
+let action = 'idle', speed = 1, compare = false, auto = false, autoT = 0, facing = 1, weapon = 'thep';
+let shake = 0, time = 0, oldT = 0, stepPhase = 0;
+const NEW_X = () => (compare ? 1.6 : 0.2);
+const OLD_X = -2.0;
+
+function play(name) {
+  action = name;
+  oldT = 0;
+  const c = ROK_CLIPS[name];
+  const back = () => { if (action === name) anim.play(ROK_CLIPS.ready, { fade: 0.2 }); };
+  anim.play(c, { fade: name === 'hurt' ? 0.04 : 0.14, onEnd: c.loop ? null : back });
+  if (name !== 'move') { holder.position.x = NEW_X(); facing = 1; holder.scale.x = 1; }
+  refreshButtons();
+}
+
+function setSkin(key) {
+  const s = ROK_SKINS[key], u = rok.skinU;
+  u.uClothHue.value = s.clothHue; u.uClothSat.value = s.clothSat; u.uClothVal.value = s.clothVal;
+  u.uMetalTint.value.setRGB(...s.metal); u.uMetalMix.value = s.metalMix; u.uMetalVal.value = s.metalVal;
+  curSkin = key; refreshButtons();
+}
+function setWeapon(key) {
+  const w = ROK_WEAPONS[key], u = rok.weaponU;
+  u.uBladeTint.value.setRGB(...w.tint); u.uBladeMix.value = w.mix; u.uBladeGlow.value.setRGB(...w.glow);
+  trail.setColors(w.trail[0], w.trail[1]);
+  weapon = key; refreshButtons();
+}
+let curSkin = 'goc';
+
+// ---------- Nút ----------
+const mkBtns = (el, list, onClick) => list.map(([k, label]) => {
+  const b = document.createElement('button'); b.textContent = label; b.dataset.k = k; b.onclick = () => onClick(k); el.appendChild(b); return b;
+});
+const actBtns = mkBtns(document.getElementById('acts'), ROK_ACTIONS, k => { auto = false; play(k); });
+const skinBtns = mkBtns(document.getElementById('skins'), Object.entries(ROK_SKINS).map(([k, v]) => [k, v.label]), setSkin);
+const wepBtns = mkBtns(document.getElementById('weps'), Object.entries(ROK_WEAPONS).map(([k, v]) => [k, v.label]), setWeapon);
+const spdBtns = { 1: spd1, 0.5: spd05, 0.25: spd025 };
+for (const [v, b] of Object.entries(spdBtns)) b.onclick = () => { speed = +v; refreshButtons(); };
+cmp.onclick = () => { compare = !compare; old.visible = compare; tagOld.style.display = compare ? 'block' : 'none'; if (action !== 'move') holder.position.x = NEW_X(); refreshButtons(); };
+document.getElementById('auto').onclick = () => { auto = !auto; autoT = 0; refreshButtons(); };
+function refreshButtons() {
+  actBtns.forEach(b => b.classList.toggle('on', b.dataset.k === action));
+  skinBtns.forEach(b => b.classList.toggle('on', b.dataset.k === curSkin));
+  wepBtns.forEach(b => b.classList.toggle('on', b.dataset.k === weapon));
+  for (const [v, b] of Object.entries(spdBtns)) b.classList.toggle('on', +v === speed);
+  cmp.classList.toggle('on', compare); document.getElementById('auto').classList.toggle('on', auto);
+}
+
+// ---------- Camera ----------
+function placeCamera() {
+  const cx = compare ? -0.2 : 0.2;
+  const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
+  camera.fov = 30 / ZOOM; camera.updateProjectionMatrix();
+  // màn hình dọc (điện thoại): lùi camera cho thấy đủ người, nhìn thấp xuống để nhân vật nằm trên bảng nút
+  const narrow = camera.aspect < 1, dist = narrow ? 10 * 1.25 / camera.aspect : 10;
+  camera.position.set(cx + sx, 1.05 + sy, dist);
+  camera.lookAt(cx + sx * 0.5, ZOOM > 1 ? 0.75 : narrow ? -2.6 : 0.3, 0);
+}
+
+// ---------- Vòng lặp ----------
+const AUTO_LIST = ['idle', 'ready', 'attack', 'bash', 'move', 'taunt', 'guard', 'hurt', 'attack', 'victory'];
+let autoIdx = 0;
+const clock = new THREE.Clock();
+let paused = false;
+function frame() {
+  requestAnimationFrame(frame);
+  const d = clock.getDelta();
+  if (!paused) tick(Math.min(d, 1 / 20));
+}
+function tick(realDt) {
+  const dt = realDt * speed;
+  time += dt;
+
+  if (auto) {
+    autoT += dt;
+    const dur = action === 'move' ? 3.2 : action === 'idle' || action === 'ready' ? 1.9 : 2.0;
+    if (autoT > dur) { autoT = 0; autoIdx = (autoIdx + 1) % AUTO_LIST.length; play(AUTO_LIST[autoIdx]); }
+  }
+
+  // chạy qua lại trên sân
+  if (action === 'move') {
+    holder.position.x += facing * 3.2 * dt;
+    if (holder.position.x > 3.6) facing = -1; else if (holder.position.x < (compare ? -0.4 : -3.2)) facing = 1;
+    holder.scale.x = facing;
+  }
+  anim.update(dt);
+  rok.root.updateMatrixWorld(true);
+  holder.updateMatrixWorld(true);
+  updateBenders(rok, dt, time, facing);
+  rok.weaponU.uTime.value = time;
+
+  // bụi chân khi chạy (2 nhịp chạm đất mỗi vòng)
+  if (action === 'move') {
+    const ph = (anim.time % 0.52) / 0.52, prev = stepPhase; stepPhase = ph;
+    if ((prev < 0.05 && ph >= 0.05) || (prev < 0.55 && ph >= 0.55)) fx.dust(new THREE.Vector3(holder.position.x - facing * 0.2, GROUND, 0.1), 2, 0.7);
+  }
+
+  // ra đòn: khựng hình + loé + rung
+  const clip = anim.clip;
+  for (const e of anim.events) if (e.type === 'hit') {
+    anim.freeze(clip.hitStop ?? 0.05);
+    const w = ROK_WEAPONS[weapon];
+    if (e.clip === 'attack') { swordPoints(); fx.burst(_tip.clone(), w.spark, facing, 16); shake = 0.12; fx.dust(new THREE.Vector3(holder.position.x + 0.6, GROUND, 0.1), 3); }
+    else if (e.clip === 'bash') { shieldCenter(_tmp); _tmp.x += 0.35 * facing; fx.burst(_tmp.clone(), 0xfff6d8, facing, 12); shake = 0.15; fx.dust(new THREE.Vector3(holder.position.x, GROUND, 0.1), 4); }
+    else if (e.clip === 'taunt') { swordPoints(); fx.burst(_base.clone(), 0xffe9a8, facing, 10); shake = 0.1; }
+  }
+
+  // vệt chém trong lúc vung kiếm
+  swordPoints();
+  if (clip?.trail && anim.time >= clip.trail[0] && anim.time <= clip.trail[1]) trail.push(_base, _tip, time);
+  trail.update(time);
+  // tàn lửa / băng / sấm bay lên từ lưỡi kiếm
+  const w = ROK_WEAPONS[weapon];
+  if (w.embers && Math.random() < dt * 22) fx.ember(_tmp.lerpVectors(_base, _tip, 0.25 + Math.random() * 0.75).clone(), w.embers);
+  fx.update(dt);
+
+  // bản cũ chạy song song
+  if (compare) {
+    oldT += dt;
+    const o = OLD[action];
+    const dur = o.loop ? null : (ROK_CLIPS[action].keys.at(-1).t);
+    let i;
+    if (o.loop) i = Math.floor(oldT * o.fps) % o.f.length;
+    else i = Math.min(o.f.length - 1, Math.floor(oldT / dur * o.f.length));
+    if (!o.loop && oldT > dur + 0.25) setOldFrame('ready1'); else setOldFrame(o.f[i]);
+    old.position.x = action === 'move' ? OLD_X + Math.sin(time * 1.2) * 0.001 : OLD_X;
+  }
+
+  shadowNew.position.x = holder.position.x; shadowOld.position.x = OLD_X; shadowOld.visible = compare;
+  shake = Math.max(0, shake - realDt * 0.9);
+  placeCamera();
+  // nhãn trên đầu
+  const toScreen = (x) => { const v = new THREE.Vector3(x, GROUND + HEIGHT + 0.35, 0).project(camera); return (v.x + 1) / 2 * innerWidth; };
+  tagNew.style.left = toScreen(holder.position.x) + 'px'; tagOld.style.left = toScreen(OLD_X) + 'px';
+  const tY = (() => { const v = new THREE.Vector3(0, GROUND + HEIGHT + 0.5, 0).project(camera); return (1 - v.y) / 2 * innerHeight; })();
+  tagNew.style.top = tagOld.style.top = Math.max(48, tY - 30) + 'px';
+
+  renderer.render(scene, camera);
+}
+setSkin('goc'); setWeapon('thep'); play('idle');
+window.__rok = { rok, anim, play, setSkin, setWeapon, setSpeed: v => { speed = v; refreshButtons(); },
+  // soi từng khung (chỉ để kiểm tra): __rok.step(1/60, 20) chạy 20 khung rồi dừng
+  step: (dt, n = 1) => { paused = true; for (let i = 0; i < n; i++) tick(dt); return anim.time; }, resume: () => { paused = false; } };
+frame();
+</script>
+</body></html>

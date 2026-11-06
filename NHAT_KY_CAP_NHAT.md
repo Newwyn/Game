@@ -5,6 +5,14 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 06/11/2026 — THỬ NGHIỆM (nhánh `thu/rok-xuong-mem`, chưa vào game): Rok khung xương mềm + đổi skin / vũ khí
+- **Trang thử riêng** `tools/thu-rok-mem.html` (chạy `npm run dev` rồi mở http://localhost:5173/tools/thu-rok-mem.html). Game chính không đổi.
+- **Rok kiểu "xương mềm" (giống Spine):** dùng bộ tranh tách bộ phận bản 2 (áo đỏ, tóc nâu). Tóc, áo choàng, khăn **uốn cong** và **đung đưa theo quán tính**; động tác có **lấy đà, vượt quá rồi bật lại, khựng hình khi trúng**; chuyển động tác hoà dần, không giật.
+- **Đổi skin bằng màu** (không vẽ lại): Gốc, Hoàng Gia (xanh), Hoàng Kim, Hắc Kỵ Sĩ. **Đổi vũ khí:** Kiếm Thép / Lửa / Băng / Sấm (màu lưỡi, ánh sáng, tàn lửa bay lên, màu vệt chém).
+- **Hiệu ứng mới:** vệt chém cong theo đường kiếm, loé + tia lửa khi trúng, rung màn hình nhẹ, bụi chân khi chạy / đạp.
+- Nút **So với bản cũ** đặt Rok tranh từng khung (bản 3) bên cạnh; nút **Chậm ½ / ¼** để soi độ mượt; **Tự chạy lần lượt**.
+- Code mới: `src/characters/soft/` (softRig, softAnimator, softFx, rokSoft). `rokClips.js` chỉ thêm phần xuất tư thế để dùng lại.
+
 ## 02/11/2026 — Đồ họa Pixel: 1 bản rõ nhất, nút chọn trong bảng Tạm dừng, hiệu ứng Ignar cùng cỡ ô
 - **Chọn đồ họa trong bảng Tạm dừng:** nút **🎨 Đồ họa: Vẽ tay / PIXEL** (trang tải lại, trận đang đánh chơi lại). Bỏ phím X và 2 bản thô / mịn — chỉ còn bản rõ nhất (độ phân giải đầy đủ, ô pixel sắc).
 - **Hiệu ứng Ignar khớp với nhân vật:** vẽ lại cho cùng cỡ ô pixel với Ignar (trước đó nhiều hiệu ứng bị phóng to, ô to gấp 2-3 lần): **quả cầu lửa rơi vẽ lại hoàn toàn** (sao chổi lửa rực, không còn hòn đá tối), hào quang, khiên lửa, cánh lửa, Hộ Vệ Thần Lửa, các vòng phép dưới đất (có chữ rune).

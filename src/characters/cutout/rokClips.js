@@ -164,3 +164,18 @@ export const SECONDARY = {
 };
 
 export const LOCOMOTION = { runSpeed: 6.5, dashSpeed: 99, runClip: 'move', dashClip: 'move' };
+
+// Dùng lại cho bản khung xương mềm (src/characters/soft/rokSoft.js)
+export const ROK_POSES = {
+    IDLE, IDLE_IN, READY, READY_IN, RUN, FALL, LAND, LAND_HOLD, SLASH_WIND, SLASH_MID, SLASH_HIT, SLASH_FOLLOW,
+    TAUNT_UP, TAUNT_SHOUT, TAUNT_BANG, BASH_PREP, BASH_HIT, BASH_FOLLOW, FORT, FORT_B, GUARD, GUARD_B, GUARD_RAISE,
+    HURT, STUN_A, STUN_B, WIN_UP, WIN, WIN_B, DEAD,
+};
+/** Áp TUCK (khiên áp ngực) + cổ tay thẳng giống rokClips() */
+export function rokPrep(p) {
+    const t = p.noTuck ? p : { ...p, armF: (p.armF ?? 0) - TUCK, foreF: (p.foreF ?? 0) + TUCK };
+    const h = t.handN ?? 0;
+    const w = Math.max(-WRIST_MAX, Math.min(WRIST_MAX, h * 0.3));
+    return { ...t, handN: w, sword: (t.sword ?? 0) + h - w };
+}
+export { pose as rokPose, blade as rokBlade };
