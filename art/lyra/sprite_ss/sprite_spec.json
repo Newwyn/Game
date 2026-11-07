@@ -1,0 +1,181 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "jade",
+ "footBand": 16,
+ "footMin": 25,
+ "sheets": {
+  "idle": {
+   "file": "art/lyra/sprite_ss/sprite-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "heel"
+    ],
+    [
+     "ready",
+     4,
+     "heel"
+    ]
+   ]
+  },
+  "attack": {
+   "file": "art/lyra/sprite/sprite-attack.png",
+   "scale": 1.03,
+   "anchor": "heel",
+   "points": {
+    "5": {
+     "bow": [
+      344,
+      740
+     ]
+    }
+   },
+   "key": "jade"
+  },
+  "move": {
+   "file": "art/lyra/sprite_ss/sprite-move.png",
+   "scale": 1.04,
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "file": "art/lyra/sprite_ss/sprite-hurt-stun.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "heel"
+    ],
+    [
+     "stun",
+     4,
+     "heel"
+    ]
+   ]
+  },
+  "snipe": {
+   "file": "art/lyra/sprite_ss/sprite-snipe.png",
+   "scale": 1.12,
+   "groups": [
+    [
+     "snipeA",
+     1,
+     "heel"
+    ],
+    [
+     "snipeB",
+     6,
+     "body"
+    ],
+    [
+     "snipeC",
+     1,
+     "heel"
+    ]
+   ],
+   "points": {
+    "6": {
+     "bow": [
+      748,
+      692
+     ]
+    }
+   }
+  },
+  "call-land": {
+   "file": "art/lyra/sprite_ss/sprite-call-land.png",
+   "scale": 1.08,
+   "groups": [
+    [
+     "call",
+     4,
+     "body"
+    ],
+    [
+     "fall",
+     1,
+     "body"
+    ],
+    [
+     "land",
+     2,
+     "body"
+    ],
+    [
+     "landEnd",
+     1,
+     "heel"
+    ]
+   ]
+  },
+  "charge-release": {
+   "file": "art/lyra/sprite_ss/sprite-charge-release.png",
+   "scale": 1.09,
+   "groups": [
+    [
+     "charge",
+     4,
+     "heel"
+    ],
+    [
+     "release",
+     4,
+     "heel"
+    ]
+   ]
+  },
+  "hover": {
+   "file": "art/lyra/sprite_ss/sprite-hover.png",
+   "scale": 1.05,
+   "groups": [
+    [
+     "hover",
+     4,
+     "body"
+    ],
+    [
+     "hoverShot",
+     4,
+     "body"
+    ]
+   ],
+   "points": {
+    "7": {
+     "bow": [
+      1104,
+      688
+     ]
+    }
+   }
+  },
+  "dead-victory": {
+   "file": "art/lyra/sprite/sprite-dead-victory.png",
+   "scale": 1.1,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "body"
+    ]
+   ],
+   "ground": [
+    "victory"
+   ],
+   "key": "jade"
+  }
+ },
+ "out": "src/assets/sprites/lyra_ss_sprite",
+ "meta": "src/characters/sprite/lyraSprite_ss.json",
+ "format": "webp"
+}

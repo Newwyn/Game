@@ -8,6 +8,8 @@
 import { net, socket } from '../net/socket.js';
 import { playStory } from './story.js';
 import { MAPS } from '../world/maps.js';
+import { trackerHTML, questLogHTML } from './questLog.js';
+import '../styles/questlog.css';
 
 const SHEETS = import.meta.glob('../assets/overworld/*.webp', { eager: true, import: 'default' });
 const SHEET_META = import.meta.glob('../assets/overworld/*.json', { eager: true, import: 'default' });
@@ -29,6 +31,203 @@ let dialog = null, puzzle = null, toastMsg = null, toastAt = 0, mapOpen = false,
 const held = new Set();       // hướng đang giữ (bàn phím + phím ảo)
 let lastSave = 0;
 
+// ---------- đồ hoạ: 3D (Đẹp / Nhẹ) hoặc phẳng 2D ----------
+let host3d = null, fadeEl = null, view = null, loading3d = false;
+const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } } };
+const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } };
+// 'auto' (mặc định): bắt đầu Đẹp (điện thoại: Nhẹ), máy không kịp thì tự hạ — xem view.setAuto
+let quality = LS.get('wd_quality') || 'auto';
+let autoLevel = coarse() ? 'low' : 'high', autoToast = false;
+const webglOK = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
+if (!webglOK()) quality = '2d';
+let viewLoading = null;
+const use3d = () => quality !== '2d' && !!view;
+function applyQuality() {
+    if (!root) return;
+    if (quality !== '2d' && !view) {   // phần 3D là gói riêng: chỉ tải khi mở bản đồ lần đầu
+        viewLoading ??= import('../world3d/view.js')
+            .then(m => { view = m.createView(host3d); })
+            .catch(e => { console.warn('[world] không bật được 3D, dùng bản đồ phẳng', e); quality = '2d'; })
+            .finally(() => { loading3d = false; applyQuality(); });
+        loading3d = true; fade = Math.max(fade, 1);
+        host3d.style.display = 'block'; canvas.style.display = 'none';
+        return;
+    }
+    if (view && quality !== '2d') {
+        view.setQuality(quality === 'auto' ? autoLevel : quality);
+        view.setAuto(quality === 'auto' && !TICK, (kind) => {
+            if (kind === 'low') autoLevel = 'low';
+            if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
+        });
+    }
+    host3d.style.display = quality === '2d' ? 'none' : 'block';
+    canvas.style.display = quality === '2d' ? 'block' : 'none';
+    if (scene && quality !== '2d') load3d(scene.id);
+}
+function load3d(id) {
+    if (!view) return;
+    loading3d = true; fade = Math.max(fade, 1);
+    view.resize();
+    view.setMap(id).catch(e => console.warn('[world] lỗi dựng bản đồ 3D', e)).finally(() => { if (scene?.id === id) loading3d = false; });
+}
+
+// ---------- tự đi (bấm xuống đất / nút 🧭 Tự đi tới của nhiệm vụ) ----------
+// auto = { goal: { scene, kind: 'npc'|'obj'|'tile', id?, x?, y? }, path: [[x, y]] | null, exitDir, fails }
+let auto = null;
+const N4 = [[0, -1, 'up'], [0, 1, 'down'], [-1, 0, 'left'], [1, 0, 'right']];
+const dirTo = (ax, ay, bx, by) => bx > ax ? 'right' : bx < ax ? 'left' : by > ay ? 'down' : 'up';
+function cancelAuto() { auto = null; }
+function startAuto(goal) {
+    auto = { goal, path: null, exitDir: null, fails: 0 };
+    if (!planAuto()) auto = null;
+}
+/** BFS 4 hướng từ chỗ đứng tới 1 trong các ô đích (đi được) -> danh sách ô (không gồm ô đang đứng) hoặc null */
+function bfs(goals) {
+    const key = (x, y) => x + y * 1000, want = new Set(goals.map(([x, y]) => key(x, y)));
+    if (want.has(key(me.x, me.y))) return [];
+    const from = new Map([[key(me.x, me.y), null]]), q = [[me.x, me.y]];
+    while (q.length) {
+        const [x, y] = q.shift();
+        for (const [dx, dy] of N4) {
+            const nx = x + dx, ny = y + dy, k = key(nx, ny);
+            if (from.has(k) || blocked(nx, ny)) continue;
+            from.set(k, key(x, y));
+            if (want.has(k)) {
+                const path = [];
+                for (let c = k; c !== key(me.x, me.y); c = from.get(c)) path.unshift([c % 1000, Math.floor(c / 1000)]);
+                return path;
+            }
+            q.push([nx, ny]);
+        }
+    }
+    return null;
+}
+/** Các ô có thể đứng để tương tác với mục tiêu (+ ô mục tiêu để quay mặt vào) */
+function goalTiles(g) {
+    const around = (tiles) => {
+        const own = new Set(tiles.map(([x, y]) => x + ',' + y)), out = [];
+        for (const [x, y] of tiles) for (const [dx, dy] of N4) { const nx = x + dx, ny = y + dy; if (!own.has(nx + ',' + ny) && !blocked(nx, ny)) out.push([nx, ny]); }
+        return out;
+    };
+    if (g.kind === 'npc') {
+        const n = npcs.find(q => q.id === g.id && !q.hidden);
+        return n ? { stand: around([[n.x, n.y]]), face: [[n.x, n.y]] } : null;
+    }
+    if (g.kind === 'obj') {
+        const o = (map.objects ?? []).find(q => q.id === g.id);
+        if (!o) return null;
+        if (o.trigger) return { stand: o.trigger.filter(([x, y]) => !blocked(x, y)), face: [] };
+        const tiles = o.area ?? [[o.x, o.y]];
+        return { stand: around(tiles), face: tiles };
+    }
+    return { stand: [[g.x, g.y]], face: [] };
+}
+/** Bản đồ kế tiếp trên đường tới khu đích (BFS theo lối ra) -> lối ra trong bản đồ hiện tại */
+function nextExit(to) {
+    const prev = new Map([[scene.id, null]]), q = [scene.id];
+    while (q.length) {
+        const s = q.shift();
+        for (const e of MAPS[s]?.exits ?? []) {
+            if (prev.has(e.scene) || !data.scenes[e.scene]?.open) continue;
+            prev.set(e.scene, { s, e });
+            if (e.scene === to) { let c = to; while (prev.get(c).s !== scene.id) c = prev.get(c).s; return prev.get(c).e; }
+            q.push(e.scene);
+        }
+    }
+    return null;
+}
+function planAuto() {
+    if (!auto || !scene) return false;
+    const g = auto.goal;
+    auto.exitDir = null;
+    if (g.scene && g.scene !== scene.id) {
+        if (!data.scenes[g.scene]?.open) { toast(`🔒 ${data.scenes[g.scene]?.name ?? 'Khu đó'} chưa mở`); return false; }
+        const e = nextExit(g.scene);
+        if (!e) { toast('⚠️ Không tìm được đường tới đó'); return false; }
+        let stand = [], dirOf = null;
+        if (e.edge) {
+            for (let i = e.a; i <= e.b; i++) {
+                const [x, y] = e.edge === 'left' ? [0, i] : e.edge === 'right' ? [map.cols - 1, i] : e.edge === 'up' ? [i, 0] : [i, map.rows - 1];
+                if (x >= 0 && y >= 0 && x < map.cols && y < map.rows && map.grid[y][x] === '.') stand.push([x, y]);
+            }
+            dirOf = () => e.edge;
+        } else {
+            const ex = new Set(e.tiles.map(([x, y]) => x + ',' + y));
+            for (const [x, y] of e.tiles) for (const [dx, dy] of N4) if (!ex.has((x + dx) + ',' + (y + dy)) && !blocked(x + dx, y + dy)) stand.push([x + dx, y + dy]);
+            dirOf = ([sx, sy]) => { const t = e.tiles.find(([x, y]) => Math.abs(x - sx) + Math.abs(y - sy) === 1); return t ? dirTo(sx, sy, t[0], t[1]) : null; };
+        }
+        const path = bfs(stand);
+        if (!path) { toast('⚠️ Không tìm được đường tới đó'); return false; }
+        auto.path = path;
+        const end = path.length ? path[path.length - 1] : [me.x, me.y];
+        auto.exitDir = dirOf(end);
+        return true;
+    }
+    const gt = goalTiles(g);
+    if (!gt || !gt.stand.length) { toast('⚠️ Không tới gần được chỗ đó'); return false; }
+    const path = bfs(gt.stand);
+    if (!path) { toast('⚠️ Không tìm được đường tới đó'); return false; }
+    auto.path = path; auto.face = gt.face;
+    return true;
+}
+function stepAuto() {
+    if (!auto || !canWalk() || held.size || queued) return;
+    if (!auto.path && !planAuto()) { auto = null; return; }
+    if (!auto.path.length) {
+        if (auto.exitDir) { const d = auto.exitDir; auto.path = null; me.face = d; turnAt = 0; tryStep(d); if (!fade) auto = null; return; }
+        const g = auto.goal, f = (auto.face ?? []).find(([x, y]) => Math.abs(x - me.x) + Math.abs(y - me.y) === 1);
+        auto = null;
+        if (f) { me.face = dirTo(me.x, me.y, f[0], f[1]); if (g.kind === 'npc' || g.kind === 'obj') pressA(); }
+        return;
+    }
+    const [nx, ny] = auto.path[0];
+    if (blocked(nx, ny)) { if (++auto.fails > 6) { auto = null; toast('⚠️ Đường bị chắn'); } else auto.path = null; return; }
+    auto.path.shift();
+    const d = dirTo(me.x, me.y, nx, ny);
+    me.face = d; turnAt = 0;
+    tryStep(d);
+}
+function onGroundTap(e) {
+    if (!open || dialog || puzzle || mapOpen || qlOpen || busy || !map) return;
+    let t;
+    if (use3d()) t = view.pick(e.clientX, e.clientY);
+    else {
+        const { cx, cy, S } = cam(), r = canvas.getBoundingClientRect(), k = canvas.width / r.width;
+        t = { x: Math.floor(((e.clientX - r.left) * k + cx) / S), y: Math.floor(((e.clientY - r.top) * k + cy) / S) };
+    }
+    if (!t || t.x < 0 || t.y < 0 || t.x >= map.cols || t.y >= map.rows) return;
+    const n = npcs.find(q => !q.hidden && q.x === t.x && q.y === t.y);
+    if (n) return startAuto({ kind: 'npc', id: n.id });
+    const o = (map.objects ?? []).find(q => !q.trigger && (q.x === t.x && q.y === t.y || (q.area ?? []).some(([x, y]) => x === t.x && y === t.y)) && visibleObj(q));
+    if (o) return startAuto({ kind: 'obj', id: o.id });
+    if (!blocked(t.x, t.y)) startAuto({ kind: 'tile', x: t.x, y: t.y });
+}
+
+// ---------- nhiệm vụ: khung theo dõi + sổ nhiệm vụ (J) ----------
+let qlOpen = false, qlTab = 'active', qlSel = null, tracked = LS.get('wd_track') || 'main';
+const quests = () => data?.quests ?? [];
+function trackedQuest() {
+    const list = quests();
+    return list.find(q => q.id === tracked && (q.state === 'active' || q.state === 'offered')) ?? list.find(q => q.type === 'main' && q.state === 'active') ?? null;
+}
+function goQuest(id) {
+    const q = quests().find(x => x.id === id);
+    if (!q?.target) return toast('Nhiệm vụ này chưa có chỗ để đi tới');
+    tracked = id; LS.set('wd_track', id);
+    qlOpen = false; renderHud();
+    startAuto({ scene: q.target.scene, kind: q.target.kind, id: q.target.id });
+}
+/** Vị trí (ô) của mục tiêu nhiệm vụ đang theo dõi nếu nằm trong bản đồ hiện tại */
+function trackedSpot() {
+    const t = trackedQuest()?.target;
+    if (!t || t.scene !== scene?.id) return null;
+    if (t.kind === 'npc') { const n = npcs.find(q => q.id === t.id && !q.hidden); return n ? npcPos(n) : null; }
+    const o = (map.objects ?? []).find(q => q.id === t.id);
+    if (!o) return null;
+    const tiles = o.trigger ?? o.area ?? [[o.x, o.y]];
+    return { x: tiles.reduce((s, [x]) => s + x, 0) / tiles.length + 0.5, z: tiles.reduce((s, [, y]) => s + y, 0) / tiles.length + 0.5 };
+}
+
 const imgs = new Map();
 function img(url) {
     if (!url) return null;
@@ -43,7 +242,7 @@ function el() {
     if (root) return root;
     root = document.createElement('div');
     root.id = 'world-screen';
-    root.innerHTML = `<canvas class="wd-canvas"></canvas><div class="wd-hud"></div>
+    root.innerHTML = `<div class="wd-3d"></div><canvas class="wd-canvas"></canvas><div class="wd-fade"></div><div class="wd-hud"></div>
         <div class="wd-pad" aria-label="Phím điều hướng">
             <button class="wd-dp up" data-dir="up" aria-label="Lên">▲</button>
             <button class="wd-dp left" data-dir="left" aria-label="Trái">◀</button>
@@ -56,7 +255,13 @@ function el() {
     ctx = canvas.getContext('2d');
     hud = root.querySelector('.wd-hud');
     padEl = root.querySelector('.wd-pad');
+    host3d = root.querySelector('.wd-3d');
+    fadeEl = root.querySelector('.wd-fade');
     hud.addEventListener('click', onHudClick);
+    // bấm chuột / chạm xuống đất: tự đi tới ô đó (nói chuyện / xem nếu là NPC, đồ vật)
+    host3d.addEventListener('pointerdown', onGroundTap);
+    canvas.addEventListener('pointerdown', onGroundTap);
+    applyQuality();
     // phím ảo: giữ để đi
     root.querySelectorAll('[data-dir]').forEach(b => {
         const d = b.dataset.dir;
@@ -78,6 +283,8 @@ function resize() {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.round(root.clientWidth * dpr);
     canvas.height = Math.round(root.clientHeight * dpr);
+    view?.resize();
+    if (open) renderHud();
 }
 
 // ---------- lưới ô ----------
@@ -96,18 +303,23 @@ const visibleObj = (o) => { const st = scene?.objects.find(s => s.id === o.id); 
 
 // ---------- vòng lặp ----------
 let raf = 0, last = 0;
+// chỉ khi chạy thử (npm run dev, thêm ?tick vào địa chỉ): chạy vòng lặp bằng hẹn giờ — khung xem bị ẩn thì trình duyệt dừng requestAnimationFrame
+const TICK = !!import.meta.env?.DEV && location.search.includes('tick');
+const nextFrame = (f) => (TICK ? setTimeout(() => f(performance.now()), 40) : requestAnimationFrame(f));
+const stopFrame = (h) => (TICK ? clearTimeout(h) : cancelAnimationFrame(h));
 function frame(t) {
     if (!open) return;
-    raf = requestAnimationFrame(frame);
+    raf = nextFrame(frame);
     const dt = Math.min(50, t - (last || t));
     last = t;
     update(dt, t);
-    draw(t);
+    if (use3d()) draw3d(t); else if (quality === '2d') draw(t);
+    if (fadeEl) fadeEl.style.opacity = quality !== '2d' ? fade : 0;
     if (toastMsg && t - toastAt > 3500) { toastMsg = null; renderHud(); }
 }
 function update(dt, now) {
     if (!map) return;
-    fade = Math.max(0, fade - dt / 300);
+    fade = loading3d && quality !== '2d' ? 1 : Math.max(0, fade - dt / 300);
     // đi / nhảy
     if (me.moving) {
         me.moving.t += dt;
@@ -119,8 +331,9 @@ function update(dt, now) {
     }
     if (canWalk()) {
         const d = (lastDir && held.has(lastDir)) ? lastDir : [...held].pop();
-        if (d) { queued = null; tryStep(d); }
+        if (d) { queued = null; cancelAuto(); tryStep(d); }
         else if (queued) { const q = queued; queued = null; turnAt = 0; arriveAt = performance.now(); tryStep(q); }
+        else stepAuto();
     }
     // NPC đi lại quanh chỗ đứng
     for (const n of npcs) {
@@ -139,10 +352,10 @@ function update(dt, now) {
         n.moving = { tx, ty, t: 0 };
     }
 }
-const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !mapOpen && !busy && fade <= 0;
+const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !mapOpen && !qlOpen && !busy && fade <= 0;
 // bấm nhanh 1 cái: quay mặt (nếu đang nhìn hướng khác) hoặc đi 1 ô — không bị lỡ giữa 2 khung hình
 let queued = null;   // bấm trong lúc đang bước: nhớ lại, bước xong đi tiếp
-function tap(d) { if (canWalk()) { turnAt = 0; tryStep(d); } else if (me.moving && !me.jump) queued = d; }
+function tap(d) { cancelAuto(); if (canWalk()) { turnAt = 0; tryStep(d); } else if (me.moving && !me.jump) queued = d; }
 function tryStep(d) {
     const now = performance.now();
     // đứng yên mà bấm hướng khác: chỉ quay mặt (giống Pokémon), giữ thêm chút mới đi
@@ -185,7 +398,7 @@ function front() { const [dx, dy] = DIRS[me.face]; return [me.x + dx, me.y + dy]
 function pressA() {
     if (!open) return;
     if (dialog) return nextLine();
-    if (puzzle || mapOpen || busy || me.moving) return;
+    if (puzzle || mapOpen || qlOpen || busy || me.moving) return;
     const [fx, fy] = front();
     const n = npcs.find(q => !q.hidden && (q.moving ? q.moving.tx : q.x) === fx && (q.moving ? q.moving.ty : q.y) === fy);
     if (n) {
@@ -196,7 +409,8 @@ function pressA() {
     if (o) return interactWith({ kind: 'obj', id: o.id });
 }
 function pressB() {
-    if (!open || dialog || puzzle || mapOpen || busy || me.moving) return;
+    if (!open || dialog || puzzle || mapOpen || qlOpen || busy || me.moving) return;
+    cancelAuto();
     const [dx, dy] = DIRS[me.face];
     const x1 = me.x + dx, y1 = me.y + dy, x2 = me.x + 2 * dx, y2 = me.y + 2 * dy;
     // nhảy qua vật cản mỏng 1 ô (hàng rào, luống hoa…) nếu ô sau đó đi được; không thì nhảy tại chỗ
@@ -292,6 +506,48 @@ function draw(now) {
     if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 }
 
+// ---------- vẽ 3D: gom trạng thái gửi sang src/world3d/view.js ----------
+function npcPos(n) {
+    const p = n.moving ? Math.min(1, n.moving.t / (STEP_MS * 1.6)) : 0;
+    return { x: n.x + (n.moving ? (n.moving.tx - n.x) * p : 0) + 0.5, z: n.y + (n.moving ? (n.moving.ty - n.y) * p : 0) + 0.5, p };
+}
+function draw3d(now) {
+    if (!map || !view) return;
+    const p = me.moving ? ease(me.moving) : 0;
+    const mx = me.x + (me.moving ? (me.moving.tx - me.x) * p : 0) + 0.5, mz = me.y + (me.moving ? (me.moving.ty - me.y) * p : 0) + 0.5;
+    const shake = performance.now() - bumpAt < 150 ? Math.sin(performance.now() / 15) * 0.05 : 0;
+    const hero = sheet(data.player?.gender === 'f' ? 'hero_f' : 'hero_m');
+    const actors = [{ key: 'me', url: hero.url, meta: hero.meta, x: mx + shake, z: mz, face: me.face,
+        col: (!!me.moving && !me.jump && p > 0.2 && p < 0.8) ? (me.step % 2 ? 0 : 2) : 1, lift: me.jump ? Math.sin(p * Math.PI) * 0.8 : 0 }];
+    const marks = [];
+    for (const n of npcs) {
+        if (n.hidden) continue;
+        const s = sheet(n.def.art), q = npcPos(n);
+        actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, x: q.x, z: q.z, face: n.face, col: (!!n.moving && q.p > 0.25 && q.p < 0.75) ? (n.step % 2 ? 0 : 2) : 1 });
+        if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: n.mark === '!' ? '#facc15' : '#4ade80' });
+    }
+    const itemsUrl = Object.values(ITEMS_IMG)[0], itemsMeta = SHEET_META['../assets/overworld/items.json'];
+    const items = [];
+    for (const o of map.objects ?? []) {
+        const st = scene.objects.find(s => s.id === o.id);
+        if (!st || st.state === 'hidden') continue;
+        if (o.char) {   // nhóm quái đứng chờ (sự kiện)
+            if (st.state !== 'ready') continue;
+            const g = sheet(o.char);
+            [[0, 0], [1, -1], [1, 1]].forEach(([ox, oy], k) => actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: 'left',
+                col: Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }));
+            continue;
+        }
+        if (!o.sprite || !itemsMeta) continue;
+        const cell = ITEM_CELL[o.sprite === 'chest' && st.state === 'done' ? 'chest_open' : o.sprite];
+        if (cell == null) continue;
+        items.push({ key: o.id, url: itemsUrl, meta: itemsMeta, cell, x: o.x + 0.5, z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
+            bob: st.state === 'ready' && o.sprite !== 'chest' && o.sprite !== 'mine' });
+    }
+    view.frame({ focus: { x: mx, z: mz }, actors, items, marks, beacon: trackedSpot(),
+        route: auto?.path ? auto.path.map(([x, y]) => ({ x: x + 0.5, z: y + 0.5 })) : [] });
+}
+
 // ---------- HUD ----------
 function renderHud() {
     if (!hud || !data) return;
@@ -310,10 +566,15 @@ function renderHud() {
     </div>
     ${data.bag?.length ? `<div class="wd-bag">Đang mang: ${data.bag.map(b => `<b>${b.name}</b>`).join(', ')}</div>` : ''}
     ${toastMsg ? `<div class="wd-toast">${toastMsg}</div>` : ''}
-    <div class="wd-help">Mũi tên / WASD: đi · A (E, Enter): nói chuyện / xem · B (Space): nhảy</div>
+    <div class="wd-help">Mũi tên / WASD: đi · bấm xuống đất: tự đi tới · A (E): nói chuyện / xem · B (Space): nhảy · J: nhiệm vụ</div>
+    ${data.quests ? trackerHTML(trackedQuest()) : ""}
     ${dialog ? dialogHTML() : ''}
     ${puzzle ? puzzleHTML() : ''}
-    ${mapOpen ? mapHTML() : ''}`;
+    ${mapOpen ? mapHTML() : ''}
+    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null }) : ''}`;
+    // khung theo dõi nhiệm vụ nằm ngay dưới thanh trên cùng (thanh này xuống 2 dòng trên màn hẹp)
+    const top = hud.querySelector('.wd-top'), trk = hud.querySelector('.ql-tracker');
+    if (top && trk) trk.style.top = Math.round(top.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
 }
 function dialogHTML() {
     const [who, text] = dialog.lines[dialog.i] ?? [];
@@ -343,6 +604,8 @@ function mapHTML() {
         ${Object.values(areas).map(a => `<div class="wd-map-area"><b>${a.name}</b><div>${a.list.map(s =>
             `<button class="wd-map-scene${s.id === scene.id ? ' here' : ''}${s.open ? '' : ' locked'}" data-wd-travel="${s.id}" ${s.open ? '' : 'disabled'}>${s.open ? '' : '🔒 '}${s.name}${s.id === scene.id ? ' 📍' : ''}</button>`).join('')}</div>
             ${a.list[0].open ? '' : `<small>Mở khi qua ải ${a.list[0].needNo}</small>`}</div>`).join('')}
+        <div class="wd-quality"><b>Đồ hoạ bản đồ</b><div>${[["auto", "🤖 Tự động"], ["high", "✨ Đẹp"], ["low", "⚡ Nhẹ"], ["2d", "🗺️ Phẳng 2D"]].map(([k, t]) => `<button class="wd-map-scene${quality === k ? " here" : ""}" data-wd-q="${k}">${t}</button>`).join("")}</div>
+            <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
 }
 function toast(t) { toastMsg = t; toastAt = performance.now(); renderHud(); }
@@ -360,7 +623,8 @@ function onKey(e) {
     if (d) { e.preventDefault(); if (!held.has(d)) { held.add(d); lastDir = d; tap(d); } return; }
     if (['e', 'E', 'Enter', 'z', 'Z'].includes(e.key)) { e.preventDefault(); pressA(); }
     if ([' ', 'x', 'X'].includes(e.key)) { e.preventDefault(); if (dialog) nextLine(); else pressB(); }
-    if (e.key === 'Escape') { dialog = null; puzzle = null; mapOpen = false; renderHud(); }
+    if (e.key === 'j' || e.key === 'J') { e.preventDefault(); if (!dialog && !puzzle) { qlOpen = !qlOpen; mapOpen = false; renderHud(); } }
+    if (e.key === 'Escape') { dialog = null; puzzle = null; mapOpen = false; qlOpen = false; cancelAuto(); renderHud(); }
 }
 function onHudClick(e) {
     const q = (s) => e.target.closest(s);
@@ -369,6 +633,15 @@ function onHudClick(e) {
     if (q('[data-wd-gear]')) { save(true); onGear?.(); return; }
     if (q('[data-wd-extras]')) { save(true); onExtras?.(); return; }
     if (q('[data-wd-map]')) { mapOpen = true; renderHud(); return; }
+    const wq = q('[data-wd-q]');
+    if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
+    // sổ nhiệm vụ
+    if (q('[data-ql-open]')) { qlOpen = true; mapOpen = false; qlSel = trackedQuest()?.id ?? null; renderHud(); return; }
+    if (e.target.matches('[data-ql-close]') || q('button[data-ql-close]')) { qlOpen = false; renderHud(); return; }
+    const qt = q('[data-ql-tab]'); if (qt) { qlTab = qt.dataset.qlTab; qlSel = null; renderHud(); return; }
+    const qs = q('[data-ql-sel]'); if (qs) { qlSel = qs.dataset.qlSel; renderHud(); return; }
+    const qk = q('[data-ql-track]'); if (qk) { tracked = qk.dataset.qlTrack; LS.set('wd_track', tracked); toast('📌 Đang theo dõi nhiệm vụ này'); return; }
+    const qg = q('[data-ql-go]'); if (qg) { goQuest(qg.dataset.qlGo); return; }
     const tv = q('[data-wd-travel]');
     if (tv) {
         mapOpen = false;
@@ -399,6 +672,8 @@ function loadScene(id, x, y, face) {
         const s = scene.npcs.find(n => n.id === p.id);
         return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;
     }).filter(Boolean);
+    if (auto) { auto.path = null; auto.exitDir = null; }
+    if (view && quality !== '2d') load3d(id);
     renderHud();
 }
 function save(force = false) {
@@ -498,20 +773,20 @@ export function showWorld({ stages, gear, back, extras, stage } = {}) {
     resize();
     held.clear();
     net.worldOpen();
-    cancelAnimationFrame(raf); last = 0;
-    raf = requestAnimationFrame(frame);
+    stopFrame(raf); last = 0;
+    raf = nextFrame(frame);
 }
 export function hideWorld() {
     if (open && scene) save(true);
     open = false;
-    cancelAnimationFrame(raf);
+    stopFrame(raf);
     held.clear();
     if (root) root.style.display = 'none';
     document.body.classList.remove('in-world');
 }
 export const worldOpen = () => open;
 // chỉ khi chạy thử (npm run dev): xem trạng thái bản đồ trong console — window.__wd
-if (import.meta.env?.DEV) window.__wd = { me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; } };
+if (import.meta.env?.DEV) window.__wd = { get view() { return view; }, get auto() { return auto; }, get quests() { return quests(); }, me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; } };
 export function setupWorld() {
     el();
     socket.on('worldState', applyState);

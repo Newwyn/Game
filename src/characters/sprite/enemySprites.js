@@ -1,7 +1,8 @@
 // ============================================================
 // Quái chương 1 (P5) kiểu SPRITE: mỗi quái 2 khung (đứng · tấn công) vẽ trên Google Flow, cắt bằng tools/enemy_pack.py
 //   -> src/assets/sprites/enemy_<art>.webp + enemy_<art>.json. Trùm Valdric có thêm 2 khung bùng lửa (p2_idle1 · p2_attack1).
-// Khung xương ẩn mượn của quái cũ (creatureVisual) để giữ mốc ra đòn / nhún / ngã. Sói dùng lại bộ tranh sói của Sylva.
+// Khung xương ẩn mượn của quái cũ (creatureVisual) để giữ mốc ra đòn / nhún / ngã.
+// Sói địch: tranh riêng enemy_wolf (Sói Rừng) / enemy_wolfboss (Sói Đầu Đàn, vòng cổ ma thuật) — chưa có thì tạm dùng tranh sói của Sylva.
 // ============================================================
 import { creatureVisual } from '../cutout/creatureRig.js';
 import { GOLEM_RIG } from '../cutout/golemRig.js';
@@ -43,11 +44,12 @@ export function enemyVisual(classDef, member) {
     if (cache.has(key)) return cache.get(key);
     const scale = classDef.scale ?? 1;
     let visual = null;
-    if (classDef.art === 'wolf') {
+    const art = classDef.art === 'wolfboss' && !spriteOf('wolfboss') ? 'wolf' : classDef.art;
+    if (art === 'wolf' && !spriteOf('wolf')) {
         visual = { rig: GOLEM_RIG, clips: golemClips, height: 1.75 * scale, shadowSize: 1.5 * scale, locomotion: GOLEM_LOCOMOTION,
             sprite: WOLF_SPRITE, spriteParam: 'enemy', anims: { attack: { clip: 'attack', hitTime: 0.3 }, throw: { clip: 'attack', hitTime: 0.3 } } };
     } else {
-        const sp = spriteOf(classDef.art);
+        const sp = spriteOf(art);
         if (sp) {
             const base = creatureVisual(classDef.base ?? 'monster_tank', member?.color ?? classDef.color);
             visual = { ...base, height: 1.85 * scale, shadowSize: 1.5 * scale, sprite: sp, spriteParam: 'enemy' };

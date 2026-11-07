@@ -104,8 +104,11 @@ socket.on('memberToggles', (d) => renderMemberToggles(null, d.disabled));
 // Vòng lặp render — mọi chuyển động dùng dt thật (giây)
 // ------------------------------------------------------------
 let lastTime = performance.now();
+// chạy thử (npm run dev + ?tick): khung xem bị ẩn thì requestAnimationFrame dừng -> dùng hẹn giờ
+const TICK = import.meta.env?.DEV && location.search.includes('tick');
+const nextFrame = (f) => (TICK ? setTimeout(() => f(performance.now()), 33) : requestAnimationFrame(f));
 function frame(now) {
-    requestAnimationFrame(frame);
+    nextFrame(frame);
     // Giới hạn 0.1s: chuyển tab rồi quay lại không bị "tua nhanh"
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
@@ -116,4 +119,4 @@ function frame(now) {
     cameraRig.update(dt);
     cameraRig.render();
 }
-requestAnimationFrame(frame);
+nextFrame(frame);

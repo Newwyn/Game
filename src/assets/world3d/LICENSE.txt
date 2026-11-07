@@ -1,0 +1,3 @@
+Mô hình 3D trong thư mục này: bộ Nature Kit, Fantasy Town Kit, Castle Kit, Survival Kit, Graveyard Kit
+của Kenney (www.kenney.nl) — giấy phép Creative Commons Zero (CC0): dùng tự do cho dự án cá nhân, giáo dục và thương mại,
+không bắt buộc ghi công. Nguồn tải: opengameart.org. Đóng gói bằng tools/pack_world3d.mjs (nhúng ảnh màu, đặt kim loại = 0).

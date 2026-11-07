@@ -5,6 +5,7 @@
 // Lời thoại có chỗ đổi theo nhân vật chính Nam / Nữ: {cau} cậu/cô · {anh} anh/chị · {chang} chàng trai/cô gái · {ten} tên.
 // ============================================================
 const W = require('./wallet');
+const CHAPTER = require('./chapter1');
 
 const stage = (no) => `c1-${String(no).padStart(2, '0')}`;
 const cleared = (pr, no) => pr.campaign?.cleared?.story?.[stage(no)] === true;
@@ -315,6 +316,75 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     return no('Không có gì ở đây');
 }
 
+/** Nhật ký nhiệm vụ thuần: đọc cả save cũ mà không khởi tạo hay đổi tiến trình. */
+function questLog(pr) {
+    const w = pr.world ?? {};
+    const bag = w.bag ?? {};
+    const flags = pr.flags ?? {};
+    const details = {
+        sera: { title: 'Thảo dược cho Seraphine', desc: 'Seraphine cần thảo dược để chữa bỏng cho dân làng. {Cau} hãy giúp cô tìm thuốc ở bìa Rừng Sương.', extra: 'Mở sự kiện hộ tống Seraphine' },
+        lena: { title: 'Nguyên liệu cho bữa tiệc', desc: 'Cô Lena muốn nấu một bữa tiệc mừng làng thoát khỏi Goblin.', extra: 'Mở nhánh N3' },
+        borin: { title: 'Tìm búa cho bác Borin', desc: 'Bác Borin làm rơi cây búa gần mỏ đá Ngoại ô. Lò rèn đang chờ tiếng búa trở lại.', extra: 'Mở nhánh N2' },
+    };
+    const sides = Object.entries(details).map(([id, detail]) => {
+        const q = QUESTS[id];
+        const state = !cleared(pr, q.needNo) ? 'locked' : w.quests?.[id] === 'done' ? 'done' : w.quests?.[id] === 'active' ? 'active' : 'offered';
+        const missing = q.items.filter(it => !bag[it]);
+        const giver = NPCS[id].name;
+        let target = null;
+        let obj = state === 'locked' ? `Mở sau ải ${q.needNo}` : state === 'done' ? 'Đã hoàn thành việc' : `Nói chuyện với ${giver}`;
+        if (state === 'offered' || state === 'active') target = { scene: 'ashford', kind: 'npc', id };
+        if (state === 'active') {
+            if (missing.length) {
+                for (const [scene, data] of Object.entries(SCENES)) {
+                    const item = data.objects.find(o => o.item === missing[0]);
+                    if (!item) continue;
+                    target = { scene, kind: 'obj', id: item.id };
+                    obj = `Tìm ${ITEM_NAMES[missing[0]]} ở ${data.name} (${q.items.length - missing.length}/${q.items.length})`;
+                    break;
+                }
+            } else obj = `Mang ${q.items.map(it => ITEM_NAMES[it]).join(', ')} về cho ${giver}`;
+        }
+        return { id, type: 'side', title: detail.title, giver, desc: detail.desc, state, obj,
+            progress: state === 'active' ? { have: q.items.length - missing.length, need: q.items.length } : null,
+            target, reward: `${rewardText(q.reward)} · ${detail.extra}`, needNo: state === 'locked' ? q.needNo : null };
+    });
+    const secrets = [
+        { id: 'well', title: 'Bí mật Giếng Cổ', npc: 'mira', needNo: 1, flag: 'gieng_co', scene: 'ashford',
+            desc: `Bà Mira kể bài đồng dao: “${RHYME}”. Có lẽ lời hát giữ bí mật của giếng.`, obj: 'Xoay các biểu tượng ở Giếng Cổ theo bài đồng dao', reward: '+30 Kim Cương · Mở nhánh N1' },
+        { id: 'pages', title: 'Trang sách bị xé', npc: 'corvin', needNo: 16, flag: 'trang_sach', scene: 'capital',
+            desc: 'Lão Corvin nhặt được bốn mảnh sách về Thất Thánh. Số La Mã ở góc trang sẽ giúp {cau} ghép lại.', obj: 'Xếp lại các trang sách ở thư viện hoàng gia', reward: '+30 Kim Cương · Mở nhánh N4' },
+        { id: 'crypt', title: 'Lối vào hầm mộ', npc: 'elise', needNo: 18, flag: 'loi_vao_ham_mo', scene: 'capital',
+            desc: 'Công chúa Elise nghi Đại tướng giấu bí mật dưới lâu đài. Một phiến đá lạ nằm trong vườn cung điện.', obj: 'Khám phá phiến đá lạ trong vườn cung điện', reward: 'Mở nhánh N5' },
+    ];
+    for (const q of secrets) {
+        const state = flags[q.flag] ? 'done' : cleared(pr, q.needNo) ? 'active' : 'locked';
+        sides.push({ id: q.id, type: 'side', title: q.title, giver: NPCS[q.npc].name, desc: q.desc, state,
+            obj: state === 'locked' ? `Mở sau ải ${q.needNo}` : state === 'done' ? 'Đã khám phá bí mật' : q.obj,
+            progress: null, target: state === 'active' ? { scene: q.scene, kind: 'obj', id: q.id } : null,
+            reward: q.reward, needNo: state === 'locked' ? q.needNo : null });
+    }
+    const next = CHAPTER.stages.find(s => !cleared(pr, s.no));
+    const main = { id: 'main', type: 'main', title: next ? `Chương 1 · Ải ${next.no}: ${next.name}` : 'Chương 1 · Ngọn Lửa Gây Chiến', giver: '',
+        desc: !next || next.no >= 13 ? 'Cùng đồng đội vạch trần âm mưu ở kinh thành Valoria.' : next.no <= 10 ? 'Cùng Rok bảo vệ làng Ashford khỏi lũ Goblin.' : 'Theo Đường Vương Đạo, tìm đường đến kinh thành.',
+        state: next ? 'active' : 'done', obj: 'Đã hoàn thành chương 1', progress: null, target: null,
+        reward: 'Phần thưởng ải cốt truyện', needNo: null };
+    if (next) {
+        const capital = next.no >= 13 && sceneOpen(pr, 'capital');
+        main.target = { scene: capital ? 'capital' : 'ashford', kind: 'obj', id: capital ? 'gate_board' : 'board' };
+        main.obj = `Mở Bảng ải và đánh ải ${next.no}: ${next.name}`;
+        if (next.no === 2 && eventState(pr, 'jess') === 'ready') {
+            main.target = { scene: 'outskirts', kind: 'obj', id: 'ambush' };
+            main.obj = 'Ra cánh đồng Ngoại ô — có tiếng ồn…';
+        } else if (next.no === 3) {
+            main.target = flags.thao_duoc_sera ? { scene: 'ashford', kind: 'npc', id: 'sera' } : sides.find(q => q.id === 'sera').target;
+            main.obj = flags.thao_duoc_sera ? 'Nói chuyện với Seraphine để hộ tống cô vào Rừng Sương' : 'Giúp Seraphine tìm thảo dược';
+        }
+    }
+    const order = { active: 0, offered: 1, locked: 2, done: 3 };
+    return [main, ...sides.sort((a, b) => order[a.state] - order[b.state])];
+}
+
 /** Gói trạng thái gửi client (lời thoại đã điền theo Nam / Nữ ở server.js) */
 function worldState(pr, now = Date.now()) {
     const w = ensureWorld(pr);
@@ -342,8 +412,8 @@ function worldState(pr, now = Date.now()) {
         };
     }
     return { scene: w.scene, x: w.x, y: w.y, face: w.face, scenes, bag: Object.keys(w.bag).map(it => ({ id: it, name: ITEM_NAMES[it] })),
-        wellSymbols: WELL_SYMBOLS, pages: PAGES, player: pr.player ?? null };
+        wellSymbols: WELL_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr) };
 }
 
 module.exports = { AREAS, SCENES, NPCS, QUESTS, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
-    ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, fill, setPlayer, eventState };
+    ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };

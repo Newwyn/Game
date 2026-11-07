@@ -616,7 +616,7 @@ const CLASS_DEFS = {
     c1_fire: { name: 'Chiến Binh Lửa', emoji: '🔥', color: '#c2410c', art: 'fire', base: 'monster_tank', dmgType: 'magic',
         maxHp: 4800, maxMp: 1000, pAtk: 0, mAtk: 240, pDef: 240, mDef: 240, crit: 100, critDmg: 400, acc: 1000, dodge: 60, pen: 120, block: 150, lifesteal: 0,
         threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1300, range: 'melee', atkRange: 2.6, moveSpeed: 0.01, skills: [], passives: [] },
-    b_wolf: { name: 'Sói Đầu Đàn', emoji: '🐺', color: '#7f1d1d', art: 'wolf', base: 'monster_tank', boss: true, scale: 1.35,
+    b_wolf: { name: 'Sói Đầu Đàn', emoji: '🐺', color: '#7f1d1d', art: 'wolfboss', base: 'monster_tank', boss: true, scale: 1.35,
         maxHp: 3800, maxMp: 1000, pAtk: 220, mAtk: 0, pDef: 200, mDef: 170, crit: 180, critDmg: 500, acc: 1100, dodge: 80, pen: 150, block: 0, lifesteal: 20,
         threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 950, range: 'melee', atkRange: 2.8, moveSpeed: 0.014, skills: [], passives: [],
         phase2: { at: 0.5, atkUp: 0.25, speedUp: 0.2, name: 'Vòng Cổ Ma Thuật', desc: 'Vòng cổ phát sáng: +25% tấn công, +20% tốc đánh' } },
@@ -1194,6 +1194,7 @@ function getEffectiveStats(member, now) {
             stats.pDef = Math.floor(stats.pDef * (1 + ef.defUp));
             stats.mDef = Math.floor(stats.mDef * (1 + ef.defUp));
         }
+        if (ef.type === 'boss_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + ef.speedUp));
         if (ef.type === 'boss_phase2') {   // trùm giai đoạn 2
             stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.atkUp ?? 0))); stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.atkUp ?? 0)));
             stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.speedUp ?? 0)));
@@ -1262,7 +1263,7 @@ function isBehind(attacker, target) {
 //     khiên còn lại thành "dormant": mất máu khiên nhưng VẪN giữ hiệu ứng buff (vd +thủ, kháng choáng, cánh miễn choáng) tới hết thời gian.
 //   · Khiên ĐẶC TRƯNG (signature, vd Dựng Khiên của Chiến Binh) luôn được dùng, bất kể máu khiên khác nhiều hơn.
 // ============================================================
-const SHIELD_TYPES = new Set(['guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield']);
+const SHIELD_TYPES = new Set(['boss_shield', 'guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield']);
 const isSignatureShield = (ef) => ef.type === 'guard';
 
 /** Khiên đang hứng sát thương (null nếu không có) */
@@ -1995,9 +1996,14 @@ io.on('connection', (socket) => {
     };
     const itemOf = (pr, id) => pr.gear.items[id];
     // ---------- BẢN ĐỒ THẾ GIỚI: đi lại giữa các màn, nói chuyện NPC, rương, mỏ đá, câu đố ----------
-    const worldPayload = (pr) => ({ ...WD.worldState(pr, Date.now()), wallet: pr.wallet, story: pr.story,
+    const worldPayload = (pr) => {
+        const state = WD.worldState(pr, Date.now());
+        return { ...state, quests: state.quests.map(q => ({ ...q,
+            title: WD.fill(q.title, pr.player), desc: WD.fill(q.desc, pr.player),
+            obj: WD.fill(q.obj, pr.player), reward: WD.fill(q.reward, pr.player) })), wallet: pr.wallet, story: pr.story,
         storyText: { intro: Object.fromEntries(Object.entries(STORY.intro).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) },
-        party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) });
+        party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) };
+    };
     // tạo nhân vật chính (Nam / Nữ + tên) — làm 1 lần trước mở màn, đổi lại được ở Menu
     socket.on('playerSetup', (d = {}) => {
         const pr = progressOf(socket.progressKey);
@@ -2286,6 +2292,7 @@ function startBattleLoop(roomId) {
                 processGoblinWard(room, playerId, memberIndex, opponentId, now);
                 processSylva(room, playerId, memberIndex, opponentId, now);   // Thần Hươu (ở lại cả khi Sylva gục) · Khiên Lá
                 if (!member.alive) return;
+                processBossSkills(room, playerId, memberIndex, opponentId, now);
                 processSylvaUnit(room, playerId, memberIndex, opponentId, now);   // thú của Sylva: hết giờ · Ưng Nhãn · Hộ Chủ
                 if (!member.alive) return;
 
@@ -3983,7 +3990,7 @@ function healUnit(m, amount, now = curRoom?.clock ?? Date.now()) {
 /** Tỉ lệ giảm hồi máu đang chịu (Ấn Tử) */
 function healCutOf(m, now) {
     const active = (m.statusEffects ?? []).filter(ef => ef.endTime > now);
-    const base = Math.max(0, ...active.filter(ef => ef.type === 'death_mark' || ef.type === 'toxic').map(ef => ef.healCut ?? 0));
+    const base = Math.max(0, ...active.filter(ef => ef.type === 'death_mark' || ef.type === 'toxic' || ef.type === 'boss_curse').map(ef => ef.healCut ?? 0));
     const rot = Math.max(0, ...active.filter(ef => ef.type === 'venom_rot').map(ef => ef.healCut ?? 0));
     return Math.min(0.9, base + rot);
 }
@@ -4403,6 +4410,130 @@ function afterHpLoss(m) {
     checkBossPhase(m);
 }
 /** Trùm chương 1: máu dưới ngưỡng -> giai đoạn 2 (1 lần): +tấn công, +tốc đánh, (Valdric) hồi máu + đổi tranh bùng lửa */
+// BOSS_SKILLS_BEGIN: isolated data / pure helpers, also exercised by node:test.
+const BOSS_SKILLS = {
+    b_wolf: [
+        { id: 'howl', name: 'Hú Gọi Bầy', cooldown: 14000, first: 6000, warning: 1000, maxSummons: 2, scale: 0.6 },
+        { id: 'pounce', name: 'Vồ Cổ', cooldown: 10000, warning: 1000, multiplier: 1.6, duration: 4000, dot: 0.03 }],
+    b_skarn: [
+        { id: 'slam', name: 'Đập Đất', cooldown: 12000, warning: 1200, radius: 3.5, multiplier: 1.3, stun: 1000 },
+        { id: 'cry', name: 'Hét Xung Phong', cooldown: 18000, warning: 1000, duration: 6000, speedUp: 0.25 }],
+    b_morwen: [
+        { id: 'dash', name: 'Chém Bóng Đêm', cooldown: 11000, warning: 1000, width: 2, multiplier: 1.5 },
+        { id: 'shield', name: 'Khiên Đen', cooldown: 20000, warning: 1000, duration: 5000, hpRatio: 0.15 }],
+    b_valdric: [
+        { id: 'pillars', name: 'Cột Lửa', cooldown: 9000, warning: 1200, radius: 2.2, count: 3, multiplier: 1.2, magic: true, duration: 3000, dot: 0.02 },
+        { id: 'ring', name: 'Vòng Lửa Huy Hiệu', cooldown: 10000, warning: 1200, radius: 4, multiplier: 1, magic: true, phase2: true }],
+    b_warden: [
+        { id: 'curse', name: 'Lời Nguyền', cooldown: 12000, warning: 1000, duration: 6000, healCut: 0.4, dot: 0.02 },
+        { id: 'drain', name: 'Hút Hồn', cooldown: 16000, warning: 1200, currentHp: 0.06 }],
+};
+function bossNextTime(skill, now, previous, phase2) {
+    if (skill.phase2 && !phase2) return null;
+    return previous ?? now + (skill.first ?? skill.cooldown);
+}
+function bossTargets(squad, mode, origin, count = 1, random = Math.random) {
+    const living = squad.map((e, i) => ({ e, i })).filter(({ e }) => e.alive && !e.summon);
+    if (mode === 'random') {
+        for (let i = living.length - 1; i > 0; i--) {
+            const j = Math.floor(random() * (i + 1));
+            [living[i], living[j]] = [living[j], living[i]];
+        }
+    } else living.sort((a, b) => mode === 'weak'
+        ? a.e.hp / a.e.maxHp - b.e.hp / b.e.maxHp
+        : mode === 'attack' ? Math.max(b.e.pAtk, b.e.mAtk) - Math.max(a.e.pAtk, a.e.mAtk)
+        : Math.hypot(b.e.x - origin.x, (b.e.z || 0) - origin.z) - Math.hypot(a.e.x - origin.x, (a.e.z || 0) - origin.z));
+    return living.slice(0, count);
+}
+function bossInShape(e, shape) {
+    const x = e.x - shape.x, z = (e.z || 0) - shape.z;
+    if (shape.kind !== 'line') return Math.hypot(x, z) <= shape.radius;
+    const dx = shape.toX - shape.x, dz = shape.toZ - shape.z, len2 = dx * dx + dz * dz;
+    const t = len2 ? (x * dx + z * dz) / len2 : 0;
+    return t >= 0 && t <= 1 && Math.hypot(x - t * dx, z - t * dz) <= shape.width / 2;
+}
+// BOSS_SKILLS_END
+
+function processBossSkills(room, pid, idx, oppId, now) {
+    const m = room.players[pid].squad[idx], opp = room.players[oppId];
+    if (!m.alive || !opp || !BOSS_SKILLS[m.classId]) return;
+    m.bossTimers ??= {};
+    for (const sk of BOSS_SKILLS[m.classId]) {
+        const next = bossNextTime(sk, now, m.bossTimers[sk.id], m.phase2On);
+        if (next == null) continue;
+        m.bossTimers[sk.id] = next;
+        if (now < next || now < (m.actionUntil ?? 0) || m.statusEffects.some(e => ['stun', 'grabbed', 'knockup'].includes(e.type) && e.endTime > now)) continue;
+        m.bossTimers[sk.id] = now + sk.cooldown;
+        const origin = { x: m.x, z: m.z || 0 };
+        const targets = bossTargets(opp.squad, sk.id === 'pounce' ? 'weak' : sk.id === 'curse' ? 'attack' : sk.id === 'pillars' ? 'random' : 'far', origin, sk.count ?? 1);
+        if (!targets.length) continue;
+        const shapes = sk.id === 'pillars' ? targets.map(({e}) => ({ kind: 'circle', x: e.x, z: e.z || 0, radius: sk.radius }))
+            : sk.id === 'dash' ? [{ kind: 'line', ...origin, toX: targets[0].e.x, toZ: targets[0].e.z || 0, width: sk.width }]
+            : sk.radius ? [{ kind: sk.id === 'ring' ? 'ring' : 'circle', ...origin, radius: sk.radius }]
+            : sk.id === 'drain' ? bossTargets(opp.squad, 'far', origin, Infinity).map(({e}) => ({ kind: 'circle', x: e.x, z: e.z || 0, radius: 1 })) : [];
+        const event = { casterId: pid, casterIdx: idx, targetId: oppId, name: sk.name, skill: sk.id, ...origin, shapes, warning: sk.warning };
+        io.to(room.id).emit('bossFx', { ...event, kind: 'warning' });
+        room.bossSkillCount = (room.bossSkillCount ?? 0) + 1;
+        m.actionUntil = now + sk.warning;
+        later(sk.warning, () => {
+            if (!m.alive || room.winner) return;
+            const time = room.clock, effects = [];
+            const status = (e, type, extra = {}) => {
+                e.statusEffects = e.statusEffects.filter(f => f.type !== type);
+                const ef = { type, duration: sk.duration, endTime: time + sk.duration, ...extra };
+                e.statusEffects.push(ef);
+                if (sk.dot) for (let t = 1000; t <= sk.duration; t += 1000) later(t, () => {
+                    if (!m.alive || !e.alive || room.winner || !e.statusEffects.includes(ef)) return;
+                    const damage = Math.round(e.maxHp * sk.dot);
+                    dealDamage(e, damage, opp);
+                    io.to(room.id).emit('bossFx', { ...event, kind: 'hit', shapes: [], effects: [{ targetIndex: opp.squad.indexOf(e), damage }] });
+                });
+            };
+            if (sk.id === 'howl') {
+                const team = room.players[pid].squad;
+                if (team.filter(e => e.alive && e.bossOwner === idx).length < sk.maxSummons) {
+                    const wolf = createMonsterSquad(m.level, [['c1_wolf', m.x - 1, m.z || 0]])[0];
+                    for (const key of ['maxHp', 'hp', 'pAtk', 'mAtk', 'pDef', 'mDef', 'crit', 'critDmg', 'acc', 'dodge', 'pen', 'block', 'lifesteal', 'moveSpeed']) wolf[key] *= sk.scale;
+                    wolf.atkSpeed /= sk.scale;
+                    Object.assign(wolf, { summon: true, bossOwner: idx, ownerIdx: idx, summonId: (room.summonSeq = (room.summonSeq ?? 0) + 1), lastAttackTime: time });
+                    clampToArena(wolf);
+                    const slot = team.findIndex(e => !e.alive && e.bossOwner === idx);
+                    if (slot < 0) team.push(wolf); else team[slot] = wolf;
+                }
+            } else if (sk.id === 'cry') {
+                for (const e of room.players[pid].squad) if (e.alive) status(e, 'boss_haste', { speedUp: sk.speedUp });
+            } else if (sk.id === 'shield') {
+                const hp = Math.round(m.maxHp * sk.hpRatio);
+                addShield(m, { type: 'boss_shield', hp, maxHp: hp, duration: sk.duration, endTime: time + sk.duration }, time);
+            } else if (sk.id === 'curse') {
+                if (targets[0].e.alive) status(targets[0].e, 'boss_curse', { debuff: true, healCut: sk.healCut });
+            } else if (sk.id === 'drain') {
+                let total = 0;
+                for (const {e, i} of bossTargets(opp.squad, 'far', origin, Infinity)) {
+                    const before = e.hp, damage = Math.floor(e.hp * sk.currentHp);
+                    dealDamage(e, damage, opp);
+                    total += before - e.hp;
+                    effects.push({ targetIndex: i, damage: before - e.hp });
+                }
+                healUnit(m, total, time);
+            } else {
+                if (sk.id === 'pounce' && targets[0].e.alive) { m.x = targets[0].e.x + 0.8; m.z = targets[0].e.z || 0; clampToArena(m); }
+                if (sk.id === 'dash') { m.x = shapes[0].toX; m.z = shapes[0].toZ; clampToArena(m); }
+                opp.squad.forEach((e, i) => {
+                    if (!e.alive || e.summon || !(sk.id === 'pounce' ? e === targets[0].e : shapes.some(shape => bossInShape(e, shape)))) return;
+                    const hit = hitTarget(m, e, i, opp, sk.multiplier, time, { dmgType: sk.magic ? 'magic' : 'physical', aoe: sk.id !== 'pounce', ground: sk.id !== 'pounce' });
+                    effects.push(hit);
+                    if (!hit.isMiss && e.alive) {
+                        if (sk.stun) applyStun(e, sk.stun, time);
+                        if (sk.dot) status(e, sk.id === 'pounce' ? 'boss_bleed' : 'boss_burn', { debuff: true });
+                    }
+                });
+            }
+            io.to(room.id).emit('bossFx', { ...event, kind: 'hit', effects });
+        });
+    }
+}
+
 function checkBossPhase(m) {
     const ph = CLASS_DEFS[m.classId]?.phase2, now = curRoom?.clock;
     if (!ph || !m.alive || m.phase2On || now == null || m.hp > m.maxHp * ph.at) return;

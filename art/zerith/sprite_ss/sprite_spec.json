@@ -1,0 +1,164 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "footBand": 16,
+ "footMin": 25,
+ "solidFeet": true,
+ "face": [
+  150,
+  140,
+  250,
+  230
+ ],
+ "sheets": {
+  "idle": {
+   "file": "art/zerith/sprite_ss/sprite-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "heel"
+    ],
+    [
+     "ready",
+     4,
+     "heel",
+     0.98
+    ]
+   ]
+  },
+  "attack": {
+   "file": "art/zerith/sprite_ss/sprite-attack.png",
+   "scale": 1.04,
+   "anchor": "heel",
+   "ground": "group",
+   "footBand": 30
+  },
+  "move": {
+   "file": "art/zerith/sprite_ss/sprite-move.png",
+   "scale": 1.03,
+   "anchor": "face"
+  },
+  "hurt-stun": {
+   "file": "art/zerith/sprite_ss/sprite-hurt-stun.png",
+   "scale": 0.99,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "heel"
+    ],
+    [
+     "stun",
+     4,
+     "heel",
+     0.92
+    ]
+   ]
+  },
+  "dash-mark": {
+   "file": "art/zerith/sprite_ss/sprite-dash-mark.png",
+   "scale": 0.99,
+   "groups": [
+    [
+     "dash",
+     4,
+     "face",
+     1.15
+    ],
+    [
+     "mark",
+     4,
+     "heel"
+    ]
+   ],
+   "points": {
+    "7": {
+     "finger": [
+      1172,
+      704
+     ]
+    }
+   }
+  },
+  "reap-slam": {
+   "file": "art/zerith/sprite_ss/sprite-reap-slam.png",
+   "scale": 1.2,
+   "ground": "group",
+   "groups": [
+    [
+     "reap",
+     4,
+     "face"
+    ],
+    [
+     "slam",
+     4,
+     "face"
+    ]
+   ]
+  },
+  "charge-summon": {
+   "file": "art/zerith/sprite_ss/sprite-charge-summon.png",
+   "scale": 1.1,
+   "ground": "group",
+   "groups": [
+    [
+     "charge",
+     4,
+     "face"
+    ],
+    [
+     "summon",
+     4,
+     "face"
+    ]
+   ]
+  },
+  "hover": {
+   "file": "art/zerith/sprite/sprite-hover.png",
+   "scale": 1.13,
+   "ground": "group",
+   "groups": [
+    [
+     "hover",
+     4,
+     "face"
+    ],
+    [
+     "hoverAtk",
+     4,
+     "face"
+    ]
+   ],
+   "key": "matte"
+  },
+  "dead-victory": {
+   "file": "art/zerith/sprite_ss/sprite-dead-victory.png",
+   "scale": 1.03,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "face"
+    ]
+   ],
+   "ground": [
+    "victory"
+   ]
+  }
+ },
+ "out": "src/assets/sprites/zerith_ss_sprite",
+ "meta": "src/characters/sprite/zerithSprite_ss.json",
+ "format": "webp"
+}

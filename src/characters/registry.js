@@ -24,6 +24,7 @@ import { WOLF_SPRITE, EAGLE_SPRITE, BEAR_SPRITE } from './sprite/sylvaPetSprites
 import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
 import { ELARION_SPRITE } from './sprite/elarionSprite.js';
 import { GOLEM_SPRITE } from './sprite/golemSprite.js';
+import { tierSprite } from './sprite/tiers.js';
 import { makeDivineShield } from '../vfx/rokFx.js';
 import { makeStealthAura } from '../vfx/jessicaFx.js';
 import { makeWindSpirit } from '../vfx/lyraFx.js';
@@ -459,7 +460,8 @@ export function createCharacterView(member, classDef, isMyTeam) {
         ? (m) => enemyVisual(classDef, m) ?? creatureVisual(classDef.base ?? 'monster_tank', m.color)
         : null);
     if (make) {
-        const visual = make(member);
+        let visual = make(member);
+        if (visual?.sprite && member.rank != null) visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.rank) };   // hình theo bậc S / SS / SSS
         return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);
     }
     return new PlaceholderCharacterView(member, classDef, isMyTeam);

@@ -1,0 +1,150 @@
+{
+ "note": "Bậc S: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "sheets": {
+  "idle": {
+   "file": "art/jessica/sprite_s/sprite-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "attack": {
+   "file": "art/jessica/sprite_s/sprite-attack.png",
+   "scale": 0.92,
+   "anchor": "heel"
+  },
+  "move": {
+   "file": "art/jessica/sprite_s/sprite-move.png",
+   "scale": 0.94,
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "file": "art/jessica/sprite_s/sprite-hurt-stun.png",
+   "scale": 0.87,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "throw": {
+   "file": "art/jessica/sprite_s/sprite-throw.png",
+   "scale": 0.97,
+   "anchor": "body",
+   "points": {
+    "6": {
+     "hand": [
+      775,
+      696
+     ]
+    }
+   }
+  },
+  "throwstand-vanish": {
+   "file": "art/jessica/sprite_s/sprite-throwstand-vanish.png",
+   "scale": 0.96,
+   "groups": [
+    [
+     "throwStand",
+     4,
+     "toe"
+    ],
+    [
+     "vanish",
+     4,
+     "toe"
+    ]
+   ],
+   "points": {
+    "3": {
+     "hand": [
+      1156,
+      212
+     ]
+    }
+   }
+  },
+  "dash": {
+   "file": "art/jessica/sprite_s/sprite-dash.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "dash",
+     4,
+     "body"
+    ],
+    [
+     "appear",
+     4,
+     "toe"
+    ]
+   ],
+   "points": {
+    "7": {
+     "tip": [
+      1116,
+      558
+     ]
+    }
+   }
+  },
+  "stealth-land": {
+   "file": "art/jessica/sprite_s/sprite-stealth-land.png",
+   "scale": 0.97,
+   "groups": [
+    [
+     "stealth",
+     4,
+     "toe"
+    ],
+    [
+     "land",
+     4,
+     "body",
+     0.92
+    ]
+   ]
+  },
+  "dead-victory": {
+   "file": "art/jessica/sprite/sprite-dead-victory.png",
+   "scale": 0.87,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ],
+   "key": "matte"
+  }
+ },
+ "out": "src/assets/sprites/jessica_s_sprite",
+ "meta": "src/characters/sprite/jessicaSprite_s.json",
+ "format": "webp"
+}

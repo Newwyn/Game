@@ -1,0 +1,851 @@
+/* ============================================================
+   📜 QUEST LOG & TRACKER (ql-*)
+   Phong cách Dark-Gold Tome đồng bộ với Legend of Capsules (font Outfit)
+   ============================================================ */
+
+/* ---------- Khung Tracker góc phải trên bản đồ ---------- */
+.ql-tracker {
+    position: absolute;
+    top: 66px;
+    right: 10px;
+    z-index: 5;
+    width: min(268px, calc(100vw - 20px));
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: linear-gradient(165deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.92));
+    border: 1.5px solid rgba(251, 191, 36, 0.42);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(253, 230, 138, 0.12);
+    backdrop-filter: blur(6px);
+    font-family: 'Outfit', sans-serif;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-sizing: border-box;
+    pointer-events: auto;
+}
+
+.ql-tracker-empty {
+    width: auto;
+    max-width: min(280px, calc(100vw - 20px));
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.ql-trk-empty-text {
+    font-size: 12px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ql-trk-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ql-trk-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fde68a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.ql-trk-obj {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.3;
+}
+
+.ql-trk-obj-text {
+    flex: 1;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ql-trk-prog {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fde68a;
+    background: rgba(251, 191, 36, 0.16);
+    border: 1px solid rgba(251, 191, 36, 0.38);
+    padding: 1px 6px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.ql-trk-bar {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    overflow: hidden;
+}
+
+.ql-trk-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fde68a);
+    border-radius: 999px;
+}
+
+.ql-trk-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.ql-trk-actions .ql-btn {
+    flex: 1;
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 11.5px;
+    border-radius: 8px;
+}
+
+.ql-tracker-empty .ql-trk-open {
+    min-height: 30px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+/* ---------- Nhãn phân loại (CHÍNH TUYẾN / PHỤ) ---------- */
+.ql-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.ql-tag-main {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fde68a;
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.18);
+}
+
+.ql-tag-side {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+}
+
+/* ---------- Nút bấm dùng chung ---------- */
+.ql-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(148, 163, 184, 0.4);
+    background: rgba(30, 41, 59, 0.9);
+    color: #e2e8f0;
+    font: 700 13.5px 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: transform 0.14s, border-color 0.14s, background 0.14s, filter 0.14s;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.ql-btn:hover {
+    border-color: #fde68a;
+    color: #fde68a;
+    background: rgba(51, 65, 85, 0.92);
+    transform: translateY(-1px);
+}
+
+.ql-btn:active {
+    transform: translateY(0);
+}
+
+.ql-btn-go {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: #fde68a;
+    color: #0f172a;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.ql-btn-go:hover {
+    color: #0f172a;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    filter: brightness(1.06);
+}
+
+.ql-btn-track {
+    background: rgba(30, 58, 138, 0.55);
+    border-color: rgba(96, 165, 250, 0.6);
+    color: #dbeafe;
+}
+
+.ql-btn-track:hover {
+    background: rgba(37, 99, 235, 0.65);
+    border-color: #93c5fd;
+    color: #ffffff;
+}
+
+/* ---------- Modal Sổ Nhiệm Vụ (Book style) ---------- */
+.ql-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2vh, 20px);
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(5px);
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+    color: #e2e8f0;
+}
+
+.ql-book {
+    position: relative;
+    width: min(920px, 96vw);
+    max-height: min(640px, calc(100dvh - 20px));
+    display: flex;
+    flex-direction: column;
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(251, 191, 36, 0.08), transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(56, 189, 248, 0.06), transparent 60%),
+        linear-gradient(180deg, #131c31 0%, #0b1120 100%);
+    border: 2px solid rgba(251, 191, 36, 0.55);
+    border-radius: 18px;
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.85),
+        0 0 32px rgba(251, 191, 36, 0.14),
+        inset 0 0 0 1px rgba(253, 230, 138, 0.12);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.ql-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(90deg, rgba(120, 83, 9, 0.28), rgba(15, 23, 42, 0.85) 60%);
+    border-bottom: 1px solid rgba(251, 191, 36, 0.28);
+    flex-shrink: 0;
+}
+
+.ql-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ql-header-icon {
+    font-size: 26px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(251, 191, 36, 0.4));
+}
+
+.ql-header h2 {
+    margin: 0;
+    font-size: clamp(16px, 2.2vw, 20px);
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #fde68a;
+    text-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+}
+
+.ql-header small {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+.ql-close {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(148, 163, 184, 0.4);
+    background: rgba(30, 41, 59, 0.88);
+    color: #cbd5e1;
+    font: 800 16px 'Outfit', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.14s, color 0.14s, background 0.14s, transform 0.14s;
+    flex-shrink: 0;
+}
+
+.ql-close:hover {
+    border-color: #f87171;
+    color: #fecaca;
+    background: rgba(127, 29, 29, 0.65);
+    transform: scale(1.04);
+}
+
+/* ---------- Bố cục 2 trang sách (Trái: Danh sách, Phải: Chi tiết) ---------- */
+.ql-columns {
+    display: grid;
+    grid-template-columns: minmax(270px, 0.95fr) minmax(300px, 1.2fr);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ql-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border-right: 1px solid rgba(251, 191, 36, 0.22);
+    background: rgba(2, 6, 23, 0.35);
+    min-height: 0;
+    min-width: 0;
+}
+
+.ql-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.ql-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 40px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(148, 163, 184, 0.28);
+    background: rgba(30, 41, 59, 0.72);
+    color: #cbd5e1;
+    font: 700 12.5px 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.14s, background 0.14s, color 0.14s;
+    min-width: 0;
+}
+
+.ql-tab:hover {
+    border-color: rgba(253, 230, 138, 0.55);
+    color: #f8fafc;
+}
+
+.ql-tab.is-active {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.24), rgba(180, 83, 9, 0.28));
+    border-color: #fbbf24;
+    color: #fde68a;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.2);
+}
+
+.ql-tab-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ql-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(15, 23, 42, 0.75);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    flex-shrink: 0;
+}
+
+.ql-tab.is-active .ql-tab-badge {
+    background: rgba(251, 191, 36, 0.25);
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.55);
+}
+
+.ql-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-right: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.ql-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ql-list::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+.ql-row {
+    width: 100%;
+    min-height: 54px;
+    padding: 9px 11px;
+    border-radius: 11px;
+    border: 1.5px solid rgba(148, 163, 184, 0.24);
+    background: rgba(30, 41, 59, 0.72);
+    color: #e2e8f0;
+    font-family: 'Outfit', sans-serif;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    cursor: pointer;
+    transition: border-color 0.14s, background 0.14s, transform 0.12s;
+    box-sizing: border-box;
+}
+
+.ql-row:hover {
+    border-color: rgba(253, 230, 138, 0.55);
+    background: rgba(51, 65, 85, 0.8);
+}
+
+.ql-row.is-selected {
+    border-color: #fbbf24;
+    background: linear-gradient(135deg, rgba(120, 83, 9, 0.42), rgba(30, 41, 59, 0.92));
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.22);
+}
+
+.ql-row.is-done {
+    opacity: 0.56;
+}
+
+.ql-row.is-done.is-selected {
+    opacity: 0.85;
+}
+
+.ql-row-icon {
+    font-size: 16px;
+    line-height: 1.25;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ql-row-icon.is-main {
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+}
+
+.ql-row-icon.is-side {
+    color: #38bdf8;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.ql-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.ql-row-title-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ql-row-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #f8fafc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ql-row.is-selected .ql-row-title {
+    color: #fde68a;
+}
+
+.ql-row-pin {
+    font-size: 13px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.ql-row-sub {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ql-state-offered .ql-row-sub {
+    color: #93c5fd;
+}
+
+.ql-state-done .ql-row-sub {
+    color: #86efac;
+}
+
+/* ---------- Cột phải: Chi tiết nhiệm vụ ---------- */
+.ql-right {
+    padding: 18px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    background: radial-gradient(circle at 90% 10%, rgba(251, 191, 36, 0.05), transparent 55%);
+}
+
+.ql-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+.ql-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ql-status-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(51, 65, 85, 0.8);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.ql-status-active {
+    background: rgba(251, 191, 36, 0.16);
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.45);
+}
+
+.ql-status-offered {
+    background: rgba(56, 189, 248, 0.16);
+    color: #bae6fd;
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+.ql-status-locked {
+    background: rgba(71, 85, 105, 0.45);
+    color: #94a3b8;
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.ql-status-done {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border-color: rgba(74, 222, 128, 0.45);
+}
+
+.ql-tracked-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(30, 58, 138, 0.5);
+    color: #bfdbfe;
+    border: 1px solid rgba(96, 165, 250, 0.45);
+    margin-left: auto;
+}
+
+.ql-detail-title {
+    margin: 0;
+    font-size: clamp(17px, 2.2vw, 21px);
+    font-weight: 900;
+    color: #fde68a;
+    line-height: 1.3;
+}
+
+.ql-giver {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.ql-giver b {
+    color: #e2e8f0;
+}
+
+.ql-desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.6);
+    border-left: 3px solid rgba(251, 191, 36, 0.5);
+    padding: 8px 12px;
+    border-radius: 0 10px 10px 0;
+}
+
+.ql-obj-box {
+    background: rgba(2, 6, 23, 0.58);
+    border: 1.5px solid rgba(251, 191, 36, 0.35);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.ql-obj-box.is-done {
+    border-color: rgba(74, 222, 128, 0.45);
+    background: rgba(20, 83, 45, 0.22);
+}
+
+.ql-obj-box.is-locked {
+    border-color: rgba(148, 163, 184, 0.28);
+    border-style: dashed;
+}
+
+.ql-obj-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ql-obj-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #94a3b8;
+}
+
+.ql-obj-count {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #fde68a;
+}
+
+.ql-obj-text {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.4;
+}
+
+.ql-prog-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    overflow: hidden;
+    border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.ql-prog-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fde68a);
+    border-radius: 999px;
+    transition: width 0.2s ease;
+}
+
+.ql-reward {
+    padding: 10px 12px;
+    border-radius: 11px;
+    background: rgba(30, 41, 59, 0.72);
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    font-size: 13.5px;
+    color: #cbd5e1;
+}
+
+.ql-reward b {
+    color: #fde68a;
+}
+
+.ql-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 6px;
+}
+
+.ql-detail-actions .ql-btn {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 14px;
+    flex: 1 1 140px;
+}
+
+.ql-empty,
+.ql-detail-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 13.5px;
+    font-style: italic;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.ql-empty-illust {
+    font-size: 36px;
+    font-style: normal;
+    opacity: 0.65;
+}
+
+.ql-detail-empty p {
+    margin: 0;
+}
+
+/* ---------- Responsive cho màn trung bình (<= 760px) ---------- */
+@media (max-width: 760px) {
+    .ql-tracker {
+        top: 116px;
+    }
+}
+
+/* ---------- Responsive cho điện thoại hẹp (<= 600px) ---------- */
+@media (max-width: 600px) {
+    /* Tracker thu gọn thành 1 dòng duy nhất (tiêu đề + nút 🧭 + nút 📜) */
+    .ql-tracker {
+        top: 116px;
+        right: 8px;
+        width: auto;
+        max-width: calc(100vw - 16px);
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 10px;
+    }
+
+    .ql-tracker .ql-tag,
+    .ql-tracker .ql-trk-obj,
+    .ql-tracker .ql-trk-bar {
+        display: none;
+    }
+
+    .ql-trk-head {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .ql-trk-title {
+        font-size: 12.5px;
+        max-width: 44vw;
+    }
+
+    .ql-trk-actions {
+        margin-top: 0;
+        flex-shrink: 0;
+        gap: 4px;
+    }
+
+    .ql-trk-actions .ql-btn,
+    .ql-tracker-empty .ql-trk-open {
+        min-height: 32px;
+        padding: 4px 8px;
+        font-size: 11px;
+        flex: 0 0 auto;
+    }
+
+    /* Modal Sổ Nhiệm Vụ: xếp dọc (danh sách ở trên, chi tiết ở dưới), cuộn mượt, nút >= 40px */
+    .ql-backdrop {
+        padding: 6px;
+    }
+
+    .ql-book {
+        width: 100%;
+        height: calc(100dvh - 12px);
+        max-height: calc(100dvh - 12px);
+        border-radius: 14px;
+    }
+
+    .ql-header {
+        padding: 10px 12px;
+    }
+
+    .ql-header h2 {
+        font-size: 16px;
+    }
+
+    .ql-header small {
+        font-size: 11px;
+    }
+
+    .ql-columns {
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .ql-left {
+        border-right: none;
+        border-bottom: 1.5px solid rgba(251, 191, 36, 0.25);
+        padding: 10px;
+        flex: 0 0 auto;
+        max-height: 44%;
+    }
+
+    .ql-tab {
+        min-height: 42px;
+        font-size: 12px;
+        padding: 6px 4px;
+    }
+
+    .ql-row {
+        min-height: 48px;
+        padding: 8px 10px;
+    }
+
+    .ql-right {
+        padding: 12px;
+        flex: 1 0 auto;
+        overflow-y: visible;
+    }
+
+    .ql-detail-actions .ql-btn {
+        min-height: 44px;
+        flex: 1 1 100%;
+    }
+}

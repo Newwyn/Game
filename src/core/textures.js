@@ -28,11 +28,34 @@ export function getTexture(url, { pixel = false } = {}) {
 
 const SPRITES = import.meta.glob('../assets/sprites/*.{webp,png}', { eager: true, import: 'default' });
 const OTHER = import.meta.glob('../assets/{world,portraits,ui,icons,maps,overworld,skills}/*.{webp,png}', { eager: true, import: 'default' });
-const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+// chạy thử (npm run dev + ?tick): khung xem ẩn thì requestAnimationFrame dừng -> dùng hẹn giờ
+const nextFrame = () => new Promise(r => (import.meta.env?.DEV && location.search.includes('tick') ? setTimeout(r, 0) : requestAnimationFrame(() => r())));
+
+// tranh theo bậc (<tên>_s_sprite / _ss_sprite) KHÔNG nạp hết lúc đầu (mỗi tấm ~30 MB trên card đồ hoạ):
+// chỉ nạp ngầm đúng tấm của bậc anh hùng đang có — warmTextures() (gọi khi nhận tiến trình, xem tiers.js)
+const isTierAtlas = (url) => /_(s|ss)_sprite[^/]*\.webp/.test(url);
+let gpuRenderer = null;
+const warmed = new Set();
+
+/** Nạp ngầm + đẩy lên card đồ hoạ vài tranh (từng tấm, lúc rảnh) -> lần đầu dùng không khựng */
+let pendingWarm = [];
+export async function warmTextures(urls) {
+    if (!gpuRenderer) { pendingWarm = urls; return; }   // màn tải trước chưa xong -> làm sau
+    for (const url of urls) {
+        if (!url || warmed.has(url)) continue;
+        warmed.add(url);
+        const tex = getTexture(url);
+        if (!(tex.image?.complete && tex.image.naturalWidth)) {
+            await new Promise(res => { const img = tex.image; if (!img) return res(); img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); });
+        }
+        await nextFrame();
+        try { if (gpuRenderer && tex.image) gpuRenderer.initTexture(tex); } catch (e) { console.warn('initTexture', e); }
+    }
+}
 
 /** Nạp trước toàn bộ tranh. onProgress(phần 0..1, chữ) */
 export async function preloadAll(renderer, onProgress = () => {}) {
-    const spriteUrls = [...new Set(Object.values(SPRITES))];
+    const spriteUrls = [...new Set(Object.values(SPRITES))].filter(u => !isTierAtlas(u));
     const otherUrls = [...new Set(Object.values(OTHER))];
     const total = spriteUrls.length * 2 + otherUrls.length;
     let done = 0;
@@ -61,4 +84,6 @@ export async function preloadAll(renderer, onProgress = () => {}) {
         tick('Đang chuẩn bị đồ hoạ…');
         await nextFrame();
     }
+    gpuRenderer = renderer;
+    warmTextures(pendingWarm);
 }

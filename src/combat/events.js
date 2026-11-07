@@ -1,3 +1,4 @@
+import { spawnBossWarning, spawnBossBanner } from '../vfx/bossFx.js';
 // ============================================================
 // SỰ KIỆN CHIẾN ĐẤU TỪ SERVER -> ANIMATION + VFX
 // ============================================================
@@ -2106,6 +2107,19 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('waterFx', onWaterFx);
     socket.on('elemFx', onElemFx);
     socket.on('goblinFx', onGoblinFx);
+    socket.on('bossFx', d => {
+        const boss = getView(d.casterId, d.casterIdx);
+        if (d.kind === 'warning') {
+            spawnBossBanner(boss?.position ?? { x: d.x, y: 0, z: d.z }, d.name);
+            for (const shape of d.shapes) spawnBossWarning(shape, d.warning / 1000);
+        } else {
+            for (const e of d.effects ?? []) {
+                const target = getView(d.targetId, e.targetIndex);
+                if (target) showHit(target, e);
+            }
+            if (boss) spawnHitSpark(chestOf(boss));
+        }
+    });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);

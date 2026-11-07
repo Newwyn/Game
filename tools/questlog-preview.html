@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quest Log &amp; Tracker Preview — Legend of Capsules</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../src/styles/index.css" />
+    <link rel="stylesheet" href="../src/styles/questlog.css" />
+    <style>
+        body {
+            margin: 0;
+            background: #0b1020;
+            font-family: 'Outfit', sans-serif;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        #preview-world {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 50% 45%, rgba(30, 58, 138, 0.35), rgba(11, 16, 32, 0.96)),
+                repeating-linear-gradient(0deg, rgba(148, 163, 184, 0.05) 0 1px, transparent 1px 48px),
+                repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.05) 0 1px, transparent 1px 48px);
+        }
+        .pv-controls {
+            position: absolute;
+            left: 12px;
+            bottom: 14px;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            max-width: calc(100vw - 24px);
+            box-sizing: border-box;
+        }
+        .pv-controls button {
+            min-height: 34px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            background: rgba(30, 41, 59, 0.9);
+            color: #fde68a;
+            font: 700 12px 'Outfit', sans-serif;
+            cursor: pointer;
+        }
+        .pv-controls button:hover {
+            background: rgba(51, 65, 85, 0.95);
+        }
+    </style>
+</head>
+<body class="in-world">
+    <div id="preview-world">
+        <div class="wd-hud" id="hud"></div>
+        <div class="pv-controls" id="pv-controls">
+            <button type="button" data-pv-toggle-open>📜 Bật/Tắt Sổ Nhiệm Vụ (J)</button>
+            <button type="button" data-pv-untrack>🚫 Bỏ theo dõi (tracker = null)</button>
+            <button type="button" data-pv-reset>🔄 Khôi phục mẫu</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { trackerHTML, questLogHTML, esc } from '../src/ui/questLog.js';
+
+        const SAMPLE_QUESTS = [
+            { id:'main', type:'main', title:'Chương 1 · Ải 4: Mỏ đá bỏ hoang', giver:'', desc:'Goblin vẫn quấy phá quanh làng Ashford.', state:'active', obj:'Mở Bảng ải và đánh ải 4: Mỏ đá bỏ hoang', progress:null, target:{scene:'ashford',kind:'obj',id:'board'}, reward:'Tiếp tục cốt truyện', needNo:null },
+            { id:'lena', type:'side', title:'Nguyên liệu cho bữa tiệc', giver:'Cô Lena', desc:'Làng muốn mở tiệc mừng đánh lui Goblin.', state:'active', obj:'Tìm Nấm sương trong Rừng Sương', progress:{have:1,need:2}, target:{scene:'forest',kind:'obj',id:'mushroom'}, reward:'+300 Vàng · +10 Kim Cương · Mở nhánh N3', needNo:null },
+            { id:'borin', type:'side', title:'Cây búa thất lạc', giver:'Bác Borin', desc:'Bác Borin làm rơi búa gần mỏ đá.', state:'offered', obj:'Nói chuyện với Bác Borin', progress:null, target:{scene:'ashford',kind:'npc',id:'borin'}, reward:'+500 Vàng · Mở nhánh N2', needNo:null },
+            { id:'well', type:'side', title:'Bí mật Giếng Cổ', giver:'Bà Mira', desc:'Bài đồng dao của bà Mira là gợi ý.', state:'active', obj:'Xoay các phiến đá ở Giếng Cổ theo lời đồng dao', progress:null, target:{scene:'ashford',kind:'obj',id:'well'}, reward:'+30 Kim Cương · Mở nhánh N1', needNo:null },
+            { id:'pages', type:'side', title:'Trang sách bị xé', giver:'Lão Corvin', desc:'', state:'locked', obj:'Mở sau ải 16', progress:null, target:null, reward:'+30 Kim Cương · Mở nhánh N4', needNo:16 },
+            { id:'sera', type:'side', title:'Thảo dược cho Seraphine', giver:'Seraphine', desc:'', state:'done', obj:'Đã xong', progress:null, target:null, reward:'+200 Vàng', needNo:null }
+        ];
+
+        const state = {
+            quests: SAMPLE_QUESTS.map(q => ({ ...q })),
+            open: true,
+            tab: 'active',
+            sel: 'main',
+            tracked: 'main',
+            toast: null
+        };
+
+        let toastTimer = 0;
+        function showToast(msg) {
+            state.toast = msg;
+            clearTimeout(toastTimer);
+            render();
+            toastTimer = setTimeout(() => {
+                state.toast = null;
+                render();
+            }, 3200);
+        }
+
+        const hud = document.getElementById('hud');
+
+        function render() {
+            const trackedQuest = state.quests.find(q => q.id === state.tracked) ?? null;
+            hud.innerHTML = `
+                <div class="wd-top">
+                    <button class="cp-back-btn" type="button">← Menu</button>
+                    <div class="wd-title"><b>🗺️ Làng Ashford</b><small>♂ Kael</small></div>
+                    <div class="wd-res"><span>🪙 1.250</span><span>💎 45</span><span>🔷 12</span></div>
+                    <div class="wd-btns">
+                        <button class="cp-back-btn" type="button">📖 Chọn ải</button>
+                        <button class="cp-back-btn" type="button">🎒 Trang bị</button>
+                        <button class="cp-back-btn" type="button">🏰 Hầm ngục</button>
+                        <button class="cp-back-btn" type="button">🧭 Bản đồ</button>
+                    </div>
+                </div>
+                ${trackerHTML(trackedQuest)}
+                ${state.toast ? `<div class="wd-toast" id="pv-toast">${esc(state.toast)}</div>` : ''}
+                ${state.open ? questLogHTML(state.quests, { tab: state.tab, sel: state.sel, tracked: state.tracked }) : ''}
+            `;
+        }
+
+        // Delegated click listener giống onHudClick trong src/ui/world.js
+        hud.addEventListener('click', (e) => {
+            const q = (s) => e.target.closest(s);
+
+            if (q('[data-ql-open]')) {
+                state.open = true;
+                render();
+                return;
+            }
+
+            if (e.target.matches('[data-ql-close]') || q('button[data-ql-close]')) {
+                state.open = false;
+                render();
+                return;
+            }
+
+            const tabBtn = q('[data-ql-tab]');
+            if (tabBtn) {
+                state.tab = tabBtn.dataset.qlTab;
+                state.sel = null; // chọn mục đầu tiên của tab mới
+                render();
+                return;
+            }
+
+            const selRow = q('[data-ql-sel]');
+            if (selRow) {
+                state.sel = selRow.dataset.qlSel;
+                render();
+                return;
+            }
+
+            const trackBtn = q('[data-ql-track]');
+            if (trackBtn) {
+                const id = trackBtn.dataset.qlTrack;
+                state.tracked = id;
+                const found = state.quests.find(x => x.id === id);
+                showToast(`📌 Đang theo dõi: ${found ? found.title : id}`);
+                return;
+            }
+
+            const goBtn = q('[data-ql-go]');
+            if (goBtn) {
+                const id = goBtn.dataset.qlGo;
+                const found = state.quests.find(x => x.id === id);
+                state.open = false;
+                if (found?.target) {
+                    showToast(`🧭 Tự đi tới [${found.target.scene} → ${found.target.kind}:${found.target.id}] (${found.title})`);
+                } else {
+                    showToast(`🧭 Tự đi tới nhiệm vụ: ${id}`);
+                }
+                return;
+            }
+        });
+
+        document.getElementById('pv-controls').addEventListener('click', (e) => {
+            if (e.target.closest('[data-pv-toggle-open]')) {
+                state.open = !state.open;
+                render();
+            } else if (e.target.closest('[data-pv-untrack]')) {
+                state.tracked = null;
+                showToast('🚫 Đã bỏ theo dõi nhiệm vụ');
+            } else if (e.target.closest('[data-pv-reset]')) {
+                state.open = true;
+                state.tab = 'active';
+                state.sel = 'main';
+                state.tracked = 'main';
+                showToast('🔄 Đã khôi phục trạng thái mẫu');
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'j' || e.key === 'J') {
+                state.open = !state.open;
+                render();
+            } else if (e.key === 'Escape' && state.open) {
+                state.open = false;
+                render();
+            }
+        });
+
+        render();
+    </script>
+</body>
+</html>

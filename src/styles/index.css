@@ -1280,6 +1280,13 @@ body.selecting-squad #progress-tool, body.selecting-squad #enemy-debug-controls 
    ============================================================ */
 #world-screen { display: none; position: fixed; inset: 0; z-index: 124; background: #0b1020; font-family: 'Outfit', sans-serif; color: #e2e8f0; overflow: hidden; }
 .wd-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: pointer; }
+/* bản đồ 3D (src/world3d): khung WebGL + lớp tối khi đổi bản đồ */
+.wd-3d { position: absolute; inset: 0; touch-action: none; cursor: pointer; }
+.wd-3d canvas { display: block; width: 100%; height: 100%; }
+.wd-fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+.wd-quality { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, .25); }
+.wd-quality > div { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.wd-quality small { color: #94a3b8; font-size: 12px; }
 .wd-hud { position: absolute; inset: 0; pointer-events: none; }
 .wd-hud > * { pointer-events: auto; }
 .wd-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

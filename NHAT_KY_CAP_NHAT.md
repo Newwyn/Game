@@ -5,6 +5,65 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 07/11/2026 (trưa) — KỸ NĂNG TRÙM · TRẬN ĐẤU TRÊN ĐIỆN THOẠI · CHỐNG GIẬT BẢN ĐỒ · CHUẨN BỊ TRANH THEO BẬC S / SS / SSS
+Chia việc: **Codex** làm kỹ năng trùm · **Antigravity** làm giao diện trận đấu cho điện thoại · **Claude** chống giật bản đồ, khung tranh theo bậc, vẽ tranh trên Google Flow, kiểm tra + gắn vào game.
+
+### 1. Mỗi trùm chương 1 có 2 chiêu riêng (có cảnh báo trước)
+- **Sói Đầu Đàn**: Hú Gọi Bầy (gọi thêm sói con, tối đa 2 con) · Vồ Cổ (nhảy vào người ít máu nhất, gây chảy máu).
+- **Skarn Răng Sắt**: Đập Đất (vòng đỏ cảnh báo rồi choáng 1 giây) · Hét Xung Phong (cả bầy quái đánh nhanh hơn 25%).
+- **Morwen**: Chém Bóng Đêm (vạch đỏ rồi lao chém theo vạch) · Khiên Đen.
+- **Valdric**: Cột Lửa (3 vòng lửa dưới chân đội mình) · Vòng Lửa Huy Hiệu (sau khi nổi giận).
+- **Người Gác Mộ**: Lời Nguyền (giảm hồi máu + mất máu dần) · Hút Hồn (hút máu cả đội để tự hồi).
+- Tên chiêu hiện trên đầu trùm, đòn diện rộng luôn có vòng / vạch đỏ ít nhất 1 giây để kịp né; trạng thái (chảy máu, nguyền, khiên…) có biểu tượng + mô tả tiếng Việt.
+
+### 2. Trận đấu trên điện thoại
+- 4 thẻ anh hùng xếp 2×2, nút kỹ năng to dễ bấm, ẩn dòng phím tắt, nút trên cùng gọn lại — không còn tràn ngang màn hình. Máy tính giữ nguyên.
+
+### 3. Chống giật bản đồ 3D
+- Thêm chế độ **🤖 Tự động** (mặc định): máy chậm thì tự giảm đồ hoạ bản đồ cho mượt (có thông báo). Vẫn chọn tay được ✨ Đẹp / ⚡ Nhẹ / 🗺️ Phẳng 2D.
+- Bóng đổ vẽ lại thưa hơn, giảm độ phân giải trên màn hình độ nét cao → nhẹ máy hơn hẳn.
+
+### 4. Tranh nhân vật theo bậc (ĐANG LÀM)
+- Bậc Thường + S: tranh **S** (đồ đơn giản) · SS: thêm giáp / phụ kiện, vũ khí xịn hơn · SSS: tranh hiện tại. Game đã sẵn sàng tự đổi tranh theo bậc — bậc nào chưa có tranh thì tạm dùng tranh SSS.
+- **Đã vào game: Rok, Jessica, Seraphine, Ignar, Zerith, Brakk** (bậc Thường/S mặc đồ đơn giản, SS giáp bạc / phụ kiện). Đã thử trong trận: Rok + Seraphine bậc S, Rok bậc SS hiện đúng.
+- Vài tấm Flow vẽ sai (vẽ lại tư thế đứng thay vì tư thế cần) → tạm dùng tranh SSS: Jessica + Ignar (thua / thắng), Zerith (bay lơ lửng). Lyra thiếu tấm bắn cung nên **chưa bật** (vẫn hiện SSS). Còn Nerissa, Elarion, Grix, Sylva + sói địch / sói trùm (tranh mẫu sói đã chọn: mẫu 1 xanh xám).
+- Chống giật: tranh bậc không nạp hết lúc đầu, chỉ nạp ngầm tranh đúng bậc của đội mình (mỗi tấm ~30 MB trên card đồ hoạ).
+- Trùm Sói Đầu Đàn chuẩn bị dùng tranh riêng (khác sói triệu hồi của Sylva); chưa có tranh thì vẫn dùng tranh cũ.
+
+### Kỹ thuật
+- Mới: `src/vfx/bossFx.js`, `src/styles/battle-mobile.css`, `src/characters/sprite/tiers.js`, `tools/tier_art.py`, `tests/boss_skills.test.js`. Sửa: `server.js` (`BOSS_SKILLS`), `src/combat/events.js`, `src/ui/hud.js`, `src/characters/registry.js`, `src/characters/sprite/enemySprites.js`, `src/world3d/*`, `src/ui/world.js`.
+- 71 bài kiểm tra tự động đều đạt.
+
+---
+
+## 07/11/2026 (sáng) — BẢN ĐỒ THẾ GIỚI 3D (kiểu mô hình thu nhỏ như video mẫu) · SỔ NHIỆM VỤ · TỰ ĐI TỚI MỤC TIÊU
+Bạn gửi video mẫu → Claude làm 2 bản demo cho bạn chọn → bạn chọn **bản 2 (mô hình 3D có sẵn)** và **cách 1 (dựng lại 5 bản đồ, giữ nguyên bố cục)**.
+Chia việc: **Claude** làm phần 3D + gắn vào game · **Codex** làm dữ liệu nhiệm vụ ở máy chủ + bài kiểm tra · **Antigravity** làm giao diện sổ nhiệm vụ.
+
+### 1. Bản đồ 3D
+- 5 bản đồ (Ngoại ô, Rừng Sương, Làng Ashford, Đường Vương Đạo, Kinh thành) **dựng lại bằng khối 3D thu nhỏ**, đúng vị trí nhà cửa / đường / NPC như tranh cũ. Nhân vật, NPC, rương, đồ nhiệm vụ vẫn là tranh 2D quen thuộc.
+- Có: nhà mái ngói đỏ / nâu / xanh, quảng trường lát đá, giếng, lò rèn, quán, luống hoa, hàng rào · cánh đồng lúa vàng lay gió, cối xay gió **quay**, đống rơm, núi đá + cửa mỏ + đường ray · Rừng Sương: thông tối, ao, **nấm phát sáng xanh**, sương nhẹ · cầu đá qua sông, trại lính (lều, hàng rào cọc, tháp canh, thanh chắn sọc) · kinh thành: cung điện tháp mái xanh, nhà thờ 2 tháp nhọn, thư viện mái vòm, chợ 16 sạp nhiều màu, đài phun nước, tường thành trắng + cổng.
+- Đồ hoạ: bóng đổ mềm, góc khuất tối nhẹ, nắng ấm, nước gợn lấp lánh, cỏ cây lay gió, trên/dưới màn hình mờ như chụp mô hình. Nhân vật bị nhà / tường / cây che thì hiện **bóng mờ** để vẫn thấy mình ở đâu.
+- **🧭 Bản đồ → Đồ hoạ bản đồ**: ✨ Đẹp · ⚡ Nhẹ (cho điện thoại / máy yếu — điện thoại tự chọn Nhẹ) · 🗺️ Phẳng 2D (bản đồ tranh vẽ cũ, vẫn giữ).
+- Mô hình 3D: bộ miễn phí của **Kenney** (giấy phép CC0 — dùng tự do, kể cả game bán tiền), tải ở OpenGameArt.
+
+### 2. Sổ nhiệm vụ (phím **J** hoặc nút 📜)
+- 3 tab: **Đang làm** (nhiệm vụ đã nhận) · **Chính tuyến** (ải cốt truyện kế tiếp) · **Phụ** (Seraphine, Lena, Borin, Giếng Cổ, Trang sách, Hầm mộ — cả việc chưa nhận / chưa mở / đã xong).
+- Mỗi nhiệm vụ: người giao, mô tả, **mục tiêu hiện tại**, tiến độ (vd 1/2), phần thưởng, nút **📌 Theo dõi** và **🧭 Tự đi tới**.
+- **Khung theo dõi** góc phải trên: nhiệm vụ đang theo dõi + nút 🧭 Tự đi tới. Mũi tên vàng ▼ chỉ mục tiêu trên bản đồ.
+
+### 3. Tự đi
+- **Bấm chuột / chạm xuống đất** → nhân vật tự đi tới đó (chấm vàng chỉ đường). Bấm vào NPC / đồ vật → tự tới cạnh rồi nói chuyện / nhặt.
+- **🧭 Tự đi tới** → tự đi tới mục tiêu nhiệm vụ, **kể cả ở bản đồ khác** (tự qua các lối ra). Bấm phím di chuyển / D-pad là dừng.
+- Đã thử trọn vẹn: nhận việc cô Lena → tự đi sang Ngoại ô nhặt lúa → sang Rừng Sương hái nấm → về làng trả việc (nhận thưởng). Và tự đi từ Ngoại ô xuyên 4 bản đồ tới Bảng ải ở Kinh thành.
+
+### Kỹ thuật
+- Mới: `src/world3d/` (view, build, layouts, assets), `src/world/terrain3d.js` (+ `tools/build_terrain3d.py`), `src/assets/world3d/` (215 mô hình, 4,5 MB, `tools/pack_world3d.mjs`), `src/ui/questLog.js` + `src/styles/questlog.css`, `questLog()` trong `game/world.js`.
+- Phần 3D là gói riêng, chỉ tải khi mở bản đồ → màn hình đầu không chậm hơn.
+- 66 bài kiểm tra tự động (thêm 3 bài bản đồ 3D + 5 bài sổ nhiệm vụ).
+
+---
+
 ## 07/11/2026 (đêm) — BẢN ĐỒ KIỂU POKÉMON · NHÂN VẬT CHÍNH NAM / NỮ · TRUYỆN MỚI (Rok → Jessica ải 2 → Seraphine ải 3) · ICON KỸ NĂNG · QUÁI CÓ DÁNG ĐI · CHỐNG GIẬT LAG
 Bạn đi ngủ, Claude làm một mạch rồi đẩy GitHub. Tranh vẽ bằng **Codex** (nhân vật đi bộ, đồ vật, icon kỹ năng, dáng đi của quái) và **Google Flow** (5 bản đồ). Máy không có `agy` → Claude tự viết code.
 

@@ -1,0 +1,624 @@
+/* ============================================================
+   📱 BATTLE SCREEN — MOBILE RESPONSIVE (Portrait & Landscape)
+   Loaded after src/styles/index.css.
+   Desktop (> 760px wide AND > 500px tall) is 100% untouched.
+   ============================================================ */
+
+/* 1. Hide keyboard hint bar on touch devices, narrow screens, and landscape phones */
+@media (max-width: 760px), (max-height: 500px), (pointer: coarse) {
+    #controls-hint {
+        display: none !important;
+    }
+}
+
+/* ============================================================
+   2. SHARED MOBILE BATTLE RULES
+      Applies to portrait phones (<= 760px wide) AND landscape phones (<= 500px tall)
+   ============================================================ */
+@media (max-width: 760px), (max-height: 500px) {
+    html, body {
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+
+    #game-container {
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        overflow: hidden;
+    }
+
+    /* ---------- Top Bar & Top-Left Controls ---------- */
+    #top-bar {
+        height: 28px;
+        padding: 0 8px;
+        pointer-events: none;
+        z-index: 15;
+    }
+
+    #top-bar .top-label {
+        padding: 2px 10px;
+        font-size: 11px;
+        letter-spacing: 1px;
+        border-radius: 6px;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #top-left-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px;
+        z-index: 25;
+    }
+
+    #top-left-controls #btn-auto,
+    #top-left-controls #btn-pause,
+    #top-left-controls #btn-speed,
+    #top-left-controls #btn-menu {
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 800;
+        border-width: 1.5px;
+        border-radius: 6px;
+        min-width: 0;
+        min-height: 28px;
+        line-height: 1.15;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ---------- Tool Panels (#progress-tool, #enemy-debug-controls) ----------
+       Collapsed by default on mobile without JS changes:
+       input.js toggles `.panel-collapsed` on `h3` click (initially absent).
+       So `:not(.panel-collapsed)` is the initial state (collapsed on mobile),
+       and `.panel-collapsed` is the user-toggled open state on mobile. */
+    .tool-panel {
+        width: auto;
+        max-width: calc(50vw - 8px);
+        padding: 4px 8px;
+        border-width: 1.5px;
+        border-radius: 8px;
+        gap: 5px;
+        z-index: 51;
+    }
+
+    .tool-panel h3 {
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Hide desktop scale buttons inside mobile headers to prevent overflow */
+    .tool-panel h3 .ui-scale-btns,
+    .stat-head [data-ui-scale] {
+        display: none;
+    }
+
+    /* Default (initial load): collapse body of tool panels */
+    .tool-panel:not(.panel-collapsed) > :not(h3) {
+        display: none !important;
+    }
+    .tool-panel:not(.panel-collapsed) .panel-title-toggle::after {
+        content: ' ▸';
+    }
+
+    /* When user taps h3 (.panel-collapsed added by input.js): expand panel */
+    .tool-panel.panel-collapsed {
+        width: min(340px, calc(100vw - 12px));
+        max-width: calc(100vw - 12px);
+        padding: 8px 10px 10px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 65;
+    }
+    .tool-panel.panel-collapsed .panel-title-toggle::after {
+        content: ' ▾';
+    }
+    .tool-panel.panel-collapsed > .pt-section,
+    .tool-panel.panel-collapsed > button {
+        display: block !important;
+    }
+    .tool-panel.panel-collapsed > .tp-grid3,
+    .tool-panel.panel-collapsed > .tp-grid2 {
+        display: grid !important;
+    }
+    .tool-panel.panel-collapsed > #progress-tool-body,
+    .tool-panel.panel-collapsed > .ml-row,
+    .tool-panel.panel-collapsed > .ml-presets {
+        display: flex !important;
+    }
+
+    /* ---------- Stat Panels (#left-stats, #right-stats) ----------
+       Keep toggle buttons in .stat-head and .stat-panel-card reachable,
+       fix right-side horizontal row-reverse overflow, and collapse
+       unexpanded left-stats cards by default until tapped/hovered. */
+    .stat-container {
+        width: calc(50vw - 8px);
+        max-width: 175px;
+        gap: 4px;
+        z-index: 40;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+    }
+
+    .stat-container.left-side {
+        left: 6px;
+    }
+
+    .stat-container.right-side {
+        right: 6px;
+        left: auto;
+        flex-direction: column;
+        align-items: stretch;
+        width: calc(50vw - 8px);
+        max-width: 175px;
+    }
+
+    .stat-head {
+        padding: 3px 6px;
+        font-size: 10.5px;
+        gap: 4px;
+        border-width: 1.5px;
+        border-radius: 7px;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .stat-head span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .stat-panel-card,
+    .stat-container.right-side .stat-panel-card.collapsed {
+        min-width: 0 !important;
+        width: 100%;
+        padding: 4px 7px;
+        border-width: 1.5px;
+        border-radius: 8px;
+        font-size: 11px;
+    }
+
+    /* Collapse left-stats cards by default on mobile; tapping/hovering expands them */
+    #left-stats:not(:hover) .stat-panel-card:not(.collapsed) > div:not(:first-child):not(.st-icons) {
+        display: none;
+    }
+
+    /* When expanded via tap/hover or toggle button, allow slightly wider stat readout */
+    #left-stats:hover,
+    #right-stats:has(.stat-panel-card:not(.collapsed)) {
+        width: min(220px, calc(100vw - 12px));
+        max-width: calc(100vw - 12px);
+        z-index: 55;
+    }
+
+    /* ---------- Combat HUD & 4 Hero Cards ---------- */
+    #combat-hud {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: 100vw;
+        height: auto;
+        padding: 6px;
+        gap: 6px;
+        align-items: stretch;
+        justify-content: center;
+        z-index: 30;
+    }
+
+    #combat-hud .member-card {
+        min-width: 0;
+        padding: 6px;
+        border-radius: 10px;
+        gap: 3px;
+    }
+
+    #combat-hud .card-header {
+        gap: 5px;
+        margin-bottom: 1px;
+        min-width: 0;
+    }
+
+    #combat-hud .class-icon {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+        border-radius: 5px;
+        flex-shrink: 0;
+    }
+
+    #combat-hud .card-info {
+        flex: 1 1 0;
+        min-width: 0;
+        gap: 0;
+        overflow: hidden;
+    }
+
+    #combat-hud .class-name {
+        font-size: 11.5px;
+        font-weight: 800;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        max-width: 100%;
+    }
+
+    /* Hide verbose subtitle & range tag on small cards so hero name fits cleanly */
+    #combat-hud .class-name small,
+    #combat-hud .range-tag {
+        display: none;
+    }
+
+    #combat-hud .card-auto {
+        padding: 2px 5px;
+        font-size: 9px;
+        border-radius: 5px;
+        min-height: 20px;
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    #combat-hud .stat-bar {
+        height: 6px;
+        margin-bottom: 1px;
+        border-radius: 3px;
+    }
+
+    #combat-hud .orb-bar {
+        margin-bottom: 2px;
+        gap: 3px;
+    }
+
+    #combat-hud .orb {
+        height: 5px;
+        border-radius: 2.5px;
+    }
+
+    /* Elarion gem slots & floating gem tray */
+    #combat-hud .gem-slots {
+        margin: 0 0 2px;
+        gap: 4px;
+    }
+
+    #combat-hud .gem-slot {
+        width: 10px;
+        height: 13px;
+    }
+
+    #combat-hud .gem-cnt {
+        font-size: 8px;
+    }
+
+    #combat-hud .gem-tray {
+        transform: scale(0.72);
+        transform-origin: bottom center;
+        bottom: calc(100% + 2px);
+    }
+
+    /* 3 Skill Buttons — guaranteed >= 40x40px tap targets */
+    #combat-hud .skills-row {
+        display: flex;
+        gap: 4px;
+        width: 100%;
+    }
+
+    #combat-hud .skill-btn,
+    #combat-hud .skill-btn:has(> .sk-art) {
+        flex: 1 1 0;
+        min-width: 40px;
+        min-height: 44px;
+        padding: 3px 2px;
+        border-radius: 7px;
+        gap: 2px;
+    }
+
+    #combat-hud .skill-btn .skill-icon {
+        font-size: 9.5px;
+        line-height: 1.1;
+        padding: 0 2px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-word;
+    }
+
+    #combat-hud .skill-btn .cost {
+        font-size: 8px;
+        padding: 0 3px;
+        border-radius: 3px;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #combat-hud .queue-num {
+        width: 13px;
+        height: 13px;
+        font-size: 9px;
+        top: -4px;
+        right: -4px;
+    }
+
+    /* Visually distinct Ultimate skill button (3rd button) */
+    #combat-hud .skill-btn.ultimate {
+        border: 1.5px solid rgba(251, 191, 36, 0.65);
+        background: linear-gradient(180deg, rgba(251, 191, 36, 0.14), rgba(180, 83, 9, 0.24));
+        box-shadow: inset 0 0 6px rgba(251, 191, 36, 0.22);
+    }
+
+    #combat-hud .skill-btn.ultimate .cost {
+        background: rgba(245, 158, 11, 0.28);
+        color: #fde68a;
+        border: 1px solid rgba(251, 191, 36, 0.45);
+        font-weight: 700;
+    }
+
+    #combat-hud .skill-btn.ultimate.ready {
+        border-color: #ffd700;
+        background: linear-gradient(180deg, rgba(255, 215, 0, 0.22), rgba(217, 119, 6, 0.32));
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.45), inset 0 0 8px rgba(255, 215, 0, 0.25);
+    }
+
+    /* ---------- Battle Overlays (Pause, Result, Countdown, Boss Banner) ---------- */
+    #countdown-text {
+        font-size: clamp(48px, 15vw, 90px);
+        text-align: center;
+        max-width: 94vw;
+        padding: 0 8px;
+    }
+
+    .pause-box {
+        width: min(340px, calc(100vw - 24px));
+        padding: 20px 16px;
+    }
+
+    .pause-box h2 {
+        font-size: 22px;
+    }
+
+    .pause-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .pause-buttons button,
+    #btn-shake {
+        min-height: 42px;
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    .result-box {
+        width: min(360px, calc(100vw - 24px));
+        padding: 22px 16px;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .result-text {
+        font-size: clamp(26px, 7.5vw, 38px);
+    }
+
+    .result-subtext {
+        font-size: 14px;
+    }
+
+    .retry-btn {
+        padding: 12px 20px;
+        font-size: 15px;
+        min-height: 44px;
+        max-width: 100%;
+    }
+
+    .boss-phase-banner {
+        max-width: calc(100vw - 24px);
+        width: max-content;
+        padding: 8px 14px;
+    }
+
+    .boss-phase-banner b {
+        font-size: 17px;
+    }
+
+    .boss-phase-banner small {
+        font-size: 12px;
+    }
+}
+
+/* ============================================================
+   3. PORTRAIT PHONE LAYOUT (<= 760px wide)
+      - Top bar at row 1 (y: 0..28px)
+      - Top-left controls at row 2 (y: 30..60px) — zero overlap with top bar
+      - 2x2 grid of hero cards at the bottom
+   ============================================================ */
+@media (max-width: 760px) {
+    #top-bar {
+        top: 0;
+        left: 0;
+        right: 0;
+        justify-content: center;
+    }
+
+    #top-left-controls {
+        top: 30px;
+        left: 6px;
+        right: 6px;
+        justify-content: center;
+    }
+
+    .tool-panel.ally {
+        top: 64px;
+        left: 6px;
+        right: auto;
+    }
+
+    .tool-panel.enemy {
+        top: 64px;
+        right: 6px;
+        left: auto;
+    }
+
+    .tool-panel.panel-collapsed {
+        max-height: calc(100dvh - 290px);
+    }
+
+    .stat-container.left-side,
+    .stat-container.right-side {
+        top: 96px;
+        max-height: calc(100dvh - 322px);
+    }
+
+    body.mode-duel .stat-container.left-side,
+    body.mode-duel .stat-container.right-side {
+        top: 64px;
+        max-height: calc(100dvh - 290px);
+    }
+
+    #combat-hud {
+        flex-wrap: wrap;
+    }
+
+    #combat-hud .member-card {
+        flex: 1 1 calc(50% - 6px);
+        width: calc(50% - 3px);
+        max-width: calc(50% - 3px);
+    }
+}
+
+/* ============================================================
+   4. LANDSCAPE PHONE LAYOUT (<= 500px tall, e.g. 812x375 or 667x375)
+      Placed AFTER portrait rules so landscape phones (including <= 760px wide)
+      always get the single-row compact HUD and single-row top strip.
+   ============================================================ */
+@media (max-height: 500px) {
+    #top-left-controls {
+        top: 4px;
+        left: 8px;
+        right: auto;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+    }
+
+    #top-bar {
+        top: 4px;
+        left: 295px;
+        right: 8px;
+        height: 28px;
+        justify-content: flex-end;
+        background: none;
+    }
+
+    .tool-panel.ally {
+        top: 36px;
+        left: 8px;
+        right: auto;
+    }
+
+    .tool-panel.enemy {
+        top: 36px;
+        right: 8px;
+        left: auto;
+    }
+
+    .tool-panel.panel-collapsed {
+        max-height: calc(100dvh - 132px);
+    }
+
+    .stat-container.left-side {
+        top: 64px;
+        left: 8px;
+        max-height: calc(100dvh - 160px);
+    }
+
+    .stat-container.right-side {
+        top: 64px;
+        right: 8px;
+        left: auto;
+        max-height: calc(100dvh - 160px);
+    }
+
+    body.mode-duel .stat-container.left-side,
+    body.mode-duel .stat-container.right-side {
+        top: 36px;
+        max-height: calc(100dvh - 132px);
+    }
+
+    #combat-hud {
+        flex-wrap: nowrap;
+        padding: 4px 8px;
+        gap: 6px;
+    }
+
+    #combat-hud .member-card {
+        flex: 1 1 0;
+        width: auto;
+        max-width: calc(25% - 4.5px);
+        padding: 4px 6px;
+        gap: 2px;
+    }
+
+    #combat-hud .card-header {
+        margin-bottom: 0;
+        gap: 4px;
+    }
+
+    #combat-hud .class-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+
+    #combat-hud .class-name {
+        font-size: 10.5px;
+    }
+
+    #combat-hud .card-auto {
+        padding: 1px 4px;
+        font-size: 8.5px;
+        min-height: 18px;
+    }
+
+    #combat-hud .stat-bar {
+        height: 5px;
+        margin-bottom: 0;
+    }
+
+    #combat-hud .orb-bar {
+        margin-bottom: 1px;
+    }
+
+    #combat-hud .orb {
+        height: 4px;
+    }
+
+    #combat-hud .skill-btn,
+    #combat-hud .skill-btn:has(> .sk-art) {
+        min-width: 40px;
+        min-height: 40px;
+        height: 40px;
+        padding: 2px;
+    }
+
+    #combat-hud .skill-btn .skill-icon {
+        font-size: 9px;
+        -webkit-line-clamp: 1;
+    }
+}

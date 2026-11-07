@@ -1,0 +1,177 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "footBand": 16,
+ "footMin": 25,
+ "sheets": {
+  "idle": {
+   "file": "art/seraphine/sprite_ss/sprite-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "heel"
+    ],
+    [
+     "ready",
+     4,
+     "heel"
+    ]
+   ],
+   "key": "matte"
+  },
+  "attack": {
+   "file": "art/seraphine/sprite_ss/sprite-attack.png",
+   "scale": 1.4,
+   "anchor": "heel",
+   "points": {
+    "4": {
+     "staff": [
+      1472,
+      302
+     ]
+    }
+   },
+   "key": "matte"
+  },
+  "move": {
+   "file": "art/seraphine/sprite_ss/sprite-move.png",
+   "scale": 1.07,
+   "anchor": "body",
+   "key": "matte"
+  },
+  "hurt-stun": {
+   "file": "art/seraphine/sprite_ss/sprite-hurt-stun.png",
+   "scale": 0.97,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "heel"
+    ],
+    [
+     "stun",
+     4,
+     "heel"
+    ]
+   ],
+   "key": "matte"
+  },
+  "heal-shield": {
+   "file": "art/seraphine/sprite_ss/sprite-heal-shield.png",
+   "scale": 1.08,
+   "groups": [
+    [
+     "heal",
+     4,
+     "heel"
+    ],
+    [
+     "shield",
+     4,
+     "heel"
+    ]
+   ],
+   "points": {
+    "3": {
+     "staff": [
+      965,
+      77
+     ]
+    },
+    "7": {
+     "staff": [
+      1090,
+      637
+     ]
+    }
+   },
+   "key": "matte"
+  },
+  "raise-land": {
+   "file": "art/seraphine/sprite_ss/sprite-raise-land.png",
+   "scale": 1.2,
+   "groups": [
+    [
+     "raise",
+     3,
+     "heel"
+    ],
+    [
+     "raiseUp",
+     1,
+     "body"
+    ],
+    [
+     "fall",
+     1,
+     "body"
+    ],
+    [
+     "land",
+     1,
+     "body"
+    ],
+    [
+     "landEnd",
+     2,
+     "heel"
+    ]
+   ],
+   "key": "matte"
+  },
+  "pray": {
+   "file": "art/seraphine/sprite_ss/sprite-pray.png",
+   "scale": 1.01,
+   "groups": [
+    [
+     "pray",
+     4,
+     "body"
+    ],
+    [
+     "prayCast",
+     4,
+     "body"
+    ]
+   ],
+   "points": {
+    "7": {
+     "palm": [
+      1095,
+      707
+     ]
+    }
+   },
+   "key": "matte"
+  },
+  "dead-victory": {
+   "file": "art/seraphine/sprite_ss/sprite-dead-victory.png",
+   "scale": 1.08,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "body"
+    ]
+   ],
+   "ground": [
+    "victory"
+   ],
+   "key": "matte"
+  }
+ },
+ "out": "src/assets/sprites/seraphine_ss_sprite",
+ "meta": "src/characters/sprite/seraphineSprite_ss.json",
+ "format": "webp"
+}

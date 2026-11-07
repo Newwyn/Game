@@ -1,0 +1,99 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "sheets": {
+  "idle": {
+   "file": "art/ignar/sprite_ss/sprite-idle.png",
+   "scale": 0.93897,
+   "anchor": "toe"
+  },
+  "attack": {
+   "file": "art/ignar/sprite_ss/sprite-attack.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "split": true
+  },
+  "move": {
+   "file": "art/ignar/sprite_ss/sprite-move.png",
+   "scale": 0.911,
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "file": "art/ignar/sprite_ss/sprite-hurt-stun.png",
+   "scale": 0.939,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "summon": {
+   "file": "art/ignar/sprite_ss/sprite-summon.png",
+   "scale": 0.9625,
+   "anchor": "toe"
+  },
+  "bolt": {
+   "file": "art/ignar/sprite_ss/sprite-bolt.png",
+   "scale": 0.934,
+   "anchor": "toe"
+  },
+  "palm": {
+   "file": "art/ignar/sprite_ss/sprite-palm.png",
+   "scale": 0.934,
+   "anchor": "body"
+  },
+  "volley": {
+   "file": "art/ignar/sprite_ss/sprite-volley.png",
+   "scale": 0.939,
+   "anchor": "body"
+  },
+  "charge-land": {
+   "file": "art/ignar/sprite_ss/sprite-charge-land.png",
+   "scale": 0.981,
+   "groups": [
+    [
+     "charge",
+     4,
+     "body"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ],
+   "split": true
+  },
+  "dead-victory": {
+   "file": "art/ignar/sprite/sprite-dead-victory.png",
+   "scale": 0.939,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ],
+   "key": "green"
+  }
+ },
+ "out": "src/assets/sprites/ignar_ss_sprite",
+ "meta": "src/characters/sprite/ignarSprite_ss.json",
+ "format": "webp",
+ "key": "green"
+}

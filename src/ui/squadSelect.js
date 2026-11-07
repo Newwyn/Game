@@ -7,6 +7,8 @@
 // Bấm thẻ để chọn / bỏ chọn, nút "Bỏ chọn tất cả" xoá hết (cả 1P lẫn 2P), nhớ lựa chọn lần trước (server lưu).
 // Phím: 1-9 chọn cho 1P, Enter = xác nhận.
 import { net, socket } from '../net/socket.js';
+import { warmTextures } from '../core/textures.js';
+import { tierUrls } from '../characters/sprite/tiers.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 const portrait = (id) => PORTRAITS[`../assets/portraits/${id}.png`];
@@ -244,7 +246,7 @@ function hide() {
 export const isSquadSelectOpen = () => !!root && root.style.display !== 'none';
 
 export function setupSquadSelect() {
-    socket.on('progressUpdate', (d) => { lastProgress = d; });
+    socket.on('progressUpdate', (d) => { lastProgress = d; warmTextures(tierUrls(d)); });   // nạp ngầm tranh bậc S / SS của đội -> vào trận không khựng
     socket.on('battleStart', (d) => {
         if (d?.classDefs) lastClassDefs = d.classDefs;
         if (d?.mode && d.mode !== 'menu') hide();

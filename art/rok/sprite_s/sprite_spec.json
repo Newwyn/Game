@@ -1,0 +1,155 @@
+{
+ "note": "Bậc S: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "sheets": {
+  "idle": {
+   "file": "art/rok/sprite_s/sprite-idle.png",
+   "key": "matte",
+   "scale": 0.85,
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "attack": {
+   "file": "art/rok/sprite_s/sprite-attack.png",
+   "key": "matte",
+   "scale": 1.02,
+   "anchor": "heel",
+   "points": {
+    "4": {
+     "tip": [
+      1515,
+      420
+     ]
+    }
+   }
+  },
+  "move": {
+   "file": "art/rok/sprite_s/sprite-run.png",
+   "scale": 0.927,
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "file": "art/rok/sprite_s/sprite-hurt-stun.png",
+   "scale": 0.876,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "taunt": {
+   "file": "art/rok/sprite_s/sprite-taunt.png",
+   "scale": 0.978,
+   "anchor": "toe",
+   "points": {
+    "4": {
+     "shield": [
+      1468,
+      342
+     ]
+    },
+    "5": {
+     "shield": [
+      310,
+      820
+     ]
+    }
+   }
+  },
+  "bash": {
+   "file": "art/rok/sprite_s/sprite-bash.png",
+   "scale": 1.013,
+   "anchor": "heel",
+   "points": {
+    "3": {
+     "shield": [
+      1122,
+      250
+     ]
+    },
+    "4": {
+     "shield": [
+      1480,
+      255
+     ]
+    }
+   }
+  },
+  "guard-land": {
+   "file": "art/rok/sprite_s/sprite-guard-land.png",
+   "scale": 0.995,
+   "groups": [
+    [
+     "guard",
+     4,
+     "heel"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ],
+   "points": {
+    "2": {
+     "shield": [
+      700,
+      375
+     ]
+    },
+    "3": {
+     "shield": [
+      1080,
+      380
+     ]
+    },
+    "4": {
+     "shield": [
+      1455,
+      380
+     ]
+    }
+   }
+  },
+  "dead-victory": {
+   "file": "art/rok/sprite_s/sprite-dead-victory.png",
+   "scale": 1.088,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ]
+  }
+ },
+ "out": "src/assets/sprites/rok_s_sprite",
+ "meta": "src/characters/sprite/rokSprite_s.json",
+ "format": "webp"
+}

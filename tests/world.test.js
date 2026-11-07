@@ -6,6 +6,122 @@ const C = require('../game/campaign');
 const fresh = () => { const pr = C.ensureCampaign({}, 0); Wd.ensureWorld(pr); return pr; };
 const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; };
 const wallet = (pr) => pr.wallet;
+const quest = (pr, id) => Wd.questLog(pr).find(q => q.id === id);
+
+test('quest log: fresh and legacy saves are read without mutation', () => {
+    for (const pr of [{}, fresh()]) {
+        const before = structuredClone(pr);
+        const log = Wd.questLog(pr);
+        assert.deepEqual(pr, before);
+        assert.equal(log.length, 7);
+        assert.equal(log[0].id, 'main');
+        assert.match(log[0].title, /Ải 1: Đêm ở cổng làng/);
+        assert.deepEqual(log[0].target, { scene: 'ashford', kind: 'obj', id: 'board' });
+        assert.ok(log.slice(1).every(q => q.state === 'locked' && q.target === null && q.needNo > 0));
+    }
+    const pr = fresh();
+    assert.deepEqual(Wd.worldState(pr, 0).quests, Wd.questLog(pr));
+});
+
+test('quest log: ambush, herb collection, turn-in and escort', () => {
+    const pr = fresh();
+    clear(pr, 1);
+    assert.deepEqual(quest(pr, 'main').target, { scene: 'outskirts', kind: 'obj', id: 'ambush' });
+    clear(pr, 2);
+    const giver = { scene: 'ashford', kind: 'npc', id: 'sera' };
+    assert.equal(quest(pr, 'sera').state, 'offered');
+    assert.deepEqual(quest(pr, 'sera').target, giver);
+    assert.deepEqual(quest(pr, 'main').target, giver);
+    assert.match(quest(pr, 'main').obj, /Giúp Seraphine/);
+    Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(quest(pr, 'sera').state, 'active');
+    assert.deepEqual(quest(pr, 'sera').progress, { have: 0, need: 1 });
+    assert.deepEqual(quest(pr, 'sera').target, { scene: 'forest', kind: 'obj', id: 'herb' });
+    assert.deepEqual(quest(pr, 'main').target, quest(pr, 'sera').target);
+    Wd.interact(pr, wallet(pr), 'forest', 'herb');
+    assert.deepEqual(quest(pr, 'sera').progress, { have: 1, need: 1 });
+    assert.deepEqual(quest(pr, 'sera').target, giver);
+    assert.match(quest(pr, 'sera').obj, /Mang Thảo dược/);
+    Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(quest(pr, 'sera').state, 'done');
+    assert.equal(quest(pr, 'sera').target, null);
+    assert.deepEqual(quest(pr, 'main').target, giver);
+    assert.match(quest(pr, 'main').obj, /hộ tống/);
+});
+
+test('quest log: Lena targets the remaining item, then her NPC; Borin targets the hammer', () => {
+    const pr = fresh();
+    clear(pr, 4);
+    pr.world.quests.lena = 'active';
+    for (const [held, missing, scene] of [['wheat', 'mushroom', 'forest'], ['mushroom', 'wheat', 'outskirts']]) {
+        pr.world.bag = { [held]: true };
+        assert.deepEqual(quest(pr, 'lena').progress, { have: 1, need: 2 });
+        assert.deepEqual(quest(pr, 'lena').target, { scene, kind: 'obj', id: missing });
+    }
+    pr.world.bag = { wheat: true, mushroom: true };
+    assert.deepEqual(quest(pr, 'lena').target, { scene: 'ashford', kind: 'npc', id: 'lena' });
+    assert.match(quest(pr, 'lena').obj, /Mang Lúa mì vàng, Nấm sương/);
+    assert.match(quest(pr, 'lena').reward, /300 Vàng.*10 Kim Cương.*N3/);
+    pr.world.quests.borin = 'active';
+    assert.deepEqual(quest(pr, 'borin').target, { scene: 'outskirts', kind: 'obj', id: 'hammer' });
+});
+
+test('quest log: secrets unlock at their story thresholds and finish via flags', () => {
+    for (const [id, n, flag, scene, branch] of [
+        ['well', 1, 'gieng_co', 'ashford', 'N1'],
+        ['pages', 16, 'trang_sach', 'capital', 'N4'],
+        ['crypt', 18, 'loi_vao_ham_mo', 'capital', 'N5'],
+    ]) {
+        const pr = fresh();
+        clear(pr, n - 1);
+        assert.equal(quest(pr, id).state, 'locked');
+        assert.equal(quest(pr, id).needNo, n);
+        assert.equal(quest(pr, id).target, null);
+        clear(pr, n);
+        assert.equal(quest(pr, id).state, 'active');
+        assert.equal(quest(pr, id).needNo, null);
+        assert.deepEqual(quest(pr, id).target, { scene, kind: 'obj', id });
+        assert.ok(quest(pr, id).reward.includes(branch));
+        pr.flags[flag] = true;
+        assert.equal(quest(pr, id).state, 'done');
+        assert.equal(quest(pr, id).target, null);
+    }
+    assert.ok(quest(fresh(), 'well').desc.includes(Wd.RHYME));
+});
+
+test('quest log: every story stage, target, shape and side ordering is valid', () => {
+    const stages = require('../game/chapter1').stages;
+    const rank = { active: 0, offered: 1, locked: 2, done: 3 };
+    const keys = ['id', 'type', 'title', 'giver', 'desc', 'state', 'obj', 'progress', 'target', 'reward', 'needNo'].sort();
+    for (let n = 0; n <= 20; n++) {
+        const pr = fresh();
+        clear(pr, n);
+        for (const state of [undefined, 'active', 'done']) {
+            pr.world.quests = { sera: state, lena: state, borin: state };
+            const before = structuredClone(pr);
+            const log = Wd.questLog(pr);
+            assert.deepEqual(pr, before);
+            assert.equal(log.filter(q => q.type === 'main').length, 1);
+            if (n < 20) assert.equal(log[0].title, `Chương 1 · Ải ${n + 1}: ${stages[n].name}`);
+            if (n >= 3 && n < 20) assert.deepEqual(log[0].target,
+                { scene: n >= 12 ? 'capital' : 'ashford', kind: 'obj', id: n >= 12 ? 'gate_board' : 'board' });
+            if (n === 20) {
+                assert.equal(log[0].state, 'done');
+                assert.equal(log[0].obj, 'Đã hoàn thành chương 1');
+                assert.equal(log[0].target, null);
+            }
+            const ranks = log.slice(1).map(q => rank[q.state]);
+            assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));
+            for (const q of log) {
+                assert.deepEqual(Object.keys(q).sort(), keys);
+                if (!q.target) continue;
+                const { scene, kind, id } = q.target;
+                assert.ok(Wd.SCENES[scene]);
+                assert.ok(kind === 'npc' ? Wd.SCENES[scene].npcs.includes(id) : Wd.SCENES[scene].objects.some(o => o.id === id));
+            }
+        }
+    }
+});
 
 test('save cũ (màn ngang) được đưa về điểm đầu bản đồ mới', () => {
     const pr = { flags: { x: true }, world: { scene: 'village_square', x: 900 } };

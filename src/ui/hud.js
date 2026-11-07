@@ -394,6 +394,11 @@ function effectInfo(ef, m) {
             ? ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🛡', '#93c5fd', 'Hộ Vệ Vương Quốc', `Khiên ${Math.round(ef.hp)}/${ef.maxHp} (bộ đồ 4 món)`];
         case 'gear_def': return ['🧩', '#93c5fd', 'Hộ Vệ Vương Quốc', `Cả đội +${pc(ef.value)}% thủ`];
+        case 'boss_bleed': return ['🩸', '#fb7185', 'Chảy máu', 'Mất 3% máu tối đa mỗi giây'];
+        case 'boss_burn': return ['🔥', '#fb923c', 'Bỏng lửa', 'Mất 2% máu tối đa mỗi giây'];
+        case 'boss_curse': return ['💀', '#c084fc', 'Lời Nguyền', 'Giảm 40% hồi máu; mất 2% máu tối đa mỗi giây'];
+        case 'boss_shield': return ['🛡', '#a78bfa', 'Khiên Đen', 'Khiên bằng 15% máu tối đa trong 5 giây'];
+        case 'boss_haste': return ['⚔', '#f87171', 'Hét Xung Phong', 'Tăng 25% tốc đánh trong 6 giây'];
         case 'boss_phase2': return ['💢', '#f87171', ef.name ?? 'Giai đoạn 2', ef.desc ?? 'Trùm mạnh lên'];
         case 'gear_travel': return ['🧩', '#4ade80', 'Lữ Khách', `Đồng đội khác tộc: +${pc(ef.value)}% sát thương`];
         case 'gear_atk': return ['🧩', '#fbbf24', 'Chiến Lược Gia', `Cả đội +${pc(ef.value)}% tấn công`];

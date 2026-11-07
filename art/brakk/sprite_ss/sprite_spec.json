@@ -1,0 +1,241 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "footBand": 16,
+ "footMin": 25,
+ "solidFeet": true,
+ "face": [
+  225,
+  140,
+  330,
+  222
+ ],
+ "sheets": {
+  "idle": {
+   "file": "art/brakk/sprite_ss/sprite-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "heel"
+    ],
+    [
+     "ready",
+     4,
+     "heel",
+     1.04
+    ]
+   ],
+   "split": true
+  },
+  "attack": {
+   "file": "art/brakk/sprite_ss/sprite-attack.png",
+   "scale": 1.035,
+   "anchor": "heel",
+   "points": {
+    "4": {
+     "fist": [
+      1500,
+      220
+     ]
+    }
+   },
+   "split": true
+  },
+  "move": {
+   "file": "art/brakk/sprite_ss/sprite-move.png",
+   "scale": 1.022,
+   "anchor": "face",
+   "split": true
+  },
+  "hurt-stun": {
+   "file": "art/brakk/sprite_ss/sprite-hurt-stun.png",
+   "scale": 1.005,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "heel"
+    ],
+    [
+     "stun",
+     4,
+     "heel"
+    ]
+   ],
+   "split": true
+  },
+  "grab": {
+   "file": "art/brakk/sprite_ss/sprite-grab.png",
+   "scale": 1.07,
+   "groups": [
+    [
+     "grab",
+     4,
+     "heel"
+    ],
+    [
+     "grabAir",
+     2,
+     "face"
+    ],
+    [
+     "grabLand",
+     2,
+     "heel"
+    ]
+   ],
+   "split": true
+  },
+  "charge-stomp": {
+   "file": "art/brakk/sprite_ss/sprite-charge-stomp.png",
+   "scale": 1.03,
+   "groups": [
+    [
+     "charge",
+     4,
+     "heel"
+    ],
+    [
+     "stomp",
+     1,
+     "heel"
+    ],
+    [
+     "stompAir",
+     1,
+     "face"
+    ],
+    [
+     "stompLand",
+     2,
+     "heel"
+    ]
+   ],
+   "split": true
+  },
+  "roar-taunt": {
+   "file": "art/brakk/sprite_ss/sprite-roar-taunt.png",
+   "scale": 1.033,
+   "groups": [
+    [
+     "roar",
+     4,
+     "heel"
+    ],
+    [
+     "taunt",
+     4,
+     "heel"
+    ]
+   ],
+   "points": {
+    "3": {
+     "mouth": [
+      1040,
+      142
+     ]
+    },
+    "4": {
+     "mouth": [
+      1412,
+      135
+     ]
+    },
+    "6": {
+     "mouth": [
+      635,
+      675
+     ]
+    },
+    "7": {
+     "mouth": [
+      1030,
+      687
+     ]
+    }
+   },
+   "split": true
+  },
+  "dead-victory": {
+   "file": "art/brakk/sprite_ss/sprite-dead-victory.png",
+   "scale": 1.04,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "heel"
+    ]
+   ],
+   "split": true
+  },
+  "giant-ready-move": {
+   "file": "art/brakk/sprite_ss/sprite-giant-ready-move.png",
+   "scale": 0.93,
+   "groups": [
+    [
+     "gReady",
+     4,
+     "heel"
+    ],
+    [
+     "gMove",
+     4,
+     "body"
+    ]
+   ],
+   "split": true
+  },
+  "giant-attack": {
+   "file": "art/brakk/sprite_ss/sprite-giant-attack.png",
+   "scale": 0.995,
+   "cuts": [
+    [
+     1236,
+     150,
+     262
+    ]
+   ],
+   "groups": [
+    [
+     "gPunch",
+     4,
+     "heel"
+    ],
+    [
+     "gUpper",
+     4,
+     "heel"
+    ]
+   ],
+   "points": {
+    "3": {
+     "fist": [
+      1205,
+      205
+     ]
+    },
+    "7": {
+     "fist": [
+      1034,
+      488
+     ]
+    }
+   },
+   "split": true
+  }
+ },
+ "out": "src/assets/sprites/brakk_ss_sprite",
+ "meta": "src/characters/sprite/brakkSprite_ss.json",
+ "format": "webp"
+}
