@@ -8,6 +8,10 @@
 import { net, socket } from '../net/socket.js';
 import { playStory } from './story.js';
 import { MAPS } from '../world/maps.js';
+import { softwareGL } from '../core/gpu.js';
+import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
+import { icon } from './icons.js';
+import { isWildTile, RATE as WILD_RATE, GRACE_STEPS } from '../world/wild.js';
 import { trackerHTML, questLogHTML } from './questLog.js';
 import '../styles/questlog.css';
 
@@ -24,7 +28,7 @@ const ITEM_CELL = { chest: 0, chest_open: 1, mine: 2, wheat: 3, mushroom: 4, ham
 
 let root, canvas, ctx, hud, padEl;
 let data = null, scene = null, map = null, open = false;
-let onStages = null, onGear = null, onBack = null, onExtras = null, onStage = null;
+let onStages = null, onGear = null, onBack = null, onExtras = null, onStage = null, onWild = null;
 const me = { x: 0, y: 0, face: 'down', moving: null, jump: null, step: 0 };
 let npcs = [];                // [{ id, x, y, face, home, moving, nextAt, def }]
 let dialog = null, puzzle = null, toastMsg = null, toastAt = 0, mapOpen = false, busy = false, fade = 0;
@@ -37,11 +41,16 @@ const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { retur
 const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } };
 // 'auto' (mặc định): bắt đầu Đẹp (điện thoại: Nhẹ), máy không kịp thì tự hạ — xem view.setAuto
 let quality = LS.get('wd_quality') || 'auto';
+// trình duyệt vẽ 3D bằng phần mềm (không dùng card đồ hoạ) -> chế độ Tự động dùng bản đồ phẳng 2D cho mượt
+let softGL = false, softToast = false;
+if (quality === 'auto' && softwareGL()) { softGL = true; quality = '2d'; }
 let autoLevel = coarse() ? 'low' : 'high', autoToast = false;
 const webglOK = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
 if (!webglOK()) quality = '2d';
 let viewLoading = null;
-const use3d = () => quality !== '2d' && !!view;
+// vẽ phẳng (tranh): chọn 🗺️ Phẳng 2D, hoặc đang ở TRONG NHÀ (phòng luôn vẽ tranh kiểu Pokémon)
+const flat = () => quality === '2d' || !!map?.interior;
+const use3d = () => !flat() && !!view;
 function applyQuality() {
     if (!root) return;
     if (quality !== '2d' && !view) {   // phần 3D là gói riêng: chỉ tải khi mở bản đồ lần đầu
@@ -60,9 +69,9 @@ function applyQuality() {
             if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
         });
     }
-    host3d.style.display = quality === '2d' ? 'none' : 'block';
-    canvas.style.display = quality === '2d' ? 'block' : 'none';
-    if (scene && quality !== '2d') load3d(scene.id);
+    host3d.style.display = flat() ? 'none' : 'block';
+    canvas.style.display = flat() ? 'block' : 'none';
+    if (scene && !flat()) load3d(scene.id);
 }
 function load3d(id) {
     if (!view) return;
@@ -243,6 +252,7 @@ function el() {
     root = document.createElement('div');
     root.id = 'world-screen';
     root.innerHTML = `<div class="wd-3d"></div><canvas class="wd-canvas"></canvas><div class="wd-fade"></div><div class="wd-hud"></div>
+        <div class="wd-mini" title="Bản đồ thu nhỏ — bấm để mở bản đồ lớn (M)"><canvas></canvas><span class="wd-mini-name"></span></div>
         <div class="wd-pad" aria-label="Phím điều hướng">
             <button class="wd-dp up" data-dir="up" aria-label="Lên">▲</button>
             <button class="wd-dp left" data-dir="left" aria-label="Trái">◀</button>
@@ -254,6 +264,9 @@ function el() {
     canvas = root.querySelector('canvas');
     ctx = canvas.getContext('2d');
     hud = root.querySelector('.wd-hud');
+    mini = root.querySelector('.wd-mini');
+    miniCtx = mini.querySelector('canvas').getContext('2d');
+    mini.addEventListener('click', () => doAction('map'));
     padEl = root.querySelector('.wd-pad');
     host3d = root.querySelector('.wd-3d');
     fadeEl = root.querySelector('.wd-fade');
@@ -313,13 +326,54 @@ function frame(t) {
     const dt = Math.min(50, t - (last || t));
     last = t;
     update(dt, t);
-    if (use3d()) draw3d(t); else if (quality === '2d') draw(t);
-    if (fadeEl) fadeEl.style.opacity = quality !== '2d' ? fade : 0;
+    if (use3d()) draw3d(t); else if (flat()) draw(t);
+    if (fadeEl) fadeEl.style.opacity = !flat() ? fade : 0;
     if (toastMsg && t - toastAt > 3500) { toastMsg = null; renderHud(); }
+    if (t - miniAt > 120) { miniAt = t; drawMini(t); }
+}
+// ---------- 🗺️ bản đồ thu nhỏ (góc phải trên) ----------
+let mini = null, miniCtx = null, miniAt = 0;
+function drawMini(t) {
+    if (!miniCtx || !map) return;
+    const c = miniCtx.canvas, W = 176, H = Math.round(W * map.rows / map.cols);
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const k = W / map.cols;
+    miniCtx.imageSmoothingEnabled = true;
+    const bg = img(MAP_IMG[`../assets/maps/${map.image}.webp`]);
+    if (bg) miniCtx.drawImage(bg, 0, 0, W, H); else { miniCtx.fillStyle = '#1e293b'; miniCtx.fillRect(0, 0, W, H); }
+    miniCtx.fillStyle = 'rgba(2, 6, 23, .25)'; miniCtx.fillRect(0, 0, W, H);
+    const dot = (x, y, r, fill, stroke = '#0f172a') => { miniCtx.beginPath(); miniCtx.arc(x, y, r, 0, Math.PI * 2); miniCtx.fillStyle = fill; miniCtx.fill(); miniCtx.lineWidth = 1.5; miniCtx.strokeStyle = stroke; miniCtx.stroke(); };
+    // lối ra (cửa / mép bản đồ)
+    for (const e of map.exits ?? []) {
+        const cells = e.tiles ?? (e.edge === 'left' ? [[0, (e.a + e.b) / 2]] : e.edge === 'right' ? [[map.cols - 1, (e.a + e.b) / 2]] : e.edge === 'up' ? [[(e.a + e.b) / 2, 0]] : [[(e.a + e.b) / 2, map.rows - 1]]);
+        if (e.edge) { // mép: đánh dấu đoạn ô đi được thật ở mép
+            const ys = [], xs = [];
+            for (let i = e.a; i <= e.b; i++) {
+                if (e.edge === 'left' && map.grid[i]?.[0] === '.') ys.push(i);
+                if (e.edge === 'right' && map.grid[i]?.[map.cols - 1] === '.') ys.push(i);
+                if (e.edge === 'up' && map.grid[0]?.[i] === '.') xs.push(i);
+                if (e.edge === 'down' && map.grid[map.rows - 1]?.[i] === '.') xs.push(i);
+            }
+            if (ys.length) cells[0][1] = (ys[0] + ys[ys.length - 1]) / 2;
+            if (xs.length) cells[0][0] = (xs[0] + xs[xs.length - 1]) / 2;
+        }
+        const [x, y] = cells[0];
+        dot((x + 0.5) * k, (y + 0.5) * k, e.door ? 2.5 : 3.5, e.door ? '#fbbf24' : '#22d3ee');
+    }
+    for (const n of npcs) if (!n.hidden) dot((n.x + 0.5) * k, (n.y + 0.5) * k, n.mark ? 3.2 : 2.2, n.mark ? '#facc15' : '#e2e8f0');
+    const tg = trackedSpot();
+    if (tg) { const r = 4 + Math.sin(t / 200) * 1.5; dot(tg.x * k, tg.z * k, r, 'rgba(250, 204, 21, .35)', '#facc15'); }
+    // nhân vật chính: chấm đỏ + mũi chỉ hướng
+    const px = (me.x + 0.5) * k, py = (me.y + 0.5) * k, [dx, dy] = DIRS[me.face] ?? [0, 1];
+    miniCtx.beginPath(); miniCtx.moveTo(px + dx * 7, py + dy * 7); miniCtx.lineTo(px - dy * 4, py + dx * 4); miniCtx.lineTo(px + dy * 4, py - dx * 4); miniCtx.closePath();
+    miniCtx.fillStyle = '#fff'; miniCtx.fill();
+    dot(px, py, 3.6, '#ef4444', '#fff');
+    const nm = mini.querySelector('.wd-mini-name');
+    if (nm && nm.textContent !== (scene?.name ?? '')) nm.textContent = scene?.name ?? '';
 }
 function update(dt, now) {
     if (!map) return;
-    fade = loading3d && quality !== '2d' ? 1 : Math.max(0, fade - dt / 300);
+    fade = loading3d && !flat() ? 1 : Math.max(0, fade - dt / 300);
     // đi / nhảy
     if (me.moving) {
         me.moving.t += dt;
@@ -352,7 +406,7 @@ function update(dt, now) {
         n.moving = { tx, ty, t: 0 };
     }
 }
-const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !mapOpen && !qlOpen && !busy && fade <= 0;
+const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !mapOpen && !qlOpen && !busy && fade <= 0 && !heroPanelOpen();
 // bấm nhanh 1 cái: quay mặt (nếu đang nhìn hướng khác) hoặc đi 1 ô — không bị lỡ giữa 2 khung hình
 let queued = null;   // bấm trong lúc đang bước: nhớ lại, bước xong đi tiếp
 function tap(d) { cancelAuto(); if (canWalk()) { turnAt = 0; tryStep(d); } else if (me.moving && !me.jump) queued = d; }
@@ -375,8 +429,24 @@ const edgeHit = (e, x, y) => (e.edge === 'left' && x < 0 && y >= e.a && y <= e.b
 let bumpAt = 0, trigLock = null;
 function bump() { bumpAt = performance.now(); }
 let saveTimer = 0;
+// ---------- 🌾 cỏ cao: gặp quái hoang (src/world/wild.js · game/wild.js) ----------
+let wildGrace = GRACE_STEPS, wildOff = LS.get('wd_wild') === 'off';
+function wildCheck() {
+    if (wildOff || !onWild || !data?.wild?.includes(scene?.id) || !isWildTile(scene.id, me.x, me.y)) return false;
+    if (wildGrace > 0) { wildGrace--; return false; }
+    if (Math.random() >= WILD_RATE) return false;
+    cancelAuto(); held.clear(); queued = null; busy = true;
+    const fx = document.createElement('div');
+    fx.className = 'wd-encounter';
+    fx.innerHTML = '<span>❗</span>';
+    document.body.appendChild(fx);
+    save(true);
+    setTimeout(() => { fx.remove(); busy = false; onWild(scene.id); }, 900);
+    return true;
+}
 function onArrive() {
     clearTimeout(saveTimer); saveTimer = setTimeout(() => save(true), 600);   // lưu vị trí ngay sau khi dừng bước
+    if (wildCheck()) return;
     // bước vào ô sự kiện (đi qua là kích hoạt — như bụi cỏ Pokémon)
     const trig = (map.objects ?? []).find(o => o.trigger && o.trigger.some(([x, y]) => x === me.x && y === me.y) && visibleObj(o));
     if (!trig) { trigLock = null; return; }
@@ -556,25 +626,22 @@ function renderHud() {
     <div class="wd-top">
         <button class="cp-back-btn" data-wd-back>← Menu</button>
         <div class="wd-title"><b>🗺️ ${scene?.name ?? ''}</b><small>${data.player ? `${data.player.gender === 'f' ? '♀' : '♂'} ${data.player.name}` : ''}</small></div>
-        <div class="wd-res"><span>🪙 ${fmt(w.gold)}</span><span>💎 ${fmt(w.diamond)}</span><span>🔷 ${fmt(w.stone)}</span></div>
-        <div class="wd-btns">
-            <button class="cp-back-btn" data-wd-stages>📖 Chọn ải</button>
-            <button class="cp-back-btn" data-wd-gear>🎒 Trang bị</button>
-            <button class="cp-back-btn" data-wd-extras>🏰 Hầm ngục</button>
-            <button class="cp-back-btn" data-wd-map>🧭 Bản đồ</button>
-        </div>
+        <div class="wd-res"><span>${icon('gold', '🪙')} ${fmt(w.gold)}</span><span>${icon('diamond', '💎')} ${fmt(w.diamond)}</span><span>${icon('stone', '🔷')} ${fmt(w.stone)}</span></div>
+    </div>
+    <div class="wd-bar" role="toolbar" aria-label="Chức năng">
+        ${ACTIONS.map(([k, ic, t, key]) => `<button class="wd-act-btn" data-wd-act="${k}" title="${t}${key ? ` (phím ${key})` : ''}">${icon(`ui_${k}`, ic, 'wd-act-ic')}<small>${t}</small>${key ? `<kbd>${key}</kbd>` : ''}</button>`).join('')}
     </div>
     ${data.bag?.length ? `<div class="wd-bag">Đang mang: ${data.bag.map(b => `<b>${b.name}</b>`).join(', ')}</div>` : ''}
     ${toastMsg ? `<div class="wd-toast">${toastMsg}</div>` : ''}
-    <div class="wd-help">Mũi tên / WASD: đi · bấm xuống đất: tự đi tới · A (E): nói chuyện / xem · B (Space): nhảy · J: nhiệm vụ</div>
+    <div class="wd-help">Mũi tên / WASD: đi · bấm đất: tự đi · A (E): nói chuyện · B (Space): nhảy · C nhân vật · I túi · J nhiệm vụ · M bản đồ · Esc cài đặt</div>
     ${data.quests ? trackerHTML(trackedQuest()) : ""}
     ${dialog ? dialogHTML() : ''}
     ${puzzle ? puzzleHTML() : ''}
     ${mapOpen ? mapHTML() : ''}
     ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null }) : ''}`;
-    // khung theo dõi nhiệm vụ nằm ngay dưới thanh trên cùng (thanh này xuống 2 dòng trên màn hẹp)
-    const top = hud.querySelector('.wd-top'), trk = hud.querySelector('.ql-tracker');
-    if (top && trk) trk.style.top = Math.round(top.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
+    // khung theo dõi nhiệm vụ nằm ngay dưới bản đồ thu nhỏ
+    const trk = hud.querySelector('.ql-tracker');
+    if (trk && mini) trk.style.top = Math.round(mini.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
 }
 function dialogHTML() {
     const [who, text] = dialog.lines[dialog.i] ?? [];
@@ -585,8 +652,9 @@ function dialogHTML() {
     </div>`;
 }
 function puzzleHTML() {
-    if (puzzle.kind === 'well') return `<div class="cp-confirm-backdrop"><div class="wd-puzzle" role="dialog">
-        <h3>💧 Giếng Cổ</h3><p>Bốn phiến đá khắc biểu tượng. Bấm để xoay từng phiến, xếp theo một thứ tự nào đó…</p>
+    if (puzzle.kind === 'well' || puzzle.kind === 'moon') return `<div class="cp-confirm-backdrop"><div class="wd-puzzle" role="dialog">
+        ${puzzle.kind === 'moon' ? '<h3>🌙 Suối Trăng</h3><p>Bốn phiến đá quanh suối khắc các pha trăng. Bấm để xoay từng phiến…</p>'
+            : '<h3>💧 Giếng Cổ</h3><p>Bốn phiến đá khắc biểu tượng. Bấm để xoay từng phiến, xếp theo một thứ tự nào đó…</p>'}
         <div class="wd-dials">${puzzle.state.map((v, i) => `<button class="wd-dial" data-wd-dial="${i}">${v}</button>`).join('')}</div>
         ${puzzle.msg ? `<p class="wd-pz-msg">${puzzle.msg}</p>` : ''}
         <div class="cp-confirm-actions"><button class="cp-btn-cancel" data-wd-pz-close>Rời đi</button><button class="cp-btn-confirm" data-wd-pz-try>Thử</button></div></div></div>`;
@@ -598,7 +666,7 @@ function puzzleHTML() {
 }
 function mapHTML() {
     const areas = {};
-    for (const s of Object.values(data.scenes)) (areas[s.area] ??= { name: s.areaName, list: [] }).list.push(s);
+    for (const s of Object.values(data.scenes)) if (!s.interior) (areas[s.area] ??= { name: s.areaName, list: [] }).list.push(s);   // trong nhà: không dịch chuyển tới
     return `<div class="cp-confirm-backdrop" data-wd-map-close><div class="wd-map" role="dialog">
         <h3>🧭 Bản đồ tộc Người</h3><p class="gr-hint">Bấm vào khu đã mở để dịch chuyển nhanh tới đó.</p>
         ${Object.values(areas).map(a => `<div class="wd-map-area"><b>${a.name}</b><div>${a.list.map(s =>
@@ -606,6 +674,8 @@ function mapHTML() {
             ${a.list[0].open ? '' : `<small>Mở khi qua ải ${a.list[0].needNo}</small>`}</div>`).join('')}
         <div class="wd-quality"><b>Đồ hoạ bản đồ</b><div>${[["auto", "🤖 Tự động"], ["high", "✨ Đẹp"], ["low", "⚡ Nhẹ"], ["2d", "🗺️ Phẳng 2D"]].map(([k, t]) => `<button class="wd-map-scene${quality === k ? " here" : ""}" data-wd-q="${k}">${t}</button>`).join("")}</div>
             <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
+        <div class="wd-quality"><b>🌾 Gặp quái ở cỏ cao</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(wildOff ? 'off' : 'on') === k ? ' here' : ''}" data-wd-wild="${k}">${t}</button>`).join('')}</div>
+            <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
 }
 function toast(t) { toastMsg = t; toastAt = performance.now(); renderHud(); }
@@ -616,23 +686,56 @@ function nextLine() {
 }
 
 // ---------- nhập liệu ----------
+// thanh chức năng dưới màn hình: [mã, biểu tượng, tên, phím tắt]
+const ACTIONS = [['stages', '📖', 'Chọn ải', ''], ['hero', '🧑', 'Nhân vật', 'C'], ['bag', '🎒', 'Túi đồ', 'I'], ['forge', '⚒️', 'Rèn', ''],
+    ['shop', '🏪', 'Cửa hàng', ''], ['extras', '🏰', 'Hầm ngục', ''], ['quests', '📜', 'Nhiệm vụ', 'J'], ['map', '🧭', 'Bản đồ', 'M'], ['settings', '⚙️', 'Cài đặt', 'O']];
+function panel(tab) {
+    held.clear(); cancelAuto(); save(true);
+    openHeroPanel(tab, {
+        onClose: () => { net.worldOpen(); renderHud(); },   // cập nhật ví sau khi mua bán
+        gear: () => { save(true); onGear?.(); }, forge: () => { save(true); onGear?.(); },
+        heroshop: () => { save(true); onExtras?.('shop'); }, tavern: () => { save(true); onExtras?.('tavern'); },
+        quality: () => (softGL && quality === '2d' && !LS.get('wd_quality') ? 'auto' : quality),
+        setQuality: (q) => { quality = q; LS.set('wd_quality', q); applyQuality(); },
+        wild: () => !wildOff, setWild: (on) => { wildOff = !on; LS.set('wd_wild', on ? 'on' : 'off'); },
+    });
+}
+function doAction(k) {
+    if (k === 'stages') { save(true); return onStages?.(); }
+    if (k === 'hero' || k === 'bag' || k === 'shop' || k === 'settings') return panel(k);
+    if (k === 'forge') { save(true); return onGear?.(); }
+    if (k === 'extras') { save(true); return onExtras?.(); }
+    if (k === 'quests') { qlOpen = !qlOpen; mapOpen = false; qlSel = trackedQuest()?.id ?? null; return renderHud(); }
+    if (k === 'map') { mapOpen = !mapOpen; qlOpen = false; return renderHud(); }
+}
+const ACTION_KEYS = { c: 'hero', i: 'bag', m: 'map', o: 'settings' };
 function onKey(e) {
     if (!open || e.target?.closest?.('input, textarea')) return;
+    if (heroPanelOpen()) return;   // đang mở bảng Nhân vật / Túi / Cửa hàng / Cài đặt
     if (document.getElementById('story-screen')?.style.display === 'flex') return;   // đang xem hội thoại cốt truyện
     const d = KEY_DIR[e.key];
     if (d) { e.preventDefault(); if (!held.has(d)) { held.add(d); lastDir = d; tap(d); } return; }
     if (['e', 'E', 'Enter', 'z', 'Z'].includes(e.key)) { e.preventDefault(); pressA(); }
     if ([' ', 'x', 'X'].includes(e.key)) { e.preventDefault(); if (dialog) nextLine(); else pressB(); }
     if (e.key === 'j' || e.key === 'J') { e.preventDefault(); if (!dialog && !puzzle) { qlOpen = !qlOpen; mapOpen = false; renderHud(); } }
-    if (e.key === 'Escape') { dialog = null; puzzle = null; mapOpen = false; qlOpen = false; cancelAuto(); renderHud(); }
+    const act = ACTION_KEYS[e.key?.toLowerCase?.()];
+    if (act && !dialog && !puzzle) { e.preventDefault(); doAction(act); return; }
+    if (e.key === 'Escape') {
+        if (!dialog && !puzzle && !mapOpen && !qlOpen) { panel('settings'); return; }
+        dialog = null; puzzle = null; mapOpen = false; qlOpen = false; cancelAuto(); renderHud();
+    }
 }
 function onHudClick(e) {
     const q = (s) => e.target.closest(s);
+    const act = q('[data-wd-act]');
+    if (act) { doAction(act.dataset.wdAct); return; }
     if (q('[data-wd-back]')) { save(true); hideWorld(); onBack?.(); return; }
     if (q('[data-wd-stages]')) { save(true); onStages?.(); return; }
     if (q('[data-wd-gear]')) { save(true); onGear?.(); return; }
     if (q('[data-wd-extras]')) { save(true); onExtras?.(); return; }
     if (q('[data-wd-map]')) { mapOpen = true; renderHud(); return; }
+    const ww = q('[data-wd-wild]');
+    if (ww) { wildOff = ww.dataset.wdWild === 'off'; LS.set('wd_wild', wildOff ? 'off' : 'on'); renderHud(); return; }
     const wq = q('[data-wd-q]');
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
     // sổ nhiệm vụ
@@ -653,14 +756,14 @@ function onHudClick(e) {
     if (q('[data-wd-next]')) { nextLine(); return; }
     if (q('[data-wd-pz-close]')) { puzzle = null; renderHud(); return; }
     const dial = q('[data-wd-dial]');
-    if (dial) { const i = +dial.dataset.wdDial, sy = data.wellSymbols; puzzle.state[i] = sy[(sy.indexOf(puzzle.state[i]) + 1) % sy.length]; puzzle.msg = null; renderHud(); return; }
+    if (dial) { const i = +dial.dataset.wdDial, sy = puzzle.kind === 'moon' ? data.moonSymbols : data.wellSymbols; puzzle.state[i] = sy[(sy.indexOf(puzzle.state[i]) + 1) % sy.length]; puzzle.msg = null; renderHud(); return; }
     const pg = q('[data-wd-page]');
     if (pg) {
         const i = +pg.dataset.wdPage;
         if (puzzle.pick == null) puzzle.pick = i; else { [puzzle.state[i], puzzle.state[puzzle.pick]] = [puzzle.state[puzzle.pick], puzzle.state[i]]; puzzle.pick = null; }
         puzzle.msg = null; renderHud(); return;
     }
-    if (q('[data-wd-pz-try]') && !busy) { busy = true; net.worldInteract(scene.id, puzzle.kind === 'well' ? 'well' : 'pages', puzzle.state); }
+    if (q('[data-wd-pz-try]') && !busy) { busy = true; net.worldInteract(scene.id, { well: 'well', pages: 'pages', moon: 'moonwell' }[puzzle.kind], puzzle.state); }
 }
 
 // ---------- dữ liệu ----------
@@ -673,7 +776,9 @@ function loadScene(id, x, y, face) {
         return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;
     }).filter(Boolean);
     if (auto) { auto.path = null; auto.exitDir = null; }
-    if (view && quality !== '2d') load3d(id);
+    wildGrace = GRACE_STEPS;
+    if (host3d && canvas) { host3d.style.display = flat() ? 'none' : 'block'; canvas.style.display = flat() ? 'block' : 'none'; }
+    if (view && !flat()) load3d(id); else loading3d = false;
     renderHud();
 }
 function save(force = false) {
@@ -751,7 +856,7 @@ function applyState(d) {
 }
 function onResult(r) {
     busy = false;
-    if (r.puzzle) { puzzle = { kind: r.puzzle, state: r.puzzle === 'well' ? ['💧', '⭐', '🌙', '☀️'] : ['III', 'I', 'IV', 'II'], pick: null, msg: null }; return renderHud(); }
+    if (r.puzzle) { puzzle = { kind: r.puzzle, state: { well: ['💧', '⭐', '🌙', '☀️'], moon: ['🌕', '🌑', '🌓', '🌒'] }[r.puzzle] ?? ['III', 'I', 'IV', 'II'], pick: null, msg: null }; return renderHud(); }
     if (puzzle && !r.ok) { puzzle.msg = r.text; return renderHud(); }
     if (puzzle && r.ok) puzzle = null;
     if (r.lines) {
@@ -761,12 +866,16 @@ function onResult(r) {
         return renderHud();
     }
     if (r.openStages) { save(true); return onStages?.(); }
+    if (r.open === 'tavern') { save(true); return onExtras?.('tavern'); }   // quầy quán -> 🍲 Quán ăn
+    if (r.open === 'gear') { save(true); return onGear?.(); }               // đe rèn -> 🎒 Trang bị / Lò rèn
     toast(r.ok ? `✨ ${r.text}` : `⚠️ ${r.text}`);
 }
 
 // ---------- mở / đóng ----------
-export function showWorld({ stages, gear, back, extras, stage } = {}) {
-    onStages = stages ?? onStages; onGear = gear ?? onGear; onBack = back ?? onBack; onExtras = extras ?? onExtras; onStage = stage ?? onStage;
+export function showWorld({ stages, gear, back, extras, stage, wild } = {}) {
+    onStages = stages ?? onStages; onGear = gear ?? onGear; onBack = back ?? onBack; onExtras = extras ?? onExtras; onStage = stage ?? onStage; onWild = wild ?? onWild;
+    wildGrace = GRACE_STEPS; busy = false;
+    if (softGL && !softToast) { softToast = true; setTimeout(() => toast('⚠️ Trình duyệt chưa dùng card đồ hoạ → đang dùng bản đồ phẳng 2D cho mượt. Bật “Tăng tốc phần cứng” trong cài đặt trình duyệt rồi mở lại để chơi bản đồ 3D.'), 800); }
     el().style.display = 'block';
     document.body.classList.add('selecting-squad', 'in-world');
     open = true;

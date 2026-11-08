@@ -1,0 +1,1 @@
+{"image": "enemy_c2treant.webp", "size": [904, 309], "atlasScale": 1, "frames": {"idle1": {"org": [100, 300], "top": 300, "rect": [4, 4, 200, 300]}, "attack1": {"org": [142, 301], "top": 301, "rect": [208, 4, 284, 301]}, "walk1": {"org": [100, 301], "top": 301, "rect": [496, 4, 200, 301]}, "walk2": {"org": [100, 300], "top": 300, "rect": [700, 4, 200, 300]}}}

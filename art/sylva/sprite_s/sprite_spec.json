@@ -1,0 +1,116 @@
+{
+ "note": "Bậc S: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "jade",
+ "footBand": 16,
+ "footMin": 25,
+ "solidFeet": true,
+ "sheets": {
+  "idle": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-idle.png",
+   "groups": [
+    [
+     "idle",
+     4,
+     "heel"
+    ],
+    [
+     "ready",
+     4,
+     "heel"
+    ]
+   ]
+  },
+  "attack": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-attack.png",
+   "anchor": "heel"
+  },
+  "move": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-move.png",
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-hurt-stun.png",
+   "groups": [
+    [
+     "hurt",
+     4,
+     "heel"
+    ],
+    [
+     "stun",
+     4,
+     "heel"
+    ]
+   ]
+  },
+  "dead-victory": {
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "body"
+    ]
+   ],
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-dead-victory.png",
+   "ground": "group"
+  },
+  "cast-land": {
+   "groups": [
+    [
+     "cast",
+     4,
+     "heel"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ],
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-cast-land.png",
+   "ground": "group"
+  },
+  "call": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-call.png",
+   "anchor": "heel"
+  },
+  "bear": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-bear.png",
+   "anchor": "heel"
+  },
+  "deer": {
+   "scale": 1,
+   "split": true,
+   "file": "art/sylva/sprite_s/sprite-deer.png",
+   "anchor": "heel"
+  }
+ },
+ "out": "src/assets/sprites/sylva_s_sprite",
+ "meta": "src/characters/sprite/sylvaSprite_s.json",
+ "format": "webp"
+}

@@ -5,8 +5,8 @@ const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../server.js'), 'utf8');
 const pure = source.split('// BOSS_SKILLS_BEGIN')[1].split('// BOSS_SKILLS_END')[0];
 const { BOSS_SKILLS, bossNextTime, bossTargets, bossInShape } = vm.runInNewContext(pure.slice(pure.indexOf('\n')) + '\n;({ BOSS_SKILLS, bossNextTime, bossTargets, bossInShape })');
-test('five bosses each have two named, valid and telegraphed skills', () => {
-    assert.equal(Object.keys(BOSS_SKILLS).length, 5);
+test('mọi trùm (5 trùm chương 1 + 4 trùm chương 2) có 2 chiêu có tên, hợp lệ, có cảnh báo trước', () => {
+    assert.equal(Object.keys(BOSS_SKILLS).length, 9);
     for (const skills of Object.values(BOSS_SKILLS)) {
         assert.equal(skills.length, 2);
         for (const sk of skills) {

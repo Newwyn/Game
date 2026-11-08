@@ -105,10 +105,10 @@ test('quest log: every story stage, target, shape and side ordering is valid', (
             if (n < 20) assert.equal(log[0].title, `Chương 1 · Ải ${n + 1}: ${stages[n].name}`);
             if (n >= 3 && n < 20) assert.deepEqual(log[0].target,
                 { scene: n >= 12 ? 'capital' : 'ashford', kind: 'obj', id: n >= 12 ? 'gate_board' : 'board' });
-            if (n === 20) {
-                assert.equal(log[0].state, 'done');
-                assert.equal(log[0].obj, 'Đã hoàn thành chương 1');
-                assert.equal(log[0].target, null);
+            if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang chương 2
+                assert.equal(log[0].state, 'active');
+                assert.equal(log[0].title, 'Chương 2 · Ải 1: Biên giới sương bạc');
+                assert.deepEqual(log[0].target, { scene: 'capital', kind: 'obj', id: 'gate_board' });
             }
             const ranks = log.slice(1).map(q => rank[q.state]);
             assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));

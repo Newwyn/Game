@@ -53,4 +53,9 @@ const branches = [
     { id: 'c1-n5', name: 'Hầm Mộ', baseNo: 18, flag: 'loi_vao_ham_mo', needStoryNo: 18, boss: 2, enemies: squad(['b_warden', 'Người Gác Mộ'], ['c1_soldier', 'Lính Gác Mộ'], ['c1_soldier', 'Lính Gác Mộ']) },
 ];
 
-module.exports = { id: 'c1', name: 'Ngọn Lửa Gây Chiến', stages, branches };
+const PARTS = [
+    { key: 'lang', icon: '🏘️', title: 'Phần 1 — Làng Ashford', range: 'Ải 1–10' },
+    { key: 'duong', icon: '🛤️', title: 'Đoạn nối — Đường Vương Đạo', range: 'Ải 11–12' },
+    { key: 'kinh', icon: '🏰', title: 'Phần 2 — Kinh thành Valoria', range: 'Ải 13–20' },
+];
+module.exports = { id: 'c1', no: 1, name: 'Ngọn Lửa Gây Chiến', race: 'human', stages, branches, parts: PARTS };

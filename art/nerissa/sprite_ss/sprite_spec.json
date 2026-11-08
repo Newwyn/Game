@@ -1,0 +1,160 @@
+{
+ "note": "Bậc SS: Flow vẽ lại từng tấm của bản SSS (giữ lưới + dáng, đổi đồ) — tools/tier_art.py",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "matte",
+ "footBand": 12,
+ "footMin": 24,
+ "sheets": {
+  "idle": {
+   "file": "art/nerissa/sprite_ss/sprite-idle.png",
+   "scale": 1.0,
+   "ground": "group",
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "hip"
+    ]
+   ],
+   "split": true
+  },
+  "attack": {
+   "file": "art/nerissa/sprite_ss/sprite-attack.png",
+   "scale": 1.03,
+   "anchor": "hip",
+   "ground": "group",
+   "points": {
+    "4": {
+     "ribbon": [
+      1495,
+      240
+     ]
+    }
+   },
+   "split": true
+  },
+  "move": {
+   "file": "art/nerissa/sprite_ss/sprite-move.png",
+   "scale": 1.156,
+   "anchor": "body",
+   "ground": "group",
+   "split": true
+  },
+  "hurt-stun": {
+   "file": "art/nerissa/sprite_ss/sprite-hurt-stun.png",
+   "scale": 0.943,
+   "ground": "group",
+   "groups": [
+    [
+     "hurt",
+     4,
+     "hip"
+    ],
+    [
+     "stun",
+     4,
+     "hip"
+    ]
+   ],
+   "split": true
+  },
+  "spin-land": {
+   "file": "art/nerissa/sprite_ss/sprite-spin-land.png",
+   "scale": 1.15,
+   "ground": "group",
+   "groups": [
+    [
+     "spin",
+     4,
+     "hip"
+    ],
+    [
+     "land",
+     4,
+     "hip"
+    ]
+   ],
+   "split": true
+  },
+  "dance1": {
+   "file": "art/nerissa/sprite_ss/sprite-dance1.png",
+   "scale": 1.0,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance2": {
+   "file": "art/nerissa/sprite_ss/sprite-dance2.png",
+   "scale": 1.075,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance3": {
+   "file": "art/nerissa/sprite_ss/sprite-dance3.png",
+   "scale": 1.1,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance12": {
+   "file": "art/nerissa/sprite_ss/sprite-dance12.png",
+   "scale": 1.08,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance13": {
+   "file": "art/nerissa/sprite_ss/sprite-dance13.png",
+   "scale": 0.95,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance23": {
+   "file": "art/nerissa/sprite_ss/sprite-dance23.png",
+   "scale": 0.98,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dance123": {
+   "file": "art/nerissa/sprite_ss/sprite-dance123.png",
+   "scale": 1.02,
+   "anchor": "hip",
+   "ground": "group",
+   "split": true
+  },
+  "dead-victory": {
+   "file": "art/nerissa/sprite_ss/sprite-dead-victory.png",
+   "scale": 0.9,
+   "groups": [
+    [
+     "dead",
+     4,
+     "hip"
+    ],
+    [
+     "victory",
+     4,
+     "hip"
+    ]
+   ],
+   "ground": [
+    "victory"
+   ],
+   "split": true
+  }
+ },
+ "out": "src/assets/sprites/nerissa_ss_sprite",
+ "meta": "src/characters/sprite/nerissaSprite_ss.json",
+ "format": "webp"
+}

@@ -5,6 +5,7 @@
 //     (mỗi khung hình 1 tấm) -> vào trận không còn khựng vì tải tranh lần đầu.
 // ============================================================
 import * as THREE from 'three';
+import { softwareGL } from './gpu.js';
 
 const cache = new Map();
 const loader = new THREE.TextureLoader();
@@ -77,6 +78,8 @@ export async function preloadAll(renderer, onProgress = () => {}) {
         img.src = url;
     })));
     // 2) đẩy dần lên card đồ hoạ: mỗi khung hình 1 tấm (trang không bị đơ, thanh tiến độ vẫn chạy)
+    //    Trình duyệt vẽ bằng PHẦN MỀM (không có card đồ hoạ): bước này cực chậm (vài phút) -> bỏ qua, tranh lên dần khi cần
+    if (softwareGL()) { onProgress(1, 'Máy chưa dùng card đồ hoạ — bỏ qua bước chuẩn bị'); return; }
     for (const [i, tex] of texs.entries()) {
         // tấm "khung xương" (*_atlas.png) chỉ dùng khi xem bản cắt mảnh -> không chiếm card đồ hoạ
         const gpu = !/_atlas\.png$/.test(spriteUrls[i]);

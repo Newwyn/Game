@@ -101,15 +101,25 @@ const ending = [
     ['varkos', 'Nhưng ngươi — kẻ mang dấu ấn — ta đã thấy ngươi.'],
     ['king', 'Ta… đã suýt đưa cả vương quốc vào chiến tranh. Lệnh tuyên chiến bị huỷ.'],
     ['elise', 'Cảm ơn các bạn. Nhưng kẻ đứng sau vẫn còn đó. Xin hãy sang vùng Elf — tìm em gái Lyra và manh mối về Thất Thánh.'],
-    ['sys', 'HẾT CHƯƠNG 1 · Đã mở CỬA HÀNG ANH HÙNG. Chương 2 (vùng Elf) — sắp ra mắt.'],
+    ['sys', 'HẾT CHƯƠNG 1 · Đã mở CỬA HÀNG ANH HÙNG và CHƯƠNG 2 — Tiếng Gọi Rừng Thiêng (vùng Elf). Đi qua cổng phía đông kinh thành để tới rừng Sylvaren.'],
 ];
 
-/** Lời thoại theo id ải (chỉ ải chính c1-01..c1-20) */
+// chương 2 (vùng Elf): game/story2.js
+const C2 = require('./story2');
+Object.assign(SPEAKERS, C2.SPEAKERS2);
+const BOOK = { c1: { pre, post, ending }, c2: { pre: C2.pre, post: C2.post, ending: C2.ending } };
+
+/** Lời thoại theo id ải chính (c1-01..c1-20, c2-01..c2-20) */
 function stageNo(id) {
-    const m = /^c1-(\d\d)$/.exec(id ?? '');
+    const m = /^c\d-(\d\d)$/.exec(id ?? '');
     return m ? Number(m[1]) : null;
 }
-const preFor = (id) => pre[stageNo(id)] ?? null;
-const postFor = (id) => post[stageNo(id)] ?? null;
+const bookOf = (id) => BOOK[String(id ?? '').slice(0, 2)] ?? null;
+const preFor = (id) => bookOf(id)?.pre[stageNo(id)] ?? null;
+const postFor = (id) => bookOf(id)?.post[stageNo(id)] ?? null;
+/** Lời kết chương nếu `id` là ải cuối (ải 20) của chương */
+const endingFor = (id) => (stageNo(id) === 20 ? bookOf(id)?.ending ?? null : null);
+/** Toàn bộ lời trước ải, khoá theo id ải ("c1-03": [...]) — gửi client */
+const allPre = () => Object.fromEntries(Object.entries(BOOK).flatMap(([ch, b]) => Object.entries(b.pre).map(([n, l]) => [`${ch}-${String(n).padStart(2, '0')}`, l])));
 
-module.exports = { SPEAKERS, intro, pre, post, ending, preFor, postFor, stageNo };
+module.exports = { SPEAKERS, intro, pre, post, ending, preFor, postFor, endingFor, allPre, stageNo };

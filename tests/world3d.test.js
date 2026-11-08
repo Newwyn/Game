@@ -7,7 +7,9 @@ const path = require('path');
 
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 const mapsSrc = read('src/world/maps.js');
-const MAPS = JSON.parse(mapsSrc.slice(mapsSrc.indexOf('{', mapsSrc.indexOf('export const MAPS')), mapsSrc.lastIndexOf(';')));
+const ALL_MAPS = JSON.parse(mapsSrc.slice(mapsSrc.indexOf('{', mapsSrc.indexOf('export const MAPS')), mapsSrc.lastIndexOf(';')));
+// trong nhà vẽ tranh phẳng (không dựng 3D)
+const MAPS = Object.fromEntries(Object.entries(ALL_MAPS).filter(([, m]) => !m.interior));
 const terrSrc = read('src/world/terrain3d.js');
 const TERRAIN = JSON.parse(terrSrc.slice(terrSrc.indexOf('{', terrSrc.indexOf('export const TERRAIN')), terrSrc.lastIndexOf(';')));
 const buildSrc = read('src/world3d/build.js');

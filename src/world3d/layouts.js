@@ -137,4 +137,39 @@ export const LAYOUTS = {
             ['tower', 19.1, 19.9, { r: 1.05, h: 3.6, roof: null }], ['tower', 23.9, 19.9, { r: 1.05, h: 3.6, roof: null }],
         ],
     },
+    // ---------------- CHƯƠNG 2 — vùng Elf (đo theo tranh Codex src/assets/maps/sylvaren.webp · lunaria.webp) ----------------
+    sylvaren: {
+        style: {
+            trees: ['nature/tree_detailed', 'nature/tree_fat', 'nature/tree_oak'], edgeTrees: ['nature/tree_detailed', 'nature/tree_fat'], treeScale: [2.0, 2.7],
+            sky: 0xa9c9d6, fog: [0xb4d0d8, 22, 54], sun: 0xe6f0ff, sunI: 1.8, hemi: 1.15, lilies: 0.12,
+        },
+        items: [
+            ...[[4.5, 5.2], [11.5, 7.6], [17.1, 8.1], [26.3, 7.6], [37.5, 13.8], [23.3, 17.4], [15.8, 21.1]].map(([x, z]) => ['glowShroom', x, z, 1.3]),
+            ['mist', 12, 4, 3], ['mist', 30, 18, 3.5],
+            ['spire', 15.6, 13.6, { w: 1.4, h: 3.2, roofH: 1.2, wall: 0xb08a7a, roof: 0x6f5a52 }],
+            ['spire', 23.6, 13.6, { w: 1.4, h: 3.2, roofH: 1.2, wall: 0xb08a7a, roof: 0x6f5a52 }],
+            ['model', 'nature/stone_tallA', 27.2, 12.3, { s: 2 }],
+            ['tent', 31, 3.6, 4], ['watchtower', 35.6, 2.8],
+            ['palisade', [26.4, 7.6], [29.6, 7.6]], ['palisade', [32.4, 7.6], [37.4, 7.6]],
+            ['banner', 37.8, 5.6, 0x2f7d4f],
+        ],
+    },
+    lunaria: {
+        style: {
+            trees: ['nature/tree_detailed', 'nature/tree_fat', 'nature/tree_oak_dark'], edgeTrees: ['nature/tree_fat', 'nature/tree_detailed'], treeScale: [2.2, 3.0],
+            sky: 0xc7b8d8, fog: [0xd0c2dc, 26, 60], sun: 0xffe0c8, sunI: 2.0, hemi: 1.1, noTrees: [[16, 5, 27, 16]],
+        },
+        items: [
+            ['plaza', 21.5, 11.6, 5.4, 0xf0c8b0], ['fountain', 21.6, 11.4, 1.6],
+            ...[[17.2, 8.3], [25.9, 8.3], [17.2, 14.6], [25.9, 14.6], [6.5, 11.1], [30.8, 12.6]].map(([x, z]) => ['lamp', x, z]),
+            ['hall', { x0: 29.6, z0: 1.0, x1: 36.6, z1: 6.4, h: 3.6, wall: 0xf0c8b8, roof: 0x7f8fb0, roofH: 1.2, door: 33.1 }],
+            ['dome', 33.1, 3.6, 2.6, 6.2, 0x8fa0c8],
+            ['house', { x0: 3.0, z0: 2.2, x1: 7.0, z1: 6.0, door: 5.0, roof: 'brown' }],
+            ['house', { x0: 10.2, z0: 1.4, x1: 14.0, z1: 5.4, door: 12.2, roof: 'brown' }],
+            ['house', { x0: 4.4, z0: 17.0, x1: 8.0, z1: 20.4, door: 6.2, roof: 'brown' }],
+            ['house', { x0: 23.6, z0: 18.6, x1: 27.2, z1: 21.8, door: 25.4, roof: 'brown' }],
+            ['flowerbed', 31.4, 14.4, 34.4, 16.2], ['flowerbed', 37.2, 14.4, 40.4, 16.2], ['flowerbed', 31.4, 17.4, 35.2, 19.2], ['flowerbed', 37.2, 17.4, 41.0, 19.2],
+            ['tower', 36.6, 13.8, { r: 1.0, h: 2.6, roof: 0xf0e0f0, wall: 0xf4ece4 }],
+        ],
+    },
 };

@@ -1,0 +1,1 @@
+{"image": "enemy_vexa.webp", "size": [732, 317], "atlasScale": 1, "frames": {"idle1": {"org": [83, 300], "top": 300, "rect": [4, 4, 167, 300]}, "attack1": {"org": [107, 309], "top": 309, "rect": [175, 4, 215, 309]}, "walk1": {"org": [77, 299], "top": 299, "rect": [394, 4, 155, 299]}, "walk2": {"org": [87, 299], "top": 299, "rect": [553, 4, 175, 299]}}}

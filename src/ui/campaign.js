@@ -27,12 +27,14 @@ const PARTS = [
     { key: 'kinh', icon: '🏰', title: 'Phần 2 — Kinh thành Valoria', range: 'Ải 13–20' },
 ];
 
+const CHAPTER_SUB = { c1: 'Tộc Người · Làng Ashford · Đường Vương Đạo · Kinh thành Valoria', c2: 'Tộc Elf · Bìa rừng Sylvaren · Cầu Rễ Cổ · Thành cây Lunaria' };
 const BOSS_LABELS = {
     1: { stars: '⭐', text: 'Trùm nhỏ', cls: 'boss-mini' },
     2: { stars: '⭐⭐', text: 'Trùm giữa chương', cls: 'boss-mid' },
     3: { stars: '⭐⭐⭐', text: 'Trùm cuối', cls: 'boss-final' },
 };
 
+const C2_HINTS = { 7: '💧 Nerissa gia nhập', 12: '🦌 Sylva gia nhập', 18: '🔮 Elarion gia nhập', 20: '🏆 Kết chương 2' };
 const STAGE_HINTS = {
     1: 'Mở ra lệnh kỹ năng',
     2: 'Mở năng lượng Orb',
@@ -145,7 +147,8 @@ function normalizeState(raw = {}) {
     const stageById = Object.fromEntries(rawStages.map(s => [s.id ?? `c1-${String(s.no).padStart(2, '0')}`, s]));
     const stageByNo = Object.fromEntries(rawStages.filter(s => s.no != null).map(s => [s.no, s]));
 
-    const stages = DEFAULT_STAGES.map((def, idx) => {
+    const otherChapter = ch.id && ch.id !== 'c1';
+    const stages = otherChapter ? rawStages.map((st, idx) => ({ ...st, status: normalizeStatus(st.status, idx === 0 ? 'open' : 'locked') })) : DEFAULT_STAGES.map((def, idx) => {
         const s = stageById[def.id] ?? stageByNo[def.no] ?? {};
         return {
             ...def,
@@ -161,7 +164,7 @@ function normalizeState(raw = {}) {
 
     const rawBranches = Array.isArray(ch.branches) ? ch.branches : [];
     const branchById = Object.fromEntries(rawBranches.map(b => [b.id, b]));
-    const branches = DEFAULT_BRANCHES.map((def) => {
+    const branches = otherChapter ? [] : DEFAULT_BRANCHES.map((def) => {
         const b = branchById[def.id] ?? {};
         const fallback = b.unlocked ? 'open' : 'locked';
         return {
@@ -219,7 +222,10 @@ function normalizeState(raw = {}) {
     return {
         chapter: {
             id: ch.id ?? 'c1',
+            no: ch.no ?? 1,
             name: ch.name ?? 'Ngọn Lửa Gây Chiến',
+            parts: ch.parts ?? PARTS,
+            chapters: ch.chapters ?? [{ id: 'c1', no: 1, name: 'Ngọn Lửa Gây Chiến', open: true }],
             stages,
             branches,
         },
@@ -310,7 +316,7 @@ function stageCardHTML(s) {
     const diffInfo = DIFF_META[currentDiff] ?? DIFF_META.story;
     const bossInfo = BOSS_LABELS[s.boss] ?? null;
     const lv = (s.level ?? s.no ?? 1) + diffInfo.lvAdd;
-    const hint = STAGE_HINTS[s.no];
+    const hint = String(s.id ?? 'c1').startsWith('c1') ? STAGE_HINTS[s.no] : C2_HINTS[s.no];
     const statusBadge = st === 'cleared'
         ? `<span class="cp-stage-badge cleared">✓ Đã qua</span>`
         : st === 'open'
@@ -379,7 +385,7 @@ export function renderCampaign() {
         </button>`;
     }).join('');
 
-    const partsHTML = PARTS.map((p) => {
+    const partsHTML = (chapter.parts ?? PARTS).map((p) => {
         const list = (chapter.stages ?? []).filter(s => s.part === p.key);
         const clearedCount = list.filter(s => s.status?.[currentDiff] === 'cleared').length;
         return `
@@ -436,10 +442,12 @@ export function renderCampaign() {
                 <button class="cp-back-btn cp-gear-btn" data-cp-world title="Bản đồ thế giới: đi lại, NPC, rương, nhiệm vụ mở nhánh ẩn">🗺️ Thế giới</button>
                 <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : 'Mở khi qua ải 6'}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
                 <div class="cp-title-text">
-                    <h1>📖 CHƯƠNG 1: ${(chapter.name ?? 'Ngọn Lửa Gây Chiến').toUpperCase()}</h1>
-                    <p>Tộc Người · Làng Ashford · Đường Vương Đạo · Kinh thành Valoria</p>
+                    <h1>📖 CHƯƠNG ${chapter.no ?? 1}: ${(chapter.name ?? 'Ngọn Lửa Gây Chiến').toUpperCase()}</h1>
+                    <p>${CHAPTER_SUB[chapter.id] ?? ''}</p>
                 </div>
             </div>
+            ${(chapter.chapters ?? []).length > 1 ? `<div class="cp-chapter-tabs">${chapter.chapters.map(c => `<button class="cp-chapter-tab${c.id === chapter.id ? ' active' : ''}${c.open ? '' : ' locked'}" data-cp-chapter="${c.id}" ${c.open ? '' : 'disabled'}>
+                ${c.open ? '📖' : '🔒'} Chương ${c.no}: ${c.name} <small>${c.open ? `${c.cleared ?? 0}/${c.total ?? 20}` : `Mở khi qua ải 20 chương ${c.no - 1}`}</small></button>`).join('')}</div>` : ''}
             <div class="cp-resource-bar">
                 <div class="cp-wallet-item gold" title="Vàng">
                     <span class="cp-res-icon">🪙</span>
@@ -523,10 +531,12 @@ export function openWorldHub() {
     showWorld({
         stages: () => { hideWorld(); net.campaignOpen(); showCampaign(); },
         gear: () => { hideWorld(); showGear(() => openWorldHub()); },
-        extras: () => { hideWorld(); showExtras(() => openWorldHub()); },
+        extras: (tab) => { hideWorld(); showExtras(() => openWorldHub(), tab); },
         back: () => { showModeMenu(); net.backToMenu(); },
         // sự kiện trên bản đồ (bị Goblin vây, hộ tống Seraphine…) -> vào thẳng màn chọn đội của ải đó
         stage: (id) => { hideWorld(); pendingWorldStage = id; net.campaignOpen(); },
+        // 🌾 cỏ cao: đánh luôn bằng đội lần trước, xong quay lại bản đồ
+        wild: (scene) => { hideWorld(); battleFromWorld = true; lastSelectedStage = { id: `wild-${scene}`, diff: 'story', name: '🌾 Quái hoang', no: null }; net.startStage({ id: `wild-${scene}`, diff: 'story' }); },
     });
 }
 let pendingWorldStage = null, battleFromWorld = false;   // trận mở từ sự kiện bản đồ -> thắng xong quay lại bản đồ
@@ -614,6 +624,8 @@ function onScreenClick(e) {
         renderCampaign();
         return;
     }
+    const chBtn = e.target.closest('[data-cp-chapter]');
+    if (chBtn && !chBtn.disabled) { errorText = null; net.campaignOpen(chBtn.dataset.cpChapter); return; }
     const stageBtn = e.target.closest('[data-cp-stage]');
     if (stageBtn) {
         const id = stageBtn.dataset.cpStage;
@@ -644,7 +656,7 @@ function onScreenClick(e) {
             onBack: () => showCampaign(),
         });
         // lần đầu vào ải (mức Cốt truyện): xem lời thoại trước
-        const pre = currentDiff === 'story' && st !== 'cleared' && !isBranch ? state.story?.pre?.[item.no] : null;
+        const pre = currentDiff === 'story' && st !== 'cleared' && !isBranch ? (state.story?.pre?.[item.id] ?? null) : null;
         if (pre) playStory(pre, state.story.speakers, openSquad); else openSquad();
     }
 }

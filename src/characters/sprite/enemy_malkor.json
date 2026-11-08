@@ -1,0 +1,1 @@
+{"image": "enemy_malkor.webp", "size": [953, 308], "atlasScale": 1, "frames": {"idle1": {"org": [102, 300], "top": 300, "rect": [4, 4, 204, 300]}, "attack1": {"org": [161, 242], "top": 242, "rect": [212, 4, 323, 242]}, "walk1": {"org": [100, 299], "top": 299, "rect": [539, 4, 200, 299]}, "walk2": {"org": [103, 299], "top": 299, "rect": [743, 4, 206, 299]}}}

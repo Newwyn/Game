@@ -2,6 +2,7 @@
 // SCENE / CAMERA / RENDERER
 // ============================================================
 import * as THREE from 'three';
+import { battlePixelRatio } from './gpu.js';
 
 export const scene = new THREE.Scene();
 // Bầu trời: dải màu từ xanh nhạt (trên) xuống vàng ấm (đường chân trời) — thấy rõ khi camera nhìn ngang
@@ -30,7 +31,7 @@ export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 // Màn hình độ phân giải cao (laptop chỉnh 150-200%): vẽ tối đa 1,5 điểm ảnh / điểm màn hình — số điểm ảnh phải tô giảm tới ~44%,
 // nhìn gần như không khác (nhân vật / hiệu ứng là tranh, không phải chữ nhỏ)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(battlePixelRatio());
 /** Giữ shader đã biên dịch suốt phiên chơi. Mặc định three.js xoá shader khi vật liệu cuối cùng dùng nó bị huỷ (hiệu ứng tan)
  *  -> lần sau hiệu ứng đó hiện lại phải BIÊN DỊCH LẠI giữa trận (Windows / ANGLE: 50-200ms mỗi lần = giật). Đánh dấu "đang dùng"
  *  thêm 1 lần cho mỗi shader để không bao giờ bị xoá (số shader có hạn, ~20-30). Gọi sau mỗi lần vẽ. */
@@ -131,7 +132,7 @@ export function mountRenderer(container) {
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));   // kéo cửa sổ sang màn hình khác
+        renderer.setPixelRatio(battlePixelRatio());   // kéo cửa sổ sang màn hình khác
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 }

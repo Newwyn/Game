@@ -29,6 +29,7 @@ import { setupModeMenu } from './ui/modeMenu.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
 import { setupWorld } from './ui/world.js';
+import { setupHeroPanel } from './ui/heroPanel.js';
 import { setupExtras } from './ui/extras.js';
 import { myId } from './state.js';
 
@@ -77,6 +78,7 @@ setupCampaign();
 setupGear();
 // 🗺️ Bản đồ thế giới (nơi xuất phát của Cốt truyện)
 setupWorld();
+setupHeroPanel();
 // 🏰 Hầm ngục · Quán ăn · Cửa hàng anh hùng
 setupExtras();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên

@@ -1,0 +1,1 @@
+{"image": "enemy_c2wisp.webp", "size": [848, 312], "atlasScale": 1, "frames": {"idle1": {"org": [85, 300], "top": 300, "rect": [4, 4, 170, 300]}, "attack1": {"org": [130, 239], "top": 239, "rect": [178, 4, 260, 239]}, "walk1": {"org": [109, 274], "top": 274, "rect": [442, 4, 218, 274]}, "walk2": {"org": [90, 304], "top": 304, "rect": [664, 4, 180, 304]}}}

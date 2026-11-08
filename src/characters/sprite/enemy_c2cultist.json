@@ -1,0 +1,1 @@
+{"image": "enemy_c2cultist.webp", "size": [851, 308], "atlasScale": 1, "frames": {"idle1": {"org": [86, 300], "top": 300, "rect": [4, 4, 172, 300]}, "attack1": {"org": [143, 297], "top": 297, "rect": [180, 4, 286, 297]}, "walk1": {"org": [96, 300], "top": 300, "rect": [470, 4, 193, 300]}, "walk2": {"org": [90, 299], "top": 299, "rect": [667, 4, 180, 299]}}}

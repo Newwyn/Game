@@ -30,19 +30,22 @@
      "heel",
      0.98
     ]
-   ]
+   ],
+   "split": true
   },
   "attack": {
    "file": "art/zerith/sprite_ss/sprite-attack.png",
    "scale": 1.04,
    "anchor": "heel",
    "ground": "group",
-   "footBand": 30
+   "footBand": 30,
+   "split": true
   },
   "move": {
    "file": "art/zerith/sprite_ss/sprite-move.png",
    "scale": 1.03,
-   "anchor": "face"
+   "anchor": "face",
+   "split": true
   },
   "hurt-stun": {
    "file": "art/zerith/sprite_ss/sprite-hurt-stun.png",
@@ -59,7 +62,8 @@
      "heel",
      0.92
     ]
-   ]
+   ],
+   "split": true
   },
   "dash-mark": {
    "file": "art/zerith/sprite_ss/sprite-dash-mark.png",
@@ -84,7 +88,8 @@
       704
      ]
     }
-   }
+   },
+   "split": true
   },
   "reap-slam": {
    "file": "art/zerith/sprite_ss/sprite-reap-slam.png",
@@ -101,7 +106,8 @@
      4,
      "face"
     ]
-   ]
+   ],
+   "split": true
   },
   "charge-summon": {
    "file": "art/zerith/sprite_ss/sprite-charge-summon.png",
@@ -118,10 +124,11 @@
      4,
      "face"
     ]
-   ]
+   ],
+   "split": true
   },
   "hover": {
-   "file": "art/zerith/sprite/sprite-hover.png",
+   "file": "art/zerith/sprite_ss/sprite-hover.png",
    "scale": 1.13,
    "ground": "group",
    "groups": [
@@ -136,7 +143,7 @@
      "face"
     ]
    ],
-   "key": "matte"
+   "split": true
   },
   "dead-victory": {
    "file": "art/zerith/sprite_ss/sprite-dead-victory.png",
@@ -155,7 +162,8 @@
    ],
    "ground": [
     "victory"
-   ]
+   ],
+   "split": true
   }
  },
  "out": "src/assets/sprites/zerith_ss_sprite",

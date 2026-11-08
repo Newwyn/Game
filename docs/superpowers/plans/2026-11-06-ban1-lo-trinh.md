@@ -11,4 +11,7 @@ Spec: `BAN_THIET_KE_GAME.md` + `CHUONG_1_TOC_NGUOI.md`. Bản 1 gồm nhiều h�
 | P5 | Nội dung chương 1: kẻ địch mới (Goblin, sói, lính, mật thám, chiến binh lửa), 5 trùm, phong cảnh, NPC — tranh + chỉ số + kỹ năng | P1 (thay tạm), P3 | ✅ `server.js` (c1_*, b_*) · `game/chapter1.js` · `src/characters/sprite/enemySprites.js` — trùm có giai đoạn 2 + 2 chiêu riêng (`BOSS_SKILLS`, `src/vfx/bossFx.js`) |
 | P6 | Hầm ngục đồ bộ + hầm ngục nhẫn / dây chuyền (lượt / ngày), quán ăn (thân mật), cửa hàng anh hùng | P1, P2 | ✅ `game/dungeon.js` · `game/tavern.js` · `game/shop.js` · `src/ui/extras.js` |
 
-**Việc tiếp theo gợi ý** (xem `TIEP_TUC.md`): tranh bậc S / SS còn thiếu · bấm tay các việc phụ ở Kinh thành · cỏ cao gặp quái ngẫu nhiên / nhạc nền · chương 2.
+| C2 | **Chương 2 — vùng Elf**: 20 ải + 4 nhánh, 4 trùm, Nerissa / Sylva / Elarion gia nhập, bản đồ Sylvaren + Lunaria, việc / câu đố mở nhánh | P1–P6 | ✅ `game/chapter2.js` · `game/story2.js` · `game/world.js` |
+| UI | Giao diện bản đồ: bản đồ nhỏ, Nhân vật (chỉ số / kỹ năng / trang bị / trang phục), Túi đồ 4 phần, Cửa hàng, Cài đặt · cỏ cao gặp quái · vào nhà | — | ✅ `src/ui/heroPanel.js` · `game/wild.js` |
+
+**Việc tiếp theo gợi ý** (xem `TIEP_TUC.md`): nhạc nền · chương 3 (tộc Rồng) · đi thử tay nhà + vùng Elf.

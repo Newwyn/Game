@@ -1,6 +1,8 @@
 const W = require('./wallet');
 const S = require('./stamina');
 const chapter = require('./chapter1');
+const CHAPTERS = [chapter, require('./chapter2')];   // c1 tộc Người · c2 vùng Elf
+const chapterOf = (id) => CHAPTERS.find(c => String(id ?? '').startsWith(`${c.id}-`)) ?? null;
 
 const DIFFS = ['story', 'hard', 'hell'];
 const DIFF = {
@@ -9,9 +11,9 @@ const DIFF = {
     hell: { lv: 10, mul: 1.6, exp: 2, stone: 3, dia: 2 },
 };
 const BOSS_HP = { 0: 1, 1: 2, 2: 3, 3: 4 };
-const stageId = no => `c1-${String(no).padStart(2, '0')}`;
+const stageId = (no, ch = 'c1') => `${ch}-${String(no).padStart(2, '0')}`;
 const cleared = (pr, id, diff) => pr.campaign?.cleared?.[diff]?.[id] === true;
-const allHard = pr => chapter.stages.every(s => cleared(pr, s.id, 'hard'));
+const allHard = (pr, ch = chapter) => ch.stages.every(s => cleared(pr, s.id, 'hard'));
 const denied = why => ({ ok: false, why });
 
 // Bổ sung từng trường để save cũ vẫn giữ nguyên tiến trình.
@@ -29,37 +31,48 @@ function ensureCampaign(pr, now) {
 }
 
 function findStage(id) {
-    return chapter.stages.find(s => s.id === id) || chapter.branches.find(s => s.id === id) || null;
+    const ch = chapterOf(id);
+    return ch ? ch.stages.find(s => s.id === id) || ch.branches.find(s => s.id === id) || null : null;
 }
+/** Chương đã mở chưa (chương 2 mở khi qua ải 20 chương 1) */
+const chapterOpen = (pr, ch) => !ch.needStage || cleared(pr, ch.needStage, 'story');
 
 function isUnlocked(pr, id, diff) {
     const s = findStage(id);
     if (!s) return denied('Ải không tồn tại');
     if (!DIFFS.includes(diff)) return denied('Độ khó không hợp lệ');
+    const ch = chapterOf(id);
+    if (!chapterOpen(pr, ch)) return denied(`Chương ${ch.no} mở khi qua ải 20 chương ${ch.no - 1}`);
     if (s.flag) {
         if (!pr.flags?.[s.flag]) return denied('Chưa tìm ra lối vào nhánh này');
-        if (s.needStoryNo && !cleared(pr, stageId(s.needStoryNo), 'story')) {
+        if (s.needStoryNo && !cleared(pr, stageId(s.needStoryNo, ch.id), 'story')) {
             return denied(`Hãy qua ải ${s.needStoryNo} ở mức Cốt truyện trước`);
         }
+        if (s.needStage && !cleared(pr, s.needStage, 'story')) return denied(`Hãy qua ải ${Number(s.needStage.slice(3))} ở mức Cốt truyện trước`);
     }
-    if (diff === 'story' && s.no > 1 && !cleared(pr, stageId(s.no - 1), 'story')) {
+    if (diff === 'story' && s.no > 1 && !cleared(pr, stageId(s.no - 1, ch.id), 'story')) {
         return denied(`Hãy qua ải ${s.no - 1} ở mức Cốt truyện trước`);
     }
     if (diff === 'hard') {
         if (!cleared(pr, 'c1-04', 'story')) return denied('Hãy qua ải 4 ở mức Cốt truyện trước');
         if (!cleared(pr, id, 'story')) return denied('Hãy qua ải này ở mức Cốt truyện trước');
     }
-    if (diff === 'hell' && !allHard(pr)) return denied('Địa ngục mở khi qua hết 20 ải mức Khó');
+    if (diff === 'hell' && !allHard(pr, ch)) return denied('Địa ngục mở khi qua hết 20 ải mức Khó của chương');
     return { ok: true };
 }
 
-function chapterState(pr) {
+function chapterState(pr, chId = 'c1') {
+    const ch = CHAPTERS.find(c => c.id === chId && chapterOpen(pr, c)) ?? chapter;
     const status = s => Object.fromEntries(DIFFS.map(diff => [diff,
         cleared(pr, s.id, diff) ? 'cleared' : isUnlocked(pr, s.id, diff).ok ? 'open' : 'locked',
     ]));
     return {
-        stages: chapter.stages.map(({ id, no, name, part, boss, guests }) => ({ id, no, name, part, boss, guests, status: status({ id }) })),
-        branches: chapter.branches.map(({ enemies, ...s }) => ({ ...s, status: status(s) })),
+        id: ch.id, no: ch.no, name: ch.name, parts: ch.parts,
+        stages: ch.stages.map(({ id, no, name, part, boss, guests, level }) => ({ id, no, name, part, boss, guests, level, status: status({ id }) })),
+        branches: ch.branches.map(({ enemies, ...s }) => ({ ...s, code: s.id.slice(3).toUpperCase(), status: status(s) })),
+        // danh sách chương cho thanh chọn chương
+        chapters: CHAPTERS.map(c => ({ id: c.id, no: c.no, name: c.name, open: chapterOpen(pr, c),
+            cleared: c.stages.filter(s => cleared(pr, s.id, 'story')).length, total: c.stages.length })),
     };
 }
 
@@ -79,14 +92,14 @@ function features(pr) {
         if (cleared(pr, stageId(no), 'story')) out.add(key);
     }
     if (allHard(pr)) out.add('hell');
-    if (cleared(pr, 'c1-20', 'story')) out.add('heroShop');
+    if (cleared(pr, 'c1-20', 'story')) { out.add('heroShop'); out.add('chapter2'); }
     return out;
 }
 
 function rewardsFor(id, diff, firstClear) {
     const s = findStage(id), d = DIFF[diff];
     if (!s || !DIFFS.includes(diff)) throw new Error('Ải hoặc độ khó không hợp lệ');
-    const n = s.no ?? s.baseNo;
+    const n = s.level ?? s.baseNo ?? s.no;   // chương 2: cấp ải 21–40 -> thưởng lớn hơn
     const diamond = s.flag ? 40 : [10, 30, 50, 100][s.boss];
     return {
         exp: Math.round((160 + 60 * n) * d.exp),   // P5 cân bằng: ×4 bản đầu (40 + 15n) để cấp anh hùng theo kịp cấp ải · Khó ×1,5 có thể ra số lẻ
@@ -125,4 +138,4 @@ function applyResult(pr, { id, diff, classes, win }, P, now) {
     return result;
 }
 
-module.exports = { DIFFS, DIFF, BOSS_HP, ensureCampaign, findStage, isUnlocked, chapterState, canStart, features, rewardsFor, applyResult };
+module.exports = { DIFFS, DIFF, BOSS_HP, CHAPTERS, chapterOf, chapterOpen, ensureCampaign, findStage, isUnlocked, chapterState, canStart, features, rewardsFor, applyResult };

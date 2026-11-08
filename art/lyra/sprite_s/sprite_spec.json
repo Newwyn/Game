@@ -22,10 +22,11 @@
      4,
      "heel"
     ]
-   ]
+   ],
+   "split": true
   },
   "attack": {
-   "file": "art/lyra/sprite/sprite-attack.png",
+   "file": "art/lyra/sprite_s/sprite-attack.png",
    "scale": 1.03,
    "anchor": "heel",
    "points": {
@@ -36,12 +37,13 @@
      ]
     }
    },
-   "key": "jade"
+   "split": true
   },
   "move": {
    "file": "art/lyra/sprite_s/sprite-move.png",
    "scale": 1.04,
-   "anchor": "body"
+   "anchor": "body",
+   "split": true
   },
   "hurt-stun": {
    "file": "art/lyra/sprite_s/sprite-hurt-stun.png",
@@ -57,7 +59,8 @@
      4,
      "heel"
     ]
-   ]
+   ],
+   "split": true
   },
   "snipe": {
    "file": "art/lyra/sprite_s/sprite-snipe.png",
@@ -86,7 +89,8 @@
       692
      ]
     }
-   }
+   },
+   "split": true
   },
   "call-land": {
    "file": "art/lyra/sprite_s/sprite-call-land.png",
@@ -112,7 +116,8 @@
      1,
      "heel"
     ]
-   ]
+   ],
+   "split": true
   },
   "charge-release": {
    "file": "art/lyra/sprite_s/sprite-charge-release.png",
@@ -128,7 +133,8 @@
      4,
      "heel"
     ]
-   ]
+   ],
+   "split": true
   },
   "hover": {
    "file": "art/lyra/sprite_s/sprite-hover.png",
@@ -152,10 +158,11 @@
       688
      ]
     }
-   }
+   },
+   "split": true
   },
   "dead-victory": {
-   "file": "art/lyra/sprite/sprite-dead-victory.png",
+   "file": "art/lyra/sprite_s/sprite-dead-victory.png",
    "scale": 1.1,
    "groups": [
     [
@@ -172,7 +179,7 @@
    "ground": [
     "victory"
    ],
-   "key": "jade"
+   "split": true
   }
  },
  "out": "src/assets/sprites/lyra_s_sprite",

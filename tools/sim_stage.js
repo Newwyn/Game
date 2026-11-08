@@ -2,7 +2,7 @@
 // GIẢ LẬP ẢI CỐT TRUYỆN (cân bằng quái chương 1) — server phải đang chạy (cổng 3000)
 //   node tools/sim_stage.js --stage c1-01 --level 1 [--upTo 0] [--squad warrior,assassin,priest] [--diff story] [--runs 3] [--auto]
 //   Người chơi giả: mỗi 0,7 giây "bấm" 1 kỹ năng còn dùng được (như người mới bấm lung tung); --auto: bật AUTO cả đội.
-//   Ghi tiến trình vào data/progress.json theo mã "sim-stage-bot" (cấp đội được đặt lại mỗi lần chạy).
+//   Mỗi lần chạy dùng 1 người chơi thử mới "sim-<giờ>" (xoá trong data/progress.json khi xong) — hoặc --bot <mã>.
 // ============================================================
 const { io } = require('socket.io-client');
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => {
@@ -11,13 +11,13 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
 }, []));
 const STAGE = args.stage ?? 'c1-01';
 const LEVEL = Number(args.level ?? 1);
-const UPTO = Number(args.upTo ?? Math.max(0, Number(STAGE.slice(3)) - 1));
+const UPTO = Number(args.upTo ?? Math.max(0, Number(STAGE.slice(3)) - 1 + (STAGE.startsWith('c2-') ? 20 : 0)));   // chương 2: +20
 const SQUAD = (args.squad ?? 'warrior,assassin,priest').split(',');
 const DIFF = args.diff ?? 'story';
 const RUNS = Number(args.runs ?? 3);
 const AUTO = args.auto === 'true';
 
-const socket = io('http://localhost:3000', { auth: { clientId: 'sim-stage-bot' }, transports: ['websocket'], reconnection: false });
+const socket = io('http://localhost:3000', { auth: { clientId: args.bot ?? `sim-${Date.now().toString(36)}` }, transports: ['websocket'], reconnection: false });
 const results = [];
 let run = 0, startAt = 0, clicker = null, players = null, myId = null;
 

@@ -20,17 +20,20 @@
      4,
      "toe"
     ]
-   ]
+   ],
+   "split": true
   },
   "attack": {
    "file": "art/jessica/sprite_ss/sprite-attack.png",
    "scale": 0.92,
-   "anchor": "heel"
+   "anchor": "heel",
+   "split": true
   },
   "move": {
    "file": "art/jessica/sprite_ss/sprite-move.png",
    "scale": 0.94,
-   "anchor": "body"
+   "anchor": "body",
+   "split": true
   },
   "hurt-stun": {
    "file": "art/jessica/sprite_ss/sprite-hurt-stun.png",
@@ -46,7 +49,8 @@
      4,
      "toe"
     ]
-   ]
+   ],
+   "split": true
   },
   "throw": {
    "file": "art/jessica/sprite_ss/sprite-throw.png",
@@ -59,7 +63,8 @@
       696
      ]
     }
-   }
+   },
+   "split": true
   },
   "throwstand-vanish": {
    "file": "art/jessica/sprite_ss/sprite-throwstand-vanish.png",
@@ -83,7 +88,8 @@
       212
      ]
     }
-   }
+   },
+   "split": true
   },
   "dash": {
    "file": "art/jessica/sprite_ss/sprite-dash.png",
@@ -107,7 +113,8 @@
       558
      ]
     }
-   }
+   },
+   "split": true
   },
   "stealth-land": {
    "file": "art/jessica/sprite_ss/sprite-stealth-land.png",
@@ -124,10 +131,11 @@
      "body",
      0.92
     ]
-   ]
+   ],
+   "split": true
   },
   "dead-victory": {
-   "file": "art/jessica/sprite/sprite-dead-victory.png",
+   "file": "art/jessica/sprite_ss/sprite-dead-victory.png",
    "scale": 0.87,
    "groups": [
     [
@@ -141,7 +149,7 @@
      "toe"
     ]
    ],
-   "key": "matte"
+   "split": true
   }
  },
  "out": "src/assets/sprites/jessica_ss_sprite",

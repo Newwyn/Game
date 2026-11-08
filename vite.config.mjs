@@ -8,6 +8,8 @@ export default defineConfig({
     publicDir: false,
     server: {
         port: 5173,
+        // tranh gốc / ảnh AI đang vẽ / file lưu người chơi: không theo dõi (tránh tải lại trang mỗi khi có ảnh mới)
+        watch: { ignored: ['**/.team/**', '**/art/**', '**/data/**'] },
         proxy: {
             '/socket.io': { target: 'http://localhost:3000', ws: true },
         },

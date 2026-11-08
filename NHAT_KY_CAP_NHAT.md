@@ -5,6 +5,59 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 08/11/2026 (chiều tối) — CHƯƠNG 2 VÙNG ELF · GIAO DIỆN BẢN ĐỒ MỚI (bản đồ nhỏ, Nhân vật, Túi đồ, Cửa hàng, Cài đặt) · TRANH TRANG PHỤC S/SS CHO ĐỦ 11 ANH HÙNG · CỎ CAO GẶP QUÁI · VÀO ĐƯỢC TRONG NHÀ
+Bạn ra ngoài, Claude làm tiếp (có lúc mất điện, làm lại phần dở). Tranh vẽ bằng **Codex** (không lỗi tấm nào): 90 tấm trang phục, 11 quái/trùm chương 2, 2 bản đồ, 7 NPC, 3 căn phòng, 32 icon. Máy không có `agy` → Claude tự viết giao diện.
+
+### 1. Giao diện khi đi ngoài bản đồ
+- **Bản đồ thu nhỏ** góc phải trên: chấm đỏ = bạn (mũi tên chỉ hướng), chấm vàng = NPC có việc / cửa nhà, chấm xanh = lối ra, vòng vàng nhấp nháy = mục tiêu nhiệm vụ. Bấm vào = mở bản đồ lớn.
+- **Thanh chức năng** dưới màn hình (icon vẽ AI): 📖 Chọn ải · 🧑 Nhân vật (**C**) · 🎒 Túi đồ (**I**) · ⚒️ Rèn · 🏪 Cửa hàng · 🏰 Hầm ngục · 📜 Nhiệm vụ (**J**) · 🧭 Bản đồ (**M**) · ⚙️ Cài đặt (**Esc**). Trên điện thoại thanh nằm dưới thanh trên cùng, vuốt ngang được.
+- **🧑 Nhân vật**: danh sách anh hùng bên trái + 4 thẻ:
+  - **Chỉ số**: đủ 14 chỉ số, số xanh = phần cộng từ trang bị.
+  - **Kỹ năng**: 3 chiêu có icon, mô tả tiếng Việt, tốn bao nhiêu Orb, hồi bao lâu + thiên phú (mở ở cấp nào).
+  - **Trang bị**: 6 ô đồ có icon, hiệu ứng bộ 2/4 món, nút mở Mặc đồ / Lò rèn.
+  - **Trang phục (skin)**: xem trước tranh bậc S / SS / SSS; bậc đã đạt thì bấm để mặc (đổi hình trong trận, không đổi chỉ số), hoặc để "Tự động theo bậc".
+  - Dùng **Bình EXP** ngay trên thẻ nhân vật.
+- **🎒 Túi đồ** chia 4 phần, món nào cũng có ảnh: 💰 Tài nguyên (Vàng, Kim Cương, Đá Cường Hoá, Thể lực) · 🧪 Nguyên liệu (Đá Tinh Luyện, Bùa May Mắn, Bình EXP, Đá Đột Phá) · 📜 Vật phẩm nhiệm vụ · 🛡️ Trang bị.
+- **🏪 Cửa hàng**: Bình EXP nhỏ (300 Vàng) / lớn (30 KC), Bùa May Mắn (50 KC), Đá Tinh Luyện ×5, Đá Cường Hoá ×10 + lối sang Cửa hàng anh hùng, Quán ăn.
+- **⚙️ Cài đặt**: đồ hoạ bản đồ, bật/tắt gặp quái ở cỏ cao, **tốc độ chữ hội thoại** (chữ giờ hiện dần như game, bấm 1 lần để hiện hết câu).
+
+### 2. Cỏ cao gặp quái (kiểu Pokémon)
+- Đi trên **ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo**: mỗi bước có khả năng gặp quái (chớp sọc + dấu ❗ rồi vào trận ngay với đội lần trước). Không tốn thể lực, thắng được Vàng + EXP (đôi khi Đá Cường Hoá). Mở sau ải 1, tắt được trong ⚙️.
+- Quái yếu hơn khi đi ít người (1 người ×0,45 · 2 người ×0,6 · đủ đội ×0,75). Giả lập: thắng 3/3 ở mọi mốc.
+
+### 3. Vào được trong nhà (làng Ashford)
+- Đi vào **cửa**: 🍺 **Quán cô Lena** (anh hát rong Finn, Lão Hank, rương; bấm **quầy** = mở Quán ăn) · ⚒️ **Lò rèn bác Borin** (thợ học việc Mae, rương; bấm **đe** = mở Trang bị / Lò rèn) · 🏠 **Nhà Bà Mira** (bé Ella, giá sách kể về Thất Thánh, rương).
+- Trong nhà luôn vẽ tranh kiểu Pokémon (phòng Codex vẽ), kể cả khi đang chơi bản đồ 3D.
+
+### 4. CHƯƠNG 2 — TIẾNG GỌI RỪNG THIÊNG (vùng Elf, mở sau ải 20 chương 1)
+- Màn chọn ải có **thanh chọn chương** (Chương 1 / Chương 2). 20 ải (quái cấp 21–40) + 4 nhánh ẩn, 3 phần: Bìa rừng Sylvaren · Cầu Rễ Cổ · Thành cây Lunaria.
+- **Truyện**: Elise nhờ đội sang vùng Elf tìm em gái Lyra. Lời thoại trước / sau cả 20 ải + kết chương (gợi mở chương 3 — tộc Rồng).
+- **Gia nhập theo truyện**: **Nerissa** (ải 7 — em gái Lyra, giải cứu khỏi trại săn trộm) · **Sylva** (ải 12 — người giữ Cầu Rễ) · **Elarion** (ải 18 — học giả tháp chiêm tinh). Đều đi cùng (khách) trong ải rồi mới vào đội.
+- **Quái mới** (tranh 4 dáng: đứng · đánh · 2 bước đi): Elf Tuần Biên, Mầm Rễ Mục, Ma Trơi Tím, Sói Linh Hồn, Nấm Độc, Vệ Binh Ánh Trăng, Tín Đồ Varkos.
+- **4 trùm**, mỗi trùm 2 chiêu có cảnh báo + giai đoạn 2: **Treant Già Mục Rỗng** (ải 5: Rễ Trồi Lên, Gọi Mầm Rễ) · **Vexa** (ải 10: Mũi Tên Bóng Đêm, Mưa Tên Đen) · **Thalor** (ải 15: Cột Sáng Trăng, Màn Chắn Ánh Trăng) · **Sứ giả Malkor** (ải 20: Phán Xét, Vòng Thánh Quang).
+- **Bản đồ vùng Elf** (2D + 3D): đi qua **cổng phía đông kinh thành** → Bìa rừng Sylvaren → Thành cây Lunaria. NPC: Đội trưởng Aeris, Trưởng lão Oren, thương nhân Lirien, bé Tavi, bé Mio, vệ binh.
+- **4 nhánh ẩn mở bằng việc ngoài bản đồ**: Suối Trăng (xoay 4 pha trăng từ non tới tròn → N1) · việc của Aeris tìm Nấm phát quang (→ N2) · việc của Oren tìm Sách sao cổ (→ N3) · Đài phun trăng sau ải 19 (→ N4 Gốc Cây Mẹ, có trùm). Sổ nhiệm vụ tự chuyển sang chương 2.
+- **Cân bằng (giả lập, đội 4 người AUTO ở cấp ~ cấp ải)**: ải 1, 5, 7, 10, 15, 20 đều thắng 2/2.
+
+### 5. Tranh trang phục bậc S / SS — đủ 11 anh hùng
+- Vẽ thêm Lyra, Nerissa, Elarion, Grix, Sylva (S và SS) + vẽ lại các tấm hỏng (Jessica, Ignar ngã / thắng; Zerith bay; Lyra bắn cung). 22 bộ tranh đã đóng gói, khung hình khớp 100% với bản SSS.
+
+### 6. Máy chậm / trình duyệt không dùng card đồ hoạ
+- Chrome trên máy này đang vẽ bằng **phần mềm** ("Microsoft Basic Render Driver") nên giật. Game giờ tự nhận ra: dùng bản đồ phẳng 2D, trận đấu vẽ ít điểm ảnh hơn, màn tải bỏ bước đẩy tranh lên card (trước kẹt ~78% vài phút, giờ ~14 giây) và hiện thông báo cách bật "Tăng tốc phần cứng".
+- 👉 **Bạn nên**: tắt hẳn Chrome rồi mở lại; nếu vẫn giật: Cài đặt Chrome → Hệ thống → bật "Sử dụng tính năng tăng tốc đồ hoạ khi có" → Khởi chạy lại.
+
+### Đã thử bằng chuột / phím thật (Chrome, người chơi thử)
+Mở bản đồ → thanh chức năng + bản đồ nhỏ hiện đúng · phím **C** mở Nhân vật → thẻ Chỉ số / Kỹ năng (3 icon + mô tả) / Trang phục (mặc bậc S → "Đã đổi trang phục Rok sang bậc S", SS/SSS khoá có tranh xem trước) · Cửa hàng mua Bình EXP (5.500 → 5.200 Vàng) → Túi đồ / Nguyên liệu thấy bình có ảnh · màn chọn ải: thanh Chương 1 / Chương 2 → ải 1 chương 2: lời thoại (chữ hiện dần, chân dung Aeris) → vào trận, quái Elf mới hiện đúng, đội mặc trang phục bậc S. **81 bài kiểm tra tự động** đạt (thêm: quái hoang, chương 2, trùm chương 2).
+
+### Còn lại / chưa thử bằng tay
+- Chưa đi bộ thử trong 3 căn nhà và 2 bản đồ vùng Elf bằng chuột (đã có kiểm tra tự động: lối ra, ô đứng của NPC / đồ vật, việc / câu đố). Lưới đi được của 2 bản đồ Elf vẽ tay theo tranh — có thể còn vài ô lệch, sửa trong `tools/build_maps.py`.
+- Chưa thử trận đánh có Nerissa / Sylva / Elarion làm khách (logic giống Jessica / Seraphine chương 1, đã có kiểm tra).
+- Nhạc nền (để sau theo ý bạn). Chương 3 (tộc Rồng).
+- Cảnh báo nhỏ `computeBoundingSphere NaN` trong console: không phải do bản đồ 3D (đã dựng thử cả 5 bản đồ, không có toạ độ lỗi) — có thể từ một hiệu ứng trận đấu, chưa tìm ra.
+- Đã xoá 15 người chơi thử trong `data/progress.json`, giữ 4 save của bạn.
+
+---
+
 ## 08/11/2026 — CẬP NHẬT MÁY NHÀ + KIỂM TRA LẠI
 - Kéo bản mới từ GitHub về máy này (bản 07/11 trưa: kỹ năng trùm, trận đấu trên điện thoại, bản đồ 3D tự giảm đồ hoạ, tranh theo bậc). `npm install` xong, **71 bài kiểm tra đạt**, bản build không lỗi.
 - Chạy thử trên máy này với người chơi mới: chọn nhân vật → trận mở màn → tỉnh dậy trên **bản đồ 3D Ngoại ô** (khung theo dõi nhiệm vụ "Chính tuyến · Ải 1" hiện đúng). Đã xoá người chơi thử; giữ nguyên save của bạn.

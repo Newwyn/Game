@@ -461,7 +461,7 @@ export function createCharacterView(member, classDef, isMyTeam) {
         : null);
     if (make) {
         let visual = make(member);
-        if (visual?.sprite && member.rank != null) visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.rank) };   // hình theo bậc S / SS / SSS
+        if (visual?.sprite && member.rank != null) visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.skinRank ?? member.rank) };   // hình theo bậc S / SS / SSS
         return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);
     }
     return new PlaceholderCharacterView(member, classDef, isMyTeam);

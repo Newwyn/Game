@@ -46,6 +46,8 @@ def main():
     maps = load_maps()
     out = {}
     for mid, m in maps.items():
+        if m.get('interior'):   # trong nhà: vẽ tranh phẳng, không dựng 3D
+            continue
         im = Image.open(f"src/assets/maps/{m['image']}.webp").convert('RGB')
         T = m['tile']
         rows = []

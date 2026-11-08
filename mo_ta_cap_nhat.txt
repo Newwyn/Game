@@ -1,3 +1,9 @@
+Chuong 2 vung Elf (20 ai + 4 nhanh, 4 trum, Nerissa/Sylva/Elarion gia nhap, ban do Sylvaren + Lunaria) + giao dien ban do moi (ban do nho, Nhan vat chi so/ky nang/trang bi/trang phuc, Tui do 4 phan, Cua hang, Cai dat) + tranh trang phuc S/SS du 11 anh hung + co cao gap quai + vao duoc trong nha + icon ve AI
+
+- Tranh: Codex (90 tam trang phuc, 11 quai/trum, 2 ban do, 7 NPC, 3 phong, 32 icon)
+- Tu giam do hoa khi trinh duyet ve bang phan mem
+- 81 bai kiem tra tu dong
+
 Cap nhat tien trinh: keo ban moi ve may nha, 71 bai kiem tra dat, TIEP_TUC.md + lo trinh cap nhat viec con lai
 
 Ban do kieu Pokemon (di theo o, nhay, NPC di lai, 5 ban do ve tren Flow) + nhan vat chinh Nam/Nu (loi thoai doi theo gioi tinh) + truyen moi: Rok mot minh, Jessica vao doi o ai 2, Seraphine o ai 3 + 33 icon ky nang + quai co dang di + man tai truoc chong giat lag

@@ -1,0 +1,1 @@
+{"image": "enemy_hollow.webp", "size": [1179, 308], "atlasScale": 1, "frames": {"idle1": {"org": [148, 300], "top": 300, "rect": [4, 4, 297, 300]}, "attack1": {"org": [154, 294], "top": 294, "rect": [305, 4, 308, 294]}, "walk1": {"org": [151, 298], "top": 298, "rect": [617, 4, 302, 298]}, "walk2": {"org": [126, 298], "top": 298, "rect": [923, 4, 252, 298]}}}

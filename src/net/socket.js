@@ -32,7 +32,7 @@ export const net = {
     },
     chooseMode: (mode) => socket.emit('chooseMode', { mode }),
     backToMenu: () => socket.emit('backToMenu'),
-    campaignOpen: () => socket.emit('campaignOpen'),
+    campaignOpen: (chapter) => socket.emit('campaignOpen', chapter ? { chapter } : {}),
     startStage: (data) => socket.emit('startStage', data),
     buyStamina: () => socket.emit('buyStamina'),
     // 🎒 Trang bị + Lò rèn

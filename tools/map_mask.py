@@ -1,5 +1,5 @@
 # Lưới ô "đi được / chặn" cho bản đồ kiểu Pokémon (ảnh nhìn từ trên xuống) — tự đoán theo màu rồi sửa tay
-# Dùng: python tools/map_mask.py <ảnh> <ô_px> <ra.json> [debug.png]
+# Dùng: python tools/map_mask.py <ảnh> <ô_px> <ra.json> [debug.png] [tỉ_lệ_tối=0.06]
 #   ô đi được = phần lớn điểm ảnh giống màu cỏ / đường đất / đá lát (lấy mẫu tự động: các màu phổ biến nhất, sáng, ít bão hoà tối)
 # Kết quả: { "tile": 32, "cols": .., "rows": .., "grid": ["..##..", ...] } ('.' đi được, '#' chặn) — sửa tay thêm trong game/maps.js
 import sys, json
@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw
 
 src, T, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 dbg = sys.argv[4] if len(sys.argv) > 4 else None
+DARK = float(sys.argv[5]) if len(sys.argv) > 5 else 0.06   # tỉ lệ điểm tối cho phép trong 1 ô (cỏ vẽ nét đậm -> tăng lên)
 im = Image.open(src).convert('RGB')
 W, H = im.size
 cols, rows = W // T, H // T
@@ -43,7 +44,7 @@ for ty in range(rows):
                     good += 1
                 if r * .3 + g * .59 + b * .11 < 75:   # viền / bóng cây, mái nhà tối
                     dark += 1
-        row += '.' if good / max(1, n) > 0.7 and dark / max(1, n) < 0.06 else '#'
+        row += '.' if good / max(1, n) > 0.7 and dark / max(1, n) < DARK else '#'
     grid.append(row)
 # chỉ giữ vùng đi được liền nhau lớn nhất (bỏ các đốm cỏ lọt giữa rừng cây)
 seen, best = set(), set()

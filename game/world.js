@@ -6,9 +6,12 @@
 // ============================================================
 const W = require('./wallet');
 const CHAPTER = require('./chapter1');
+const CHAPTER2 = require('./chapter2');
 
 const stage = (no) => `c1-${String(no).padStart(2, '0')}`;
 const cleared = (pr, no) => pr.campaign?.cleared?.story?.[stage(no)] === true;
+const clearedId = (pr, id) => pr.campaign?.cleared?.story?.[id] === true;   // id ải bất kỳ chương (c2-05…)
+const c2no = (id) => Number(String(id).slice(3));
 
 // Khu vực: mở khi qua ải (Cốt truyện)
 const AREAS = {
@@ -16,13 +19,16 @@ const AREAS = {
     outskirts: { name: 'Ngoại ô làng', needNo: 0 },
     road: { name: 'Đường Vương Đạo', needNo: 10 },
     capital: { name: 'Kinh thành Valoria', needNo: 12 },
+    elf: { name: 'Vùng Elf (Chương 2)', needNo: 20 },
 };
 
 // Bài đồng dao của bà Mira = thứ tự 4 biểu tượng ở Giếng Cổ
 const WELL_SYMBOLS = ['☀️', '🌙', '⭐', '💧'];
 const WELL_ANSWER = ['☀️', '🌙', '⭐', '💧'];
 const RHYME = 'Mặt trời thức dậy, trăng lên đầu non · Sao rơi xuống giếng, nước về với con';
-const PAGES = ['I', 'II', 'III', 'IV'];   // trang sách xé ở thư viện: xếp đúng thứ tự
+const PAGES = ['I', 'II', 'III', 'IV'];
+const MOON_SYMBOLS = ['🌑', '🌒', '🌓', '🌕'];
+const MOON_ANSWER = ['🌑', '🌒', '🌓', '🌕'];   // trăng mọc dần: non -> tròn (Aeris gợi ý)   // trang sách xé ở thư viện: xếp đúng thứ tự
 const MINE_COOLDOWN = 4 * 3600 * 1000;    // mạch đá hồi sau 4 giờ (giờ thật)
 
 // ---------- 5 bản đồ ----------
@@ -75,6 +81,61 @@ const SCENES = {
         ],
     },
 };
+// 🌲 CHƯƠNG 2 — vùng Elf (mở khi qua ải 20): đi qua cổng phía đông kinh thành
+Object.assign(SCENES, {
+    sylvaren: {
+        area: 'elf', name: 'Bìa rừng Sylvaren',
+        npcs: ['aeris', 'elfmerchant', 'elfkid'],
+        objects: [
+            { id: 'moonwell', type: 'puzzle', puzzle: 'moon', label: 'Suối Trăng', needStage: 'c2-06' },
+            { id: 'syl_chest', type: 'chest', reward: { diamond: 30 } },
+            { id: 'ruin_stone', type: 'note', label: 'Cổng đá cổ', lines: [
+                'Trên cổng đá khắc chữ Elf cổ: “Bảy ngọn đuốc giữ bầu trời, một ngọn đuốc đã tắt.”',
+                'Có lẽ “bảy ngọn đuốc” chính là Thất Thánh…'] },
+            { id: 'shroom_glow', type: 'item', item: 'glowshroom', quest: 'aeris', label: 'Nấm phát quang' },
+        ],
+    },
+    lunaria: {
+        area: 'elf', name: 'Thành cây Lunaria',
+        npcs: ['oren', 'lun_guard', 'elfkid2'],
+        objects: [
+            { id: 'moon_fountain', type: 'secret', label: 'Đài phun trăng', needStage: 'c2-19', flag: 'goc_cay_me' },
+            { id: 'lun_chest', type: 'chest', reward: { diamond: 40, gold: 2000 } },
+            { id: 'star_tome', type: 'item', item: 'startome', quest: 'oren', label: 'Sách sao' },
+            { id: 'lun_board', type: 'stageBoard', label: 'Bảng ải' },
+        ],
+    },
+});
+// 🏠 trong nhà (vào bằng cửa trên bản đồ làng, vẽ phẳng kiểu Pokémon)
+Object.assign(SCENES, {
+    tavern_in: {
+        area: 'village', name: 'Quán của cô Lena', interior: true,
+        npcs: ['bard', 'hank'],
+        objects: [
+            { id: 'tavern_counter', type: 'tavern', label: 'Quầy quán' },
+            { id: 'tavern_chest', type: 'chest', reward: { gold: 150 } },
+        ],
+    },
+    forge_in: {
+        area: 'village', name: 'Lò rèn bác Borin', interior: true,
+        npcs: ['mae'],
+        objects: [
+            { id: 'forge_anvil', type: 'forge', label: 'Đe rèn' },
+            { id: 'forge_chest', type: 'chest', reward: { stone: 5 } },
+        ],
+    },
+    mira_in: {
+        area: 'village', name: 'Nhà Bà Mira', interior: true,
+        npcs: ['ella'],
+        objects: [
+            { id: 'mira_shelf', type: 'note', label: 'Giá sách', lines: [
+                'Một cuốn sách cũ mở sẵn: “Thuở trước, bảy vị Thánh cùng canh giữ thế giới…”',
+                '“…kẻ mang dấu ấn sẽ đến khi các tộc quay giáo vào nhau.”',
+                'Mấy trang sau bị xé mất. Có lẽ thư viện kinh thành còn bản đầy đủ.'] },
+            { id: 'mira_chest', type: 'chest', reward: { diamond: 15 } },
+        ],
+    },
+});
 const START = { scene: 'outskirts', x: 3, y: 12, face: 'right' };
 
 // ---------- NPC ----------
@@ -96,6 +157,16 @@ const NPCS = {
     merchant2: { name: 'Bà Rosa', title: 'Bán hoa quả', art: 'npc_villager_f', wander: true },
     nun: { name: 'Sơ Agnes', title: 'Nhà thờ', art: 'npc_nun' },
     villager_m2: { name: 'Anh lính gác thành', title: 'Kinh thành', art: 'npc_guard', wander: true },
+    bard: { name: 'Finn', title: 'Người hát rong', art: 'npc_bard' },
+    aeris: { name: 'Đội trưởng Aeris', title: 'Tuần biên Elf', art: 'npc_aeris' },
+    elfmerchant: { name: 'Cô Lirien', title: 'Thương nhân thảo dược', art: 'npc_elfmerchant' },
+    elfkid: { name: 'Bé Tavi', title: 'Elf nhỏ', art: 'npc_elfkid', wander: true },
+    oren: { name: 'Trưởng lão Oren', title: 'Lunaria', art: 'npc_oren' },
+    lun_guard: { name: 'Vệ binh Lunaria', title: 'Cổng thành', art: 'npc_aeris' },
+    elfkid2: { name: 'Bé Mio', title: 'Elf nhỏ', art: 'npc_elfkid', wander: true },
+    hank: { name: 'Lão Hank', title: 'Khách quen', art: 'npc_villager_m' },
+    mae: { name: 'Mae', title: 'Thợ học việc', art: 'npc_apprentice' },
+    ella: { name: 'Bé Ella', title: 'Cháu Bà Mira', art: 'npc_ella', wander: true },
 };
 
 // Việc: borin (N2, sau ải 4) · lena (N3, sau ải 3) · sera (Seraphine gia nhập: thảo dược, sau ải 2)
@@ -103,8 +174,12 @@ const QUESTS = {
     borin: { needNo: 4, items: ['hammer'], flag: 'bua_borin', reward: { gold: 500 } },
     lena: { needNo: 3, items: ['wheat', 'mushroom'], flag: 'nguyen_lieu_lena', reward: { gold: 300, diamond: 10 } },
     sera: { needNo: 2, items: ['herb'], flag: 'thao_duoc_sera', reward: { gold: 200 } },
+    aeris: { needStage: 'c2-04', items: ['glowshroom'], flag: 'nam_phat_quang', reward: { gold: 2000, diamond: 20 } },
+    oren: { needStage: 'c2-14', items: ['startome'], flag: 'lang_elf_co', reward: { gold: 3000, diamond: 30 } },
 };
-const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược' };
+const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược', glowshroom: 'Nấm phát quang', startome: 'Sách sao cổ' };
+const questOpen = (pr, q) => (q.needStage ? clearedId(pr, q.needStage) : cleared(pr, q.needNo));
+const questNeedText = (q) => (q.needStage ? `ải ${c2no(q.needStage)} chương 2` : `ải ${q.needNo}`);
 
 // ---------- Nhân vật chính Nam / Nữ ----------
 const WORDS = { m: { cau: 'cậu', anh: 'anh', chang: 'chàng trai', ban: 'cậu bạn' }, f: { cau: 'cô', anh: 'chị', chang: 'cô gái', ban: 'cô bạn' } };
@@ -188,13 +263,23 @@ function npcDialog(pr, id) {
                 turnin: ['Lúa mì vàng và nấm sương! Đủ nấu cả nồi lớn rồi!'],
                 active: [`Còn thiếu: ${q.items.filter(it => !w.bag[it]).map(it => ITEM_NAMES[it]).join(', ')}.`, 'Lúa mì ở cánh đồng Ngoại ô, nấm sương mọc trong Rừng Sương.'],
                 offer: ['Làng muốn mở tiệc mừng đánh lui Goblin.', '{Cau} tìm giúp ta Lúa mì vàng ở cánh đồng và Nấm sương trong Rừng Sương nhé?'] },
+            aeris: { done: ['Hang nấm sâu trong rừng đã mở lối. Cẩn thận Nấm Chúa! (Đã mở nhánh N2 chương 2)'],
+                lock: ['Rừng còn nhiều tuần biên nghi ngờ các ngươi.', `Qua ${questNeedText(q)} rồi hãy nói chuyện với ta.`],
+                turnin: ['Nấm phát quang! Ánh sáng của nó dẫn đường vào hang sâu.'],
+                active: ['Nấm phát quang mọc ở góc đông nam bìa rừng.'],
+                offer: ['Ta nợ các ngươi một lời xin lỗi.', 'Lối vào hang nấm bị bóng tối che. Tìm giúp ta một cây Nấm phát quang nhé?', 'À, Suối Trăng phía tây bắc — trăng mọc từ non tới tròn, nhớ lấy.'] },
+            oren: { done: ['Sách sao chỉ đường tới Lăng Elf Cổ. Tổ tiên sẽ phù hộ các ngươi. (Đã mở nhánh N3 chương 2)'],
+                lock: ['Lunaria đang hỗn loạn. Khi vệ binh trở lại bình thường, ta sẽ nhờ {cau} một việc.'],
+                turnin: ['Đúng là Sách sao cổ! Trang cuối vẽ đường tới lăng tổ tiên…'],
+                active: ['Sách sao nằm đâu đó gần tháp chiêm tinh, phía đông bắc thành.'],
+                offer: ['{Cau} là người mang dấu ấn mà sách cổ nhắc tới.', 'Cuốn Sách sao cổ bị đánh rơi gần tháp chiêm tinh. Mang về đây, ta sẽ chỉ {cau} lăng tổ tiên.'] },
             sera: { done: [], lock: [],
                 turnin: ['Thảo dược! {Cau} tìm được thật sao… Cảm ơn, ta sẽ đắp thuốc cho mọi người ngay.'],
                 active: ['Thảo dược mọc ở bìa Rừng Sương, phía đông Ngoại ô. Nhờ cả vào {cau}.'],
                 offer: ['Ta là Seraphine, nữ tu từ kinh thành đến cứu tế.', 'Ta cần thảo dược để chữa bỏng cho dân làng — {cau} hái giúp ta ở bìa Rừng Sương được không?'] },
         }[id];
         if (st === 'done') return { lines: L.done.map(me), quest: 'done' };
-        if (!cleared(pr, q.needNo)) return { lines: L.lock.map(me) };
+        if (!questOpen(pr, q)) return { lines: L.lock.map(me) };
         if (st === 'active' && has) return { lines: L.turnin.map(me), quest: 'turnin' };
         if (st === 'active') return { lines: L.active.map(me), quest: 'active' };
         return { lines: L.offer.map(me), quest: 'offer' };
@@ -223,6 +308,18 @@ function npcDialog(pr, id) {
         merchant2: ['Táo đỏ, lê vàng! Kinh thành dạo này lính tráng nhiều quá, khách cũng ngại ra chợ.'],
         nun: ['Phe hòa bình vẫn cầu nguyện mỗi ngày. Chiến tranh chẳng đem lại điều gì tốt đẹp.'],
         villager_m2: ['Có lệnh của Đại tướng: ai thấy người Elf thì phải báo ngay. Lạ thật…'],
+        elfmerchant: ['Thảo dược rừng Sylvaren chữa được cả vết bỏng lửa thần đấy!', 'Dạo này rừng bệnh, thảo dược héo hết cả…'],
+        elfkid: clearedId(pr, 'c2-05') ? ['Treant Già ngủ yên rồi! Cảm ơn {anh}!'] : ['{Anh} là người tộc Người à? Lần đầu em thấy đó!', 'Đừng lại gần cây cổ thụ có tim xanh nhé, nó dữ lắm.'],
+        lun_guard: clearedId(pr, 'c2-15') ? ['Đại pháp sư Thalor đã tỉnh ngộ. Lunaria chào đón các vị.'] : ['Lệnh của Đại pháp sư: không ai được vào tháp chiêm tinh!'],
+        elfkid2: ['Đài phun trăng ban đêm sáng lắm! Nghe nói bên dưới có gốc của Cây Mẹ…'],
+        bard: cleared(pr, 10)
+            ? ['Khúc ca mới nhất của ta: “Skarn Răng Sắt gục ngã trước {chang} mang dấu ấn!” Khách nghe xong ai cũng vỗ tay.']
+            : ['Ghé quán cô Lena là phải nghe ta hát một bài!', 'Ta đang soạn khúc ca về {chang} mất trí nhớ đánh lui Goblin đấy.'],
+        hank: ['Hức… Rượu mạch của cô Lena là nhất vùng.', 'Nghe đồn trên đường lên kinh thành có lính đào ngũ chặn đường. Cẩn thận nhé, {ban}.'],
+        mae: pr.flags.bua_borin
+            ? ['Có búa rồi, thầy Borin rèn suốt ngày đêm!', 'Muốn cường hoá đồ thì đặt lên cái đe kia nhé.']
+            : ['Thầy Borin mất búa nên chẳng rèn được gì, cả xưởng nguội lạnh…', 'Nghe nói búa rơi gần mỏ đá ở Ngoại ô.'],
+        ella: ['Bà Mira kể sách cổ nói về bảy vị Thánh trên trời.', 'Cháu muốn đọc hết chỗ sách này… nhưng nhiều chữ khó quá.'],
     }[id] ?? ['…'];
     return { lines: T.map(me) };
 }
@@ -270,6 +367,7 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     const o = findObj(sceneId, targetId);
     if (!o) return no('Không có gì ở đây');
     if (o.needNo && !cleared(pr, o.needNo)) return no(`Chưa thể làm gì — qua ải ${o.needNo} trước`);
+    if (o.needStage && !clearedId(pr, o.needStage)) return no(`Chưa thể làm gì — qua ải ${c2no(o.needStage)} chương 2 trước`);
     if (o.type === 'chest') {
         if (w.opened[o.id]) return no('Rương trống rỗng');
         w.opened[o.id] = true;
@@ -291,20 +389,21 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
         return ok({ text: `Nhặt được ${ITEM_NAMES[o.item]}` });
     }
     if (o.type === 'puzzle') {
-        const flag = o.puzzle === 'well' ? 'gieng_co' : 'trang_sach';
+        const flag = { well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle];
         if (pr.flags[flag]) return no('Bí mật ở đây đã được giải');
         const ans = Array.isArray(data.answer) ? data.answer : null;
         if (!ans) return ok({ puzzle: o.puzzle });
-        const right = o.puzzle === 'well' ? WELL_ANSWER : PAGES;
-        if (ans.length !== right.length || ans.some((v, i) => v !== right[i])) return no(o.puzzle === 'well' ? 'Giếng im lặng… thứ tự chưa đúng' : 'Các mảnh chưa khớp nhau…');
+        const right = { well: WELL_ANSWER, pages: PAGES, moon: MOON_ANSWER }[o.puzzle];
+        if (ans.length !== right.length || ans.some((v, i) => v !== right[i])) return no({ well: 'Giếng im lặng… thứ tự chưa đúng', pages: 'Các mảnh chưa khớp nhau…', moon: 'Mặt suối gợn sóng rồi lặng im… thứ tự chưa đúng' }[o.puzzle]);
         pr.flags[flag] = true;
         const rewards = giveReward(wallet, { diamond: 30 });
-        return ok({ text: `${o.puzzle === 'well' ? 'Đáy giếng phát sáng, lộ ra lối đi!' : 'Trang sách ghép lại: danh sách Thất Thánh!'} ${rewardText(rewards)} · Mở nhánh ải mới!`, rewards, flag });
+        return ok({ text: `${{ well: 'Đáy giếng phát sáng, lộ ra lối đi!', pages: 'Trang sách ghép lại: danh sách Thất Thánh!', moon: 'Suối Trăng sáng rực — đáy suối mở ra một lối đi!' }[o.puzzle]} ${rewardText(rewards)} · Mở nhánh ải mới!`, rewards, flag });
     }
     if (o.type === 'secret') {
-        if (pr.flags[o.flag]) return no('Lối xuống hầm mộ đã mở');
+        const c2 = o.flag === 'goc_cay_me';
+        if (pr.flags[o.flag]) return no(c2 ? 'Lối xuống Gốc Cây Mẹ đã mở' : 'Lối xuống hầm mộ đã mở');
         pr.flags[o.flag] = true;
-        return ok({ text: 'Phiến đá trượt sang một bên — lối xuống hầm mộ! Mở nhánh ải mới!', flag: o.flag });
+        return ok({ text: c2 ? 'Mặt nước đài phun rẽ ra — bậc thang dẫn xuống Gốc Cây Mẹ! Mở nhánh ải mới!' : 'Phiến đá trượt sang một bên — lối xuống hầm mộ! Mở nhánh ải mới!', flag: o.flag });
     }
     if (o.type === 'event') {
         const st = eventState(pr, o.event);
@@ -313,6 +412,9 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
         return ok({ lines: EVENT_LINES[o.event].map(l => [...l]), startStage: EVENT_STAGE[o.event] });
     }
     if (o.type === 'stageBoard') return ok({ openStages: true });
+    if (o.type === 'note') return ok({ lines: o.lines.map(t => ['sys', t]) });
+    if (o.type === 'tavern') return pr.flags.nguyen_lieu_lena ? ok({ open: 'tavern' }) : no('Quầy còn đóng — giúp cô Lena chuẩn bị Bữa Tiệc Làng trước đã');
+    if (o.type === 'forge') return cleared(pr, 6) ? ok({ open: 'gear' }) : no('Đe rèn còn nguội — Trang bị mở khi qua ải 6');
     return no('Không có gì ở đây');
 }
 
@@ -325,15 +427,18 @@ function questLog(pr) {
         sera: { title: 'Thảo dược cho Seraphine', desc: 'Seraphine cần thảo dược để chữa bỏng cho dân làng. {Cau} hãy giúp cô tìm thuốc ở bìa Rừng Sương.', extra: 'Mở sự kiện hộ tống Seraphine' },
         lena: { title: 'Nguyên liệu cho bữa tiệc', desc: 'Cô Lena muốn nấu một bữa tiệc mừng làng thoát khỏi Goblin.', extra: 'Mở nhánh N3' },
         borin: { title: 'Tìm búa cho bác Borin', desc: 'Bác Borin làm rơi cây búa gần mỏ đá Ngoại ô. Lò rèn đang chờ tiếng búa trở lại.', extra: 'Mở nhánh N2' },
+        aeris: { title: 'Ánh sáng cho hang nấm', desc: 'Đội trưởng Aeris cần một cây Nấm phát quang để soi lối vào hang nấm sâu trong rừng Sylvaren.', extra: 'Mở nhánh N2 chương 2', scene: 'sylvaren' },
+        oren: { title: 'Sách sao cổ', desc: 'Trưởng lão Oren nhờ tìm cuốn Sách sao cổ bị đánh rơi gần tháp chiêm tinh Lunaria.', extra: 'Mở nhánh N3 chương 2', scene: 'lunaria' },
     };
     const sides = Object.entries(details).map(([id, detail]) => {
         const q = QUESTS[id];
-        const state = !cleared(pr, q.needNo) ? 'locked' : w.quests?.[id] === 'done' ? 'done' : w.quests?.[id] === 'active' ? 'active' : 'offered';
+        if (q.needStage && !sceneOpen(pr, detail.scene)) return null;   // việc chương 2: chỉ hiện khi vùng Elf đã mở
+        const state = !questOpen(pr, q) ? 'locked' : w.quests?.[id] === 'done' ? 'done' : w.quests?.[id] === 'active' ? 'active' : 'offered';
         const missing = q.items.filter(it => !bag[it]);
         const giver = NPCS[id].name;
         let target = null;
-        let obj = state === 'locked' ? `Mở sau ải ${q.needNo}` : state === 'done' ? 'Đã hoàn thành việc' : `Nói chuyện với ${giver}`;
-        if (state === 'offered' || state === 'active') target = { scene: 'ashford', kind: 'npc', id };
+        let obj = state === 'locked' ? `Mở sau ${questNeedText(q)}` : state === 'done' ? 'Đã hoàn thành việc' : `Nói chuyện với ${giver}`;
+        if (state === 'offered' || state === 'active') target = { scene: detail.scene ?? 'ashford', kind: 'npc', id };
         if (state === 'active') {
             if (missing.length) {
                 for (const [scene, data] of Object.entries(SCENES)) {
@@ -347,8 +452,8 @@ function questLog(pr) {
         }
         return { id, type: 'side', title: detail.title, giver, desc: detail.desc, state, obj,
             progress: state === 'active' ? { have: q.items.length - missing.length, need: q.items.length } : null,
-            target, reward: `${rewardText(q.reward)} · ${detail.extra}`, needNo: state === 'locked' ? q.needNo : null };
-    });
+            target, reward: `${rewardText(q.reward)} · ${detail.extra}`, needNo: state === 'locked' ? (q.needNo ?? null) : null };
+    }).filter(Boolean);
     const secrets = [
         { id: 'well', title: 'Bí mật Giếng Cổ', npc: 'mira', needNo: 1, flag: 'gieng_co', scene: 'ashford',
             desc: `Bà Mira kể bài đồng dao: “${RHYME}”. Có lẽ lời hát giữ bí mật của giếng.`, obj: 'Xoay các biểu tượng ở Giếng Cổ theo bài đồng dao', reward: '+30 Kim Cương · Mở nhánh N1' },
@@ -357,18 +462,32 @@ function questLog(pr) {
         { id: 'crypt', title: 'Lối vào hầm mộ', npc: 'elise', needNo: 18, flag: 'loi_vao_ham_mo', scene: 'capital',
             desc: 'Công chúa Elise nghi Đại tướng giấu bí mật dưới lâu đài. Một phiến đá lạ nằm trong vườn cung điện.', obj: 'Khám phá phiến đá lạ trong vườn cung điện', reward: 'Mở nhánh N5' },
     ];
+    if (sceneOpen(pr, 'sylvaren')) secrets.push(
+        { id: 'moonwell', title: 'Bí ẩn Suối Trăng', npc: 'aeris', needStage: 'c2-06', flag: 'suoi_trang', scene: 'sylvaren',
+            desc: 'Aeris kể: “Trăng mọc từ non tới tròn”. Bốn phiến đá quanh Suối Trăng khắc bốn pha trăng.', obj: 'Xoay bốn phiến đá ở Suối Trăng theo thứ tự trăng mọc', reward: '+30 Kim Cương · Mở nhánh N1 chương 2' },
+        { id: 'moon_fountain', title: 'Gốc Cây Mẹ', npc: 'oren', needStage: 'c2-19', flag: 'goc_cay_me', scene: 'lunaria',
+            desc: 'Dưới Đài phun trăng ở Lunaria là lối xuống Gốc Cây Mẹ — trái tim của Rừng Thiêng.', obj: 'Chạm vào Đài phun trăng giữa thành Lunaria', reward: 'Mở nhánh N4 chương 2' });
     for (const q of secrets) {
-        const state = flags[q.flag] ? 'done' : cleared(pr, q.needNo) ? 'active' : 'locked';
+        const unlocked = q.needStage ? clearedId(pr, q.needStage) : cleared(pr, q.needNo);
+        const state = flags[q.flag] ? 'done' : unlocked ? 'active' : 'locked';
         sides.push({ id: q.id, type: 'side', title: q.title, giver: NPCS[q.npc].name, desc: q.desc, state,
-            obj: state === 'locked' ? `Mở sau ải ${q.needNo}` : state === 'done' ? 'Đã khám phá bí mật' : q.obj,
+            obj: state === 'locked' ? `Mở sau ${q.needStage ? `ải ${c2no(q.needStage)} chương 2` : `ải ${q.needNo}`}` : state === 'done' ? 'Đã khám phá bí mật' : q.obj,
             progress: null, target: state === 'active' ? { scene: q.scene, kind: 'obj', id: q.id } : null,
-            reward: q.reward, needNo: state === 'locked' ? q.needNo : null });
+            reward: q.reward, needNo: state === 'locked' ? (q.needNo ?? null) : null });
     }
     const next = CHAPTER.stages.find(s => !cleared(pr, s.no));
     const main = { id: 'main', type: 'main', title: next ? `Chương 1 · Ải ${next.no}: ${next.name}` : 'Chương 1 · Ngọn Lửa Gây Chiến', giver: '',
         desc: !next || next.no >= 13 ? 'Cùng đồng đội vạch trần âm mưu ở kinh thành Valoria.' : next.no <= 10 ? 'Cùng Rok bảo vệ làng Ashford khỏi lũ Goblin.' : 'Theo Đường Vương Đạo, tìm đường đến kinh thành.',
         state: next ? 'active' : 'done', obj: 'Đã hoàn thành chương 1', progress: null, target: null,
         reward: 'Phần thưởng ải cốt truyện', needNo: null };
+    // chương 1 xong -> nhiệm vụ chính chuyển sang chương 2 (vùng Elf)
+    const next2 = !next && CHAPTER2.stages.find(s2 => !clearedId(pr, s2.id));
+    if (next2) {
+        Object.assign(main, { title: `Chương 2 · Ải ${next2.no}: ${next2.name}`, state: 'active',
+            desc: next2.no <= 12 ? 'Tiến vào Rừng Thiêng Sylvaren, tìm em gái Lyra và kẻ đang đầu độc khu rừng.' : 'Vạch trần âm mưu của Sứ giả Varkos ở Thành cây Lunaria.',
+            obj: `Mở Bảng ải (hoặc 📖 Chọn ải → Chương 2) và đánh ải ${next2.no}: ${next2.name}`,
+            target: next2.no >= 13 && sceneOpen(pr, 'lunaria') ? { scene: 'lunaria', kind: 'obj', id: 'lun_board' } : { scene: 'capital', kind: 'obj', id: 'gate_board' } });
+    } else if (!next) Object.assign(main, { title: 'Chương 2 · Tiếng Gọi Rừng Thiêng', obj: 'Đã hoàn thành chương 2' });
     if (next) {
         const capital = next.no >= 13 && sceneOpen(pr, 'capital');
         main.target = { scene: capital ? 'capital' : 'ashford', kind: 'obj', id: capital ? 'gate_board' : 'board' };
@@ -392,7 +511,7 @@ function worldState(pr, now = Date.now()) {
     const scenes = {};
     for (const [id, s] of Object.entries(SCENES)) {
         scenes[id] = {
-            id, name: s.name, area: s.area, areaName: AREAS[s.area].name, open: sceneOpen(pr, id), needNo: AREAS[s.area].needNo,
+            id, name: s.name, area: s.area, interior: !!s.interior, areaName: AREAS[s.area].name, open: sceneOpen(pr, id), needNo: AREAS[s.area].needNo,
             npcs: s.npcs.map(n => {
                 const d = npcDialog(pr, n);
                 const hidden = (n === 'sera' && cleared(pr, 3)) || (n === 'jessica' && !cleared(pr, 2));   // đã gia nhập đội / chưa xuất hiện
@@ -402,8 +521,8 @@ function worldState(pr, now = Date.now()) {
                 const st = o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
                     : o.type === 'mine' ? (now < (w.mineAt[o.id] ?? 0) ? 'cooldown' : 'ready')
                     : o.type === 'item' ? (w.quests[o.quest] === 'active' && !w.bag[o.item] ? 'ready' : 'hidden')
-                    : o.type === 'puzzle' ? (pr.flags[o.puzzle === 'well' ? 'gieng_co' : 'trang_sach'] ? 'done' : (o.needNo && !cleared(pr, o.needNo) ? 'locked' : 'ready'))
-                    : o.type === 'secret' ? (pr.flags[o.flag] ? 'done' : (cleared(pr, o.needNo) ? 'ready' : 'hidden'))
+                    : o.type === 'puzzle' ? (pr.flags[{ well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle]] ? 'done' : ((o.needNo && !cleared(pr, o.needNo)) || (o.needStage && !clearedId(pr, o.needStage)) ? 'locked' : 'ready'))
+                    : o.type === 'secret' ? (pr.flags[o.flag] ? 'done' : ((o.needStage ? clearedId(pr, o.needStage) : cleared(pr, o.needNo)) ? 'ready' : 'hidden'))
                     : o.type === 'event' ? eventState(pr, o.event)
                     : 'ready';
                 return { id: o.id, type: o.type, label: o.label ?? (o.type === 'chest' ? 'Rương' : ''), state: st, puzzle: o.puzzle, item: o.item,
@@ -412,8 +531,8 @@ function worldState(pr, now = Date.now()) {
         };
     }
     return { scene: w.scene, x: w.x, y: w.y, face: w.face, scenes, bag: Object.keys(w.bag).map(it => ({ id: it, name: ITEM_NAMES[it] })),
-        wellSymbols: WELL_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr) };
+        wellSymbols: WELL_SYMBOLS, moonSymbols: MOON_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr) };
 }
 
-module.exports = { AREAS, SCENES, NPCS, QUESTS, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
+module.exports = { MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
     ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };

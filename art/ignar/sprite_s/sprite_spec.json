@@ -8,17 +8,20 @@
   "idle": {
    "file": "art/ignar/sprite_s/sprite-idle.png",
    "scale": 0.93897,
-   "anchor": "toe"
+   "anchor": "toe",
+   "split": true
   },
   "attack": {
    "file": "art/ignar/sprite_s/sprite-attack.png",
    "scale": 1.0,
-   "anchor": "toe"
+   "anchor": "toe",
+   "split": true
   },
   "move": {
    "file": "art/ignar/sprite_s/sprite-move.png",
    "scale": 0.911,
-   "anchor": "body"
+   "anchor": "body",
+   "split": true
   },
   "hurt-stun": {
    "file": "art/ignar/sprite_s/sprite-hurt-stun.png",
@@ -34,27 +37,32 @@
      4,
      "toe"
     ]
-   ]
+   ],
+   "split": true
   },
   "summon": {
    "file": "art/ignar/sprite_s/sprite-summon.png",
    "scale": 0.9625,
-   "anchor": "toe"
+   "anchor": "toe",
+   "split": true
   },
   "bolt": {
    "file": "art/ignar/sprite_s/sprite-bolt.png",
    "scale": 0.934,
-   "anchor": "toe"
+   "anchor": "toe",
+   "split": true
   },
   "palm": {
    "file": "art/ignar/sprite_s/sprite-palm.png",
    "scale": 0.934,
-   "anchor": "body"
+   "anchor": "body",
+   "split": true
   },
   "volley": {
    "file": "art/ignar/sprite_s/sprite-volley.png",
    "scale": 0.939,
-   "anchor": "body"
+   "anchor": "body",
+   "split": true
   },
   "charge-land": {
    "file": "art/ignar/sprite_s/sprite-charge-land.png",
@@ -70,10 +78,11 @@
      4,
      "body"
     ]
-   ]
+   ],
+   "split": true
   },
   "dead-victory": {
-   "file": "art/ignar/sprite/sprite-dead-victory.png",
+   "file": "art/ignar/sprite_s/sprite-dead-victory.png",
    "scale": 0.939,
    "groups": [
     [
@@ -87,7 +96,7 @@
      "toe"
     ]
    ],
-   "key": "green"
+   "split": true
   }
  },
  "out": "src/assets/sprites/ignar_s_sprite",
