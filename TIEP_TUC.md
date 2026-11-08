@@ -1,4 +1,4 @@
-# ▶️ TIẾP TỤC LÀM — Legend of Capsules (ghi 07/11/2026)
+# ▶️ TIẾP TỤC LÀM — Legend of Capsules (cập nhật 08/11/2026)
 
 File này để mở máy khác là làm tiếp được ngay. Lịch sử chi tiết từng lần sửa: `NHAT_KY_CAP_NHAT.md` (mới nhất ở trên). Lộ trình: `docs/superpowers/plans/2026-11-06-ban1-lo-trinh.md`.
 
@@ -7,18 +7,21 @@ File này để mở máy khác là làm tiếp được ngay. Lịch sử chi t
 git pull
 npm install
 npm run dev        # server socket :3000 + vite :5173 → mở http://localhost:5173
-npm test           # 58 bài kiểm tra (node --test)
+npm test           # 71 bài kiểm tra (node --test)
 ```
 - `npm run dev` luôn để server ở cổng 3000 (vite chuyển socket sang) — kể cả khi công cụ khác đặt biến PORT.
 - Lưu tiến trình người chơi: `data/progress.json` (không đẩy GitHub — máy mới bắt đầu từ đầu). Mỗi trình duyệt có mã riêng trong localStorage `loc.clientId`.
 - Thử nhanh: chế độ **Test** → **📖 Cốt truyện thử** (mở khoá tới ải 6/10/16/20, tặng tiền).
 
 ## 2. Đang ở đâu
-- Bản 1 (tộc Người) P1 → P6 xong. Bản đồ thế giới đã làm lại kiểu Pokémon, nhân vật chính Nam / Nữ, Jessica vào đội ở ải 2, Seraphine ở ải 3, Lyra ở ải 12.
+- Bản 1 (tộc Người) P1 → P6 xong. Nhân vật chính Nam / Nữ, Jessica vào đội ở ải 2, Seraphine ở ải 3, Lyra ở ải 12.
+- **Bản đồ thế giới 3D** (mô hình thu nhỏ, mô hình Kenney CC0) là mặc định; vẫn chọn được ⚡ Nhẹ / 🗺️ Phẳng 2D (bản Pokémon tranh vẽ) / 🤖 Tự động trong 🧭 Bản đồ. Có **sổ nhiệm vụ** (phím J) + **tự đi tới mục tiêu** (bấm đất hoặc nút 🧭).
+- **5 trùm có 2 chiêu riêng** (vòng / vạch đỏ cảnh báo trước) · **trận đấu gọn trên điện thoại** (thẻ 2×2).
+- **Tranh nhân vật theo bậc S / SS** (SSS = tranh cũ): đã có Rok, Jessica, Seraphine, Ignar, Zerith, Brakk.
 - **Chưa xong** (gợi ý thứ tự):
-  1. Bố cục **trận đấu trên điện thoại** (thẻ anh hùng + dòng hướng dẫn rộng hơn 375px → trang bị thu nhỏ).
-  2. **Kỹ năng riêng cho 5 trùm** (hiện chỉ có giai đoạn 2).
-  3. Bấm tay kiểm tra: việc bác Borin, trang sách Thư viện, Phiến đá Hầm Mộ, NPC Kinh thành.
+  1. Tranh bậc S / SS còn thiếu: Lyra (thiếu tấm bắn cung), Nerissa, Elarion, Grix, Sylva, sói địch / Sói Đầu Đàn; vẽ lại vài tấm Flow sai (Jessica + Ignar thua/thắng, Zerith bay).
+  2. Bấm tay kiểm tra: việc bác Borin, trang sách Thư viện, Phiến đá Hầm Mộ, NPC Kinh thành (có kiểm tra tự động rồi).
+  3. Lỗi nhỏ: console báo 1 khối 3D có toạ độ NaN khi vào bản đồ 3D Ngoại ô (`computeBoundingSphere … NaN`) — chưa ảnh hưởng hình, nên tìm trong `src/world3d/build.js`.
   4. Thêm: nhạc nền / tiếng bước chân, cỏ cao gặp quái ngẫu nhiên, nhà có cửa vào được, chương 2.
 
 ## 3. Bản đồ kiểu Pokémon — chỗ nào ở đâu

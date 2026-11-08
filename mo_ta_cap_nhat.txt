@@ -1,3 +1,5 @@
+Cap nhat tien trinh: keo ban moi ve may nha, 71 bai kiem tra dat, TIEP_TUC.md + lo trinh cap nhat viec con lai
+
 Ban do kieu Pokemon (di theo o, nhay, NPC di lai, 5 ban do ve tren Flow) + nhan vat chinh Nam/Nu (loi thoai doi theo gioi tinh) + truyen moi: Rok mot minh, Jessica vao doi o ai 2, Seraphine o ai 3 + 33 icon ky nang + quai co dang di + man tai truoc chong giat lag
 
 - Tranh di bo 16 NPC, do vat, icon ky nang, dang di cua quai: Codex ve

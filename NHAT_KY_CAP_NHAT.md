@@ -5,6 +5,14 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 08/11/2026 — CẬP NHẬT MÁY NHÀ + KIỂM TRA LẠI
+- Kéo bản mới từ GitHub về máy này (bản 07/11 trưa: kỹ năng trùm, trận đấu trên điện thoại, bản đồ 3D tự giảm đồ hoạ, tranh theo bậc). `npm install` xong, **71 bài kiểm tra đạt**, bản build không lỗi.
+- Chạy thử trên máy này với người chơi mới: chọn nhân vật → trận mở màn → tỉnh dậy trên **bản đồ 3D Ngoại ô** (khung theo dõi nhiệm vụ "Chính tuyến · Ải 1" hiện đúng). Đã xoá người chơi thử; giữ nguyên save của bạn.
+- Thấy 1 lỗi nhỏ trong console khi vào bản đồ 3D (`BufferGeometry.computeBoundingSphere(): radius is NaN`) — không thấy sai hình, ghi vào việc cần làm.
+- Cập nhật `TIEP_TUC.md` + lộ trình: bỏ 2 việc đã xong (kỹ năng trùm, trận trên điện thoại), thêm việc còn lại của tranh bậc S / SS.
+
+---
+
 ## 07/11/2026 (trưa) — KỸ NĂNG TRÙM · TRẬN ĐẤU TRÊN ĐIỆN THOẠI · CHỐNG GIẬT BẢN ĐỒ · CHUẨN BỊ TRANH THEO BẬC S / SS / SSS
 Chia việc: **Codex** làm kỹ năng trùm · **Antigravity** làm giao diện trận đấu cho điện thoại · **Claude** chống giật bản đồ, khung tranh theo bậc, vẽ tranh trên Google Flow, kiểm tra + gắn vào game.
 
