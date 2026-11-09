@@ -1,3 +1,4 @@
+import { unlockText } from './modeMenu.js';
 // ============================================================
 // 🧑 BẢNG NHÂN VẬT · 🎒 TÚI ĐỒ · 🏪 CỬA HÀNG · ⚙️ CÀI ĐẶT — mở từ thanh nút trên bản đồ thế giới
 //   Nhân vật: danh sách anh hùng (trái) + 4 thẻ: Chỉ số · Kỹ năng · Trang bị · Trang phục (skin theo bậc S / SS / SSS)
@@ -9,6 +10,7 @@ import '../styles/heropanel.css';
 import { icon } from './icons.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
+import { tierPortrait } from '../characters/sprite/tiers.js';
 const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, import: 'default' });
 const ATLAS = import.meta.glob('../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const ATLAS_META = import.meta.glob('../characters/sprite/*Sprite{,_s,_ss}.json', { eager: true, import: 'default' });
@@ -70,7 +72,8 @@ function close() {
 // ---------- vẽ ----------
 const hero = () => data?.heroes.find(h => h.id === sel) ?? data?.heroes[0];
 function portrait(id) {
-    const url = PORTRAITS[`../assets/portraits/${id}.png`];
+    const h = data?.heroes?.find(x => x.id === id);
+    const url = tierPortrait(id, h ? (({ s: 1, ss: 2, sss: 3 })[h.skin] ?? h.rank) : undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình đúng trang phục / bậc
     return url ? `<img src="${url}" alt="">` : '<span>🧑</span>';
 }
 function render() {
@@ -147,7 +150,7 @@ function gearHTML(h) {
     }).join('')}</div>
     ${h.sets?.length ? `<div class="hp-sets">${h.sets.map(st => `<div><b>${st.name}</b> (${st.count}/4)<small class="${st.count >= 2 ? 'on' : ''}">2 món: ${st.twoText}</small><small class="${st.count >= 4 ? 'on' : ''}">4 món: ${st.fourText}</small></div>`).join('')}</div>` : ''}
     <div class="hp-actions">
-        ${data.features.includes('gear') ? '<button class="cp-btn-confirm" data-hp-go="gear">🎒 Mặc / tháo đồ</button>' : '<span class="hp-note">🔒 Trang bị mở khi qua ải 6</span>'}
+        ${data.features.includes('gear') ? '<button class="cp-btn-confirm" data-hp-go="gear">🎒 Mặc / tháo đồ</button>' : `<span class="hp-note">🔒 ${unlockText("gear")}</span>`}
         ${data.features.includes('forge') ? '<button class="cp-btn-cancel" data-hp-go="forge">⚒️ Lò rèn</button>' : ''}
     </div>`;
 }
@@ -197,15 +200,15 @@ function bagHTML() {
             : '<p class="hp-empty">Không mang vật phẩm nhiệm vụ nào. Nhận việc từ NPC có dấu ❗ rồi tìm đồ trên bản đồ.</p>';
     } else {
         body = data.bag.length ? `<div class="hp-bag">${data.bag.slice(0, 80).map(it => `<div class="hp-item" style="--rc:${it.color}" title="${it.name}">${icon(it.slot, it.icon, 'hp-item-ic')}<b>${it.name}${it.enhance ? ` +${it.enhance}` : ''}</b><small>Cấp ${it.level} · ${it.rarityName}${it.setName ? ` · Bộ ${it.setName}` : ''}</small></div>`).join('')}</div>`
-            : '<p class="hp-empty">Chưa có trang bị nào trong túi. Đồ rơi khi qua ải (từ ải 6) và ở Hầm ngục.</p>';
+            : '<p class="hp-empty">Chưa có trang bị nào trong túi. Đồ rơi khi qua ải sau khi mở Trang bị và ở Hầm ngục.</p>';
         if (data.features.includes('gear')) body += '<div class="hp-actions"><button class="cp-btn-confirm" data-hp-go="gear">🎒 Mặc / tháo đồ</button></div>';
     }
     return `<div class="hp-bagtabs">${tabs.map(([k, ik, e, t]) => `<button class="hp-sub hp-ibtn${bagTab === k ? ' on' : ''}" data-hp-bag="${k}">${icon(ik, e)} ${t}</button>`).join('')}</div>${body}`;
 }
 function shopHTML() {
     const price = (c) => Object.entries(c).map(([k, v]) => `${icon(k, k === 'gold' ? '🪙' : '💎')} ${fmt(v)}`).join(' ');
-    return `<div class="hp-shop">${data.shop.map(it => `<div class="hp-shop-it"><span class="hp-shop-ic">${icon(it.id, it.emoji)}</span><div><b>${it.name}</b><small>${it.desc}</small></div>
-        <button class="cp-btn-confirm" data-hp-buy="${it.id}">${price(it.cost)}</button></div>`).join('')}</div>
+    return `<div class="hp-shop">${data.shop.map(it => `<div class="hp-shop-it"><span class="hp-shop-ic">${icon(it.id, it.emoji)}</span><div><b>${it.name}</b><small>${it.desc}</small>${it.limit ? `<small>${it.limit.text}</small>` : ''}</div>
+        <button class="cp-btn-confirm" data-hp-buy="${it.id}" ${it.limit && !it.limit.available ? 'disabled' : ''}>${price(it.cost)}</button></div>`).join('')}</div>
     <div class="hp-actions">${data.features.includes('heroShop') ? '<button class="cp-btn-cancel" data-hp-go="heroshop">🦸 Cửa hàng anh hùng</button>' : '<span class="hp-note">🔒 Cửa hàng anh hùng mở sau ải 20</span>'}
         <button class="cp-btn-cancel" data-hp-go="tavern">🍲 Quán ăn</button></div>`;
 }
@@ -232,7 +235,7 @@ function onClick(e) {
     const bt = q('[data-hp-bag]'); if (bt) { bagTab = bt.dataset.hpBag; return render(); }
     const sk = q('[data-hp-skin]'); if (sk && !sk.disabled) { socket.emit('setSkin', { classId: sel, skin: sk.dataset.hpSkin === 'auto' ? null : sk.dataset.hpSkin }); return; }
     const ex = q('[data-hp-exp]'); if (ex && !ex.disabled) { socket.emit('heroUseItem', { classId: sel, itemId: ex.dataset.hpExp }); return; }
-    const b = q('[data-hp-buy]'); if (b) { socket.emit('buyItem', { id: b.dataset.hpBuy }); return; }
+    const b = q('[data-hp-buy]'); if (b && !b.disabled) { socket.emit('buyItem', { id: b.dataset.hpBuy }); return; }
     const g = q('[data-hp-go]'); if (g) { const k = g.dataset.hpGo; close(); return actions[k]?.(); }
     const qq = q('[data-hp-q]'); if (qq) { actions.setQuality?.(qq.dataset.hpQ); return render(); }
     const w = q('[data-hp-wild]'); if (w) { actions.setWild?.(w.dataset.hpWild === 'on'); return render(); }

@@ -1,0 +1,5 @@
+.cp-account { display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:10px 16px; color:#e6cf91; }
+.cp-account progress { width:160px; height:10px; accent-color:#d5ae56; }
+.cp-account small { color:#bbb; }
+.account-toast { animation:account-appear .35s ease-out; }
+@keyframes account-appear { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }

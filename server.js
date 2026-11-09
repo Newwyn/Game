@@ -1,3 +1,7 @@
+const Accounts = require('./game/accounts').createAccounts();
+const TestTools = require('./game/testTools');
+const A = require('./game/account');
+const EV = require('./game/evidence');   // 🔎 sổ chứng cứ chương 1
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -632,7 +636,7 @@ const CLASS_DEFS = {
     b_valdric: { name: 'Đại tướng Valdric', emoji: '🔥', color: '#b91c1c', art: 'valdric', base: 'monster_tank', boss: true, scale: 1.3,
         maxHp: 5000, maxMp: 1000, pAtk: 260, mAtk: 0, pDef: 340, mDef: 300, crit: 150, critDmg: 500, acc: 1100, dodge: 80, pen: 200, block: 200, lifesteal: 0,
         threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1300, range: 'melee', atkRange: 3, moveSpeed: 0.01, skills: [], passives: [],
-        phase2: { at: 0.5, atkUp: 0.3, speedUp: 0.2, heal: 0.1, name: 'Huy Hiệu Lửa Chiến', desc: 'Valdric bùng lửa: hồi 10% máu, +30% tấn công, +20% tốc đánh', art: true } },
+        phase2: { at: 0, form2: 0.6, atkUp: 0.3, speedUp: 0.2, name: 'Huy Hiệu Bùng Cháy', desc: 'Huy hiệu nuốt lấy Valdric — DẠNG 2: hồi 60% máu, +30% tấn công, +20% tốc đánh', art: true } },   // form2: gục lần đầu -> sống lại thành dạng 2
     b_warden: { name: 'Người Gác Mộ', emoji: '💀', color: '#334155', art: 'warden', base: 'monster_tank', boss: true, scale: 1.3, dmgType: 'magic',
         maxHp: 5500, maxMp: 1000, pAtk: 0, mAtk: 280, pDef: 300, mDef: 340, crit: 100, critDmg: 400, acc: 1000, dodge: 60, pen: 150, block: 150, lifesteal: 80,
         threat: 100, mpAtk: 100, mpSec: 50, atkSpeed: 1400, range: 'melee', atkRange: 3, moveSpeed: 0.009, skills: [], passives: [],
@@ -803,7 +807,7 @@ function createStageSquad({ id, diff, key, classes }) {
     }
     const st = C.findStage(id);
     const d = C.DIFF[diff];
-    const level = (st.level ?? st.baseNo ?? 1) + d.lv;
+    const level = C.enemyLevel(st.level ?? st.baseNo ?? 1, diff);   // Khó: cấp 40–60 (đội SS) · Địa ngục: cấp 60 (đội SSS)
     let bossMarked = false;
     const layout = st.enemies.map(e => {
         const boss = !!st.boss && !bossMarked && (CLASS_DEFS[e.classId]?.boss || e.classId === 'monster_tank');
@@ -811,7 +815,8 @@ function createStageSquad({ id, diff, key, classes }) {
         return { ...e, boss };
     });
     // power: ải mở đầu (ít người) quái yếu hơn — chỉ áp ở mức Cốt truyện
-    return createMonsterSquad(level, layout, { mul: d.mul * (diff === 'story' ? st.power ?? 1 : 1), bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
+    // base: sức nền của ải (mọi mức) · power: bù cho đội ít người ở mức Cốt truyện (ải đầu) — chỉ mức Cốt truyện
+    return createMonsterSquad(level, layout, { mul: C.enemyMul(st.level ?? st.baseNo ?? 1, diff) * (st.base ?? 1) * (diff === 'story' ? st.power ?? 1 : 1), bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
 }
 /** Chế độ ĐẤU: mọi nhân vật Lv60 SSS */
 const MAX_HEROES = () => Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: P.MAX_LEVEL, rank: P.MAX_RANK }]));
@@ -957,8 +962,8 @@ function heroPanelPayload(pr) {
                 skin: pr.skins?.[id] ?? null, skins: skinsFor(h.rank), affinity: TV.levelOf(pr.affinity?.[id] ?? 0) };
         }),
         bag: gp.bag, invMax: gp.invMax, wallet: pr.wallet,
-        items: { ...pr.items }, itemDefs: P.ITEMS, shop: ITEM_SHOP, setInfo: gp.setInfo, slots: gp.slots,
-        features: [...C.features(pr)], player: pr.player ?? null,
+        items: { ...pr.items }, itemDefs: P.ITEMS, shop: ITEM_SHOP.map(it => ({ ...it, limit: SHOP.itemLimit(pr, it.id, Date.now()) })), setInfo: gp.setInfo, slots: gp.slots,
+        account: A.accountState(pr), features: [...C.features(pr)], player: pr.player ?? null,
         quest: Object.keys(pr.world?.bag ?? {}).map(id => ({ id, name: WD.ITEM_NAMES[id] ?? id })),   // vật phẩm nhiệm vụ đang mang
         stamina: campaignPayload(pr).stamina,
     };
@@ -972,8 +977,9 @@ function campaignPayload(pr, key) {
     ST.regen(pr.stamina, now);
     const st = pr.stamina;
     const nextInSec = st.value >= ST.MAX ? 0 : Math.max(1, Math.ceil((ST.REGEN_SEC * 1000 - (now - st.lastAt)) / 1000));
-    return { chapter: C.chapterState(pr, pr.campaignChapter ?? 'c1'), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, features: [...C.features(pr)],
+    return { chapter: C.chapterState(pr, pr.campaignChapter ?? 'c1'), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, account: A.accountState(pr), features: [...C.features(pr)],
         squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
+        spots: WD.spotHints(),   // ải chỉ bắt đầu từ bản đồ (Bảng ải ẩn ải chưa qua, ghi gợi ý đi đâu)
         story: { pre: Object.fromEntries(Object.entries(STORY.allPre()).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) } };
 }
 /** Kết thúc hầm ngục: thua hoàn chi phí; thắng -> đồ bộ / trang sức + đá + vàng + EXP */
@@ -981,6 +987,7 @@ function finishDungeon(room, pr, win) {
     const { id, classes, socketId } = room.stage;
     const { kind, tier } = D.parseId(id);
     const now = Date.now();
+    const beforeFeatures = C.features(pr);
     const r = D.applyResult(pr, { kind, tier, win }, now);
     const res = { win, firstClear: !!r.firstTier, rewards: { exp: 0, gold: 0, stone: 0, diamond: 0 }, leveled: {}, newHeroes: [],
         refund: r.refund ?? 0, refundRun: !!r.refundRun, drops: [], charms: 0, autoSalvaged: null, newFeatures: [] };
@@ -1002,9 +1009,14 @@ function finishDungeon(room, pr, win) {
         for (const c of new Set(classes)) res.leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, res.rewards.exp);
         res.refineGot = loot.refine;
     }
+    res.rewards.accountExp = r.rewards?.accountExp ?? 0;
+    res.rewards.items = res.refineGot ? { refine_stone: res.refineGot } : {};
+    res.account = A.accountState(pr);
+    res.accountLevelUp = r.accountLevelUp ?? null;
+    res.newFeatures = [...C.features(pr)].filter(f => !beforeFeatures.has(f));
     P.saveAll(PROGRESS);
     const t = D.findTier(id);
-    io.to(socketId).emit('stageResult', { ...res, stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
+    io.to(socketId).emit('stageResult', { ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Kết thúc trận quái hoang: thưởng nhỏ, không tốn / hoàn thể lực */
 function finishWild(room, pr, win) {
@@ -1014,7 +1026,7 @@ function finishWild(room, pr, win) {
     const leveled = {};
     if (win) for (const c of new Set(classes)) leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, rewards.exp);
     P.saveAll(PROGRESS);
-    io.to(socketId).emit('stageResult', { win, firstClear: false, rewards, leveled, newHeroes: [], drops: [], charms: 0, autoSalvaged: null, newFeatures: [],
+    io.to(socketId).emit('stageResult', { account: A.accountState(pr), features: [...C.features(pr)], win, firstClear: false, rewards, leveled, newHeroes: [], drops: [], charms: 0, autoSalvaged: null, newFeatures: [],
         stage: { id, name: W.POOLS[scene].name, diff: 'story', wild: true }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Gói dữ liệu màn Hầm ngục / Quán ăn / Cửa hàng anh hùng */
@@ -1022,7 +1034,7 @@ function extrasPayload(pr, key) {
     const feats = C.features(pr), now = Date.now();
     const heroInfo = (id) => ({ id, name: CLASS_DEFS[id]?.name, title: CLASS_DEFS[id]?.title, emoji: CLASS_DEFS[id]?.emoji, className: CLASS_DEFS[id]?.className });
     return {
-        wallet: pr.wallet, stamina: campaignPayload(pr).stamina, owned: pr.owned,
+        account: A.accountState(pr), wallet: pr.wallet, stamina: campaignPayload(pr).stamina, owned: pr.owned,
         dungeon: D.state(pr, feats, now),
         tavern: { open: TV.isOpen(pr), foods: TV.FOODS, heroes: TV.state(pr).map(h => ({ ...h, ...heroInfo(h.id) })) },
         shop: { open: feats.has('heroShop'), list: SHOP.list(pr).map(h => ({ ...h, ...heroInfo(h.id) })) },
@@ -1036,7 +1048,7 @@ function speakersFor(pr) {
     sp.me = { ...sp.me, name: pr.player?.name ?? '???', gender: pr.player?.gender ?? 'm' };
     return sp;
 }
-/** Rơi đồ khi thắng ải (từ khi đã qua ải 6) — túi đầy thì tự phân giải */
+/** Rơi đồ khi thắng ải (từ khi tài khoản mở Trang bị) — túi đầy thì tự phân giải */
 function dropGear(pr, st, diff, firstClear) {
     const out = { drops: [], charms: 0, autoSalvaged: null };
     if (!C.features(pr).has('gear')) return out;
@@ -1050,7 +1062,7 @@ function dropGear(pr, st, diff, firstClear) {
         pr.wallet.stone += v.stone;
         pr.items.refine_stone = (pr.items.refine_stone ?? 0) + v.refine;
     }
-    if (d.charms) { pr.items.luck_charm = (pr.items.luck_charm ?? 0) + d.charms; out.charms = d.charms; }
+    // Stage consumables are awarded by campaign.applyResult; charms are shop-only.
     return out;
 }
 /** Gói dữ liệu màn Trang bị: anh hùng sở hữu (chỉ số có đồ, 6 ô), túi đồ, ví, nguyên liệu, giá cường hoá / tinh luyện */
@@ -1076,7 +1088,7 @@ function gearPayload(pr) {
         bag: G.bagItems(pr).map(G.describe),
         invMax: G.INV_MAX, wallet: pr.wallet,
         mats: { refine_stone: pr.items.refine_stone ?? 0, luck_charm: pr.items.luck_charm ?? 0 },
-        features: { gear: feats.has('gear'), forge: feats.has('forge') },
+        account: A.accountState(pr), features: { gear: feats.has('gear'), forge: feats.has('forge') },
         setInfo: Object.fromEntries(Object.entries(G.SETS).map(([sid, st]) => [sid, { name: st.name, twoText: st.twoText, fourText: st.fourText }])),
         slots: G.SLOTS.map(sl => ({ id: sl, ...G.SLOT_INFO[sl] })), rarities: G.RARITIES.map(({ id, name, color }) => ({ id, name, color })),
         enhance, refine, salvage,
@@ -1095,13 +1107,22 @@ function finishStage(room, win) {
     const st = C.findStage(id);
     res.newFeatures = [...C.features(pr)].filter(f => !before.has(f));
     if (win && res.firstClear && diff === 'story') {
-        const lines = STORY.postFor(id);
-        res.story = lines ? fillLines([...lines, ...(STORY.endingFor(id) ?? [])], pr) : null;
+        let lines = STORY.postFor(id), ending = STORY.endingFor(id) ?? [];
+        // chương 1: phần lời diễn ra ở nơi khác -> NPC ngoài bản đồ ("về báo lại", game/world.js REPORTS)
+        const n1 = id.startsWith('c1-') ? STORY.stageNo(id) : null, rep = n1 && WD.REPORTS[n1];
+        if (rep) {
+            lines = [...WD.postNow(n1, lines), ['sys', `📍 ${rep.go}`]];
+            if (rep.ending) ending = [];
+        }
+        const found = EV.grantStage(pr, id);   // 🔎 chứng cứ nhận được ở ải này
+        const evLines = found.map(e => ['sys', `🔎 Sổ chứng cứ: +${e.icon} ${e.name}`]);
+        res.evidence = found.map(e => e.id);
+        res.story = lines?.length || evLines.length ? fillLines([...(lines ?? []), ...evLines, ...ending], pr) : null;
         res.speakers = speakersFor(pr);
     }
     Object.assign(res, win ? dropGear(pr, st, diff, res.firstClear) : { drops: [], charms: 0, autoSalvaged: null });
     P.saveAll(PROGRESS);
-    io.to(socketId).emit('stageResult', { ...res, stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
+    io.to(socketId).emit('stageResult', { ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
         wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Điền số liệu vào mô tả thiên phú: {value%} (tỉ lệ ×100) · {value‰} (phần nghìn -> %) · {key} (số thường) */
@@ -1140,7 +1161,7 @@ function progressPayload(key) {
             rankCheck: P.checkRankUp(h, pr.items),
         };
     }
-    return { heroes, items: pr.items, meta: { ranks: P.RANKS, races: P.RACE_DEFS, classes: P.CLASS_GROWTH, itemDefs: P.ITEMS, maxLevel: P.MAX_LEVEL } };
+    return { heroes, account: A.accountState(pr), features: [...C.features(pr)], items: pr.items, meta: { ranks: P.RANKS, races: P.RACE_DEFS, classes: P.CLASS_GROWTH, itemDefs: P.ITEMS, maxLevel: P.MAX_LEVEL } };
 }
 
 // ============================================================
@@ -1606,6 +1627,37 @@ io.on('connection', (socket) => {
     // Mã người chơi cố định theo trình duyệt (client gửi kèm khi kết nối) -> giữ level / bậc / vật phẩm
     const cid = String(socket.handshake.auth?.clientId ?? '').slice(0, 64);
     socket.progressKey = /^[\w-]{6,64}$/.test(cid) ? cid : socket.id;
+    socket.lcServer = 'guest';
+    const auth = Accounts.resume(socket.handshake.auth?.token);
+    let note;
+    if (auth.ok) {
+        socket.lcServer = socket.handshake.auth?.server === 'test' && auth.user.admin ? 'test' : 'main';
+        if (socket.handshake.auth?.server === 'test' && !auth.user.admin) note = 'Server test chỉ dành cho chủ game';
+        socket.progressKey = (socket.lcServer === 'test' ? 'test-' : 'acc-') + auth.user.name.toLowerCase();
+        if (!Object.hasOwn(PROGRESS, socket.progressKey) && Object.hasOwn(PROGRESS, cid)) {
+            PROGRESS[socket.progressKey] = JSON.parse(JSON.stringify(PROGRESS[cid]));
+            P.saveAll(PROGRESS);
+        }
+    } else if (socket.handshake.auth?.token) socket.emit('authExpired', {});
+    socket.emit('serverInfo', { server: socket.lcServer, user: auth.ok ? auth.user : null, ...(note ? { note } : {}) });
+    for (const [event, method] of [['authRegister', 'register'], ['authLogin', 'login'], ['authResume', 'resume'], ['authLogout', 'logout']]) {
+        socket.on(event, async (data = {}) => {
+            try {
+                data = data && typeof data === 'object' ? data : {};
+                const result = await (method === 'register' || method === 'login' ? Accounts[method](data.user, data.pass) : Accounts[method](data.token));
+                socket.emit('authResult', result);
+            } catch { socket.emit('authResult', { ok: false, error: 'Không thể lưu tài khoản, hãy thử lại' }); }
+        });
+    }
+    const debugEvents = new Set(['debugProgress', 'debugAccount', 'debugReset', 'debugCampaign', 'debugAction', 'debugEnemyAction', 'gearDebugGive', 'testTool', 'testCatalog']);
+    socket.use(([event, data], next) => {
+        if ((!TestTools.allowed(socket.lcServer) && debugEvents.has(event)) ||
+            (socket.lcServer === 'main' && event === 'chooseMode' && data?.mode === 'test')) {
+            socket.emit('testToolResult', { ok: false, text: 'Chỉ dùng được ở Server test' });
+            return;
+        }
+        next();
+    });
     socket.emit('progressUpdate', progressPayload(socket.progressKey));
 
     // ---------- TIẾN TRÌNH (luồng thật, ngoài trận): dùng vật phẩm EXP, kiểm tra & đột phá bậc ----------
@@ -1649,13 +1701,14 @@ io.on('connection', (socket) => {
     socket.on('buyItem', ({ id, count = 1 } = {}) => {
         const pr = progressOf(socket.progressKey);
         const it = ITEM_SHOP.find(x => x.id === id);
-        const n = Math.max(1, Math.min(20, count | 0));
         if (!it) return;
-        for (const [cur, v] of Object.entries(it.cost)) if ((pr.wallet[cur] ?? 0) < v * n)
-            return socket.emit('heroPanelMsg', { ok: false, text: `Không đủ ${cur === 'gold' ? 'Vàng' : 'Kim Cương'}` });
-        for (const [cur, v] of Object.entries(it.cost)) pr.wallet[cur] -= v * n;
-        if (it.wallet) pr.wallet[it.id] = (pr.wallet[it.id] ?? 0) + (it.qty ?? 1) * n;
-        else pr.items[it.id] = (pr.items[it.id] ?? 0) + (it.qty ?? 1) * n;
+        const result = SHOP.buyItem(pr, it, count, Date.now());
+        if (!result.ok) {
+            socket.emit('heroPanelMsg', { ok: false, text: result.why });
+            socket.emit('heroPanel', heroPanelPayload(pr));
+            return;
+        }
+        const n = result.count;
         P.saveAll(PROGRESS);
         socket.emit('heroPanelMsg', { ok: true, text: `Đã mua ${it.name}${n > 1 ? ` ×${n}` : ''}` });
         socket.emit('heroPanel', heroPanelPayload(pr));
@@ -1684,7 +1737,7 @@ io.on('connection', (socket) => {
     });
     // ---------- BẢNG TOOL TEST: chỉnh thẳng, không cần điều kiện ----------
     socket.on('debugProgress', (data = {}) => {
-        if (rooms[socket.roomId]?.mode && rooms[socket.roomId].mode !== 'test') return;   // ĐẤU: không có tool
+        if (socket.lcServer !== 'test' && rooms[socket.roomId]?.mode && rooms[socket.roomId].mode !== 'test') return;   // ĐẤU: không có tool
         const pr = progressOf(socket.progressKey);
         const ids = data.classId === 'all' ? HERO_IDS() : [data.classId];
         for (const id of ids) {
@@ -1704,16 +1757,44 @@ io.on('connection', (socket) => {
         afterProgress(data.classId === 'all' ? null : data.classId);
     });
     // Tool Test: mở khoá Cốt truyện tới ải N (đánh dấu đã qua mức Cốt truyện) + đặt cấp cả đội — để thử ải sau / giả lập cân bằng
+    const debugAllowed = () => { const r = rooms[socket.roomId]; return socket.lcServer === 'test' || (socket.lcServer === 'guest' && (!r || r.mode === 'test' || r.status === 'menu')); };   // màn Test, hoặc đang ở màn chọn chế độ (không trong trận)
+    // 🧪 Tool Test: đặt cấp tài khoản (mở Khó / Địa ngục / Đấu… để thử) — chỉ trong màn Test
+    socket.on('debugAccount', (data = {}) => {
+        if (!debugAllowed()) return;   // màn Test hoặc màn chọn chế độ
+        const pr = progressOf(socket.progressKey);
+        const a = A.ensureAccount(pr);
+        a.level = Math.max(1, Math.min(A.TABLE.maxLevel, data.level | 0 || 1)); a.exp = 0;
+        P.saveAll(PROGRESS);
+        socket.emit('progressMsg', { ok: true, text: `Cấp tài khoản = ${a.level}` });
+        afterProgress(null);
+    });
+    // 🧪 Tool Test: xoá toàn bộ tiến trình của hồ sơ đang dùng -> chơi lại từ đầu (giấc mơ mở đầu, tạo nhân vật)
+    socket.on('debugReset', () => {
+        if (!debugAllowed()) return;   // màn Test hoặc màn chọn chế độ
+        delete PROGRESS[socket.progressKey];
+        progressOf(socket.progressKey);
+        P.saveAll(PROGRESS);
+        socket.emit('debugResetDone');
+    });
     socket.on('debugCampaign', (data = {}) => {
-        if (rooms[socket.roomId]?.mode && rooms[socket.roomId].mode !== 'test') return;
+        if (!debugAllowed()) return;   // màn Test hoặc màn chọn chế độ
         const pr = progressOf(socket.progressKey);
         const upTo = Math.max(0, Math.min(40, data.upTo | 0));   // 21–40 = chương 2 (ải 1–20)
         for (let i = 1; i <= Math.min(20, upTo); i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
         for (let i = 21; i <= upTo; i++) pr.campaign.cleared.story[`c2-${String(i - 20).padStart(2, '0')}`] = true;
-        for (const [n, hero] of [[2, 'assassin'], [3, 'priest'], [12, 'archer'], [27, 'dancer'], [32, 'summoner'], [38, 'elementalist']]) if (upTo >= n && !pr.owned.includes(hero)) pr.owned.push(hero);
+        for (let i = 1; i <= Math.min(20, upTo); i++) EV.grantStage(pr, `c1-${String(i).padStart(2, '0')}`);   // chứng cứ của các ải đã qua (để thử đối chất)
+        pr.account.level = Math.max(pr.account.level, Math.min(A.TABLE.maxLevel, upTo));
+        for (const [n, hero] of [[2, 'assassin'], [7, 'priest'], [12, 'archer'], [27, 'dancer'], [32, 'summoner'], [38, 'elementalist']]) if (upTo >= n && !pr.owned.includes(hero)) pr.owned.push(hero);
+        if (data.allDiffs) {   // giả lập Khó / Địa ngục: coi như đã qua các mức trước + tài khoản đủ cấp mở chế độ
+            for (const diff of ['hard', 'hell']) for (const [k, v] of Object.entries(pr.campaign.cleared.story)) if (v) pr.campaign.cleared[diff][k] = true;
+            pr.account = { level: 60, exp: 0, migrated: true };
+            for (const hero of ['assassin', 'priest', 'archer']) if (!pr.owned.includes(hero)) pr.owned.push(hero);   // Khó / Địa ngục: người chơi đánh lại khi đã có đủ đội 4 người
+        }
+        if (!data.allDiffs) { delete pr.account; A.ensureAccount(pr); }   // cấp tài khoản tính lại theo các ải đã qua
         pr.player ??= { gender: 'm', name: 'Kael' };
-        if (data.level) for (const id of HERO_IDS()) { pr.heroes[id].level = Math.max(1, Math.min(P.MAX_LEVEL, data.level | 0)); pr.heroes[id].rank = data.level > 40 ? 2 : data.level > 20 ? 1 : 0; }
+        if (data.level) for (const id of HERO_IDS()) { pr.heroes[id].level = Math.max(1, Math.min(P.MAX_LEVEL, data.level | 0)); pr.heroes[id].rank = data.rank != null ? Math.max(0, Math.min(3, data.rank | 0)) : data.level > 40 ? 2 : data.level > 20 ? 1 : 0; }   // rank: chỉ để giả lập cân bằng (sim_stage --rank)
         pr.story.prologue = pr.story.wake = true;
+        WD.syncReports(pr);   // các ải đã qua coi như đã về báo lại
         pr.wallet.diamond += 1000; pr.wallet.gold += 5000;   // để thử Cửa hàng anh hùng / Quán ăn / mua lượt
         P.saveAll(PROGRESS);
         socket.emit('progressMsg', { ok: true, text: `Đã mở tới ải ${upTo}${data.level ? ` · cả đội Lv${data.level}` : ''} · +1000 Kim Cương · +5000 Vàng` });
@@ -1729,7 +1810,7 @@ io.on('connection', (socket) => {
         rooms[roomId] = {
             id: roomId,
             status: 'menu', // menu (chọn chế độ) -> selecting (chọn đội hình) -> starting (đếm ngược) -> active / paused
-            mode: 'test',   // test (có tool) · duel_monster (Đấu với quái) · duel_hero (Đấu 1P vs 2P) — ĐẤU: Lv60 SSS, không có tool
+            mode: socket.lcServer === 'main' ? 'campaign' : 'test',   // test (có tool) · duel_monster (Đấu với quái) · duel_hero (Đấu 1P vs 2P) — ĐẤU: Lv60 SSS, không có tool
             monsterLevel: 1,
             isBotMatch: true,
             players: {
@@ -1791,7 +1872,7 @@ io.on('connection', (socket) => {
         io.to(socket.roomId).emit('speedChanged', { speed: room.speed });
     });
 
-    // Cốt truyện: AUTO chỉ dùng được khi đã mở (qua ải 2)
+    // Cốt truyện: AUTO chỉ dùng được khi tài khoản đã mở
     const autoLocked = (room) => room?.mode === 'campaign' && !C.features(progressOf(socket.progressKey)).has('auto');
     socket.on('toggleAuto', (data) => {
         const roomId = socket.roomId;
@@ -1837,10 +1918,10 @@ io.on('connection', (socket) => {
         pickGem(room, socket.id, data.memberIndex | 0, data.gemId, room.clock ?? Date.now());
     });
 
-    socket.on('debugAction', (data) => {
+    socket.on('debugAction', (data = {}) => {
         const roomId = socket.roomId;
         if (!roomId || !rooms[roomId]) return;
-        if (rooms[roomId].mode !== 'test') return;   // ĐẤU: không có tool
+        if (socket.lcServer !== 'test' && rooms[roomId].mode !== 'test') return;   // ĐẤU: không có tool
         const player = rooms[roomId].players[socket.id];
         if (!player) return;
 
@@ -1888,10 +1969,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('debugEnemyAction', (data) => {
+    socket.on('debugEnemyAction', (data = {}) => {
         const roomId = socket.roomId;
         const room = rooms[roomId];
-        if (!room || room.mode !== 'test') return;   // ĐẤU: không có tool
+        if (!room || (socket.lcServer !== 'test' && room.mode !== 'test')) return;   // ĐẤU: không có tool
         if (data.type === 'monsterLevel') {
             // Tool phe quái: đổi cấp quái (dựng lại 3 quái với chỉ số mới)
             room.monsterLevel = Math.max(1, Math.min(P.MAX_LEVEL, (data.set ?? (room.monsterLevel ?? 1) + (data.add ?? 0)) | 0));
@@ -1976,6 +2057,7 @@ io.on('connection', (socket) => {
     socket.on('chooseMode', (data = {}) => {
         const room = rooms[socket.roomId];
         if (!room || !room.players[socket.id] || !MODES.includes(data.mode)) return;
+        if (data.mode.startsWith('duel') && !C.features(progressOf(socket.progressKey)).has('pvp')) return socket.emit('modeError', { text: A.unlockText('pvp') });
         stopLoop(room);
         room.mode = data.mode;
         room.status = 'selecting';
@@ -2112,8 +2194,8 @@ io.on('connection', (socket) => {
     const gearAction = (need, fn) => (data = {}) => {
         const pr = progressOf(socket.progressKey);
         const feats = C.features(pr);
-        if (!feats.has('gear')) return socket.emit('gearError', { text: 'Trang bị mở khi qua ải 6' });
-        if (need === 'forge' && !feats.has('forge')) return socket.emit('gearError', { text: 'Lò rèn mở khi qua ải 10' });
+        if (!feats.has('gear')) return socket.emit('gearError', { text: A.unlockText('gear') });
+        if (need === 'forge' && !feats.has('forge')) return socket.emit('gearError', { text: A.unlockText('forge') });
         const res = fn(pr, data);
         if (res && res.ok === false) return socket.emit('gearError', { text: res.why });
         P.saveAll(PROGRESS);
@@ -2132,6 +2214,42 @@ io.on('connection', (socket) => {
         party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) };
     };
     // tạo nhân vật chính (Nam / Nữ + tên) — làm 1 lần trước mở màn, đổi lại được ở Menu
+    socket.on('testCatalog', () => socket.emit('testCatalogResult', TestTools.catalog(HERO_IDS().map(id => ({ id, name: CLASS_DEFS[id].name })))));
+    socket.on('testTool', (data = {}) => {
+        const d = data && typeof data === 'object' ? data : {};
+        let result;
+        const room = rooms[socket.roomId];
+        if (d.op === 'god') {
+            socket.testGod = d.on === true;
+            result = { ok: true, text: socket.testGod ? 'Đã bật bất tử' : 'Đã tắt bất tử' };
+        } else if (d.op === 'resetAll') {
+            delete PROGRESS[socket.progressKey];
+            progressOf(socket.progressKey);
+            socket.emit('debugResetDone');
+            result = { ok: true, text: 'Đã xoá tiến trình' };
+        } else if (d.op === 'battleWin' || d.op === 'battleLose') {
+            if (!room || !room.players[socket.id] || !['active', 'paused'].includes(room.status) || room.winner) {
+                result = { ok: false, text: 'Chưa ở trong trận' };
+            } else {
+                curRoom = room;
+                for (const [id, team] of Object.entries(room.players)) {
+                    if ((d.op === 'battleLose') !== (id === socket.id)) continue;
+                    for (const m of team.squad) { m.hp = 0; m.pendingDmg = 0; m.alive = false; m.state = 'dead'; }
+                }
+                checkWinCondition(room.id);
+                broadcastState(room.id);
+                result = { ok: true, text: d.op === 'battleWin' ? 'Đã thắng trận' : 'Đã thua trận' };
+            }
+        } else result = TestTools.apply(progressOf(socket.progressKey), d, HERO_IDS());
+        socket.emit('testToolResult', result);
+        if (result.ok) {
+            const pr = progressOf(socket.progressKey);
+            afterProgress(null);
+            socket.emit('campaignState', campaignPayload(pr, socket.progressKey));
+            socket.emit('worldState', worldPayload(pr));
+            P.saveAll(PROGRESS);
+        }
+    });
     socket.on('playerSetup', (d = {}) => {
         const pr = progressOf(socket.progressKey);
         const r = WD.setPlayer(pr, d);
@@ -2148,6 +2266,16 @@ io.on('connection', (socket) => {
         if (!r.ok) return socket.emit('worldError', { text: r.why });
         P.saveAll(PROGRESS);
         if (d.full) socket.emit('worldState', worldPayload(pr));   // đổi màn: gửi lại trạng thái
+    });
+    // 🔎 Đối chất trước nhà vua (Elise, trước ải 18): answers = { q1: evidenceId, ... }
+    socket.on('worldPresent', (d = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const answers = Object.fromEntries(Object.entries(d.answers ?? {}).slice(0, 8).map(([k, v]) => [String(k), String(v)]));
+        const r = WD.presentTrial(pr, pr.wallet, answers);
+        if (!r.ok) return socket.emit('worldResult', { ok: false, text: WD.fill(r.why, pr.player) });
+        P.saveAll(PROGRESS);
+        socket.emit('worldPresentResult', { ...r, result: { ...r.result, lines: fillLines(r.result.lines, pr) }, lines: fillLines(r.lines, pr), speakers: speakersFor(pr) });
+        socket.emit('worldState', worldPayload(pr));
     });
     socket.on('worldInteract', (d = {}) => {
         const pr = progressOf(socket.progressKey);
@@ -2196,7 +2324,7 @@ io.on('connection', (socket) => {
     // Tool Test: nhận đồ thử (đủ bộ 4 món + nhẫn, dây chuyền) — chỉ ở chế độ Test
     socket.on('gearDebugGive', (data = {}) => {
         const room = rooms[socket.roomId];
-        if (room?.mode !== 'test') return;
+        if (socket.lcServer !== 'test' && room?.mode !== 'test') return;
         const pr = progressOf(socket.progressKey);
         const set = G.SETS[data.set] ? data.set : null;
         const level = G.LEVELS.includes(Number(data.level)) ? Number(data.level) : 10;
@@ -2209,6 +2337,7 @@ io.on('connection', (socket) => {
         pr.items.refine_stone = (pr.items.refine_stone ?? 0) + 5;
         pr.items.luck_charm = (pr.items.luck_charm ?? 0) + 3;
         pr.wallet.stone += 200; pr.wallet.gold += 5000;
+        pr.account.level = Math.max(pr.account.level, 10);
         // mở sẵn Trang bị + Lò rèn (đánh dấu đã qua ải 1–10 Cốt truyện) để thử ngay
         for (let i = 1; i <= 10; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
         P.saveAll(PROGRESS);
@@ -2260,12 +2389,12 @@ io.on('connection', (socket) => {
         room.lastTick = Date.now();
         room.winner = null;
         const st = C.findStage(data.id) ?? (W.isId(data.id) ? { id: data.id, no: null, name: `🌾 ${W.POOLS[W.sceneOf(data.id)].name}` } : { ...D.findTier(data.id), id: data.id, no: null });
-        if (!C.features(pr).has('auto')) {   // AUTO chưa mở (trước ải 3): tắt hẳn
+        if (!C.features(pr).has('auto')) {   // AUTO chưa mở theo cấp tài khoản: tắt hẳn
             player.autoMode = false;
             player.squad.forEach(m => { m.autoOn = false; });
         }
         io.to(socket.roomId).emit('battleStart', { roomId: socket.roomId, players: room.players, classDefs: CLASS_DEFS, mode: 'campaign',
-            stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff }, features: [...C.features(pr)] });
+            stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff }, account: A.accountState(pr), features: [...C.features(pr)] });
         socket.emit('memberToggles', { disabled: player.disabledClasses });
         startBattleLoop(socket.roomId);
     });
@@ -3776,7 +3905,11 @@ function onHitTaken(target) {
     }
 }
 
+function socketGod(team) {
+    return Object.entries(curRoom?.players ?? {}).some(([id, player]) => player === team && io.sockets.sockets.get(id)?.testGod);
+}
 function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
+    if (socketGod(oppData)) return false;
     // Phản độc đúng lúc đòn chạm; giữ tham chiếu giáp cho đòn vừa phá hết máu khiên.
     if (attacker && hit && !hit.isMiss && (dmg > 0 || hit.absorbed > 0)) {
         const now = curRoom?.clock;
@@ -3790,7 +3923,7 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
     later(delay, () => {
         target.pendingDmg = Math.max(0, (target.pendingDmg || 0) - dmg);
         const tt = curRoom?.clock ?? Date.now();
-        if (target.alive && !isJudged(target, tt) && !hasReviveGuard(target, tt)) {
+        if (target.alive && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt)) {
             let hp = target.hp - dmg;
             // Đêm Tử Thần: Zerith không thể chết (máu tối thiểu 1)
             if (hp <= 0 && reaperUndying(target)) hp = 1;
@@ -4000,7 +4133,7 @@ function guardBurst(roomId, casterId, casterIdx, opponentId, now, final = false)
         if (!enemy.alive || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.burstRadius) return;
         const result = calculateDamage(member, enemy, skillDef.burstMultiplier, now, { aoe: true });
         if (!result.isMiss) {
-            if (!opp.debugGodMode) {
+            if (!opp.debugGodMode && !socketGod(opp)) {
                 enemy.hp = Math.max(0, enemy.hp - result.damage);
                 if (enemy.hp === 0) killMember(enemy, opp.squad);
                 else afterHpLoss(enemy);
@@ -4187,6 +4320,7 @@ function reaperUndying(m) {
 }
 /** Nhân vật gục: Thiên Thần Hộ Mệnh của Tu Sĩ + Linh Hồn Báo Thù của Zerith */
 function killMember(target, squad) {
+    if (enterSecondForm(target)) return;   // trùm 2 dạng (Valdric): gục lần đầu -> sống lại dạng 2
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
     target.wardOn = false;   // Giáp Lửa mất theo
@@ -4547,8 +4681,9 @@ function afterHpLoss(m) {
 // BOSS_SKILLS_BEGIN: isolated data / pure helpers, also exercised by node:test.
 const BOSS_SKILLS = {
     b_wolf: [
-        { id: 'howl', name: 'Hú Gọi Bầy', cooldown: 14000, first: 6000, warning: 1000, maxSummons: 2, scale: 0.6 },
-        { id: 'pounce', name: 'Vồ Cổ', cooldown: 10000, warning: 1000, multiplier: 1.6, duration: 4000, dot: 0.03 }],
+        // trùm đầu tiên (ải 5, đội cấp ~5): nhẹ tay hơn các trùm sau — đã thử giả lập (sim_stage c1-05)
+        { id: 'howl', name: 'Hú Gọi Bầy', cooldown: 20000, first: 10000, warning: 1000, maxSummons: 1, scale: 0.5 },
+        { id: 'pounce', name: 'Vồ Cổ', cooldown: 13000, warning: 1000, multiplier: 1.25, duration: 4000, dot: 0.015 }],
     b_skarn: [
         { id: 'slam', name: 'Đập Đất', cooldown: 12000, warning: 1200, radius: 3.5, multiplier: 1.3, stun: 1000 },
         { id: 'cry', name: 'Hét Xung Phong', cooldown: 18000, warning: 1000, duration: 6000, speedUp: 0.25 }],
@@ -4690,6 +4825,25 @@ function checkBossPhase(m) {
         endTime: Number.MAX_SAFE_INTEGER, noCleanse: true });
     const at = locate(m);
     if (at) io.to(curRoom.id).emit('bossPhase', { casterId: at.pid, casterIdx: at.idx, name: ph.name, text: ph.desc });
+}
+/** Trùm 2 dạng (phase2.form2 = phần máu hồi lại): lần gục ĐẦU không chết mà hoá dạng 2 — đổi tranh, +tấn công / tốc đánh, 2,5 giây không nhận sát thương */
+function enterSecondForm(m) {
+    const ph = CLASS_DEFS[m.classId]?.phase2, now = curRoom?.clock;
+    if (!ph?.form2 || m.phase2On || now == null) return false;
+    m.phase2On = true;
+    if (process.env.LOC_DEBUG) console.log('[form2]', m.classId, 'hp', Math.round(m.maxHp * ph.form2));
+    m.hp = Math.max(1, Math.round(m.maxHp * ph.form2)); m.pendingDmg = 0; m.queuedSkills = [];
+    m.actionUntil = 0; m.castingSkillId = null;
+    m.statusEffects = m.statusEffects.filter(ef => ef.noCleanse && ef.type !== 'judged');
+    m.statusEffects.push({ type: 'boss_phase2', name: ph.name, desc: ph.desc, atkUp: ph.atkUp, speedUp: ph.speedUp, art: !!ph.art,
+        endTime: Number.MAX_SAFE_INTEGER, noCleanse: true });
+    m.statusEffects.push({ type: 'revive_guard', endTime: now + 2500, duration: 2500 });
+    const at = locate(m);
+    if (at) {
+        io.to(curRoom.id).emit('bossPhase', { casterId: at.pid, casterIdx: at.idx, name: `${ph.name} · Dạng 2`, text: ph.desc });
+        io.to(curRoom.id).emit('revived', { casterId: at.pid, casterIdx: at.idx, targetIdx: at.idx, hp: m.hp });
+    }
+    return true;
 }
 /** Cả đội (còn sống) nhận 1 buff — làm mới nếu đang có cùng loại */
 function teamBuff(pid, type, value, ms, now) {
@@ -4899,7 +5053,7 @@ function checkJudgement(target) {
         let killed = false;
         if (shielded) {
             for (const ef of target.statusEffects) if (SHIELD_TYPES.has(ef.type)) { ef.hp = 0; if (ef.type !== 'guard') ef.dormant = false; }
-        } else if (!team.debugGodMode) {
+        } else if (!team.debugGodMode && !socketGod(team)) {
             const left = target.hp;
             target.hp = 0;
             killMember(target, team.squad);
@@ -6438,7 +6592,7 @@ function processSuddenDeath(room, now) {
         const hits = [];
         ids.forEach((pid, k) => {
             const team = room.players[pid], m = alive[k][0];
-            if (!m.alive || team.debugGodMode) return;
+            if (!m.alive || team.debugGodMode || socketGod(team)) return;
             const dmg = Math.max(1, Math.round(m.maxHp * SUDDEN_DEATH.pct));
             m.hp = Math.max(0, m.hp - dmg);
             hits.push({ targetId: pid, targetIndex: team.squad.indexOf(m), damage: dmg });

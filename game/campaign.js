@@ -1,3 +1,4 @@
+const A = require('./account');
 const W = require('./wallet');
 const S = require('./stamina');
 const chapter = require('./chapter1');
@@ -8,12 +9,20 @@ const DIFFS = ['story', 'hard', 'hell'];
 const DIFF = {
     story: { lv: 0, mul: 1, exp: 1, stone: 1, dia: 1 },
     hard: { lv: 5, mul: 1.25, exp: 1.5, stone: 2, dia: 1 },
-    hell: { lv: 10, mul: 1.6, exp: 2, stone: 3, dia: 2 },
+    hell: { lv: 10, mul: 1.7, exp: 2, stone: 3, dia: 2 },
 };
+// Cấp quái theo mức độ khó (cân bằng 09/11): muốn lên SS phải đạt cấp 40, SSS cấp 60 -> đội SS thật sự ở cấp 40–60, SSS ở cấp 60.
+//   Cốt truyện: cấp ải (ch1 1–20, ch2 21–40) · Khó: 38 + 0,55 × cấp ải (ch1 ≈ 39–49, ch2 ≈ 50–60) — cân cho đội SS
+//   Địa ngục: luôn cấp 60, sức tăng dần theo ải (DIFF.hell.mul × (1 + HELL_RAMP × cấp ải)) — cân cho đội SSS cấp 60
+const HARD_LV = { base: 38, per: 0.55 }, HELL_LV = 60, HELL_RAMP = 0.008;   // giả lập 09/11: mul 1,6 + ramp 0,02 -> đội SSS thua ải cuối chương 2 (0–1/4)
+// quái chương 1 vốn yếu hơn chương 2 (chương 2 có sức nền ×1,4–1,6) -> mức Khó / Địa ngục chương 1 nhân thêm cho ngang
+const C1_HARD_BOOST = 1.6;
+const enemyLevel = (level, diff) => diff === 'hard' ? Math.min(60, Math.max(level + 5, Math.round(HARD_LV.base + HARD_LV.per * level)))
+    : diff === 'hell' ? HELL_LV : level;
+const enemyMul = (level, diff) => DIFF[diff].mul * (diff === 'hell' ? 1 + HELL_RAMP * level : 1) * (diff !== 'story' && level <= 20 ? C1_HARD_BOOST : 1);
 const BOSS_HP = { 0: 1, 1: 2, 2: 3, 3: 4 };
 const stageId = (no, ch = 'c1') => `${ch}-${String(no).padStart(2, '0')}`;
 const cleared = (pr, id, diff) => pr.campaign?.cleared?.[diff]?.[id] === true;
-const allHard = (pr, ch = chapter) => ch.stages.every(s => cleared(pr, s.id, 'hard'));
 const denied = why => ({ ok: false, why });
 
 // Bổ sung từng trường để save cũ vẫn giữ nguyên tiến trình.
@@ -27,6 +36,7 @@ function ensureCampaign(pr, now) {
     pr.campaign.cleared ??= {};
     for (const diff of DIFFS) pr.campaign.cleared[diff] ??= {};
     pr.flags ??= {};
+    A.ensureAccount(pr);
     return pr;
 }
 
@@ -54,10 +64,13 @@ function isUnlocked(pr, id, diff) {
         return denied(`Hãy qua ải ${s.no - 1} ở mức Cốt truyện trước`);
     }
     if (diff === 'hard') {
-        if (!cleared(pr, 'c1-04', 'story')) return denied('Hãy qua ải 4 ở mức Cốt truyện trước');
+        if (!features(pr).has('hard')) return denied(A.unlockText('hard'));
         if (!cleared(pr, id, 'story')) return denied('Hãy qua ải này ở mức Cốt truyện trước');
     }
-    if (diff === 'hell' && !allHard(pr, ch)) return denied('Địa ngục mở khi qua hết 20 ải mức Khó của chương');
+    if (diff === 'hell') {
+        if (!features(pr).has('hell')) return denied(A.unlockText('hell'));
+        if (!cleared(pr, id, 'hard')) return denied('Hãy qua ải này ở mức Khó trước');
+    }
     return { ok: true };
 }
 
@@ -87,22 +100,25 @@ function canStart(pr, { id, diff, classes }, now) {
 }
 
 function features(pr) {
-    const out = new Set(['command']);
-    for (const [no, key] of [[1, 'orb'], [2, 'auto'], [4, 'hard'], [6, 'gear'], [10, 'forge'], [15, 'setDungeon'], [16, 'jewelDungeon']]) {
-        if (cleared(pr, stageId(no), 'story')) out.add(key);
-    }
-    if (allHard(pr)) out.add('hell');
+    const level = A.ensureAccount(pr).level;
+    const out = new Set(Object.entries(A.UNLOCKS).filter(([lv]) => level >= Number(lv)).flatMap(([, keys]) => keys));
+    if (!pr.flags?.nguyen_lieu_lena) out.delete('tavern');
     if (cleared(pr, 'c1-20', 'story')) { out.add('heroShop'); out.add('chapter2'); }
     return out;
 }
 
-function rewardsFor(id, diff, firstClear) {
+function rewardsFor(id, diff, firstClear, rng = Math.random) {
     const s = findStage(id), d = DIFF[diff];
     if (!s || !DIFFS.includes(diff)) throw new Error('Ải hoặc độ khó không hợp lệ');
     const n = s.level ?? s.baseNo ?? s.no;   // chương 2: cấp ải 21–40 -> thưởng lớn hơn
+    const items = {}, rates = A.TABLE.drops;
+    if (rng() < Math.min(rates.smallMax, rates.smallBase + rates.smallPerLevel * n)) items.exp_small = rng() < rates.smallDouble ? 2 : 1;
+    if (s.boss && (firstClear || rng() < rates.bigReplay)) items.exp_big = 1;
+    if (n >= rates.refineMin && rng() < rates.refine) items.refine_stone = 1;
     const diamond = s.flag ? 40 : [10, 30, 50, 100][s.boss];
     return {
-        exp: Math.round((160 + 60 * n) * d.exp),   // P5 cân bằng: ×4 bản đầu (40 + 15n) để cấp anh hùng theo kịp cấp ải · Khó ×1,5 có thể ra số lẻ
+        items, accountExp: A.stageAccountExp(s, diff, firstClear),
+        exp: Math.round((160 + 60 * n + n * n) * d.exp),   // cân bằng 09/11: + n² để chương 2 (ải cấp 21–40) cấp anh hùng vẫn bám kịp cấp ải (tính cả bình EXP rơi) · Khó ×1,5 có thể ra số lẻ
         gold: Math.round((50 + 10 * n) * d.exp),
         stone: (1 + Math.floor(n / 5)) * d.stone,
         diamond: firstClear ? diamond * d.dia : 0,
@@ -110,12 +126,13 @@ function rewardsFor(id, diff, firstClear) {
 }
 
 // Server gọi một lần khi kết thúc trận; thể lực đã trừ lúc vào trận.
-function applyResult(pr, { id, diff, classes, win }, P, now) {
+function applyResult(pr, { id, diff, classes, win }, P, now, rng = Math.random) {
     if (!findStage(id) || !DIFFS.includes(diff)) throw new Error('Ải hoặc độ khó không hợp lệ');
     ensureCampaign(pr, now);
+    const beforeFeatures = features(pr);
     const firstClear = !!win && !cleared(pr, id, diff);
     const result = {
-        win, firstClear, rewards: { exp: 0, gold: 0, stone: 0, diamond: 0 },
+        win, firstClear, rewards: { exp: 0, gold: 0, stone: 0, diamond: 0, accountExp: 0, items: {} }, account: A.accountState(pr), newFeatures: [], accountLevelUp: null,
         leveled: {}, newHeroes: [], refund: 0,
     };
     if (!win) {
@@ -123,7 +140,12 @@ function applyResult(pr, { id, diff, classes, win }, P, now) {
         S.refund(pr.stamina, result.refund);
         return result;
     }
-    result.rewards = rewardsFor(id, diff, firstClear);
+    result.rewards = rewardsFor(id, diff, firstClear, rng);
+    const up = A.addAccountExp(pr, result.rewards.accountExp);
+    result.accountLevelUp = up.levelUps.length ? up : null;
+    result.account = A.accountState(pr);
+    pr.items ??= {};
+    for (const [key, count] of Object.entries(result.rewards.items)) pr.items[key] = (pr.items[key] ?? 0) + count;
     for (const cur of W.CURRENCIES) W.add(pr.wallet, cur, result.rewards[cur]);
     pr.heroes ??= {};
     for (const classId of new Set(classes)) {
@@ -135,7 +157,8 @@ function applyResult(pr, { id, diff, classes, win }, P, now) {
     for (const hero of (firstClear && diff === 'story' ? findStage(id).joins ?? [] : [])) {
         if (!pr.owned.includes(hero)) { pr.owned.push(hero); result.newHeroes.push(hero); }
     }
+    result.newFeatures = [...features(pr)].filter(f => !beforeFeatures.has(f));
     return result;
 }
 
-module.exports = { DIFFS, DIFF, BOSS_HP, CHAPTERS, chapterOf, chapterOpen, ensureCampaign, findStage, isUnlocked, chapterState, canStart, features, rewardsFor, applyResult };
+module.exports = { DIFFS, DIFF, BOSS_HP, CHAPTERS, chapterOf, chapterOpen, ensureCampaign, findStage, isUnlocked, chapterState, canStart, features, rewardsFor, applyResult, enemyLevel, enemyMul, HARD_LV, HELL_LV, HELL_RAMP };

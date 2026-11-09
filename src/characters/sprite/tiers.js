@@ -15,6 +15,39 @@ const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'sera
 /** Bậc (0 Thường · 1 S · 2 SS · 3 SSS) -> hậu tố tranh, null = tranh gốc */
 export const tierOf = (rank) => (rank == null || rank >= 3 ? null : rank >= 2 ? 'ss' : 's');
 
+// Bậc hiện tại của từng anh hùng (cập nhật mỗi lần nhận tiến trình) — để khung thoại / thẻ dùng đúng hình bậc
+let RANKS = {};
+export function setHeroRanks(progress) {
+    RANKS = Object.fromEntries(Object.entries(progress?.heroes ?? {}).map(([id, h]) => [id, ({ s: 1, ss: 2, sss: 3 })[h?.skin] ?? h?.rank ?? 0]));   // trang phục người chơi chọn (nếu có) thắng bậc
+    for (const id of Object.keys(RANKS)) tierPortrait(id);   // cắt sẵn chân dung để lần đầu hiện đã có
+}
+
+// Chân dung theo bậc: cắt khung đứng (idle1) trong tranh bậc -> ảnh dataURL (lưu sẵn). Chưa nạp xong ảnh -> null (lần sau có)
+const portraitCache = new Map();
+export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
+    const t = tierOf(rank), art = ART[classId];
+    if (!t || !art) return null;
+    const image = IMG[`../../assets/sprites/${art}_${t}_sprite.webp`], meta = META[`./${art}Sprite_${t}.json`];
+    const f = meta?.frames?.idle1 ?? (meta && Object.values(meta.frames)[0]);
+    if (!image || !f?.rect) return null;
+    const key = `${art}_${t}`;
+    const c = portraitCache.get(key);
+    if (typeof c === 'string') return c;
+    if (!c) {
+        const img = new Image();
+        portraitCache.set(key, img);
+        img.onload = () => {
+            const [x, y, w, h] = f.rect;
+            const cv = document.createElement('canvas');
+            cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+            portraitCache.set(key, cv.toDataURL('image/png'));
+        };
+        img.src = image;
+    }
+    return null;
+}
+
 /** Đường dẫn tranh bậc của các anh hùng trong tiến trình ({ heroes: { classId: { rank } } }) — để nạp ngầm trước trận */
 export function tierUrls(progress) {
     const out = [];

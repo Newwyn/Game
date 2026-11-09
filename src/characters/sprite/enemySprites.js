@@ -37,6 +37,15 @@ function spriteOf(art) {
     };
 }
 
+// Chiều cao hình theo LOẠI quái (anh hùng cao 2,9): người / Elf ngang anh hùng, Goblin thấp hơn, nấm / ma trơi nhỏ, cây ma to.
+// Trùm nhân thêm classDef.scale (1,15–1,4). Trước đây mọi quái 1,85 -> lính, hiệp sĩ… trông nhỏ hơn anh hùng (vô lý).
+const ART_HEIGHT = {
+    soldier: 2.8, spy: 2.75, fire: 2.9, goblin: 2.3, trapper: 2.3, wolf: 2.2, wolfboss: 2.2,
+    morwen: 2.85, valdric: 2.9, skarn: 2.5, warden: 2.9,
+    c2cultist: 2.8, c2guard: 2.85, c2scout: 2.75, c2shroom: 2.0, c2spiritwolf: 2.4, c2treant: 3.0, c2wisp: 2.0,
+    hollow: 3.0, vexa: 2.8, thalor: 2.85, malkor: 2.85,
+};
+const heightOf = (art) => ART_HEIGHT[art] ?? 2.6;
 const cache = new Map();
 /** Hình hiển thị cho quái có `art` trong CLASS_DEFS (null nếu chưa có tranh -> dùng hình quái cũ) */
 export function enemyVisual(classDef, member) {
@@ -46,13 +55,13 @@ export function enemyVisual(classDef, member) {
     let visual = null;
     const art = classDef.art === 'wolfboss' && !spriteOf('wolfboss') ? 'wolf' : classDef.art;
     if (art === 'wolf' && !spriteOf('wolf')) {
-        visual = { rig: GOLEM_RIG, clips: golemClips, height: 1.75 * scale, shadowSize: 1.5 * scale, locomotion: GOLEM_LOCOMOTION,
+        visual = { rig: GOLEM_RIG, clips: golemClips, height: heightOf('wolf') * scale, shadowSize: 1.5 * scale, locomotion: GOLEM_LOCOMOTION,
             sprite: WOLF_SPRITE, spriteParam: 'enemy', anims: { attack: { clip: 'attack', hitTime: 0.3 }, throw: { clip: 'attack', hitTime: 0.3 } } };
     } else {
         const sp = spriteOf(art);
         if (sp) {
             const base = creatureVisual(classDef.base ?? 'monster_tank', member?.color ?? classDef.color);
-            visual = { ...base, height: 1.85 * scale, shadowSize: 1.5 * scale, sprite: sp, spriteParam: 'enemy' };
+            visual = { ...base, height: heightOf(art) * scale, shadowSize: 1.5 * scale * heightOf(art) / 2.3, sprite: sp, spriteParam: 'enemy' };
         }
     }
     cache.set(key, visual);

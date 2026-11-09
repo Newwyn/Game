@@ -15,6 +15,14 @@ function clientId() {
 }
 export const socket = io({ auth: { clientId: clientId() } });
 
+/** Vào server (trang vào game, src/ui/landing.js): kết nối lại kèm mã đăng nhập -> server đổi sang bản lưu của tài khoản
+ *  server: 'main' | 'test' · token null = khách (bản lưu theo trình duyệt như cũ) */
+export function enterServer(token, server) {
+    socket.auth = { clientId: clientId(), ...(token ? { token, server } : {}) };
+    socket.disconnect();
+    socket.connect();
+}
+
 /** Các lệnh gửi lên server — gom về một chỗ để dễ tìm */
 export const net = {
     queueSkill: (memberIndex, skillIndex) => socket.emit('queueSkill', { memberIndex, skillIndex }),

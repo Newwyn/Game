@@ -16,8 +16,10 @@ const SQUAD = (args.squad ?? 'warrior,assassin,priest').split(',');
 const DIFF = args.diff ?? 'story';
 const RUNS = Number(args.runs ?? 3);
 const AUTO = args.auto === 'true';
+const RANK = args.rank != null ? Number(args.rank) : null;   // bậc cả đội (0 Thường · 1 S · 2 SS · 3 SSS)
+const PORT = Number(args.port ?? 3000);
 
-const socket = io('http://localhost:3000', { auth: { clientId: args.bot ?? `sim-${Date.now().toString(36)}` }, transports: ['websocket'], reconnection: false });
+const socket = io(`http://localhost:${PORT}`, { auth: { clientId: args.bot ?? `sim-${Date.now().toString(36)}` }, transports: ['websocket'], reconnection: false });
 const results = [];
 let run = 0, startAt = 0, clicker = null, players = null, myId = null;
 
@@ -27,7 +29,7 @@ function start() {
 }
 socket.on('connect', () => {
     myId = socket.id;
-    socket.emit('debugCampaign', { upTo: UPTO, level: LEVEL });
+    socket.emit('debugCampaign', { upTo: UPTO, level: LEVEL, ...(RANK != null ? { rank: RANK } : {}), allDiffs: DIFF !== 'story' });
     setTimeout(start, 600);
 });
 socket.on('campaignError', (d) => { console.log('LỖI:', d.text); process.exit(1); });

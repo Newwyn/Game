@@ -7,6 +7,10 @@ const Wd = require('../game/world');
 
 const src = fs.readFileSync(path.join(__dirname, '../src/world/maps.js'), 'utf8');
 const MAPS = JSON.parse(src.slice(src.indexOf('{', src.indexOf('export const MAPS')), src.lastIndexOf(';')));
+// vật thêm (điểm truyện + điều tra) — src/world/mapsExtra.js, gộp như client
+const xsrc = fs.readFileSync(path.join(__dirname, '../src/world/mapsExtra.js'), 'utf8');
+const EXTRA = JSON.parse(xsrc.slice(xsrc.indexOf('{', xsrc.indexOf('export const EXTRA')), xsrc.lastIndexOf(';')));
+for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const objs = MAPS[id].objects, i = objs.findIndex(x => x.id === o.id); if (i >= 0) objs[i] = o; else objs.push(o); }
 const walk = (m, x, y) => m.grid[y]?.[x] === '.';
 
 test('mỗi khu của server có bản đồ, lưới đúng cỡ', () => {
@@ -66,5 +70,24 @@ test('lối ra ở mép bản đồ có ít nhất 1 ô đi được để bư�
             }
             assert.ok(cells.some(([x, y]) => walk(m, x, y)), `${id} mép ${e.edge} -> ${e.scene}`);
         }
+    }
+});
+
+test('vật thêm (điểm truyện / điều tra) không chặn đường: hiện hết cùng lúc vẫn tới được mọi NPC, đồ vật, lối ra', () => {
+    for (const [id, list] of Object.entries(EXTRA)) {
+        const m = MAPS[id];
+        // người đi lang thang không đứng chắn mãi -> không tính
+        const solid = new Set([...m.npcs.filter(n => !Wd.NPCS[n.id]?.wander).map(n => `${n.x},${n.y}`), ...m.objects.filter(o => o.solid && !o.area).flatMap(o => (o.group ?? [[0, 0]]).map(([dx, dy]) => `${o.x + dx},${o.y + dy}`))]);
+        const seen = new Set([m.spawn.join(',')]), q = [m.spawn];
+        while (q.length) {
+            const [x, y] = q.shift();
+            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+                if (seen.has(k) || !walk(m, nx, ny) || solid.has(k)) continue;
+                seen.add(k); q.push([nx, ny]);
+            }
+        }
+        const near = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1], [0, 0]].some(([dx, dy]) => seen.has(`${x + dx},${y + dy}`));
+        for (const t of [...m.npcs, ...m.objects.filter(o => !o.area && !o.trigger)]) assert.ok(near(t.x, t.y), `${id}: không tới được ${t.id}`);
     }
 });

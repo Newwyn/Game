@@ -1,3 +1,36 @@
+Valdric 2 dang (ha lan dau -> song lai dang bung lua) + loi thoai sau tran dung cho (ve bao lai NPC: Ba Mira, Sera, So Agnes, Elise) + cat canh ket chuong 1 (phong benh nha vua -> le dang quang) + canh nen tran theo ban do (24 kieu: rung, mo, cau da, dai sanh, thap dem, rung Elf...) + bo hieu ung pixel cua Rok
+- Canh nen tran ve lai bang code (23 canh, 3 lop: xa / gan / dat) thay khoi 3D
+
+- Codex: canh nen tran + tranh phong benh nha vua; Claude: phan con lai
+- Chi tiet: NHAT_KY_CAP_NHAT.md (09/11 dem)
+- 111 bai kiem tra tu dong
+
+Trang vao game (nen dong, dang nhap / tao tai khoan, de trong van vao duoc) + 2 server (chinh / test, ban luu rieng) + bang tool test (nhay moi ai, mo het chuong, cap/bac nhan vat, tien, do, vat pham, thang ngay, bat tu, dich chuyen)
+
+- Codex: may chu tai khoan + lenh tool; Claude: giao dien
+- Chi tiet: NHAT_KY_CAP_NHAT.md (09/11 toi muon)
+- 102 bai kiem tra tu dong
+
+Ai chinh chuong 1 chi mo tu ban do (Bang ai chi hien ai da qua + the chi duong) + hinh cho moi diem nhiem vu (Sera bi goblin canh, Grix, bay soi, con do Cau Da, vat nho ve bang Flow) + quai tren ban do tan pixel khi thua + hieu ung ky nang 9 trum (Codex) + quai cao dung ti le
+
+- Codex: hieu ung ky nang trum, tranh Grix + soi tren ban do; Flow: 12 vat nho; Claude: phan con lai
+- Chi tiet: NHAT_KY_CAP_NHAT.md (09/11 chieu)
+- 94 bai kiem tra tu dong
+
+Nhiem vu ngoai ban do song song Bang ai (moi ai chuong 1 co diem truyen: gap NPC / toi dung cho -> mo Bang ai dung ai do) + So chung cu (17 chung cu, 4 chung cu an phai di dieu tra) + Doi chat truoc nha vua truoc ai 18 + sua loi khong toi duoc lao Corvin
+
+Cot truyen chuong 1 moi "Ngon Lua Duoi Thanh Huy" (mo dau giac mo, Sera duoc cuu va vao doi o ai 7, 5 nhanh co loi thoai) + cap tai khoan mo chuc nang (AUTO, Trang bi, Kho, Dia nguc, PvP...) + phan thuong moi (binh EXP, da tinh luyen, kim cuong chi lan dau, bua may man chi mua 1 lan/thang) + can bang 3 do kho bang gia lap (Kho cho doi SS, Dia nguc cho doi SSS)
+
+- Loi thoai chuong 1 viet lai tu nhien, ro ca tinh (xem docs/LOI_THOAI_CHUONG_1_TRONG_GAME.md); ai 1-10 nhe mot nua
+- Thu nhanh o man chon che do: dat cap tai khoan, nhay toi ai, choi lai tu dau
+- Claude: cot truyen + can bang; Codex: cap tai khoan + phan thuong
+- 92 bai kiem tra tu dong
+
+Sua loi & chau chuot chuong 1-2: loi thoai truoc ai co tranh nen dung noi (het lo canh tran cu), chan dung anh hung dung bac S/SS, ai 5 Soi Dau Dan bot kho (gia lap thua 12/12 -> thang ~2/3), Lunaria mo dung luc, so nhiem vu chuong 2 khong bat ve kinh thanh, Nerissa co thong bao gia nhap + tai lieu cot truyen docs/COT_TRUYEN_HIEN_TAI.md de sua truyen
+
+- Chi tiet: NHAT_KY_CAP_NHAT.md (09/11)
+- 82 bai kiem tra tu dong
+
 Chuong 2 vung Elf (20 ai + 4 nhanh, 4 trum, Nerissa/Sylva/Elarion gia nhap, ban do Sylvaren + Lunaria) + giao dien ban do moi (ban do nho, Nhan vat chi so/ky nang/trang bi/trang phuc, Tui do 4 phan, Cua hang, Cai dat) + tranh trang phuc S/SS du 11 anh hung + co cao gap quai + vao duoc trong nha + icon ve AI
 
 - Tranh: Codex (90 tam trang phuc, 11 quai/trum, 2 ban do, 7 NPC, 3 phong, 32 icon)

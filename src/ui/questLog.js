@@ -105,9 +105,9 @@ export function trackerHTML(quest) {
  * @param {{ tab?: 'active'|'main'|'side', sel?: string|null, tracked?: string|null }} [opts]
  * @returns {string} HTML string
  */
-export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked = null } = {}) {
+export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked = null, evidence = null } = {}) {
     const safeQuests = Array.isArray(quests) ? quests : [];
-    const curTab = (tab === 'main' || tab === 'side' || tab === 'active') ? tab : 'active';
+    const curTab = (tab === 'main' || tab === 'side' || tab === 'active' || (tab === 'evidence' && evidence)) ? tab : 'active';
 
     const counts = {
         active: safeQuests.filter(q => q && q.state === 'active').length,
@@ -121,7 +121,8 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
     const tabsMeta = [
         ['active', 'Đang làm', counts.active],
         ['main', 'Chính tuyến', counts.main],
-        ['side', 'Phụ', counts.side]
+        ['side', 'Phụ', counts.side],
+        ...(evidence ? [['evidence', '🔎 Chứng cứ', `${evidence.count}/${evidence.total}`]] : [])
     ];
 
     const listHTML = filtered.length
@@ -148,7 +149,25 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
         <p>Chưa có nhiệm vụ nào ở mục này</p>
     </div>`;
 
-    if (current) {
+    // 🔎 Sổ chứng cứ (game/evidence.js -> worldState.evidence): danh sách bên trái, chi tiết bên phải
+    let evList = null;
+    if (curTab === 'evidence') {
+        const items = evidence.list ?? [];
+        const cur = items.find(e => e.id === sel) ?? items.find(e => e.got) ?? items[0] ?? null;
+        evList = items.map(e => `<button type="button" class="ql-row ql-ev-row${e.got ? '' : ' is-missing'}${cur && e.id === cur.id ? ' is-selected' : ''}" data-ql-sel="${esc(e.id)}">
+            <span class="ql-row-icon" aria-hidden="true">${esc(e.icon)}</span>
+            <span class="ql-row-main"><span class="ql-row-title-line"><b class="ql-row-title">${esc(e.name)}</b></span>
+            <small class="ql-row-sub">${esc(e.got ? e.from : e.hint ?? '')}</small></span></button>`).join('');
+        detailHTML = cur ? `<div class="ql-detail-content">
+            <div class="ql-detail-meta"><span class="ql-status-pill">${cur.got ? '✓ Đã có' : '🔒 Chưa tìm thấy'}</span><span class="ql-tracked-pill">${esc(cur.from)}</span></div>
+            <h3 class="ql-detail-title"><span class="ql-ev-big">${esc(cur.icon)}</span> ${esc(cur.name)}</h3>
+            ${cur.got ? `<p class="ql-desc">${esc(cur.desc)}</p>` : `<p class="ql-desc"><i>${esc(cur.hint ?? '')}</i></p>`}
+            ${cur.comment ? `<div class="ql-obj-box"><div class="ql-obj-head"><span class="ql-obj-label">${esc(cur.comment.who === 'me' ? 'Bạn' : ({ warrior: 'Rok', assassin: 'Jessica', priest: 'Sera', archer: 'Lyra', corvin: 'Lão Corvin' })[cur.comment.who] ?? cur.comment.who)}</span></div><div class="ql-obj-text">“${esc(cur.comment.text)}”</div></div>` : ''}
+            <div class="ql-reward">⚖️ Chứng cứ sẽ dùng khi đối chất trước nhà vua (trước ải 18). Đã có <b>${evidence.count}/${evidence.total}</b>.</div>
+        </div>` : detailHTML;
+    }
+
+    if (current && curTab !== 'evidence') {
         const hasProg = current.progress && Number(current.progress.need) > 0;
         const have = hasProg ? Math.max(0, Number(current.progress.have) || 0) : 0;
         const need = hasProg ? Math.max(1, Number(current.progress.need) || 1) : 1;
@@ -211,7 +230,7 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
                         </button>`).join('')}
                     </nav>
                     <div class="ql-list">
-                        ${listHTML}
+                        ${evList ?? listHTML}
                     </div>
                 </section>
                 <section class="ql-right" aria-label="Chi tiết nhiệm vụ">

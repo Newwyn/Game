@@ -4,7 +4,7 @@ const Wd = require('../game/world');
 const C = require('../game/campaign');
 
 const fresh = () => { const pr = C.ensureCampaign({}, 0); Wd.ensureWorld(pr); return pr; };
-const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; };
+const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; Wd.syncReports(pr); };   // coi như đã về báo lại sau mỗi ải
 const wallet = (pr) => pr.wallet;
 const quest = (pr, id) => Wd.questLog(pr).find(q => q.id === id);
 
@@ -15,43 +15,40 @@ test('quest log: fresh and legacy saves are read without mutation', () => {
         assert.deepEqual(pr, before);
         assert.equal(log.length, 7);
         assert.equal(log[0].id, 'main');
-        assert.match(log[0].title, /Ải 1: Đêm ở cổng làng/);
-        assert.deepEqual(log[0].target, { scene: 'ashford', kind: 'obj', id: 'board' });
+        assert.match(log[0].title, /Ải 1: Cánh cổng chưa được phép đóng/);
+        assert.deepEqual(log[0].target, { scene: 'ashford', kind: 'npc', id: 'rok' });   // điểm truyện ải 1: gặp Rok
         assert.ok(log.slice(1).every(q => q.state === 'locked' && q.target === null && q.needNo > 0));
     }
     const pr = fresh();
     assert.deepEqual(Wd.worldState(pr, 0).quests, Wd.questLog(pr));
 });
 
-test('quest log: ambush, herb collection, turn-in and escort', () => {
+test('quest log: ambush (ải 2) rồi Sera chỉ xuất hiện khi được cứu (ải 7) — việc thuốc cho nhà cứu tế', () => {
     const pr = fresh();
     clear(pr, 1);
     assert.deepEqual(quest(pr, 'main').target, { scene: 'outskirts', kind: 'obj', id: 'ambush' });
-    clear(pr, 2);
+    clear(pr, 6);
     const giver = { scene: 'ashford', kind: 'npc', id: 'sera' };
+    assert.equal(quest(pr, 'sera').state, 'locked');   // Sera còn bị giam
+    assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, true);
+    assert.deepEqual(quest(pr, 'main').target, { scene: 'forest', kind: 'obj', id: 'sp_swamp' });   // ải 7: lối mòn vào đầm lầy (hoặc Bảng ải)
+    clear(pr, 7);
+    assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, false);
     assert.equal(quest(pr, 'sera').state, 'offered');
     assert.deepEqual(quest(pr, 'sera').target, giver);
-    assert.deepEqual(quest(pr, 'main').target, giver);
-    assert.match(quest(pr, 'main').obj, /Giúp Seraphine/);
     Wd.interact(pr, wallet(pr), 'ashford', 'sera');
     assert.equal(quest(pr, 'sera').state, 'active');
-    assert.deepEqual(quest(pr, 'sera').progress, { have: 0, need: 1 });
     assert.deepEqual(quest(pr, 'sera').target, { scene: 'forest', kind: 'obj', id: 'herb' });
-    assert.deepEqual(quest(pr, 'main').target, quest(pr, 'sera').target);
     Wd.interact(pr, wallet(pr), 'forest', 'herb');
-    assert.deepEqual(quest(pr, 'sera').progress, { have: 1, need: 1 });
     assert.deepEqual(quest(pr, 'sera').target, giver);
     assert.match(quest(pr, 'sera').obj, /Mang Thảo dược/);
-    Wd.interact(pr, wallet(pr), 'ashford', 'sera');
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'sera').flag, 'thao_duoc_sera');
     assert.equal(quest(pr, 'sera').state, 'done');
-    assert.equal(quest(pr, 'sera').target, null);
-    assert.deepEqual(quest(pr, 'main').target, giver);
-    assert.match(quest(pr, 'main').obj, /hộ tống/);
 });
 
 test('quest log: Lena targets the remaining item, then her NPC; Borin targets the hammer', () => {
     const pr = fresh();
-    clear(pr, 4);
+    clear(pr, 10);
     pr.world.quests.lena = 'active';
     for (const [held, missing, scene] of [['wheat', 'mushroom', 'forest'], ['mushroom', 'wheat', 'outskirts']]) {
         pr.world.bag = { [held]: true };
@@ -68,9 +65,9 @@ test('quest log: Lena targets the remaining item, then her NPC; Borin targets th
 
 test('quest log: secrets unlock at their story thresholds and finish via flags', () => {
     for (const [id, n, flag, scene, branch] of [
-        ['well', 1, 'gieng_co', 'ashford', 'N1'],
-        ['pages', 16, 'trang_sach', 'capital', 'N4'],
-        ['crypt', 18, 'loi_vao_ham_mo', 'capital', 'N5'],
+        ['well', 7, 'gieng_co', 'ashford', 'N1'],        // sau khi Sera về làng
+        ['pages', 20, 'trang_sach', 'capital', 'N4'],    // sau khi kinh thành an toàn
+        ['crypt', 20, 'loi_vao_ham_mo', 'capital', 'N5'],   // sau lễ tang nhà vua
     ]) {
         const pr = fresh();
         clear(pr, n - 1);
@@ -103,12 +100,16 @@ test('quest log: every story stage, target, shape and side ordering is valid', (
             assert.deepEqual(pr, before);
             assert.equal(log.filter(q => q.type === 'main').length, 1);
             if (n < 20) assert.equal(log[0].title, `Chương 1 · Ải ${n + 1}: ${stages[n].name}`);
-            if (n >= 3 && n < 20) assert.deepEqual(log[0].target,
-                { scene: n >= 12 ? 'capital' : 'ashford', kind: 'obj', id: n >= 12 ? 'gate_board' : 'board' });
+            if (n >= 2 && n < 20) {   // chính tuyến chỉ tới điểm truyện của ải kế tiếp (Bảng ải chỉ để đánh lại)
+                const sp = Wd.STORY_SPOTS[n + 1];
+                assert.deepEqual(log[0].target, sp.npc ? { scene: sp.scene, kind: 'npc', id: sp.npc } : { scene: sp.scene, kind: 'obj', id: sp.obj });
+                assert.equal(log[0].obj, sp.go);   // ải này chỉ bắt đầu từ bản đồ — không nhắc Bảng ải
+            }
             if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang chương 2
                 assert.equal(log[0].state, 'active');
                 assert.equal(log[0].title, 'Chương 2 · Ải 1: Biên giới sương bạc');
-                assert.deepEqual(log[0].target, { scene: 'capital', kind: 'obj', id: 'gate_board' });
+                assert.equal(log[0].target, null);   // rừng chưa có Bảng ải -> hướng dẫn dùng 📖 Chọn ải, không bắt về kinh thành
+                assert.match(log[0].obj, /Chọn ải/);
             }
             const ranks = log.slice(1).map(q => rank[q.state]);
             assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));
@@ -137,7 +138,8 @@ test('dữ liệu: NPC đều có hồ sơ, việc / sự kiện trỏ đúng', 
         assert.ok(Wd.AREAS[s.area]);
         for (const n of s.npcs) assert.ok(Wd.NPCS[n], n);
     }
-    assert.deepEqual(Wd.EVENT_STAGE, { jess: 'c1-02', sera: 'c1-03' });
+    assert.equal(Wd.EVENT_STAGE.jess, 'c1-02');
+    for (let n = 1; n <= 20; n++) assert.equal(Wd.EVENT_STAGE[`s${n}`], `c1-${String(n).padStart(2, '0')}`);
 });
 
 test('hồ sơ nhân vật chính + xưng hô Nam / Nữ', () => {
@@ -186,20 +188,6 @@ test('sự kiện Jessica (ải 2): chưa qua ải 1 thì yên ắng, sau đó m
     assert.equal(Wd.worldState(pr, 0).scenes.outskirts.npcs.find(n => n.id === 'jessica').hidden, false);
 });
 
-test('Seraphine: việc thảo dược sau ải 2 -> hộ tống vào rừng (ải 3)', () => {
-    const pr = fresh();
-    clear(pr, 2);
-    assert.equal(Wd.npcDialog(pr, 'sera').quest, 'offer');
-    Wd.interact(pr, wallet(pr), 'ashford', 'sera');
-    assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'herb').ok, true);
-    const done = Wd.interact(pr, wallet(pr), 'ashford', 'sera');
-    assert.equal(done.flag, 'thao_duoc_sera');
-    const ev = Wd.interact(pr, wallet(pr), 'ashford', 'sera');
-    assert.equal(ev.startStage, 'c1-03');
-    clear(pr, 3);
-    assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, true);   // đã vào đội
-});
-
 test('việc Borin / Lena mở nhánh N2 / N3', () => {
     const pr = fresh();
     clear(pr, 4);
@@ -207,6 +195,8 @@ test('việc Borin / Lena mở nhánh N2 / N3', () => {
     Wd.interact(pr, wallet(pr), 'outskirts', 'hammer');
     assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'borin').flag, 'bua_borin');
     assert.equal(C.isUnlocked(pr, 'c1-n2', 'story').ok, true);
+    assert.equal(Wd.npcDialog(pr, 'lena').quest, undefined);   // bữa ăn của Lena: sau trận Skarn (ải 10)
+    clear(pr, 10);
     Wd.interact(pr, wallet(pr), 'ashford', 'lena');
     Wd.interact(pr, wallet(pr), 'outskirts', 'wheat');
     assert.equal(Wd.npcDialog(pr, 'lena').quest, 'active');
@@ -216,11 +206,94 @@ test('việc Borin / Lena mở nhánh N2 / N3', () => {
 
 test('câu đố Giếng Cổ, trang sách, hầm mộ', () => {
     const pr = fresh();
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well').ok, false);   // giếng: sau khi Sera về làng (ải 7)
+    clear(pr, 7);
     assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well').puzzle, 'well');
     assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well', { answer: ['🌙', '☀️', '⭐', '💧'] }).ok, false);
     assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'well', { answer: Wd.WELL_ANSWER }).flag, 'gieng_co');
-    clear(pr, 18);
+    clear(pr, 20);
     assert.equal(Wd.interact(pr, wallet(pr), 'capital', 'pages', { answer: Wd.PAGES }).flag, 'trang_sach');
     assert.equal(Wd.interact(pr, wallet(pr), 'capital', 'crypt').flag, 'loi_vao_ham_mo');
     assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, true);
+});
+
+test('Lunaria mở sau ải 12 chương 2 (qua Cầu Rễ), báo đúng mốc', () => {
+    const pr = fresh();
+    clear(pr, 20);
+    let ws = Wd.worldState(pr, 0);
+    assert.equal(ws.scenes.sylvaren.open, true);
+    assert.equal(ws.scenes.lunaria.open, false);
+    assert.equal(ws.scenes.lunaria.needText, 'ải 12 chương 2');
+    for (let n = 1; n <= 12; n++) pr.campaign.cleared.story[`c2-${String(n).padStart(2, '0')}`] = true;
+    ws = Wd.worldState(pr, 0);
+    assert.equal(ws.scenes.lunaria.open, true);
+});
+
+test('điểm truyện: NPC / vật mở đúng ải kế tiếp; điều tra cho chứng cứ; đối chất trước ải 18', () => {
+    const E = require('../game/evidence');
+    const pr = fresh();
+    assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'rok').startStage, 'c1-01');   // ải 1: gặp Rok
+    clear(pr, 2);
+    assert.equal(Wd.worldState(pr, 0).scenes.forest.objects.find(o => o.id === 'sp_bandage').state, 'ready');
+    assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'sp_bandage').startStage, 'c1-03');
+    assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'sp_wolf').ok, false);   // chưa tới ải 5
+    clear(pr, 3);
+    assert.equal(Wd.worldState(pr, 0).scenes.forest.objects.find(o => o.id === 'sp_bandage').state, 'hidden');
+    const c = Wd.interact(pr, wallet(pr), 'forest', 'clue_wheel');
+    assert.equal(c.evidence, 'cart_tracks');
+    assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'clue_wheel').ok, false);
+    assert.equal(Wd.worldState(pr, 0).evidence.count, 1);
+    clear(pr, 17);
+    for (const id of ['lot_numbers', 'withdraw_order', 'target_board', 'grain_transfer']) pr.evidence[id] = true;
+    const t = Wd.interact(pr, wallet(pr), 'capital', 'elise');
+    assert.ok(t.present && t.present.questions.length === 4);
+    const before = pr.wallet.diamond;
+    const r = Wd.presentTrial(pr, pr.wallet, { q1: 'lot_numbers', q2: 'withdraw_order', q3: 'target_board', q4: 'grain_transfer' });
+    assert.equal(r.result.correct, 4);
+    assert.equal(r.startStage, 'c1-18');
+    assert.equal(pr.wallet.diamond, before + 4 * E.TRIAL_REWARD.diamond);
+    assert.equal(Wd.interact(pr, wallet(pr), 'capital', 'elise').startStage, 'c1-18');   // đã đối chất: Elise đưa thẳng vào ải
+    const again = Wd.presentTrial(pr, pr.wallet, {});
+    assert.equal(again.rewards.diamond ?? 0, 0);   // thưởng chỉ lần đầu
+});
+
+test('về báo lại sau trận: phần lời ở nơi khác chuyển sang NPC ngoài bản đồ, báo xong mới mở ải kế tiếp', () => {
+    const S = require('../game/story');
+    const pr = fresh();
+    clear(pr, 0);
+    pr.campaign.cleared.story['c1-01'] = true;   // vừa thắng ải 1, chưa về làng
+    assert.equal(Wd.pendingReport(pr), 1);
+    assert.deepEqual(Wd.postNow(1, S.post[1]), S.post[1].slice(0, 4));   // tại cổng làng: chỉ lời của Rok
+    const mira = Wd.worldState(pr).scenes.ashford.npcs.find(n => n.id === 'mira');
+    assert.equal(mira.mark, '!');
+    const log = Wd.questLog(pr);
+    assert.deepEqual(log[0].target, { scene: 'ashford', kind: 'npc', id: 'mira' });
+    assert.equal(Wd.worldState(pr).scenes.outskirts.objects.find(o => o.id === 'ambush').state, 'later');   // ải 2 chưa tới lúc
+    const r = Wd.interact(pr, pr.wallet, 'ashford', 'mira');
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.lines, S.post[1].slice(4).map(l => [...l]));
+    assert.equal(Wd.pendingReport(pr), null);
+    assert.equal(Wd.worldState(pr).scenes.outskirts.objects.find(o => o.id === 'ambush').state, 'ready');
+});
+
+test('kết chương 1: thắng Valdric -> về cung gặp Elise, cắt cảnh phòng bệnh nhà vua rồi lễ đăng quang', () => {
+    const S = require('../game/story');
+    const pr = fresh();
+    clear(pr, 19);
+    pr.campaign.cleared.story['c1-20'] = true;
+    assert.equal(Wd.pendingReport(pr), 20);
+    assert.equal(Wd.questLog(pr)[0].title, 'Chương 1 · Hồi kết');
+    const r = Wd.interact(pr, pr.wallet, 'capital', 'elise');
+    assert.deepEqual(r.lines, S.ending.map(l => [...l]));
+    assert.deepEqual(r.cutscene.map(c => c[0]), ['king_bedroom', 'capital_castle']);
+    assert.match(r.lines[r.cutscene[1][1]][1], /lên ngôi/);
+    assert.equal(Wd.pendingReport(pr), null);
+});
+
+test('save cũ đã qua nhiều ải: không bắt quay lại báo các ải cũ', () => {
+    const C = require('../game/campaign');
+    const pr = C.ensureCampaign({}, 0);
+    for (let i = 1; i <= 12; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true;
+    Wd.ensureWorld(pr);
+    assert.equal(Wd.pendingReport(pr), null);
 });

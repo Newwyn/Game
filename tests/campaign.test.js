@@ -8,7 +8,7 @@ test('bổ sung save cũ và giữ dữ liệu đã có', () => {
     const pr = fresh();
     assert.deepEqual(pr, {
         wallet: { gold: 500, diamond: 100, stone: 0 }, stamina: { value: 360, lastAt: 0 },
-        owned: ['warrior'], flags: {},
+        owned: ['warrior'], flags: {}, account: { level: 1, exp: 0, migrated: true },
         campaign: { cleared: { story: {}, hard: {}, hell: {} } },
     });
     pr.wallet.gold = 7;
@@ -26,25 +26,27 @@ test('mở Cốt truyện, Khó, Địa ngục theo tiến trình', () => {
     assert.equal(C.isUnlocked(pr, 'c1-02', 'story').ok, false);
     clear(pr, 'story', 3);
     assert.equal(C.isUnlocked(pr, 'c1-03', 'hard').ok, false);
-    clear(pr, 'story', 4);
+    clear(pr, 'story', 4); pr.account.level = 10;
     assert.equal(C.isUnlocked(pr, 'c1-03', 'hard').ok, true);
     assert.equal(C.isUnlocked(pr, 'c1-05', 'hard').ok, false);
     clear(pr, 'hard', 19);
     assert.equal(C.isUnlocked(pr, 'c1-01', 'hell').ok, false);
-    clear(pr, 'hard', 20);
+    clear(pr, 'hard', 20); pr.account.level = 20;
     assert.equal(C.isUnlocked(pr, 'c1-01', 'hell').ok, true);
 });
-test('nhánh cần cờ; N5 cần qua ải 18', () => {
+test('nhánh cần cờ; N5 cần qua ải 20', () => {
     const pr = fresh();
     assert.equal(C.isUnlocked(pr, 'c1-n1', 'story').ok, false);
     pr.flags.gieng_co = true;
     assert.equal(C.isUnlocked(pr, 'c1-n1', 'story').ok, true);
     pr.flags.loi_vao_ham_mo = true;
     assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, false);
-    clear(pr, 'story', 18);
+    clear(pr, 'story', 19);
+    assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, false);
+    clear(pr, 'story', 20);
     assert.equal(C.isUnlocked(pr, 'c1-n5', 'story').ok, true);
     assert.equal(C.isUnlocked(pr, 'c1-n1', 'hard').ok, false);
-    pr.campaign.cleared.story['c1-n1'] = true;
+    pr.campaign.cleared.story['c1-n1'] = true; pr.account.level = 10;
     assert.equal(C.isUnlocked(pr, 'c1-n1', 'hard').ok, true);
 });
 test('kiểm tra đội và thể lực không trừ điểm', () => {
@@ -61,18 +63,18 @@ test('kiểm tra đội và thể lực không trừ điểm', () => {
 });
 test('trạng thái và tính năng theo mốc', () => {
     const pr = fresh();
-    assert.deepEqual([...C.features(pr)], ['command']);
+    assert.deepEqual([...C.features(pr)], ['command', 'orb']);
     let state = C.chapterState(pr);
     assert.equal(state.stages.length, 20);
     assert.equal(state.branches.length, 5);
     assert.deepEqual(state.stages[0].status, { story: 'open', hard: 'locked', hell: 'locked' });
-    clear(pr, 'story', 10);
-    assert.deepEqual([...C.features(pr)], ['command', 'orb', 'auto', 'hard', 'gear', 'forge']);
+    clear(pr, 'story', 10); pr.account.level = 10;
+    assert.deepEqual([...C.features(pr)], ['command', 'orb', 'auto', 'gear', 'forge', 'hard']);
     state = C.chapterState(pr);
     assert.equal(state.stages[0].status.story, 'cleared');
     assert.equal(state.stages[10].status.story, 'open');
     clear(pr, 'story', 20);
-    clear(pr, 'hard', 20);
+    clear(pr, 'hard', 20); pr.account.level = 20;
     for (const key of ['setDungeon', 'jewelDungeon', 'hell', 'heroShop']) assert.ok(C.features(pr).has(key));
     assert.equal(C.findStage('missing'), null);
     assert.equal(C.findStage('c1-n1').flag, 'gieng_co');
@@ -82,7 +84,7 @@ test('hệ số độ khó và máu trùm', () => {
     assert.deepEqual(C.DIFF, {
         story: { lv: 0, mul: 1, exp: 1, stone: 1, dia: 1 },
         hard: { lv: 5, mul: 1.25, exp: 1.5, stone: 2, dia: 1 },
-        hell: { lv: 10, mul: 1.6, exp: 2, stone: 3, dia: 2 },
+        hell: { lv: 10, mul: 1.7, exp: 2, stone: 3, dia: 2 },
     });
     assert.deepEqual(C.BOSS_HP, { 0: 1, 1: 2, 2: 3, 3: 4 });
 });

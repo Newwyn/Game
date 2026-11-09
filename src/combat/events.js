@@ -2109,16 +2109,21 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('goblinFx', onGoblinFx);
     socket.on('bossFx', d => {
         const boss = getView(d.casterId, d.casterIdx);
+        const allies = game.views?.[d.casterId] ?? [];
+        const foes = game.views?.[d.targetId] ?? [];
         if (d.kind === 'warning') {
             spawnBossBanner(boss?.position ?? { x: d.x, y: 0, z: d.z }, d.name);
-            for (const shape of d.shapes) spawnBossWarning(shape, d.warning / 1000);
         } else {
             for (const e of d.effects ?? []) {
                 const target = getView(d.targetId, e.targetIndex);
                 if (target) showHit(target, e);
             }
-            if (boss) spawnHitSpark(chestOf(boss));
         }
+        spawnBossWarning(d, (d.warning ?? 1000) / 1000, {
+            boss, allies, foes,
+            getAllies: () => game.views?.[d.casterId] ?? [],
+            shake: () => cameraRig.shake(0.09, 140),
+        });
     });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('suddenDeath', onSuddenDeath);

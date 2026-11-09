@@ -37,6 +37,9 @@ const STORY_PARTY = {
     12: { guests: ['summoner'], joins: ['summoner'] },     // Sylva — người giữ Cầu Rễ, thử thách rồi đi cùng
     18: { guests: ['elementalist'], joins: ['elementalist'] },   // Elarion — học giả tháp chiêm tinh
 };
+// Sức nền quái chương 2 (giả lập 09/11: 1.0 thì đội cấp kỳ vọng thắng 100% chỉ trong ~15 giây — quá dễ so với chương 1)
+// mặc định: ải thường ×1.4, ải trùm ×1.5; chỉnh riêng từng ải ở đây
+const BASE = { 10: 1.45, 20: 1.45 };   // ải 10 (Vexa) ×1.6 thắng 2/6   // ải thường ×1.4 thắng 100% ~17 giây (vừa) · trùm ×1.5 thắng 6/6 dễ -> ×1.6
 const stages = rows.map(([name, enemies], i) => {
     const no = i + 1;
     return {
@@ -44,6 +47,7 @@ const stages = rows.map(([name, enemies], i) => {
         part: no <= 10 ? 'sylvaren' : no <= 12 ? 'cau' : 'lunaria',
         level: 20 + no, boss: ({ 5: 1, 10: 2, 15: 1, 20: 3 })[no] || 0,
         enemies,
+        base: BASE[no] ?? (({ 5: 1, 10: 2, 15: 1, 20: 3 })[no] ? 1.6 : 1.4),   // sức nền của ải: áp cho cả 3 mức độ khó
         ...(STORY_PARTY[no] ?? {}),
     };
 });

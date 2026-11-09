@@ -1,24 +1,28 @@
+import { icon } from './icons.js';
+import '../styles/account.css';
 // ============================================================
-// 📖 CHẾ ĐỘ CỐT TRUYỆN (CAMPAIGN) — Chương 1: Ngọn Lửa Gây Chiến
+// 📖 CHẾ ĐỘ CỐT TRUYỆN (CAMPAIGN) — Chương 1: Ngọn Lửa Dưới Thánh Huy
 //   · Màn chọn ải: ví (Vàng, Kim Cương, Đá Cường Hoá), thể lực (value/360 + đếm ngược + hộp xác nhận mua),
 //     3 tab độ khó (Cốt truyện / Khó / Địa ngục), 20 ải chia 3 phần + khu Nhánh ẩn
 //   · Màn kết quả trận (stageResult): Thắng / Thua, thưởng, lần đầu qua, lên cấp, Lyra gia nhập, hoàn thể lực
 // ============================================================
 import { net, socket } from '../net/socket.js';
 import { openCampaignSquadSelect } from './squadSelect.js';
-import { showModeMenu } from './modeMenu.js';
+import { showModeMenu, unlockText } from './modeMenu.js';
 import { hideBattleResult } from './overlays.js';
 import { showGear } from './gear.js';
 import { showWorld, hideWorld } from './world.js';
-import { playStory } from './story.js';
+import { playStory, stageBackdrop } from './story.js';
 import { showExtras } from './extras.js';
 
 const STAMINA_MAX = 360;
 const STAMINA_REGEN_SEC = 300;
+// cấp quái hiển thị — giống enemyLevel trong game/campaign.js (Khó 38 + 0,55 × cấp ải, tối đa 60 · Địa ngục 60)
+const enemyLv = (level, diff) => diff === 'hard' ? Math.min(60, Math.max(level + 5, Math.round(38 + 0.55 * level))) : diff === 'hell' ? 60 : level;
 const DIFF_META = {
-    story: { key: 'story', name: 'Cốt truyện', icon: '📖', cost: 4, lvAdd: 0, lockWhy: 'Mặc định mở' },
-    hard: { key: 'hard', name: 'Khó', icon: '🔥', cost: 6, lvAdd: 5, lockWhy: 'Mở khi qua ải 4 ở mức Cốt truyện' },
-    hell: { key: 'hell', name: 'Địa ngục', icon: '💀', cost: 10, lvAdd: 10, lockWhy: 'Địa ngục mở khi qua hết 20 ải mức Khó' },
+    story: { key: 'story', name: 'Cốt truyện', icon: '📖', cost: 4, lvAdd: 0, lockWhy: 'Mặc định mở', sub: 'Độ khó chuẩn' },
+    hard: { key: 'hard', name: 'Khó', icon: '🔥', cost: 6, lvAdd: 5, sub: 'Quái cấp 39–60 · hợp với đội bậc SS', get lockWhy() { return unlockText('hard'); } },
+    hell: { key: 'hell', name: 'Địa ngục', icon: '💀', cost: 10, lvAdd: 10, sub: 'Quái cấp 60 · hợp với đội bậc SSS', get lockWhy() { return unlockText('hell'); } },
 };
 
 const PARTS = [
@@ -35,18 +39,7 @@ const BOSS_LABELS = {
 };
 
 const C2_HINTS = { 7: '💧 Nerissa gia nhập', 12: '🦌 Sylva gia nhập', 18: '🔮 Elarion gia nhập', 20: '🏆 Kết chương 2' };
-const STAGE_HINTS = {
-    1: 'Mở ra lệnh kỹ năng',
-    2: 'Mở năng lượng Orb',
-    3: 'Mở tự động đánh (AUTO)',
-    4: 'Mở độ khó Khó',
-    6: 'Mở Trang bị',
-    10: 'Mở Lò rèn · Đường lên kinh thành',
-    12: 'Giải cứu Lyra 🏹',
-    15: 'Mở Hầm ngục đồ bộ tộc Người',
-    16: 'Mở Hầm ngục trang sức',
-    20: 'Mở Cửa hàng anh hùng',
-};
+const STAGE_HINTS = { 10: 'Đường lên kinh thành', 12: 'Giải cứu Lyra 🏹' };
 
 const HERO_NAMES = {
     assassin: { name: 'Jessica', emoji: '🥷', title: 'Sát Thủ' },
@@ -108,7 +101,7 @@ function createDefaultState() {
     return {
         chapter: {
             id: 'c1',
-            name: 'Ngọn Lửa Gây Chiến',
+            name: 'Ngọn Lửa Dưới Thánh Huy',
             stages: DEFAULT_STAGES.map((s, idx) => ({
                 ...s,
                 status: {
@@ -223,37 +216,26 @@ function normalizeState(raw = {}) {
         chapter: {
             id: ch.id ?? 'c1',
             no: ch.no ?? 1,
-            name: ch.name ?? 'Ngọn Lửa Gây Chiến',
+            name: ch.name ?? 'Ngọn Lửa Dưới Thánh Huy',
             parts: ch.parts ?? PARTS,
-            chapters: ch.chapters ?? [{ id: 'c1', no: 1, name: 'Ngọn Lửa Gây Chiến', open: true }],
+            chapters: ch.chapters ?? [{ id: 'c1', no: 1, name: 'Ngọn Lửa Dưới Thánh Huy', open: true }],
             stages,
             branches,
         },
         wallet,
         stamina,
         owned,
-        features,
+        features, account: raw.account ?? state?.account,
         heroes: raw.squad?.heroes ?? raw.heroes ?? state?.heroes ?? null,   // server gửi dữ liệu bảng chọn đội trong `squad`
         story: raw.story ?? state?.story ?? null,   // lời thoại trước ải (P4)
+        spots: raw.spots ?? state?.spots ?? {},   // ải chỉ bắt đầu từ bản đồ -> gợi ý đi đâu
     };
 }
 
 function isDiffUnlocked(diff) {
     if (diff === 'story') return { ok: true };
     const feats = new Set(state.features ?? []);
-    const stages = state.chapter?.stages ?? [];
-    if (diff === 'hard') {
-        const s4Cleared = stages.find(s => s.no === 4)?.status?.story === 'cleared';
-        const anyHardOpen = stages.some(s => (s.status?.hard ?? 'locked') !== 'locked');
-        if (feats.has('hard') || s4Cleared || anyHardOpen) return { ok: true };
-        return { ok: false, why: DIFF_META.hard.lockWhy };
-    }
-    if (diff === 'hell') {
-        const allHardCleared = stages.length >= 20 && stages.every(s => s.status?.hard === 'cleared');
-        const anyHellOpen = stages.some(s => (s.status?.hell ?? 'locked') !== 'locked');
-        if (feats.has('hell') || allHardCleared || anyHellOpen) return { ok: true };
-        return { ok: false, why: DIFF_META.hell.lockWhy };
-    }
+    if (diff === 'hard' || diff === 'hell') return { ok: feats.has(diff), why: unlockText(diff) };
     return { ok: false, why: 'Độ khó chưa mở' };
 }
 
@@ -315,7 +297,7 @@ function stageCardHTML(s) {
     const st = s.status?.[currentDiff] ?? 'locked';
     const diffInfo = DIFF_META[currentDiff] ?? DIFF_META.story;
     const bossInfo = BOSS_LABELS[s.boss] ?? null;
-    const lv = (s.level ?? s.no ?? 1) + diffInfo.lvAdd;
+    const lv = enemyLv(s.level ?? s.no ?? 1, diffInfo.key);
     const hint = String(s.id ?? 'c1').startsWith('c1') ? STAGE_HINTS[s.no] : C2_HINTS[s.no];
     const statusBadge = st === 'cleared'
         ? `<span class="cp-stage-badge cleared">✓ Đã qua</span>`
@@ -342,7 +324,7 @@ function stageCardHTML(s) {
 function branchCardHTML(b) {
     const st = b.status?.[currentDiff] ?? b.status?.story ?? 'open';
     const diffInfo = DIFF_META[currentDiff] ?? DIFF_META.story;
-    const lv = (b.baseNo ?? 1) + diffInfo.lvAdd;
+    const lv = enemyLv(b.baseNo ?? 1, diffInfo.key);
     const code = b.code ?? b.id.replace('c1-', '').toUpperCase();
     const hasPrefix = b.name.startsWith(code);
     const displayName = hasPrefix ? b.name : `${code} · ${b.name}`;
@@ -381,21 +363,37 @@ export function renderCampaign() {
                 <span>${chk.ok ? d.icon : '🔒'} <b>${d.name}</b></span>
                 <span class="cp-diff-cost">⚡${d.cost}</span>
             </div>
-            <div class="cp-diff-sub">${chk.ok ? (d.lvAdd ? `Quái +${d.lvAdd} cấp` : 'Độ khó chuẩn') : chk.why}</div>
+            <div class="cp-diff-sub">${chk.ok ? d.sub : chk.why}</div>
         </button>`;
     }).join('');
 
+    // Server test: hiện đủ mọi ải, bấm vào đánh luôn không cần ra bản đồ
+    // Ải chính có điểm truyện ngoài bản đồ: Bảng ải chỉ hiện ải ĐÃ QUA (đánh lại / Khó / Địa ngục) + ải vừa mở từ bản đồ;
+    // ải kế tiếp chưa qua -> 1 thẻ chỉ đường ra bản đồ
+    let nextSpot = null;
     const partsHTML = (chapter.parts ?? PARTS).map((p) => {
-        const list = (chapter.stages ?? []).filter(s => s.part === p.key);
-        const clearedCount = list.filter(s => s.status?.[currentDiff] === 'cleared').length;
+        const all = (chapter.stages ?? []).filter(s => s.part === p.key);
+        const list = all.filter(s => {
+            if (!state.spots?.[s.id] || testServer() || s.status?.story === 'cleared' || (s.id === worldOrigin && currentDiff === 'story')) return true;
+            if (!nextSpot && s.status?.story === 'open') nextSpot = s;
+            return false;
+        });
+        const clearedCount = all.filter(s => s.status?.[currentDiff] === 'cleared').length;
+        const spotCard = currentDiff === 'story' && nextSpot && nextSpot.part === p.key && !list.includes(nextSpot) ? `
+            <button class="cp-stage-card cp-spot-card" data-cp-world>
+                <div class="cp-stage-top"><span class="cp-stage-no">Ải ${nextSpot.no}</span><span class="cp-stage-badge locked">🗺️ Ngoài bản đồ</span></div>
+                <div class="cp-stage-name">${nextSpot.name}</div>
+                <div class="cp-stage-hint">📍 ${state.spots[nextSpot.id]}</div>
+            </button>` : '';
+        if (!list.length && !spotCard) return '';
         return `
         <section class="cp-part-section" data-part="${p.key}">
             <div class="cp-part-header">
                 <h3>${p.icon} ${p.title} <small>(${p.range})</small></h3>
-                <span class="cp-part-progress">Đã qua <b>${clearedCount}</b>/${list.length}</span>
+                <span class="cp-part-progress">Đã qua <b>${clearedCount}</b>/${all.length}</span>
             </div>
             <div class="cp-stage-grid">
-                ${list.map(stageCardHTML).join('')}
+                ${list.map(stageCardHTML).join('')}${spotCard}
             </div>
         </section>`;
     }).join('');
@@ -440,14 +438,15 @@ export function renderCampaign() {
                 <button class="cp-back-btn" data-cp-back>← Menu</button>
                 <button class="cp-back-btn cp-gear-btn" data-cp-extras title="Hầm ngục · Quán ăn · Cửa hàng anh hùng">🏰 Hầm ngục</button>
                 <button class="cp-back-btn cp-gear-btn" data-cp-world title="Bản đồ thế giới: đi lại, NPC, rương, nhiệm vụ mở nhánh ẩn">🗺️ Thế giới</button>
-                <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : 'Mở khi qua ải 6'}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
+                <button class="cp-back-btn cp-gear-btn${hasFeature('gear') ? '' : ' locked'}" data-cp-gear title="${hasFeature('gear') ? 'Mặc đồ · Lò rèn' : unlockText('gear')}">${hasFeature('gear') ? '🎒' : '🔒'} Trang bị</button>
                 <div class="cp-title-text">
-                    <h1>📖 CHƯƠNG ${chapter.no ?? 1}: ${(chapter.name ?? 'Ngọn Lửa Gây Chiến').toUpperCase()}</h1>
+                    <h1>📖 CHƯƠNG ${chapter.no ?? 1}: ${(chapter.name ?? 'Ngọn Lửa Dưới Thánh Huy').toUpperCase()}</h1>
                     <p>${CHAPTER_SUB[chapter.id] ?? ''}</p>
                 </div>
             </div>
             ${(chapter.chapters ?? []).length > 1 ? `<div class="cp-chapter-tabs">${chapter.chapters.map(c => `<button class="cp-chapter-tab${c.id === chapter.id ? ' active' : ''}${c.open ? '' : ' locked'}" data-cp-chapter="${c.id}" ${c.open ? '' : 'disabled'}>
                 ${c.open ? '📖' : '🔒'} Chương ${c.no}: ${c.name} <small>${c.open ? `${c.cleared ?? 0}/${c.total ?? 20}` : `Mở khi qua ải 20 chương ${c.no - 1}`}</small></button>`).join('')}</div>` : ''}
+            ${accountHTML(state.account)}
             <div class="cp-resource-bar">
                 <div class="cp-wallet-item gold" title="Vàng">
                     <span class="cp-res-icon">🪙</span>
@@ -512,10 +511,10 @@ function whyStageLocked(item, isBranch, diff) {
     if (diff === 'hard') {
         const storyCleared = item.status?.story === 'cleared';
         if (!storyCleared) return `Hãy qua ải ${item.no} ở mức Cốt truyện trước`;
-        return 'Hãy qua ải 4 ở mức Cốt truyện trước';
+        return unlockText('hard');
     }
     if (diff === 'hell') {
-        return 'Địa ngục mở khi qua hết 20 ải mức Khó';
+        return 'Hãy qua ải này ở mức Khó trước';
     }
     const prevNo = Math.max(1, (item.no ?? 2) - 1);
     return `Hãy qua ải ${prevNo} ở mức Cốt truyện trước`;
@@ -534,7 +533,7 @@ export function openWorldHub() {
         extras: (tab) => { hideWorld(); showExtras(() => openWorldHub(), tab); },
         back: () => { showModeMenu(); net.backToMenu(); },
         // sự kiện trên bản đồ (bị Goblin vây, hộ tống Seraphine…) -> vào thẳng màn chọn đội của ải đó
-        stage: (id) => { hideWorld(); pendingWorldStage = id; net.campaignOpen(); },
+        stage: (id) => { hideWorld(); pendingWorldStage = id; net.campaignOpen(String(id).slice(0, 2)); },   // điểm truyện / sự kiện trên bản đồ -> mở Bảng ải đúng chương
         // 🌾 cỏ cao: đánh luôn bằng đội lần trước, xong quay lại bản đồ
         wild: (scene) => { hideWorld(); battleFromWorld = true; lastSelectedStage = { id: `wild-${scene}`, diff: 'story', name: '🌾 Quái hoang', no: null }; net.startStage({ id: `wild-${scene}`, diff: 'story' }); },
     });
@@ -543,17 +542,24 @@ let pendingWorldStage = null, battleFromWorld = false;   // trận mở từ s�
 const GUEST_NAME = { assassin: 'Jessica', priest: 'Seraphine', archer: 'Lyra' };
 /** Ải có khách cốt truyện: ghi chú trên màn chọn đội ("+ Jessica đi cùng") */
 const guestNote = (item) => item?.guests?.length ? ` · ✨ ${item.guests.map(g => GUEST_NAME[g] ?? g).join(', ')} đi cùng` : '';
+// Điểm truyện / sự kiện trên bản đồ (đã xem lời trước ải ngoài bản đồ) -> mở BẢNG ẢI như bình thường, ải đó được đánh dấu sẵn;
+// bấm vào ải đó: không phát lại lời thoại, thắng xong quay lại bản đồ
+const preSeen = new Set();
+const testServer = () => document.body.classList.contains('srv-test');
+let worldOrigin = null;
 function openWorldStage(id) {
     const found = findStageOrBranch(id);
     if (!found) { openWorldHub(); return; }
-    const { item } = found;
+    preSeen.add(id);
+    worldOrigin = id;
     currentDiff = 'story';
-    battleFromWorld = true;
-    lastSelectedStage = { id, diff: 'story', name: item.name, no: item.no };
-    hideCampaign();
-    openCampaignSquadSelect({
-        id, diff: 'story', stageLabel: `Ải ${item.no}: ${item.name} (Cốt truyện · ⚡${DIFF_META.story?.cost ?? 4})${guestNote(item)}`,
-        owned: state.owned, heroes: state.heroes, onBack: () => openWorldHub(),
+    errorText = null;
+    showCampaign();
+    requestAnimationFrame(() => {
+        const card = screenEl?.querySelector(`[data-cp-stage="${id}"]`);
+        if (!card) return;
+        card.classList.add('cp-focus');
+        card.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
 }
 
@@ -571,7 +577,7 @@ function onScreenClick(e) {
     }
     if (e.target.closest('[data-cp-gear]')) {
         if (!hasFeature('gear')) {
-            errorText = '🔒 Trang bị mở khi qua ải 6 ở mức Cốt truyện';
+            errorText = unlockText('gear');
             renderCampaign();
             return;
         }
@@ -640,7 +646,7 @@ function onScreenClick(e) {
         }
         const cost = DIFF_META[currentDiff]?.cost ?? 4;
         errorText = null;
-        battleFromWorld = false;
+        battleFromWorld = id === worldOrigin && currentDiff === 'story';   // vào từ điểm truyện trên bản đồ -> thắng xong về bản đồ
         lastSelectedStage = { id, diff: currentDiff, name: item.name, no: item.no };
         const diffName = DIFF_META[currentDiff]?.name ?? 'Cốt truyện';
         const stageLabel = (isBranch
@@ -656,8 +662,8 @@ function onScreenClick(e) {
             onBack: () => showCampaign(),
         });
         // lần đầu vào ải (mức Cốt truyện): xem lời thoại trước
-        const pre = currentDiff === 'story' && st !== 'cleared' && !isBranch ? (state.story?.pre?.[item.id] ?? null) : null;
-        if (pre) playStory(pre, state.story.speakers, openSquad); else openSquad();
+        const pre = currentDiff === 'story' && st !== 'cleared' && !preSeen.has(item.id) ? (state.story?.pre?.[item.id] ?? null) : null;   // đã xem ngoài bản đồ thì bỏ qua
+        if (pre) playStory(pre, state.story.speakers, openSquad, { bg: stageBackdrop(item.id) }); else openSquad();
     }
 }
 
@@ -707,6 +713,8 @@ export function renderStageResult(data = {}) {
         state.owned = [...ownedSet];
     }
 
+    if (data.account) state.account = data.account;
+    if (data.features) state.features = data.features;
     const win = !!data.win;
     const firstClear = !!data.firstClear;
     const rewards = data.rewards ?? { exp: 0, gold: 0, stone: 0, diamond: 0 };
@@ -719,6 +727,8 @@ export function renderStageResult(data = {}) {
     <div class="cp-result-card ${win ? 'win' : 'lose'}">
         <div class="cp-result-badge">${win ? '🏆 Thắng' : '💀 Thua'}</div>
         <h2 class="cp-result-title">${win ? 'CHIẾN THẮNG!' : 'THẤT BẠI!'}</h2>
+        ${accountHTML(data.account)}
+        ${data.accountLevelUp ? `<div class="cp-first-clear-banner account-toast" role="status">⬆️ Tài khoản lên cấp ${data.accountLevelUp.after.level}!</div>` : ''}
         <p class="cp-result-sub">
             ${lastSelectedStage ? `${lastSelectedStage.no ? `Ải ${lastSelectedStage.no}: ` : ''}${lastSelectedStage.name ?? ''} · ` : ''}
             ${win ? 'Đội của bạn đã vượt ải thành công!' : 'Đừng nản lòng, hãy nâng cấp đội hình và thử lại!'}
@@ -728,6 +738,8 @@ export function renderStageResult(data = {}) {
         <div class="cp-result-rewards">
             <h3>🎁 Phần thưởng vượt ải</h3>
             <div class="cp-reward-grid">
+                <div class="cp-reward-item exp"><span class="cp-rw-icon">⭐</span><span class="cp-rw-name">EXP tài khoản</span><b class="cp-rw-val">+${rewards.accountExp ?? 0}</b></div>
+                ${Object.entries(rewards.items ?? {}).map(([key, count]) => `<div class="cp-reward-item">${icon(key, '🎁')}<span class="cp-rw-name">${ITEM_NAMES[key] ?? key}</span><b class="cp-rw-val">×${count}</b></div>`).join('')}
                 <div class="cp-reward-item exp">
                     <span class="cp-rw-icon">✨</span>
                     <span class="cp-rw-name">EXP mỗi tướng</span>
@@ -798,7 +810,12 @@ export function renderStageResult(data = {}) {
     document.body.classList.add('selecting-squad');
 }
 
-const FEATURE_NAMES = { orb: 'Năng lượng Orb', auto: 'AUTO (tự dùng kỹ năng)', hard: 'Độ khó Khó', gear: 'Trang bị 🎒', forge: 'Lò rèn 🔨',
+const ITEM_NAMES = { exp_small: 'Bình Kinh Nghiệm Nhỏ', exp_big: 'Bình Kinh Nghiệm Lớn', refine_stone: 'Đá Tinh Luyện' };
+function accountHTML(account) {
+    if (!account) return '';
+    return `<div class="cp-account"><b>⭐ Cấp tài khoản ${account.level}</b><progress max="${account.need || 1}" value="${account.need ? account.exp : 1}" aria-label="EXP tài khoản"></progress><small>${account.need ? `${account.exp}/${account.need} EXP` : 'Tối đa'}</small></div>`;
+}
+const FEATURE_NAMES = { tavern: 'Quán ăn', pvp: 'Đấu', chapter2: 'Chương 2', command: 'Ra lệnh', orb: 'Năng lượng Orb', auto: 'AUTO (tự dùng kỹ năng)', hard: 'Độ khó Khó', gear: 'Trang bị 🎒', forge: 'Lò rèn 🔨',
     setDungeon: 'Hầm ngục đồ bộ', jewelDungeon: 'Hầm ngục trang sức', hell: 'Độ khó Địa ngục', heroShop: 'Cửa hàng anh hùng' };
 /** Tính năng vừa mở khoá sau trận */
 function unlockHTML(data) {
@@ -811,13 +828,12 @@ function unlockHTML(data) {
 function dropsHTML(data) {
     const drops = Array.isArray(data.drops) ? data.drops : [];
     const auto = data.autoSalvaged;
-    if (!drops.length && !data.charms && !auto) return '';
+    if (!drops.length && !auto) return '';
     return `
         <div class="cp-leveled-box cp-drops-box">
-            <h4>🎒 Đồ rơi${data.firstClear && lastSelectedStage?.no === 6 ? ' — đã mở Trang bị! Bấm "🎒 Trang bị" ở màn chọn ải để mặc' : ''}</h4>
+            <h4>🎒 Đồ rơi${data.newFeatures?.includes('gear') ? ' — đã mở Trang bị!' : ''}</h4>
             <div class="cp-leveled-list">
                 ${drops.map(it => `<span class="cp-leveled-chip cp-drop-chip" style="--rc:${it.color}">${it.icon} <b>${it.name}</b> · Cấp ${it.level}</span>`).join('')}
-                ${data.charms ? `<span class="cp-leveled-chip">🍀 <b>Bùa May Mắn</b> ×${data.charms}</span>` : ''}
             </div>
             ${auto ? `<p class="cp-drop-auto">Túi đầy: ${auto.count} món tự phân giải → +${auto.stone} Đá Cường Hoá${auto.refine ? ` · +${auto.refine} Đá Tinh Luyện` : ''}</p>` : ''}
         </div>`;

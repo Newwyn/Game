@@ -28,7 +28,7 @@ test('hầm đồ bộ: khoá theo tính năng + tầng, tốn 8 thể lực, th
     assert.equal(pr.stamina.value, 352);
     assert.deepEqual(D.applyResult(pr, { kind: 'set', tier: 1, win: false }, DAY), { win: false, refund: 7 });
     assert.equal(pr.stamina.value, 359);
-    assert.deepEqual(D.applyResult(pr, { kind: 'set', tier: 1, win: true }, DAY), { win: true, firstTier: true });
+    assert.equal(D.applyResult(pr, { kind: 'set', tier: 1, win: true }, DAY).firstTier, true);
     assert.equal(D.canStart(pr, { ...args, tier: 2 }, feats('setDungeon'), DAY).ok, true);
     pr.stamina.value = 5;
     assert.match(D.canStart(pr, args, feats('setDungeon'), DAY).why, /thể lực/);
@@ -82,6 +82,8 @@ test('quán ăn: mở sau nhiệm vụ Lena, mời món tăng thân mật, lên 
     const pr = fresh();
     assert.equal(T.feed(pr, pr.wallet, 'warrior', 'bread').ok, false);
     pr.flags.nguyen_lieu_lena = true;
+    assert.equal(T.isOpen(pr), false);
+    pr.account.level = 12;
     assert.equal(T.feed(pr, pr.wallet, 'archer', 'bread').ok, false);   // chưa sở hữu
     assert.equal(T.feed(pr, pr.wallet, 'warrior', 'cake').ok, false);
     const r = T.feed(pr, pr.wallet, 'warrior', 'soup');

@@ -1,3 +1,4 @@
+import { unlockText } from './modeMenu.js';
 // ============================================================
 // 🎒 TRANG BỊ + 🔨 LÒ RÈN (P2) — mở từ màn chọn ải Cốt truyện
 //   · Trang bị: chọn anh hùng, 6 ô đồ, chỉ số (có đồ), bộ đồ, túi đồ lọc theo ô; bấm món đồ -> thẻ chi tiết (mặc / tháo / khoá)
@@ -270,7 +271,7 @@ function render() {
             <button class="cp-diff-tab${tab === 'equip' ? ' active' : ''}" data-gr-tab="equip"><div class="cp-diff-main"><span>🎒 <b>Trang bị</b></span></div></button>
             <button class="cp-diff-tab${tab === 'forge' ? ' active' : ''}${forgeOk ? '' : ' locked'}" data-gr-tab="forge">
                 <div class="cp-diff-main"><span>${forgeOk ? '🔨' : '🔒'} <b>Lò rèn</b></span></div>
-                ${forgeOk ? '' : '<div class="cp-diff-sub">Mở khi qua ải 10</div>'}</button>
+                ${forgeOk ? '' : `<div class="cp-diff-sub">${unlockText("forge")}</div>`}</button>
         </div>
         ${notice ? `<div class="gr-notice ${notice.kind}" role="status"><span>${notice.text}</span><button class="cp-error-close" data-gr-notice-close title="Đóng">✕</button></div>` : ''}
         <div class="cp-scroll-body gr-body">${tab === 'forge' && forgeOk ? forgeTabHTML() : equipTabHTML()}</div>
@@ -286,7 +287,7 @@ function onClick(e) {
     if (q('[data-gr-notice-close]')) { notice = null; render(); return; }
     const tb = q('[data-gr-tab]');
     if (tb) {
-        if (tb.dataset.grTab === 'forge' && !data.features.forge) { notice = { kind: 'bad', text: '🔒 Lò rèn mở khi qua ải 10 ở mức Cốt truyện' }; render(); return; }
+        if (tb.dataset.grTab === 'forge' && !data.features.forge) { notice = { kind: 'bad', text: unlockText('forge') }; render(); return; }
         tab = tb.dataset.grTab; detailId = null; notice = null; confirmSalvage = false; render(); return;
     }
     const hb = q('[data-gr-hero]');

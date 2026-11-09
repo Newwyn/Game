@@ -1,0 +1,43 @@
+/* 🏰 Trang vào game (src/ui/landing.js) — nằm trên màn tải (z 1000) */
+#landing { position: fixed; inset: 0; z-index: 1200; overflow: hidden; font-family: 'Outfit', sans-serif; color: #f5e9cf; background: #0b1020; transition: opacity .7s ease; }
+#landing.out { opacity: 0; pointer-events: none; }
+.ld2-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ld2-wrap { position: relative; z-index: 1; height: 100%; box-sizing: border-box; padding: 4vh 16px 16px; display: flex; flex-direction: column; align-items: center; gap: 2.5vh; overflow-y: auto; }
+.ld2-logo { text-align: center; animation: ld2-in 1s ease both; }
+.ld2-logo h1 { margin: 0; font-size: clamp(28px, 6vw, 64px); letter-spacing: .12em; font-weight: 900;
+    background: linear-gradient(100deg, #fde68a 0%, #f59e0b 30%, #fff7d6 45%, #f59e0b 60%, #fde68a 100%); background-size: 250% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; animation: ld2-shine 6s linear infinite;
+    filter: drop-shadow(0 4px 18px rgba(245, 158, 11, .45)) drop-shadow(0 2px 0 rgba(60, 30, 0, .9)); }
+.ld2-logo p { margin: 6px 0 0; font-size: clamp(13px, 2vw, 18px); color: #fcd9a0; letter-spacing: .08em; text-shadow: 0 2px 8px #000; }
+.ld2-card { width: min(380px, 100%); box-sizing: border-box; padding: 20px 22px 16px; border-radius: 18px;
+    background: linear-gradient(180deg, rgba(30, 22, 14, .78), rgba(14, 10, 8, .86)); border: 1.5px solid rgba(250, 204, 21, .45);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 255, 255, .08); backdrop-filter: blur(6px); animation: ld2-in 1s .2s ease both;
+    display: flex; flex-direction: column; gap: 10px; }
+.ld2-card h2 { margin: 0 0 2px; text-align: center; font-size: 20px; color: #fcd34d; letter-spacing: .05em; }
+.ld2-form { display: flex; flex-direction: column; gap: 10px; }
+.ld2-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #e7d3a6; }
+.ld2-form input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid rgba(200, 162, 74, .45);
+    background: rgba(0, 0, 0, .45); color: #fff7e6; outline: none; transition: border-color .2s, box-shadow .2s; }
+.ld2-form input:focus { border-color: #facc15; box-shadow: 0 0 0 3px rgba(250, 204, 21, .18); }
+.ld2-btn { font: inherit; font-weight: 800; font-size: 16px; padding: 12px; border-radius: 12px; cursor: pointer; border: 1.5px solid transparent; transition: transform .12s, filter .2s; }
+.ld2-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+.ld2-btn:disabled { opacity: .5; cursor: progress; }
+.ld2-btn.main { background: linear-gradient(180deg, #fbbf24, #d97706); color: #1a1006; border-color: #fde68a; box-shadow: 0 6px 18px rgba(217, 119, 6, .4); }
+.ld2-btn.test { background: rgba(56, 189, 248, .12); color: #bae6fd; border-color: rgba(56, 189, 248, .55); }
+.ld2-link { font: inherit; font-size: 13px; background: none; border: 0; color: #fcd9a0; text-decoration: underline; cursor: pointer; padding: 4px; align-self: center; }
+.ld2-hint { text-align: center; color: #a8a29e; font-size: 12px; }
+.ld2-err { margin: 0; color: #fca5a5; font-size: 13px; }
+.ld2-note { margin: 0; color: #93c5fd; font-size: 13px; }
+.ld2-busy { margin: 0; text-align: center; color: #fde68a; font-size: 13px; }
+.ld2-hello { text-align: center; font-size: 17px; }
+.ld2-tag { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; background: rgba(250, 204, 21, .18); color: #fde68a; font-size: 12px; }
+.ld2-load { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.ld2-load i { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #fde68a); transition: width .3s; }
+.ld2-load-t { text-align: center; color: #a8a29e; font-size: 11px; }
+.ld2-ver { position: absolute; z-index: 1; right: 12px; bottom: 8px; color: rgba(255, 255, 255, .35); font-size: 11px; }
+@keyframes ld2-shine { to { background-position: -250% 0; } }
+@keyframes ld2-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ld2-logo h1 { animation: none; } }
+
+/* Server chính: ẩn mọi đồ dùng thử */
+body.srv-main .mm-card.test, body.srv-main .mm-test { display: none !important; }

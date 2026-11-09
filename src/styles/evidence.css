@@ -1,0 +1,36 @@
+/* 🔎 Đối chất trước nhà vua (src/ui/evidence.js) */
+.ev-box { width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box; padding: 18px 20px;
+    background: linear-gradient(180deg, #2a2012, #1a140b); color: #f5e9cf; border: 2px solid #c8a24a; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.7);
+    font-family: 'Outfit', sans-serif; }
+.ev-box h3 { margin: 0 0 6px; color: #fcd34d; font-size: 20px; text-align: center; }
+.ev-intro { margin: 0 0 12px; font-style: italic; color: #e7d3a6; text-align: center; }
+.ev-qs { display: flex; flex-direction: column; gap: 8px; }
+.ev-q { display: grid; grid-template-columns: 28px 1fr; gap: 4px 10px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    background: rgba(255,255,255,.05); border: 1.5px solid rgba(200,162,74,.35); color: inherit; font: inherit; }
+.ev-q:hover, .ev-q.on { border-color: #facc15; background: rgba(250,204,21,.1); }
+.ev-q.done { border-color: rgba(74,222,128,.55); }
+.ev-q-no { grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; background: #c8a24a; color: #1a140b; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.ev-q-text { font-weight: 600; }
+.ev-chip { font-size: 13px; color: #fde68a; }
+.ev-q:not(.done) .ev-chip { color: #a8a29e; font-style: italic; }
+.ev-picker { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(200,162,74,.4); }
+.ev-hint { margin: 0 0 8px; color: #fcd34d; font-size: 14px; }
+.ev-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ev-card { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: left; padding: 8px 10px; border-radius: 10px; cursor: pointer;
+    background: #f5e9cf; color: #3b2a12; border: 2px solid transparent; font: inherit; }
+.ev-card:hover { border-color: #b45309; }
+.ev-card.on { border-color: #16a34a; }
+.ev-ic { font-size: 22px; }
+.ev-card b { font-size: 13px; }
+.ev-card small { font-size: 11px; color: #6b5a3a; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ev-empty { color: #fca5a5; }
+.ev-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.ev-btn { padding: 10px 18px; border-radius: 10px; border: 1.5px solid rgba(200,162,74,.6); background: transparent; color: #f5e9cf; font: inherit; font-weight: 700; cursor: pointer; }
+.ev-btn.main { background: linear-gradient(180deg, #f59e0b, #d97706); color: #1a140b; border-color: #fbbf24; }
+.ev-btn:disabled { opacity: .45; cursor: not-allowed; }
+.ev-score { display: flex; gap: 12px; justify-content: center; align-items: center; margin: 6px 0 10px; font-size: 18px; }
+.ev-score span { color: #fbbf24; letter-spacing: 2px; }
+.ev-lines p { margin: 6px 0; line-height: 1.5; }
+.ev-lines b { color: #fcd34d; }
+.ev-reward { text-align: center; color: #86efac; font-weight: 700; }
+@media (max-width: 480px) { .ev-box { padding: 14px 12px; } .ev-cards { grid-template-columns: 1fr 1fr; } }

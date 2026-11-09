@@ -1,3 +1,4 @@
+import { unlockText } from './modeMenu.js';
 // ============================================================
 // 🏰 HẦM NGỤC · 🍲 QUÁN ĂN · 🛒 CỬA HÀNG ANH HÙNG (P6) — 1 màn, 3 tab
 //   · Hầm ngục: đồ bộ (thể lực, 3 tầng) · trang sức (3 lượt / ngày, mua thêm lượt) -> bấm tầng -> chọn đội -> vào trận
@@ -8,10 +9,11 @@ import { net, socket } from '../net/socket.js';
 import { openCampaignSquadSelect } from './squadSelect.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
+import { tierPortrait } from '../characters/sprite/tiers.js';
 const TAVERN_BG = import.meta.glob('../assets/world/tavern.webp', { eager: true, import: 'default' });
 let root = null, data = null, tab = 'dungeon', onBack = null, notice = null, heroSel = null, confirmBuy = null;
 const fmt = (n) => Number(n ?? 0).toLocaleString('vi-VN');
-const face = (id, emoji) => PORTRAITS[`../assets/portraits/${id}.png`] ? `<img src="${PORTRAITS[`../assets/portraits/${id}.png`]}" alt="">` : `<span>${emoji ?? '⚔️'}</span>`;
+const face = (id, emoji) => { const u = tierPortrait(id) ?? PORTRAITS[`../assets/portraits/${id}.png`]; return u ? `<img src="${u}" alt="">` : `<span>${emoji ?? '⚔️'}</span>`; };   // hình đúng bậc S / SS
 
 function el() {
     if (root) return root;
@@ -41,13 +43,13 @@ function dungeonHTML() {
         </section>`;
     };
     return `<div class="ex-grid">
-        ${card('set', '🛡️', `Rơi đồ 3 bộ tộc Người (Hộ Vệ · Chiến Lược · Lữ Khách), độ hiếm Sử thi / Huyền thoại. Mỗi lần vào tốn ⚡${d.set.stamina} thể lực (thua hoàn ${d.set.stamina - 1}). Mở khi qua ải 15.`)}
-        ${card('jewel', '💍', 'Rơi Nhẫn / Dây chuyền (Sử thi / Huyền thoại) + Đá Tinh Luyện. 3 lượt mỗi ngày, thua không mất lượt. Mở khi qua ải 16.')}
+        ${card('set', '🛡️', `Rơi đồ 3 bộ tộc Người (Hộ Vệ · Chiến Lược · Lữ Khách), độ hiếm Sử thi / Huyền thoại. Mỗi lần vào tốn ⚡${d.set.stamina} thể lực (thua hoàn ${d.set.stamina - 1}). ${unlockText("setDungeon")}.`)}
+        ${card('jewel', '💍', `Rơi Nhẫn / Dây chuyền (Sử thi / Huyền thoại) + Đá Tinh Luyện. 3 lượt mỗi ngày, thua không mất lượt. ${unlockText("jewelDungeon")}.`)}
     </div>`;
 }
 function tavernHTML() {
     const t = data.tavern;
-    if (!t.open) return `<p class="gr-empty">🔒 Quán ăn mở khi giúp cô Lena chuẩn bị <b>Bữa Tiệc Làng</b> (nhận việc ở Phố Lò rèn trên bản đồ thế giới, sau ải 3).</p>`;
+    if (!t.open) return `<p class="gr-empty">🔒 ${unlockText("tavern")} và giúp cô Lena chuẩn bị <b>Bữa Tiệc Làng</b> (nhận việc ở Phố Lò rèn trên bản đồ thế giới, sau ải 3).</p>`;
     const sel = t.heroes.find(h => h.id === heroSel) ?? t.heroes[0];
     heroSel = sel?.id;
     const pct = sel && sel.next ? Math.round(((sel.pts - sel.cur) / (sel.next - sel.cur)) * 100) : 100;
@@ -118,7 +120,7 @@ function onClick(e) {
         const g = data.dungeon[tier.dataset.kind];
         const t = g.tiers.find(x => x.id === tier.dataset.exTier);
         if (!g.open || !t.open) {
-            const why = !g.open ? `${g.name} mở khi qua ải ${tier.dataset.kind === 'set' ? 15 : 16}` : `Hãy qua tầng ${t.tier - 1} trước`;
+            const why = !g.open ? unlockText(tier.dataset.kind === 'set' ? 'setDungeon' : 'jewelDungeon') : `Hãy qua tầng ${t.tier - 1} trước`;
             notice = { kind: 'bad', text: `🔒 ${why}` }; render(); return;
         }
         if (tier.dataset.kind === 'jewel' && g.runsLeft <= 0) { notice = { kind: 'bad', text: '⚠️ Hết lượt hôm nay — mua thêm lượt bằng Kim Cương' }; render(); return; }

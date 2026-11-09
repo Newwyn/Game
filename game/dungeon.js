@@ -1,3 +1,4 @@
+const A = require('./account');
 // ============================================================
 // HẦM NGỤC (P6) — tộc Người
 //   · Hầm ngục đồ bộ (mở ở ải 15): tốn thể lực, rơi đồ 3 bộ tộc Người (tím / cam), 3 tầng
@@ -58,7 +59,7 @@ const runsLeft = (pr, now) => {
 function isOpen(pr, kind, tier, features, now) {
     const dg = DUNGEONS[kind];
     if (!dg || !dg.tiers[tier - 1]) return { ok: false, why: 'Hầm ngục không tồn tại' };
-    if (!features.has(dg.feature)) return { ok: false, why: kind === 'set' ? 'Hầm ngục đồ bộ mở khi qua ải 15' : 'Hầm ngục trang sức mở khi qua ải 16' };
+    if (!features.has(dg.feature)) return { ok: false, why: A.unlockText(dg.feature) };
     if (tier > 1 && (ensureDungeon(pr, now).best[kind] ?? 0) < tier - 1) return { ok: false, why: `Hãy qua tầng ${tier - 1} trước` };
     return { ok: true };
 }
@@ -110,7 +111,9 @@ function applyResult(pr, { kind, tier, win }, now) {
     }
     const firstTier = (d.best[kind] ?? 0) < tier;
     if (firstTier) d.best[kind] = tier;
-    return { win: true, firstTier };
+    const accountExp = A.dungeonAccountExp(tier, firstTier);
+    const up = A.addAccountExp(pr, accountExp);
+    return { win: true, firstTier, rewards: { accountExp }, account: A.accountState(pr), accountLevelUp: up.levelUps.length ? up : null };
 }
 
 /** Trạng thái gửi client */

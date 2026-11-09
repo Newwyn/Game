@@ -234,9 +234,6 @@ test('rơi đồ: 4 ô, tối đa xanh dương, cấp theo độ khó, ải trù
             const lv = no + { story: 0, hard: 5, hell: 10 }[diff];
             assert.equal(it.level, Math.max(10, Math.floor(lv / 10) * 10));
         }
-        if (diff === 'story') assert.equal(d.charms, 0);
     }
     assert.deepEqual(G.rollDrops(seq(0.5), { no: 6, diff: 'story', firstClear: true }).items, [{ slot: 'weapon', level: 10, rarity: 1 }]);
-    assert.equal(G.rollDrops(seq(0.05), { no: 6, diff: 'hell' }).charms, 1);
-    assert.equal(G.rollDrops(seq(0.05), { no: 20, diff: 'hell' }).items[0].level, 30);
 });

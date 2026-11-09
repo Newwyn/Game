@@ -18,8 +18,8 @@ test('mọi trùm (5 trùm chương 1 + 4 trùm chương 2) có 2 chiêu có tê
 });
 test('clock deadlines are stable while paused and phase two starts its own cooldown', () => {
     const howl = BOSS_SKILLS.b_wolf[0], ring = BOSS_SKILLS.b_valdric[1];
-    assert.equal(bossNextTime(howl, 100, undefined, false), 6100);
-    assert.equal(bossNextTime(howl, 4000, 6100, false), 6100);
+    assert.equal(bossNextTime(howl, 100, undefined, false), 100 + howl.first);
+    assert.equal(bossNextTime(howl, 4000, 100 + howl.first, false), 100 + howl.first);
     assert.equal(bossNextTime(ring, 5000, undefined, false), null);
     assert.equal(bossNextTime(ring, 5000, undefined, true), 15000);
 });
@@ -59,17 +59,18 @@ test('runtime uses game-clock scheduling, caps wolves, and cancels dead boss cas
     const process = vm.runInNewContext(runtime + ';processBossSkills', context);
     process(room, 'boss', 0, 'hero', 0);
     assert.equal(queue.length, 0);
-    for (let cast = 0; cast < 3; cast++) {
-        const now = 6000 + cast * 14000;
+    const howl = BOSS_SKILLS.b_wolf[0];   // số lấy từ bảng (chỉnh cân bằng không phải sửa bài kiểm tra)
+    for (let cast = 0; cast < howl.maxSummons + 1; cast++) {
+        const now = howl.first + cast * howl.cooldown;
         boss.bossTimers.pounce = Infinity;
         room.clock = now;
         process(room, 'boss', 0, 'hero', now);
         assert.equal(events.at(-1).kind, 'warning');
         room.clock += 1000; queue.shift()();
     }
-    assert.equal(room.players.boss.squad.length, 3);
-    assert.equal(room.players.boss.squad[1].hp, 60);
-    room.clock = 48000;
+    assert.equal(room.players.boss.squad.length, 1 + howl.maxSummons);   // gọi thêm 1 lần nữa vẫn không vượt giới hạn
+    assert.equal(room.players.boss.squad[1].hp, 100 * howl.scale);
+    room.clock = howl.first + (howl.maxSummons + 1) * howl.cooldown;
     process(room, 'boss', 0, 'hero', room.clock);
     boss.alive = false;
     const before = events.length;

@@ -5,6 +5,204 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 09/11/2026 (khuya) — CẢNH NỀN TRẬN VẼ BẰNG CODE (thay khối 3D)
+- Bạn chê bản khối 3D của Codex xấu → vẽ lại **23 cảnh bằng code** (`tools/battle_bg.py`, cách vẽ kiểu beanfx): mỗi nơi 3 lớp — **lớp xa** (trời, núi, rặng cây / thành phố / tường), **lớp gần** (bụi, đá, cột, chậu lửa — lệch nhẹ khi máy quay di chuyển nên có chiều sâu), **đất lặp** (rêu + cỏ + hoa + lá rụng, đá lát, ván gỗ).
+- Chi tiết: viền sáng phía nắng + mép tối phía khuất, chùm lá sáng tối, nhà có ngói từng hàng / khung gỗ / ống khói có khói / hộp hoa, tường xây từng viên đá, mây có mặt sáng, chim bay, ánh đèn / lửa / trăng toả sáng.
+- Cảnh: rừng thông, làng, cánh đồng lúa (cối xay gió), mỏ, mỏ sâu, trạm canh, đầm lầy, trại Goblin, quảng trường, giếng cổ, chợ, cầu đá, cổng thành, tường thành, phố kinh thành, thư viện, đại sảnh, đỉnh tháp đêm, hầm mộ, phế tích, rừng Elf (nấm phát sáng), thành trăng Lunaria, đường cái. Test / Đấu giữ bãi cỏ cũ.
+- Nhẹ máy: mỗi cảnh chỉ 3 tấm tranh (2,8 MB cho cả 23 cảnh), nạp khi cần, giữ tối đa 2 cảnh trong card đồ hoạ.
+- Vẽ lại / thêm cảnh: `uv run --no-project --with numpy --with pillow python tools/battle_bg.py [tên cảnh]`.
+
+---
+
+## 09/11/2026 (đêm) — BỎ HIỆU ỨNG PIXEL CỦA ROK · VALDRIC 2 DẠNG · VỀ BÁO LẠI NPC SAU TRẬN · CẮT CẢNH KẾT CHƯƠNG · CẢNH NỀN TRẬN THEO BẢN ĐỒ
+
+### 1. Rok về hiệu ứng cũ
+- Bỏ bản hiệu ứng pixel (sư tử pixel, atlas vẽ bằng code). File pixel cất ở `.team/rac_rok_pixel` (chưa xoá hẳn, muốn lấy lại thì báo).
+
+### 2. Valdric 2 dạng
+- Hạ Valdric lần đầu → huy hiệu nuốt lấy ông → **sống lại DẠNG 2**: đổi tranh bùng lửa, hồi 60% máu, +30% tấn công, +20% tốc đánh, 2,5 giây không nhận sát thương, có băng chữ "Huy Hiệu Bùng Cháy · Dạng 2". Hạ tiếp mới thắng.
+- Giả lập: đội Lv19 thắng 6/6, đội Lv15 thua — vẫn hợp với cấp người chơi tới ải 20.
+
+### 3. Lời thoại sau trận đúng chỗ — "về báo lại"
+- Thắng ải: chỉ phần xảy ra **tại chỗ** phát ngay, cuối có dòng 📍 chỉ đường. Phần diễn ra ở nơi khác → NPC đó hiện dấu **!**, phải tới nói chuyện mới xem, rồi ải sau mới mở.
+- Ải 1, 2, 10 → Bà Mira · ải 7 → Sera ở làng · ải 14 → Sơ Agnes dẫn vào gặp Elise · **ải 20 → về cung gặp Elise**.
+- Save cũ: các ải đã qua coi như đã báo, không bị bắt quay lại.
+
+### 4. Cắt cảnh kết chương 1
+- Gặp Elise sau trận Valdric: màn hình chuyển hẳn sang **phòng bệnh nhà vua** (tranh mới — Elise ngồi bên giường nắm tay vua cha), tới đoạn Elise lên ngôi thì chuyển sang **đại sảnh ngai vàng**. Bấm Bỏ qua là bỏ cả cắt cảnh.
+
+### 5. Cảnh nền trận theo bản đồ (Codex)
+- 24 kiểu: làng, cánh đồng, rừng thông, mỏ, mỏ sâu, trạm canh, đầm lầy, trại Goblin, quảng trường, cầu đá (sàn ván + nước), chợ, cổng thành, thư viện, phố nhà cứu tế, đại sảnh (trong nhà), tường thành, đỉnh tháp ban đêm, giếng cổ, hầm mộ, rừng Elf phát sáng, thành trăng Lunaria, phế tích hầm ngục, đường cái; Test / Đấu giữ bãi cỏ cũ.
+- Nhẹ: đổi cảnh ≤ 1,2 ms (đã dựng sẵn lúc rảnh), ≤ 13 lượt vẽ / cảnh, máy yếu tự giảm cây / nhà.
+
+### Kỹ thuật
+- `server.js`: `phase2.form2` + `enterSecondForm` (gọi đầu `killMember`), tách lời sau trận theo `WD.REPORTS` / `WD.postNow`.
+- `game/world.js`: `REPORTS`, `pendingReport`, `storyNo`, `syncReports` (công cụ thử nhảy ải tự đánh dấu đã báo), dấu ! + mục tiêu nhiệm vụ.
+- `src/ui/story.js`: `playCutscene`, `worldArt`; `src/ui/world.js` phát cắt cảnh. Tranh `src/assets/world/king_bedroom.webp` (Codex vẽ).
+- `src/core/environment.js` + `src/core/battleThemes.js` (Codex), `src/main.js` đổi cảnh lúc vào trận.
+- 111 bài kiểm tra tự động.
+
+---
+
+## 09/11/2026 (tối muộn) — TRANG VÀO GAME + TÀI KHOẢN + SERVER TEST VỚI BẢNG TOOL 🧪
+
+### 1. Trang vào game
+- Mở game là thấy ngay: bản đồ kinh thành trôi chậm, 5 anh hùng đứng dưới, tàn lửa bay, tia nắng; logo chữ vàng óng. Tranh vẫn tải ngầm (thanh % ngay trong khung).
+- Đăng nhập / Tạo tài khoản. **Để trống cả 2 ô rồi bấm = vào luôn** bằng bản lưu của trình duyệt (như trước giờ).
+- Nút **⚔️ Vào game** (server chính) và **🧪 Server test** (chỉ chủ game — tài khoản tạo ĐẦU TIÊN).
+- Nhớ đăng nhập 30 ngày; có nút Đăng xuất. Mật khẩu được mã hoá, sai 5 lần khoá 1 phút.
+
+### 2. Hai server, hai bản lưu riêng
+- Mỗi tài khoản có bản lưu **Server chính** và bản lưu **Server test** riêng. Lần đầu vào, cả hai được chép từ bản lưu hiện có trên trình duyệt (không mất tiến trình cũ).
+- Server chính: không còn ô Test, không còn Thử nhanh, máy chủ chặn mọi lệnh thử.
+
+### 3. Bảng tool 🧪 (Server test) — nút nổi bên trái hoặc phím `
+- **📖 Ải**: chọn chương, bấm số ải = nhảy tới ải đó và mở Bảng ải khoanh sẵn (nhảy lùi cũng được) · Mở hết chương (cả Khó, Địa ngục, nhánh) · Chơi lại từ đầu (bấm 2 lần). Ở Server test, Bảng ải hiện đủ mọi ải, vào đánh luôn không cần ra bản đồ.
+- **🦸 Nhân vật**: cấp / bậc cả đội, mốc nhanh Lv1 · Lv40 S · Lv60 SS · Lv60 SSS, có đủ mọi anh hùng, chỉnh từng người.
+- **🎒 Đồ & tiền**: +vàng / kim cương / đá, đầy thể lực, cấp tài khoản, vật phẩm, trang bị (bộ, món, cấp, độ hiếm), đủ chứng cứ.
+- **⚔️ Trận**: Thắng ngay / Thua ngay (chạy đúng luồng thật: thưởng, lời thoại), Bất tử, kỹ năng không tốn mana, đầy mana.
+- **🗺️ Bản đồ**: dịch chuyển tới mọi khu.
+
+### Phân công
+- Codex: máy chủ (tài khoản, 2 server, chặn lệnh thử ở server chính, các lệnh tool, 8 bài kiểm tra mới).
+- Claude: trang vào game, bảng tool, sửa lỗi máy chủ sập khi ngắt kết nối (trùng tên biến với thư viện Socket.io).
+
+### Kỹ thuật
+- Mới: `game/accounts.js` (lưu `data/accounts.json`), `game/testTools.js`, `src/ui/landing.js` + `src/styles/landing.css`, `src/ui/testPanel.js` + `src/styles/testPanel.css`, tests `accounts*.test.js`, `testTools.test.js`.
+- Sửa: `server.js` (authLogin/Register/Resume/Logout, `serverInfo`, `socket.lcServer`, `testCatalog` / `testTool`), `src/net/socket.js` (`enterServer`), `src/ui/loading.js` (`loadState`), `src/ui/campaign.js`, `src/main.js`.
+- 102 bài kiểm tra tự động.
+
+---
+
+## 09/11/2026 (chiều) — ẢI CHỈ MỞ TỪ BẢN ĐỒ · HÌNH CHO MỌI ĐIỂM NHIỆM VỤ · SÓI & GOBLIN TRÊN BẢN ĐỒ · TAN PIXEL · HIỆU ỨNG KỸ NĂNG TRÙM · QUÁI CAO ĐÚNG TỈ LỆ
+
+### 1. Ải chính chương 1 chỉ bắt đầu từ bản đồ
+- Ải nào có người / chỗ cần gặp ngoài bản đồ thì **phải ra nói chuyện mới vào đánh được**. Bảng ải chỉ còn hiện **ải đã qua** (để đánh lại, đánh Khó / Địa ngục) + 1 thẻ **🗺️ Ngoài bản đồ** chỉ chỗ cần tới (bấm thẻ là ra bản đồ).
+- Bỏ chữ "(hoặc mở Bảng ải)" ở nhiệm vụ chính. Chương 2 chưa có điểm truyện nên vẫn chọn ải như cũ.
+
+### 2. Hình cho mọi điểm nhiệm vụ trên bản đồ
+- Người thật đứng tại chỗ: **Sera bị 2 tên goblin canh ở đầm lầy (ải 7)**, **Grix** (ải 8, Codex vẽ mới), **bầy sói: Sói Đầu Đàn + 2 sói rừng** (ải 5, Codex vẽ mới), **3 tên côn đồ chặn Cầu Đá** (ải 11), dân la ở quảng trường (ải 13), lính gác nhà cứu tế (ải 17).
+- Vật nhỏ vẽ bằng **Flow**: dải băng dính máu, khói, vết bánh xe, đống tro cắm tên, sổ tay, cửa kho lưu trữ, cầu thang tháp, áp phích truy nã (+ bụi sậy, dấu chân sói, thùng hàng, đuốc để dành).
+
+### 3. ✨ Tan pixel
+- Thắng xong, **quái / kẻ địch đứng trên bản đồ vỡ thành ô pixel bay lên rồi biến mất** (bầy sói, côn đồ, goblin canh Sera, nhóm phục kích ải 2). Sera, Grix, lính, dân thì không tan.
+- Nhẹ: cả 6 con cùng tan chỉ tốn ~1,3 ms/khung hình.
+
+### 4. Hiệu ứng kỹ năng trùm (Codex)
+- 10 chiêu của 9 trùm có hiệu ứng riêng, đúng màu từng trùm (Hú Gọi Bầy có sóng âm, Vồ Cổ có vết cào, Đập Đất nứt đất, Khiên Đen có lồng khiên, Cột Lửa, Lời Nguyền, Hút Hồn…). Giới hạn ≤ 60 hạt / chiêu, tự dọn bộ nhớ.
+
+### 5. Quái cao đúng tỉ lệ
+- Trước đây mọi quái cao như nhau và thấp hơn nhân vật. Giờ: lính / mật thám / trùm người cao ngang anh hùng, goblin thấp hơn, sói thấp, cây cổ thụ cao nhất.
+
+### 6. Thử nhanh
+- Thêm nút **Nhảy tới Ải 5** (xem bầy sói) và **Ải 11** (côn đồ Cầu Đá).
+
+### Kỹ thuật
+- `game/world.js` `spotHints()` + `server.js` gửi `spots` cho Bảng ải; `src/ui/campaign.js` ẩn ải chưa qua có điểm truyện.
+- `src/ui/world.js`: bộ vật thứ 2 `items2.webp` (`ITEM2_CELL`, `itemSrc`), vật dạng người `char` + `solo` / `group` ([dx, dy, char riêng]) + `foe` / `foeChars`, tan pixel (`snapObjects`, `dissolves`); `src/world3d/view.js`: shader tan pixel cho hình 3D.
+- Ảnh mới: `src/assets/overworld/items2.webp`, `npc_grix`, `npc_wolf`, `npc_wolfboss`; công cụ `tools/items_pack.py`.
+- `src/vfx/bossFx.js` + khối `bossFx` trong `src/combat/events.js` (Codex); `src/characters/sprite/enemySprites.js` (`ART_HEIGHT`).
+- 94 bài kiểm tra tự động.
+
+---
+
+## 09/11/2026 (tối) — NHIỆM VỤ NGOÀI BẢN ĐỒ SONG SONG BẢNG ẢI · SỔ CHỨNG CỨ · ĐỐI CHẤT TRƯỚC NHÀ VUA
+Bạn thấy game thiếu chiều sâu (toàn chọn ải ở bảng) → chọn hướng B: **song song** Bảng ải + làm nhiệm vụ với người / nơi ngoài bản đồ, kèm Sổ chứng cứ.
+(Antigravity bị chặn quyền chạy lệnh ở chế độ chạy ngầm nên không làm được — Claude tự làm hết.)
+
+### 1. Điểm truyện ngoài bản đồ (chương 1)
+- Mỗi ải chính có 1 **điểm truyện**: gặp đúng người (Rok, bác Borin, Bà Mira, lính gác trạm, Sơ Agnes, lão Corvin, Elise) hoặc tới đúng chỗ (dải vải băng & dấu chân sói trong Rừng Sương, cột khói trạm canh, lối mòn vào đầm lầy, Cầu Đá, quảng trường kinh thành, kho lưu trữ, nhà cứu tế, tháp hiệu lệnh). Ải 2 vẫn là trận phục kích ngoài cánh đồng.
+- Gặp xong → xem lời thoại → **mở Bảng ải như bình thường, ải đó được khoanh vàng sẵn** — bấm vào là chọn đội (không phát lại lời thoại), thắng xong quay lại bản đồ. Bảng ải vẫn dùng song song.
+- Khung nhiệm vụ chính + 🧭 Tự đi tới chỉ thẳng tới điểm truyện của ải kế tiếp.
+
+### 2. 🔎 Sổ chứng cứ (phím J → tab Chứng cứ)
+- 17 chứng cứ: 13 nhận khi thắng ải (dây buộc công văn, số lô trên hòm, vòng cổ thánh huy, quân lệnh rút quân, bảng mục tiêu, thẻ môi giới, thư Morwen, lệnh tập kết, lời khai Daren, lịch gây rối, lệnh đốt hồ sơ, phiếu xuất linh kiện, lệnh điều chuyển lương) + **4 chứng cứ ẩn phải tự đi điều tra** (vết bánh xe trong Rừng Sương, đống tro trạm canh, phiến đá kho giam Skarn, áp phích ở kinh thành). Mỗi chứng cứ có lời bình của đồng đội; chưa tìm thấy thì hiện "???" + gợi ý.
+
+### 3. ⚖️ Đối chất trước nhà vua (trước ải 18, gặp Elise)
+- 4 câu hỏi, mỗi câu chọn 1 chứng cứ. Đúng càng nhiều → +10 Kim Cương + 500 Vàng mỗi câu (lần đầu) và lời đối chất khác nhau (4/4 Valdric hết đường chối). Sai vẫn đi tiếp truyện bình thường.
+
+### 4. Sửa lỗi cũ
+- **Không tới được lão Corvin** ở kinh thành (tấm "Trang sách bị xé" chắn lối hẹp duy nhất) → đã dời.
+- Thêm bài kiểm tra: các vật trên bản đồ không được chặn đường tới người / đồ vật / lối ra.
+- 🧪 Thử nhanh có thêm nút **Nhảy tới Ải 18** (kèm sẵn chứng cứ các ải đã qua) để thử phần đối chất.
+
+### Kỹ thuật
+- Mới: `game/evidence.js` (chứng cứ, câu hỏi, chấm điểm), `src/world/mapsExtra.js` (vị trí điểm truyện + vật điều tra + dời vật chắn lối), `src/ui/evidence.js` + `src/styles/evidence.css` (khung đối chất).
+- Sửa: `game/world.js` (`STORY_SPOTS`, `CLUES`, `nextStoryNo`, `presentTrial`), `server.js` (nhận chứng cứ khi thắng ải, socket `worldPresent`), `src/ui/world.js`, `src/ui/campaign.js` (mở Bảng ải đúng ải), `src/ui/questLog.js` (tab Chứng cứ).
+- 94 bài kiểm tra tự động.
+
+---
+
+## 09/11/2026 (chiều muộn) — LỜI THOẠI CHƯƠNG 1 TỰ NHIÊN HƠN · ẢI 1–10 NHẸ MỘT NỬA
+- **Lời thoại chương 1 viết lại cho tự nhiên, rõ cá tính** (mạch truyện giữ nguyên): Rok ít lời, chắc nịch, đùa mặt lạnh · Jessica lém, mỉa, né chuyện mình · Sera dịu mà cứng đầu · Lyra kiêu, lạnh, xưng "ta" · Grix chua chát · nhân vật chính thật thà, hay tự giễu vụ mất trí nhớ. Sera hiện là "Nữ tu" cho tới khi tự giới thiệu ở ải 7.
+- Đọc toàn bộ lời thoại trong game: **`docs/LOI_THOAI_CHUONG_1_TRONG_GAME.md`** (xuất lại bằng `node tools/export_story.js` mỗi khi sửa `game/story.js`).
+- **Ải 1–10 chương 1 (mức Cốt truyện): sức quái giảm một nửa** (`HALF` trong `game/chapter1.js`).
+
+---
+
+## 09/11/2026 (chiều) — CỐT TRUYỆN CHƯƠNG 1 MỚI "NGỌN LỬA DƯỚI THÁNH HUY" · CẤP TÀI KHOẢN · PHẦN THƯỞNG MỚI · CÂN BẰNG 3 ĐỘ KHÓ
+Bạn gửi bản cốt truyện chương 1 hoàn chỉnh (`docs/CHUONG_1_NGON_LUA_DUOI_THANH_HUY.md`) + yêu cầu cấp tài khoản, phần thưởng, cân độ khó.
+Chia việc: **Claude** đưa cốt truyện vào game + cân bằng (giả lập hàng trăm trận) · **Codex** làm cấp tài khoản + phần thưởng (Codex hết lượt giữa chừng → Claude tự làm phần cân bằng).
+
+### 1. Cốt truyện chương 1 mới
+- **Mở đầu là giấc mơ** (không còn trận "Đấu Thần") → tỉnh dậy ở ngôi miếu đổ, Rok đưa nước. Cách bấm kỹ năng dạy ở ải 1 (cảnh báo Rok tên bắn nỏ).
+- **Sera chỉ vào đội khi được cứu — ở ải 7** (theo yêu cầu): ải 2 tìm thấy túi thuốc của Sera → ải 3–6 cả nhóm (Rok + Jessica) lần theo dấu Sera và lần ra âm mưu (Rừng Sương, mỏ đá + hòm có số, Sói Đầu Đàn đeo vòng thánh huy Varkos, trạm canh bị bỏ lại) → **ải 7 giải cứu Sera** ở trại giam đầm lầy → ải 8 gặp Grix (Sera chữa tay cho cậu) rồi vào kho hàng.
+- Ải 9–20 + kết chương theo đúng bản của bạn (Jessica thú nhận, Skarn, Cầu Đá, Daren + Lyra, Elise ở kho cứu tế, Morwen, sổ lương, nhà cứu tế bị vây, đại sảnh, tháp hiệu lệnh, Varkos hiện ra, cổ vật đầu tiên, nhà vua qua đời, nữ vương Elise).
+- **5 nhánh có lời thoại** (truyện phụ): Giếng Cổ (sau ải 7), Mỏ Sâu (Mae + búa Borin), Bữa Ăn Còn Đủ Chỗ (sau ải 10), Trang Sách (sau ải 20), Hầm Mộ (sau ải 20).
+- Tên chương: **Ngọn Lửa Dưới Thánh Huy**; tên 20 ải theo các chặng. Lời NPC trên bản đồ đổi theo tiến trình (Bà Mira, Rok, Jessica, Elise, Corvin…). Sera ẩn khỏi làng tới khi được cứu; việc "Thuốc cho nhà cứu tế" của Sera mở sau ải 7.
+
+### 2. Cấp tài khoản (Codex)
+- Thanh **Cấp tài khoản** ở màn chọn ải + màn kết quả. Mọi trận thắng (ải, nhánh, hầm ngục) và việc phụ đều cho EXP tài khoản.
+- Mở chức năng theo cấp: 3 AUTO · 6 Trang bị · 10 Lò rèn + **Khó** · 12 Quán ăn · 15 Hầm ngục đồ bộ · 18 Hầm ngục trang sức · 20 **Địa ngục** · 25 **Đấu (PvP)**. Bảng trong `game/account.js` (`UNLOCKS`). Hết chương 1 ≈ cấp 18–20, hết chương 2 ≈ cấp 34–35.
+- Hồ sơ cũ được tính bù EXP tài khoản theo các ải đã qua — không mất chức năng đã mở.
+
+### 3. Phần thưởng ải (Codex)
+- Mỗi trận thắng: EXP tướng, Vàng, Đá cường hoá, **EXP tài khoản**; **Kim Cương chỉ lần đầu vượt ải**.
+- Rơi thêm: **Bình EXP nhỏ** (20–65%, ải càng sau càng dễ rơi), **Bình EXP lớn** (chắc chắn 1 khi lần đầu thắng ải trùm), **Đá tinh luyện** (từ ải cấp 10).
+- **Bùa may mắn không rơi**, chỉ mua ở cửa hàng — **mỗi tháng 1 lần** (giá bạn quyết sau).
+
+### 4. Cân bằng độ khó (giả lập)
+- Mọi anh hùng bắt đầu cấp 1 (cấp 60 chỉ ở Test / Đấu). EXP tướng mỗi ải = 160 + 60×cấp + cấp² → cấp đội bám cấp ải: hết chương 1 ≈ 21, hết chương 2 ≈ 40 (tính cả bình EXP).
+- **Cốt truyện**: ải 1–2 nhẹ (chỉ Rok / Rok + Jessica), ải 3–6 cân cho 2 người. Trùm: ải 5 ×0,78 · 10 ×1,22 · 15 ×1,12 · 20 ×0,78 (giả lập thắng 4–6/6). Chương 2 vốn quá dễ (thắng 100% trong 15 giây) → sức nền ×1,4 (ải thường), ×1,6 (trùm), ải 10 + 20 ×1,45.
+- **Khó** = cân cho đội **SS** (muốn lên SS phải cấp 40): quái cấp 39–49 (chương 1), 50–60 (chương 2). Đội S (cấp tối đa 40) vẫn đánh được nhưng thua nhiều.
+- **Địa ngục** = cân cho đội **SSS cấp 60**: quái luôn cấp 60, mạnh dần theo ải.
+
+### 5. 🧪 Thử nhanh (cho người thử game)
+- Ở **màn chọn chế độ** có dải **🧪 Thử nhanh**: đặt **cấp tài khoản** (1 / 10 / 20 / 25 / 60 — mở Khó, Địa ngục, Đấu…), **nhảy tới** ải 1 / 7 / 12 / 20 / chương 2 ải 1 / 20 (cả đội lên cấp hợp lý, cấp tài khoản tự tính lại), **🔄 Chơi lại từ đầu** (bấm 2 lần — xoá tiến trình hồ sơ đang dùng, chơi lại từ giấc mơ + tạo nhân vật).
+- Bảng **Tool phe mình** trong màn Test cũng có 2 mục này. Chỉ dùng được ở màn chọn chế độ / màn Test, không dùng được khi đang đánh ải.
+
+### Kỹ thuật
+- Mới: `game/account.js`, `src/styles/account.css`, `tests/account.test.js`, `tests/shop-limits.test.js`, `docs/CHUONG_1_NGON_LUA_DUOI_THANH_HUY.md`.
+- Sửa: `game/story.js` (viết lại chương 1 + `branch` lời nhánh), `game/chapter1.js` / `chapter2.js` (tên ải, Sera ải 7, `power` / `base`), `game/world.js` (Sera, việc, NPC, EXP tài khoản việc phụ, đe rèn theo cấp), `game/campaign.js` (`enemyLevel`, `enemyMul`, thưởng), `server.js`, `src/ui/world.js` (bỏ trận mở màn), `src/ui/campaign.js` (thanh cấp tài khoản, cấp quái Khó / Địa ngục), `tools/sim_stage.js` (`--rank`, `--port`, Khó / Địa ngục tự mở).
+- 92 bài kiểm tra tự động.
+
+---
+
+## 09/11/2026 — SỬA LỖI & CHAU CHUỐT CHƯƠNG 1–2 · TÀI LIỆU CỐT TRUYỆN ĐỂ SỬA
+Bạn muốn chau chuốt chương 1 và 2 cho chuẩn trước khi làm chương 3. Claude chơi thử lại từ đầu (nhân vật Nữ, tên "Mai"), chạy giả lập 40 ải, sửa lỗi; một trợ lý đọc toàn bộ lời thoại + nhiệm vụ trong game viết thành tài liệu.
+
+### 1. Tài liệu cốt truyện — `docs/COT_TRUYEN_HIEN_TAI.md`
+- Thế giới, nhân vật, từng ải chương 1 và 2 (lời trước / sau trận), bản đồ, việc phụ, câu đố, kết chương, và **48 chỗ nên chau chuốt** (mục 7). Bạn sửa thẳng vào file này hoặc ghi chú, Claude đưa vào game và giữ file luôn khớp với game.
+
+### 2. Lỗi đã sửa
+- **Lời thoại trước ải** hiện đè lên cảnh trận cũ còn đứng hình (vd trước Ải 1 vẫn thấy trận "Đấu Thần") → giờ có tranh nền đúng nơi (làng, cánh đồng, rừng, mỏ, cầu, kinh thành, rừng Elf, Lunaria). Đoạn mở đầu "Rất lâu về trước…" có nền tối riêng, không lộ màn Test phía sau.
+- **Chân dung anh hùng** trong khung thoại, màn chọn đội, bảng Nhân vật, quán ăn / cửa hàng giờ **đúng bậc S / SS** (trước đây luôn là tranh SSS giáp vàng dù ngoài trận đang mặc áo vải). Theo cả trang phục bạn chọn.
+- **Màn chọn đội / chọn chế độ**: ẩn hẳn bảng chỉ số và nút của màn Test còn sót phía sau.
+- **Ải 5 (Sói Đầu Đàn) quá khó**: giả lập thua 12/12 ở cấp 5–6 → giảm sức ải 5 còn 80% + 2 chiêu của trùm nhẹ hơn (gọi 1 sói con thay vì 2, Vồ Cổ yếu hơn). Giờ thắng ~2/3 — vẫn là trận trùm có thử thách.
+- Vào **Ải 2 / Ải 3 từ sự kiện trên bản đồ** bị mất câu hướng dẫn (Orb, AUTO) → đã thêm. Jessica nói "Năm đánh hai?" trong khi chỉ có 3 Goblin → "Ba đánh hai?".
+- **Nerissa** vào đội không có thông báo như những người khác → đã thêm "Nerissa gia nhập đội!".
+- **Seraphine** biến khỏi làng sau khi vào đội (Rok, Jessica vẫn đứng đó) → giờ vẫn đứng ở làng như mọi người.
+- **Thành Lunaria** vào được ngay từ đầu chương 2 dù truyện nói cổng đóng → giờ mở sau ải 12 chương 2 (qua Cầu Rễ), báo "mở khi qua ải 12 chương 2".
+- **Sổ nhiệm vụ chương 2** bắt quay về kinh thành để chọn ải trong khi đang ở rừng → giờ hướng dẫn bấm 📖 Chọn ải ở thanh dưới. Sửa "Sứ giả Varkos" → "sứ giả Varkos" (người đó là Malkor, sứ giả *của* Varkos).
+- **Búa bác Borin**: lời thoại nói "gần mỏ đá" nhưng búa nằm ở góc ruộng tây nam → sửa lời cho khớp. Borin không còn mời "ghé lò rèn bất cứ lúc nào" khi lò rèn chưa mở (Trang bị mở ở ải 6, cường hoá ở ải 10).
+
+### Kỹ thuật
+- `src/ui/story.js` (`stageBackdrop`, `playStory(..., { bg })`), `src/characters/sprite/tiers.js` (`setHeroRanks`, `tierPortrait`), `src/ui/squadSelect.js`, `heroPanel.js`, `extras.js`, `campaign.js`, `world.js`, `src/styles/index.css`, `game/world.js` (`sceneNeedText`, cảnh có `needStage`), `game/chapter1.js` (ải 5 `power: 0.8`), `server.js` (`BOSS_SKILLS.b_wolf`), `game/story2.js`.
+- `src/main.js`: vòng vẽ trận chạy bằng hẹn giờ khi có `?tick` (chỉ để Claude chạy thử lúc khung xem bị ẩn).
+- 82 bài kiểm tra tự động (thêm bài Lunaria mở đúng lúc; bài kỹ năng trùm đọc số từ bảng `BOSS_SKILLS`).
+
+---
+
 ## 08/11/2026 (chiều tối) — CHƯƠNG 2 VÙNG ELF · GIAO DIỆN BẢN ĐỒ MỚI (bản đồ nhỏ, Nhân vật, Túi đồ, Cửa hàng, Cài đặt) · TRANH TRANG PHỤC S/SS CHO ĐỦ 11 ANH HÙNG · CỎ CAO GẶP QUÁI · VÀO ĐƯỢC TRONG NHÀ
 Bạn ra ngoài, Claude làm tiếp (có lúc mất điện, làm lại phần dở). Tranh vẽ bằng **Codex** (không lỗi tấm nào): 90 tấm trang phục, 11 quái/trùm chương 2, 2 bản đồ, 7 NPC, 3 căn phòng, 32 icon. Máy không có `agy` → Claude tự viết giao diện.
 

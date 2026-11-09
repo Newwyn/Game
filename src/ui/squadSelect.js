@@ -8,10 +8,10 @@
 // Phím: 1-9 chọn cho 1P, Enter = xác nhận.
 import { net, socket } from '../net/socket.js';
 import { warmTextures } from '../core/textures.js';
-import { tierUrls } from '../characters/sprite/tiers.js';
+import { tierUrls, setHeroRanks, tierPortrait } from '../characters/sprite/tiers.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
-const portrait = (id) => PORTRAITS[`../assets/portraits/${id}.png`];
+const portrait = (id, rank) => tierPortrait(id, rank ?? undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình theo bậc S / SS
 const RANK_COLORS = ['#94a3b8', '#60a5fa', '#c084fc', '#fbbf24'];
 const MODE_TITLE = {
     test: '🧪 TEST · CHỌN ĐỘI HÌNH',
@@ -97,7 +97,7 @@ function grid(side, compact) {
             <button class="ss-card${on ? ' on' : ''}${full ? ' full' : ''}" data-ss="${h.id}" data-side="${side}" style="--cc:${h.color}">
                 ${side === 'p1' ? `<span class="ss-key">${i + 1}</span>` : ''}
                 ${on ? `<span class="ss-check">✓ ${order.indexOf(h.id) + 1}</span>` : ''}
-                <div class="ss-art">${portrait(h.id) ? `<img src="${portrait(h.id)}" alt="${h.name}" draggable="false">` : `<span class="ss-emoji">${h.emoji}</span>`}</div>
+                <div class="ss-art">${portrait(h.id, h.rank) ? `<img src="${portrait(h.id, h.rank)}" alt="${h.name}" draggable="false">` : `<span class="ss-emoji">${h.emoji}</span>`}</div>
                 <div class="ss-name">${h.emoji} ${h.name}</div>
                 ${compact ? '' : `<div class="ss-title">${h.title}</div>`}
                 <div class="ss-tags"><span>${h.className}</span>${compact ? '' : `<span>${h.raceEmoji} ${h.race}</span>`}</div>
@@ -246,7 +246,7 @@ function hide() {
 export const isSquadSelectOpen = () => !!root && root.style.display !== 'none';
 
 export function setupSquadSelect() {
-    socket.on('progressUpdate', (d) => { lastProgress = d; warmTextures(tierUrls(d)); });   // nạp ngầm tranh bậc S / SS của đội -> vào trận không khựng
+    socket.on('progressUpdate', (d) => { lastProgress = d; setHeroRanks(d); warmTextures(tierUrls(d)); });   // nạp ngầm tranh bậc S / SS của đội -> vào trận không khựng
     socket.on('battleStart', (d) => {
         if (d?.classDefs) lastClassDefs = d.classDefs;
         if (d?.mode && d.mode !== 'menu') hide();

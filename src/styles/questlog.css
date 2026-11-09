@@ -849,3 +849,10 @@
         flex: 1 1 100%;
     }
 }
+
+/* 🔎 Sổ chứng cứ */
+.ql-ev-row.is-missing { opacity: .55; }
+.ql-ev-row.is-missing .ql-row-sub { font-style: italic; }
+.ql-ev-big { font-size: 1.3em; }
+/* tab 🔎 Chứng cứ: chiếm cả hàng thứ 2 (không bị cắt chữ) */
+.ql-tab[data-ql-tab="evidence"] { grid-column: 1 / -1; }

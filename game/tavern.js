@@ -1,3 +1,4 @@
+const A = require('./account');
 // ============================================================
 // QUÁN ĂN (P6) — độ thân mật: mời anh hùng món ăn (Vàng) -> điểm thân mật -> cấp 0..10, mỗi cấp +1% Máu & Tấn công
 // Mở khi xong nhiệm vụ "Bữa Tiệc Làng" của cô Lena (cờ nguyen_lieu_lena).
@@ -14,7 +15,7 @@ const MAX = LEVELS.length - 1;
 const BONUS_PER_LV = 0.01;
 const FLAG = 'nguyen_lieu_lena';
 
-const isOpen = (pr) => !!pr.flags?.[FLAG];
+const isOpen = (pr) => !!pr.flags?.[FLAG] && A.ensureAccount(pr).level >= Number(Object.keys(A.UNLOCKS).find(lv => A.UNLOCKS[lv].includes('tavern')));
 function ensureTavern(pr) {
     pr.affinity ??= {};
     return pr.affinity;
@@ -27,7 +28,7 @@ function levelOf(pts) {
 const bonus = (pts) => levelOf(pts ?? 0) * BONUS_PER_LV;
 
 function feed(pr, wallet, heroId, foodId) {
-    if (!isOpen(pr)) return { ok: false, why: 'Quán ăn mở khi giúp cô Lena chuẩn bị Bữa Tiệc Làng' };
+    if (!isOpen(pr)) return { ok: false, why: `${A.unlockText('tavern')} và giúp cô Lena chuẩn bị Bữa Tiệc Làng` };
     if (!pr.owned?.includes(heroId)) return { ok: false, why: 'Bạn chưa sở hữu anh hùng này' };
     const f = FOODS[foodId];
     if (!f) return { ok: false, why: 'Món không có trong thực đơn' };

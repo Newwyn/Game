@@ -4,7 +4,7 @@ const C = require('../game/chapter1');
 
 test('20 ải đúng thứ tự, phần, cấp và trùm', () => {
     assert.equal(C.id, 'c1');
-    assert.equal(C.name, 'Ngọn Lửa Gây Chiến');
+    assert.equal(C.name, 'Ngọn Lửa Dưới Thánh Huy');
     assert.equal(C.stages.length, 20);
     for (const [i, s] of C.stages.entries()) {
         const no = i + 1;
@@ -18,18 +18,19 @@ test('20 ải đúng thứ tự, phần, cấp và trùm', () => {
         assert.equal(s.enemies[0].classId.startsWith('b_'), !!s.boss);
         assert.ok(s.enemies.slice(1).every(e => !e.classId.startsWith('b_')));
     }
-    assert.equal(C.stages[0].name, 'Đêm ở cổng làng');
+    assert.equal(C.stages[0].name, 'Cánh cổng chưa được phép đóng');
     assert.equal(C.stages[19].name, 'Đại tướng Valdric');
-    // cốt truyện: Jessica (ải 2) và Seraphine (ải 3) đi cùng rồi gia nhập, Lyra gia nhập ở ải 12
+    // cốt truyện: Jessica (ải 2) đi cùng rồi gia nhập, Sera chỉ vào đội khi được cứu (ải 7), Lyra gia nhập ở ải 12
     assert.deepEqual([C.stages[1].guests, C.stages[1].joins], [['assassin'], ['assassin']]);
-    assert.deepEqual([C.stages[2].guests, C.stages[2].joins], [['priest'], ['priest']]);
+    assert.equal(C.stages[2].guests, undefined);
+    assert.deepEqual([C.stages[6].guests, C.stages[6].joins], [['priest'], ['priest']]);
     assert.deepEqual(C.stages[11].joins, ['archer']);
 });
 test('5 nhánh đúng tên, cờ và điều kiện N5', () => {
-    assert.deepEqual(C.branches.map(b => b.name), ['Dưới Giếng Cổ', 'Mỏ Sâu', 'Bữa Tiệc Làng', 'Trang Sách Bị Xé', 'Hầm Mộ']);
+    assert.deepEqual(C.branches.map(b => b.name), ['Dưới Giếng Cổ', 'Mỏ Sâu', 'Bữa Ăn Còn Đủ Chỗ', 'Trang Sách Bị Xé', 'Hầm Mộ']);
     assert.deepEqual(C.branches.map(b => b.flag), ['gieng_co', 'bua_borin', 'nguyen_lieu_lena', 'trang_sach', 'loi_vao_ham_mo']);
-    assert.deepEqual(C.branches.map(b => b.baseNo), [1, 4, 3, 16, 18]);
-    assert.equal(C.branches[4].needStoryNo, 18);
+    assert.deepEqual(C.branches.map(b => b.baseNo), [7, 4, 10, 20, 20]);   // theo thời điểm các truyện phụ
+    assert.equal(C.branches[4].needStoryNo, 20);
     assert.equal(C.branches[4].enemies[0].classId, 'b_warden');   // N5: trùm ẩn Người Gác Mộ
 });
 test('id duy nhất, quái chương 1 và vị trí hợp lệ', () => {

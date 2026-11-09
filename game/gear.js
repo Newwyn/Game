@@ -71,7 +71,6 @@ const SALVAGE_REFINE = [0, 0, 1, 2, 3];
 // ---------- Rơi đồ ----------
 const DROP_RARITY = { story: [0.6, 0.3, 0.1], hard: [0.3, 0.45, 0.25], hell: [0.1, 0.45, 0.45] };
 const DROP_LV_ADD = { story: 0, hard: 5, hell: 10 };
-const CHARM_CHANCE = { story: 0, hard: 0.1, hell: 0.2 };
 
 const coefOf = (level, rarity) => (LEVEL_COEF[level] ?? 0) * (RARITIES[rarity]?.coef ?? 0);
 const pick = (rng, arr) => arr[Math.min(arr.length - 1, Math.floor(rng() * arr.length))];
@@ -236,8 +235,7 @@ function rollDrops(rng, { no, boss = 0, diff, firstClear = false }) {
     if (firstClear && diff === 'story' && no === 6) items.push({ slot: 'weapon', level, rarity: 1 });   // ải 6: dạy mặc đồ
     else items.push({ slot: pick(rng, SET_SLOTS), level, rarity: rollRarity() });
     if (boss) items.push({ slot: pick(rng, SET_SLOTS), level, rarity: rollRarity() });
-    const charms = rng() < (CHARM_CHANCE[diff] ?? 0) ? 1 : 0;
-    return { items, charms };
+    return { items };
 }
 
 // ---------- Phân giải ----------

@@ -13,7 +13,7 @@
 
 import { mountRenderer, renderer } from './core/scene.js';
 import { runLoadingScreen } from './ui/loading.js';
-import { buildEnvironment } from './core/environment.js';
+import { buildEnvironment, setBattleTheme, themeForBattle } from './core/environment.js';
 import { cameraRig } from './core/cameraRig.js';
 import { timeState } from './config.js';
 import { registerCombatEvents } from './combat/events.js';
@@ -26,6 +26,8 @@ import { socket } from './net/socket.js';
 import { setupProgressTool } from './ui/progressTool.js';
 import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
+import { setupLanding } from './ui/landing.js';
+import { setupTestPanel } from './ui/testPanel.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
 import { setupWorld } from './ui/world.js';
@@ -36,12 +38,15 @@ import { myId } from './state.js';
 mountRenderer(document.getElementById('game-container'));
 // ⏳ tải trước mọi tranh (thanh %), đẩy sẵn lên card đồ hoạ -> vào trận không khựng
 runLoadingScreen(renderer);
+// 🏰 trang vào game (đăng nhập · Vào game / Server test) — hiện đè lên màn tải, tranh vẫn tải ngầm
+setupLanding();
 buildEnvironment();
 setupInput();
 registerOverlayEvents();
 registerCombatEvents({
     onWaiting: (data) => showWaiting(data.message),
     onBattleStart: (data) => {
+        setBattleTheme(themeForBattle(data));
         resetMemberAuto();   // AUTO từng tướng: gửi lại lựa chọn đã nhớ cho trận mới
         // Chế độ: ĐẤU / CỐT TRUYỆN -> ẩn mọi tool test (CSS body.mode-duel)
         const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero' || data.mode === 'campaign' || data.mode === 'prologue';
@@ -83,6 +88,8 @@ setupHeroPanel();
 setupExtras();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
+// 🧪 bảng tool thử (chỉ hiện ở Server test)
+setupTestPanel();
 // Tool phe quái: cấp quái hiện tại
 socket.on('monsterLevel', (d) => {
     const a = document.getElementById('monster-level-label'), b = document.getElementById('monster-level-big');

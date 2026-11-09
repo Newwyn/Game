@@ -135,11 +135,30 @@ export function createView(host) {
         if (a && a.url === url) return a;
         if (a) { sprites.remove(a.g); actors.delete(key); }
         const tex = baseTex(url).clone();
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4 }));
+        const mat = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4 });
+        let dz = null, bits = null;
+        if (key.startsWith('dz:')) {   // ✨ tan pixel (src/ui/world.js: dissolves) — ô 8px tắt dần từ đầu xuống chân, viền ô sáng lên
+            dz = { uDz: { value: 0 }, uGrid: { value: new THREE.Vector2(32, 48) }, uRows: { value: 4 } };
+            mat.onBeforeCompile = (sh) => {
+                Object.assign(sh.uniforms, dz);
+                sh.fragmentShader = 'uniform float uDz; uniform vec2 uGrid; uniform float uRows;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+                    vec2 dzCell = floor(vMapUv * uGrid);
+                    float dzN = fract(sin(dot(dzCell, vec2(127.1, 311.7))) * 43758.5453);
+                    float dzTh = dzN * 0.55 + (1.0 - fract(vMapUv.y * uRows)) * 0.25;
+                    if (uDz > dzTh + 0.12) discard;
+                    if (uDz > dzTh) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.93, 0.7), 0.85);`);
+            };
+            mat.customProgramCacheKey = () => 'dissolve';
+            const n = 26, pos = new Float32Array(n * 3);
+            for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 0.8; pos[i * 3 + 1] = 0.2 + Math.random() * CHAR_H * 0.9; pos[i * 3 + 2] = (Math.random() - 0.5) * 0.3; }
+            const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            bits = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe9a8, size: 0.09, transparent: true, depthWrite: false, opacity: 0 }));
+        }
+        const sp = new THREE.Sprite(mat);
         sp.center.set(0.5, 0.03);
         const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.025;
-        const g = new THREE.Group(); g.add(sp, sh); sprites.add(g);
-        a = { g, sp, sh, tex, url, seen: 0 };
+        const g = new THREE.Group(); g.add(sp, sh); if (bits) g.add(bits); sprites.add(g);
+        a = { g, sp, sh, tex, url, seen: 0, dz, bits };
         if (key === 'me') {   // bóng mờ của nhân vật chính: vẫn thấy khi bị nhà / tường / cây che
             a.ghost = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4, depthTest: false, depthWrite: false, transparent: true, opacity: 0.42 }));
             a.ghost.center.set(0.5, 0.03); a.ghost.renderOrder = 20; g.add(a.ghost);
@@ -197,6 +216,12 @@ export function createView(host) {
             a.sp.position.y = s.lift ?? 0;
             if (a.ghost) { a.ghost.scale.copy(a.sp.scale); a.ghost.position.copy(a.sp.position); }
             a.sh.scale.setScalar(1 - Math.min(0.5, (s.lift ?? 0) * 0.4));
+            if (a.dz) {
+                const p = s.dissolve ?? 0;
+                a.dz.uDz.value = p; a.dz.uGrid.value.set(cols * cw / 8, rows * ch / 8); a.dz.uRows.value = rows;
+                a.sh.scale.setScalar(Math.max(0.01, 1 - p));
+                a.bits.position.y = p * p * 1.6; a.bits.scale.set(1 + p, 1, 1 + p); a.bits.material.opacity = p > 0 ? Math.min(1, p * 4) * (1 - p) : 0;
+            }
             a.g.position.set(s.x, 0, s.z);
         }
         // đồ vật (ô trong items.webp)
@@ -212,7 +237,10 @@ export function createView(host) {
             a.sh.scale.setScalar(s.size * 0.8);
             a.g.position.set(s.x, 0, s.z);
         }
-        for (const [k, a] of actors) if (a.seen !== frameNo) { sprites.remove(a.g); a.tex.dispose(); actors.delete(k); }
+        for (const [k, a] of actors) if (a.seen !== frameNo) {
+            sprites.remove(a.g); a.tex.dispose(); actors.delete(k);
+            if (a.dz) { a.sp.material.dispose(); a.bits.geometry.dispose(); a.bits.material.dispose(); }
+        }
         // dấu ! ? và mũi tên mục tiêu
         const seenM = new Set();
         for (const m of state.marks) { const s = mark(m.key, m.txt, m.color); s.visible = true; s.position.set(m.x, (m.y ?? 2.15) + Math.sin(t * 3.2) * 0.08, m.z); seenM.add(m.key); }

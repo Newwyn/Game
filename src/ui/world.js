@@ -6,8 +6,11 @@
 //   · Bản đồ + vị trí NPC / đồ vật / lối ra: src/world/maps.js · Luật (rương, việc, sự kiện…): server (game/world.js)
 // ============================================================
 import { net, socket } from '../net/socket.js';
-import { playStory } from './story.js';
+import { playStory, playCutscene } from './story.js';
 import { MAPS } from '../world/maps.js';
+import { EXTRA } from '../world/mapsExtra.js';
+import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
+for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const objs = MAPS[id]?.objects; if (!objs) continue; const i = objs.findIndex(x => x.id === o.id); if (i >= 0) objs[i] = o; else objs.push(o); }   // điểm truyện + vật điều tra (chương 1)
 import { softwareGL } from '../core/gpu.js';
 import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
 import { icon } from './icons.js';
@@ -19,12 +22,28 @@ const SHEETS = import.meta.glob('../assets/overworld/*.webp', { eager: true, imp
 const SHEET_META = import.meta.glob('../assets/overworld/*.json', { eager: true, import: 'default' });
 const MAP_IMG = import.meta.glob('../assets/maps/*.webp', { eager: true, import: 'default' });
 const ITEMS_IMG = import.meta.glob('../assets/overworld/items.webp', { eager: true, import: 'default' });
+const ITEMS2_IMG = import.meta.glob('../assets/overworld/items2.webp', { eager: true, import: 'default' });
 
 const DIRS = { down: [0, 1], left: [-1, 0], right: [1, 0], up: [0, -1] };
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const STEP_MS = 230;          // thời gian đi 1 ô
 const JUMP_MS = 420;
 const ITEM_CELL = { chest: 0, chest_open: 1, mine: 2, wheat: 3, mushroom: 4, hammer: 5, herb: 6, pages: 7, board: 8 };
+// bộ vật thứ 2 (điểm truyện chương 1) — items2.webp 4x3 ô
+const ITEM2_CELL = { bandage: 0, wolf_tracks: 1, smoke: 2, reeds: 3, wheel_tracks: 4, ash_arrows: 5, ledger: 6, archive_door: 7, stairs: 8, poster: 9, crate: 10, torch: 11 };
+const NO_BOB = new Set(['chest', 'mine', 'smoke', 'wolf_tracks', 'wheel_tracks', 'ash_arrows', 'archive_door', 'stairs', 'reeds', 'crate', 'torch']);
+/** ảnh + ô của 1 vật: { url, meta, cell } (null nếu chưa có ảnh) */
+function itemSrc(sprite, done) {
+    if (ITEM2_CELL[sprite] != null) {
+        const url = Object.values(ITEMS2_IMG)[0], meta = SHEET_META['../assets/overworld/items2.json'];
+        if (url && meta) return { url, meta, cell: ITEM2_CELL[sprite] };
+    }
+    const cell = ITEM_CELL[sprite === 'chest' && done ? 'chest_open' : sprite];
+    const meta = SHEET_META['../assets/overworld/items.json'];
+    return cell == null || !meta ? null : { url: Object.values(ITEMS_IMG)[0], meta, cell };
+}
+/** vật dạng người: 1 người (solo) hoặc nhóm 3 — mỗi phần tử [dx, dy, char?] (char riêng, VD sói đầu đàn + 2 sói thường) */
+const groupOf = (o) => o.group ?? (o.solo ? [[0, 0]] : [[0, 0], [1, -1], [1, 1]]);
 
 let root, canvas, ctx, hud, padEl;
 let data = null, scene = null, map = null, open = false;
@@ -309,7 +328,7 @@ function blocked(x, y, ignoreNpc = false) {
     if (!map || x < 0 || y < 0 || x >= map.cols || y >= map.rows) return true;
     if (map.grid[y][x] !== '.') return true;
     if (!ignoreNpc && npcs.some(n => !n.hidden && n.x === x && n.y === y)) return true;
-    if ((map.objects ?? []).some(o => o.solid && o.x === x && o.y === y && visibleObj(o))) return true;
+    if ((map.objects ?? []).some(o => o.solid && (o.char ? groupOf(o).some(([ox, oy]) => o.x + ox === x && o.y + oy === y) : o.x === x && o.y === y) && visibleObj(o))) return true;
     return false;
 }
 const visibleObj = (o) => { const st = scene?.objects.find(s => s.id === o.id); return !!st && st.state !== 'hidden' && !(o.char && st.state !== 'ready'); };
@@ -456,7 +475,7 @@ function onArrive() {
 }
 function useExit(exit) {
     const s = data.scenes[exit.scene];
-    if (!s?.open) { toast(`🔒 ${s?.name ?? 'Khu này'} mở khi qua ải ${s?.needNo ?? '?'}`); bump(); return; }
+    if (!s?.open) { toast(`🔒 ${s?.name ?? 'Khu này'} mở khi qua ${s?.needText ?? `ải ${s?.needNo ?? '?'}`}`); bump(); return; }
     fade = 1;
     loadScene(exit.scene, exit.at[0], exit.at[1], exit.face ?? me.face);
     net.worldMove(exit.scene, me.x, me.y, me.face, true);
@@ -521,6 +540,42 @@ function drawChar(name, x, y, face, walking, stepN, lift = 0, S) {
     ctx.beginPath(); ctx.ellipse(x + S / 2, y + S * 0.92, S * 0.32, S * 0.12, 0, 0, Math.PI * 2); ctx.fill();
     ctx.drawImage(im, col * meta.cw, r * meta.ch, meta.cw, meta.ch, x + S / 2 - w / 2, y + S * 0.98 - h - lift, w, h);
 }
+// ---------- ✨ tan pixel: quái / người trên bản đồ biến mất sau khi bị đánh bại ----------
+//   vật dạng người (o.char) đang hiện mà vừa bị ẩn (thắng ải / sự kiện) -> vỡ thành ô pixel bay lên rồi mờ dần
+const DISSOLVE_MS = 1100;
+const dissolves = [];                 // { char, x, y, face, t0 }
+const readySnap = new Map();          // 'scene:id' -> đang hiện
+function snapObjects(allowFx) {
+    if (!map || !scene) return;
+    for (const o of map.objects ?? []) {
+        if (!o.char) continue;
+        const k = `${scene.id}:${o.id}`, on = visibleObj(o);
+        if (allowFx && readySnap.get(k) && !on)   // chỉ kẻ địch mới tan (Sera, Grix… thì không) — o.foe: cả nhóm · o.foeChars: chỉ các con đó
+            groupOf(o).forEach(([ox, oy, ch], i) => (o.foe ?? o.id === 'ambush' ? true : o.foeChars?.includes(ch ?? o.char)) && dissolves.push({ char: ch ?? o.char, x: o.x + ox, y: o.y + oy, face: o.face ?? 'left', delay: i * 120, t0: null }));   // t0 đặt ở khung hình đầu tiên bản đồ hiện (trận thắng xong state tới lúc bản đồ còn ẩn)
+        readySnap.set(k, on);
+    }
+}
+const blockRand = (i, j, seed) => { const v = Math.sin(i * 127.1 + j * 311.7 + seed * 74.7) * 43758.5453; return v - Math.floor(v); };
+/** 2D: khung đứng của nhân vật vỡ thành ô vuông — ô nào tới lượt thì bay lên + mờ */
+function drawDissolve(d, now, S, cx, cy) {
+    const p = (now - d.t0) / DISSOLVE_MS;
+    if (p < 0) return drawChar(d.char, d.x * S - cx, d.y * S - cy, d.face, false, 0, 0, S);
+    const { url, meta } = sheet(d.char), im = img(url);
+    if (!im || !meta) return;
+    const r = ROW[d.face] ?? 0, h = S * 1.35, w = h * meta.cw / meta.ch;
+    const x0 = d.x * S - cx + S / 2 - w / 2, y0 = d.y * S - cy + S * 0.98 - h;
+    const B = 8, k = w / meta.cw;           // ô 8 điểm ảnh gốc
+    for (let j = 0; j * B < meta.ch; j++) for (let i = 0; i * B < meta.cw; i++) {
+        const start = blockRand(i, j, d.x + d.y) * 0.55 + (1 - j * B / meta.ch) * 0.25;   // đầu tan trước, chân tan sau
+        const q = (p - start) / 0.4;
+        if (q >= 1) continue;
+        const lift = q > 0 ? q * q * S * 1.1 : 0, drift = q > 0 ? (blockRand(j, i, 3) - 0.5) * q * S * 0.6 : 0;
+        ctx.globalAlpha = q > 0 ? 1 - q : 1;
+        ctx.drawImage(im, meta.cw + i * B, r * meta.ch + j * B, B, B, x0 + i * B * k + drift, y0 + j * B * k - lift, B * k + 0.5, B * k + 0.5);
+        if (q > 0 && q < 0.5) { ctx.fillStyle = `rgba(255,240,190,${0.5 - q})`; ctx.fillRect(x0 + i * B * k + drift, y0 + j * B * k - lift, B * k, B * k); }
+    }
+    ctx.globalAlpha = 1;
+}
 function draw(now) {
     if (!ctx || !map) return;
     ctx.imageSmoothingEnabled = false;
@@ -528,29 +583,32 @@ function draw(now) {
     ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const bg = img(MAP_IMG[`../assets/maps/${map.image}.webp`]);
     if (bg) ctx.drawImage(bg, -cx, -cy, map.cols * S, map.rows * S);
-    const items = img(Object.values(ITEMS_IMG)[0]), itemsMeta = SHEET_META['../assets/overworld/items.json'];
     const list = [];   // vẽ theo hàng (y) để vật ở dưới che vật ở trên
     for (const o of map.objects ?? []) {
         const st = scene.objects.find(s => s.id === o.id);
         if (!st || st.state === 'hidden') continue;
         if (o.char) {   // nhóm quái đứng chờ (sự kiện)
             if (st.state !== 'ready') continue;
-            for (const [k, [ox, oy]] of [[0, 0], [1, -1], [1, 1]].entries()) list.push({ y: o.y + oy, draw: () =>
-                drawChar(o.char, (o.x + ox) * S - cx, (o.y + oy) * S - cy, 'left', Math.floor(now / 400 + k) % 2 === 0, Math.floor(now / 400), 0, S) });
+            const idle = !!o.solo;   // người đứng yên (Grix, lính...) — không giậm chân
+            for (const [k, [ox, oy, ch]] of groupOf(o).entries()) list.push({ y: o.y + oy, draw: () =>
+                drawChar(ch ?? o.char, (o.x + ox) * S - cx, (o.y + oy) * S - cy, o.face ?? 'left', !idle && Math.floor(now / 400 + k) % 2 === 0, Math.floor(now / 400), 0, S) });
             continue;
         }
         if (!o.sprite) continue;
         list.push({ y: o.y, draw: () => {
-            const cell = ITEM_CELL[o.sprite === 'chest' && st.state === 'done' ? 'chest_open' : o.sprite];
-            if (items && itemsMeta && cell != null) {
-                const sx = (cell % itemsMeta.cols) * itemsMeta.cw, sy = Math.floor(cell / itemsMeta.cols) * itemsMeta.ch;
-                const k = (o.big ? 1.3 : 0.9) * S / itemsMeta.ch;
-                const w = itemsMeta.cw * k, h = itemsMeta.ch * k;
-                const bob = st.state === 'ready' && o.sprite !== 'chest' && o.sprite !== 'mine' ? Math.sin(now / 300) * S * 0.05 : 0;
-                ctx.drawImage(items, sx, sy, itemsMeta.cw, itemsMeta.ch, o.x * S - cx + S / 2 - w / 2, o.y * S - cy + S - h + bob, w, h);
+            const src = itemSrc(o.sprite, st.state === 'done'), items = src && img(src.url);
+            if (items) {
+                const { meta, cell } = src;
+                const sx = (cell % meta.cols) * meta.cw, sy = Math.floor(cell / meta.cols) * meta.ch;
+                const k = (o.big ? 1.3 : 0.9) * S / meta.ch;
+                const w = meta.cw * k, h = meta.ch * k;
+                const bob = st.state === 'ready' && !NO_BOB.has(o.sprite) ? Math.sin(now / 300) * S * 0.05 : 0;
+                ctx.drawImage(items, sx, sy, meta.cw, meta.ch, o.x * S - cx + S / 2 - w / 2, o.y * S - cy + S - h + bob, w, h);
             }
         } });
     }
+    for (let i = dissolves.length - 1; i >= 0; i--) { const d = dissolves[i]; d.t0 ??= now + d.delay; if (now - d.t0 > DISSOLVE_MS) dissolves.splice(i, 1); }
+    for (const d of dissolves) list.push({ y: d.y, draw: () => drawDissolve(d, now, S, cx, cy) });
     for (const n of npcs) {
         if (n.hidden) continue;
         const p = n.moving ? Math.min(1, n.moving.t / (STEP_MS * 1.6)) : 0;
@@ -596,24 +654,25 @@ function draw3d(now) {
         actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, x: q.x, z: q.z, face: n.face, col: (!!n.moving && q.p > 0.25 && q.p < 0.75) ? (n.step % 2 ? 0 : 2) : 1 });
         if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: n.mark === '!' ? '#facc15' : '#4ade80' });
     }
-    const itemsUrl = Object.values(ITEMS_IMG)[0], itemsMeta = SHEET_META['../assets/overworld/items.json'];
     const items = [];
     for (const o of map.objects ?? []) {
         const st = scene.objects.find(s => s.id === o.id);
         if (!st || st.state === 'hidden') continue;
         if (o.char) {   // nhóm quái đứng chờ (sự kiện)
             if (st.state !== 'ready') continue;
-            const g = sheet(o.char);
-            [[0, 0], [1, -1], [1, 1]].forEach(([ox, oy], k) => actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: 'left',
-                col: Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }));
+            groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
+                col: o.solo ? 1 : Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }); });
             continue;
         }
-        if (!o.sprite || !itemsMeta) continue;
-        const cell = ITEM_CELL[o.sprite === 'chest' && st.state === 'done' ? 'chest_open' : o.sprite];
-        if (cell == null) continue;
-        items.push({ key: o.id, url: itemsUrl, meta: itemsMeta, cell, x: o.x + 0.5, z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
-            bob: st.state === 'ready' && o.sprite !== 'chest' && o.sprite !== 'mine' });
+        const src = o.sprite && itemSrc(o.sprite, st.state === 'done');
+        if (!src) continue;
+        items.push({ key: o.id, url: src.url, meta: src.meta, cell: src.cell, x: o.x + 0.5, z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
+            bob: st.state === 'ready' && !NO_BOB.has(o.sprite) });
     }
+    for (let i = dissolves.length - 1; i >= 0; i--) { const d = dissolves[i]; d.t0 ??= now + d.delay; if (now - d.t0 > DISSOLVE_MS) dissolves.splice(i, 1); }
+    dissolves.forEach((d, i) => { const g = sheet(d.char);
+        actors.push({ key: `dz:${d.char}:${d.x}:${d.y}:${d.t0}`, url: g.url, meta: g.meta, x: d.x + 0.5, z: d.y + 0.5, face: d.face, col: 1,
+            dissolve: Math.max(0, (now - d.t0) / DISSOLVE_MS) }); });
     view.frame({ focus: { x: mx, z: mz }, actors, items, marks, beacon: trackedSpot(),
         route: auto?.path ? auto.path.map(([x, y]) => ({ x: x + 0.5, z: y + 0.5 })) : [] });
 }
@@ -638,7 +697,7 @@ function renderHud() {
     ${dialog ? dialogHTML() : ''}
     ${puzzle ? puzzleHTML() : ''}
     ${mapOpen ? mapHTML() : ''}
-    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null }) : ''}`;
+    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null, evidence: data?.evidence ?? null }) : ''}`;
     // khung theo dõi nhiệm vụ nằm ngay dưới bản đồ thu nhỏ
     const trk = hud.querySelector('.ql-tracker');
     if (trk && mini) trk.style.top = Math.round(mini.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
@@ -652,6 +711,7 @@ function dialogHTML() {
     </div>`;
 }
 function puzzleHTML() {
+    if (puzzle.kind === 'present') return presentationHTML(puzzle, data?.speakers ?? {});
     if (puzzle.kind === 'well' || puzzle.kind === 'moon') return `<div class="cp-confirm-backdrop"><div class="wd-puzzle" role="dialog">
         ${puzzle.kind === 'moon' ? '<h3>🌙 Suối Trăng</h3><p>Bốn phiến đá quanh suối khắc các pha trăng. Bấm để xoay từng phiến…</p>'
             : '<h3>💧 Giếng Cổ</h3><p>Bốn phiến đá khắc biểu tượng. Bấm để xoay từng phiến, xếp theo một thứ tự nào đó…</p>'}
@@ -755,6 +815,23 @@ function onHudClick(e) {
     if (e.target.matches('[data-wd-map-close]') || q('button[data-wd-map-close]')) { mapOpen = false; renderHud(); return; }
     if (q('[data-wd-next]')) { nextLine(); return; }
     if (q('[data-wd-pz-close]')) { puzzle = null; renderHud(); return; }
+    // 🔎 đối chất trước nhà vua
+    if (puzzle?.kind === 'present') {
+        const qb = q('[data-ev-q]'), pk = q('[data-ev-pick]');
+        if (qb) { puzzle.active = puzzle.active === qb.dataset.evQ ? null : qb.dataset.evQ; renderHud(); return; }
+        if (pk && puzzle.active) {
+            puzzle.answers[puzzle.active] = pk.dataset.evPick;
+            puzzle.active = puzzle.questions.find(x => !puzzle.answers[x.id])?.id ?? null;   // tự chuyển sang câu chưa trả lời
+            renderHud(); return;
+        }
+        if (q('[data-ev-cancel]')) { puzzle = null; renderHud(); return; }
+        if (q('[data-ev-submit]') && !busy) { busy = true; socket.emit('worldPresent', { answers: puzzle.answers }); return; }
+        if (q('[data-ev-continue]')) {
+            const nx = puzzle.next; puzzle = null;
+            dialog = { name: '', speakers: nx.speakers, lines: nx.tail, i: 0, after: () => { save(true); onStage?.(nx.startStage); } };
+            renderHud(); return;
+        }
+    }
     const dial = q('[data-wd-dial]');
     if (dial) { const i = +dial.dataset.wdDial, sy = puzzle.kind === 'moon' ? data.moonSymbols : data.wellSymbols; puzzle.state[i] = sy[(sy.indexOf(puzzle.state[i]) + 1) % sy.length]; puzzle.msg = null; renderHud(); return; }
     const pg = q('[data-wd-page]');
@@ -776,6 +853,7 @@ function loadScene(id, x, y, face) {
         return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;
     }).filter(Boolean);
     if (auto) { auto.path = null; auto.exitDir = null; }
+    snapObjects(false);
     wildGrace = GRACE_STEPS;
     if (host3d && canvas) { host3d.style.display = flat() ? 'none' : 'block'; canvas.style.display = flat() ? 'block' : 'none'; }
     if (view && !flat()) load3d(id); else loading3d = false;
@@ -795,13 +873,14 @@ function startPrologue() {
     prologueOn = true;
     hideWorld();
     document.body.classList.add('selecting-squad');
-    playStory(storyText.intro.prologue, storyText.speakers, () => socket.emit('prologueStart'));
+    // giấc mơ mở đầu (không còn trận "Đấu Thần" — cách bấm kỹ năng dạy ở ải 1); nền tối kín: không lộ màn Test phía sau
+    playStory(storyText.intro.prologue, storyText.speakers, () => { socket.emit('storyMark', { key: 'prologue' }); onPrologueEnd(); }, { bg: 'dark' });
 }
 function onPrologueEnd() {
     const flash = document.createElement('div');
     flash.className = 'wd-flash';
     document.body.appendChild(flash);
-    setTimeout(() => playStory(storyText.intro.sealed, storyText.speakers, () => { flash.remove(); prologueOn = false; showWorld(); }), 1600);
+    setTimeout(() => playStory(storyText.intro.sealed, storyText.speakers, () => { flash.remove(); prologueOn = false; document.body.classList.remove('selecting-squad'); showWorld(); }, { bg: 'dark' }), 1600);
 }
 function showSetup() {
     const box = document.createElement('div');
@@ -851,6 +930,7 @@ function applyState(d) {
     else {   // cập nhật trạng thái (dấu ! ?, đồ vật) mà không dịch vị trí
         scene = d.scenes[d.scene];
         for (const n of npcs) { const s = scene.npcs.find(q => q.id === n.id); if (s) { n.def = s; n.hidden = s.hidden; n.mark = s.mark; } }
+        snapObjects(true);
         renderHud();
     }
 }
@@ -859,10 +939,16 @@ function onResult(r) {
     if (r.puzzle) { puzzle = { kind: r.puzzle, state: { well: ['💧', '⭐', '🌙', '☀️'], moon: ['🌕', '🌑', '🌓', '🌒'] }[r.puzzle] ?? ['III', 'I', 'IV', 'II'], pick: null, msg: null }; return renderHud(); }
     if (puzzle && !r.ok) { puzzle.msg = r.text; return renderHud(); }
     if (puzzle && r.ok) puzzle = null;
+    if (r.lines && r.cutscene?.length) {   // về báo lại kiểu cắt cảnh (kết chương 1: phòng bệnh nhà vua…)
+        busy = true;
+        playCutscene(r.lines, r.cutscene, r.speakers, () => { busy = false; renderHud(); });
+        return;
+    }
     if (r.lines) {
         const n = scene?.npcs.find(x => x.id === r.target);
         dialog = { name: n?.name ?? '', speakers: r.speakers, lines: [...r.lines, ...(r.text ? [['sys', `✨ ${r.text}`]] : [])], i: 0,
-            after: r.startStage ? () => { save(true); onStage?.(r.startStage); } : null };
+            after: r.startStage ? () => { save(true); onStage?.(r.startStage); }
+                : r.present ? () => { puzzle = { kind: 'present', ...r.present }; renderHud(); } : null };   // Elise: lời mở đầu -> khung đối chất
         return renderHud();
     }
     if (r.openStages) { save(true); return onStages?.(); }
@@ -895,11 +981,19 @@ export function hideWorld() {
 }
 export const worldOpen = () => open;
 // chỉ khi chạy thử (npm run dev): xem trạng thái bản đồ trong console — window.__wd
-if (import.meta.env?.DEV) window.__wd = { get view() { return view; }, get auto() { return auto; }, get quests() { return quests(); }, me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; } };
+if (import.meta.env?.DEV) window.__wd = { get view() { return view; }, get auto() { return auto; }, get quests() { return quests(); }, me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; }, get dissolves() { return dissolves; } };
 export function setupWorld() {
     el();
     socket.on('worldState', applyState);
     socket.on('worldResult', onResult);
+    socket.on('worldPresentResult', (r) => {   // chấm xong -> hiện điểm + lời nhà vua / Valdric, rồi phần còn lại của cảnh đại sảnh -> Bảng ải 18
+        busy = false;
+        if (puzzle?.kind !== 'present') return;
+        puzzle.result = r.result;
+        puzzle.rewardText = r.result.first ? r.text : null;
+        puzzle.next = { speakers: r.speakers, tail: r.lines.slice(r.result.lines.length), startStage: r.startStage };
+        renderHud();
+    });
     socket.on('worldError', (d) => { busy = false; toast(`⚠️ ${d.text}`); });
     socket.on('prologueEnd', onPrologueEnd);
     socket.on('battleStart', hideWorld);

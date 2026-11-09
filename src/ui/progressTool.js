@@ -19,6 +19,8 @@ export const progressNet = {
     rankUp: (classId) => socket.emit('rankUp', { classId }),
     gearGive: (set, level, rarity) => socket.emit('gearDebugGive', { set, level, rarity }),
     campaign: (upTo, level) => socket.emit('debugCampaign', { upTo, level }),
+    account: (level) => socket.emit('debugAccount', { level }),
+    reset: () => socket.emit('debugReset'),
 };
 
 /** Bảng tra (bậc, tộc, class) cho HUD */
@@ -120,6 +122,12 @@ export function renderProgressTool() {
         ${onIds.map(id => heroCard(id, data.heroes[id])).join('')}
         <div class="pt-section">📖 Cốt truyện thử <span class="pt-cnt">mở khoá ải</span></div>
         <div class="pt-segs">${[[6, 0], [10, 0], [16, 0], [20, 30]].map(([n, lv]) => `<button class="pt-seg" style="--c:#60a5fa" data-pt="camp" data-v="${n}" data-lv="${lv}">Tới ải ${n}${lv ? ` · Lv${lv}` : ''}</button>`).join('')}</div>
+        <div class="pt-section">⭐ Cấp tài khoản thử <span class="pt-cnt">đang cấp ${data.account?.level ?? '?'}</span></div>
+        <div class="pt-segs">${[[1, 'Cấp 1'], [10, '10 · Khó'], [20, '20 · Địa ngục'], [25, '25 · Đấu'], [60, '60 · mở hết']].map(([l, t]) => `<button class="pt-seg${data.account?.level === l ? ' on' : ''}" style="--c:#facc15" data-pt="acc" data-v="${l}">${t}</button>`).join('')}</div>
+        <div class="pt-section">🔄 Chơi lại từ đầu <span class="pt-cnt">xoá tiến trình hồ sơ này</span></div>
+        <div class="pt-segs">${resetArmed
+            ? `<button class="pt-seg" style="--c:#f87171" data-pt="resetGo">⚠️ Bấm lần nữa để XOÁ HẾT</button><button class="pt-seg" style="--c:#94a3b8" data-pt="resetNo">Huỷ</button>`
+            : `<button class="pt-seg" style="--c:#f87171" data-pt="reset">🔄 Chơi lại từ đầu</button>`}</div>
         <div class="pt-section">🎒 Đồ thử <span class="pt-cnt">cấp ${gearLevel} · cam</span></div>
         <div class="pt-segs">${[10, 30, 60].map(l => `<button class="pt-seg${l === gearLevel ? ' on' : ''}" style="--c:#fb923c" data-pt="gearLv" data-v="${l}">Cấp ${l}</button>`).join('')}</div>
         <div class="pt-segs">
@@ -144,9 +152,15 @@ function onClick(e) {
     else if (pt === 'gearLv') { gearLevel = Number(v); renderProgressTool(); }
     else if (pt === 'camp') progressNet.campaign(Number(v), Number(b.dataset.lv) || 0);
     else if (pt === 'gear') progressNet.gearGive(v || null, gearLevel, 4);
+    else if (pt === 'acc') progressNet.account(Number(v));
+    else if (pt === 'reset') { resetArmed = true; renderProgressTool(); clearTimeout(resetTimer); resetTimer = setTimeout(() => { resetArmed = false; renderProgressTool(); }, 5000); }
+    else if (pt === 'resetNo') { resetArmed = false; renderProgressTool(); }
+    else if (pt === 'resetGo') { resetArmed = false; progressNet.reset(); }
 }
 
+let resetArmed = false, resetTimer = null;   // xác nhận ngay trên bảng (không dùng confirm())
 export function setupProgressTool() {
+    socket.on('debugResetDone', () => location.reload());   // tải lại trang -> màn chọn chế độ, Cốt truyện bắt đầu lại từ tạo nhân vật
     socket.on('progressUpdate', (d) => { data = d; renderProgressTool(); });
     socket.on('progressMsg', (m) => { msg = { ...m, t: performance.now() }; renderProgressTool(); setTimeout(renderProgressTool, 6100); });
     document.addEventListener('click', onClick);
