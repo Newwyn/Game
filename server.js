@@ -384,7 +384,7 @@ const CLASS_DEFS = {
             // Giáp Băng Sét: khiên 25% máu cho Elarion + đồng đội yếu máu nhất 6s; ai đánh trúng người có giáp bị sét giật + choáng
             ward: { name: 'Giáp Băng Sét', recipe: 'iib', orbCost: 2, cooldown: 15000, duration: 6000, shieldPct: 0.32, impact: 300, lock: 500,
                 counterMultiplier: 0.55, counterStun: 500, counterEvery: 1000 },
-            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 1.5, length: 12, width: 1.8, travel: 900,
+            tornado: { name: 'Lốc Xoáy', recipe: 'bbi', orbCost: 2, cooldown: 16000, multiplier: 1.5, length: 12, width: 3.5, travel: 900,   // width 1,8 -> 3,5 (11/2026: quét rộng hơn)
                 push: 4, knockTime: 450, impact: 300, lock: 500 },
             // Hơi Nước Bỏng: niệm 2s -> mây mưa giông 7s (Elarion đứng thi triển: không đánh / chạy; vẫn nhặt ngọc; dùng kỹ năng khác thì ngắt)
             //   mưa: phe ta hồi máu mỗi giây (đầy máu thì hồi MP) · sét: mỗi giây đánh 1 đối thủ ngẫu nhiên, choáng 0,5s
@@ -1949,6 +1949,15 @@ io.on('connection', (socket) => {
                 m.spellCd ??= {}; m.spellCd[data.value] = 0;
                 setSpell(m, data.value, now);
             });
+        } else if (data.type === 'golemSkill') {
+            // Test: Golem đang đứng trên sân dùng NGAY kỹ năng số data.value (0 Nộ Lửa · 1 Bão Tuyết · 2 Hào Quang Sét), bỏ hồi chiêu
+            const i = Number(data.value);
+            const g = player.squad.find(m => m.classId === 'elem_golem' && m.alive);
+            if (!g) return socket.emit('progressMsg', { ok: false, text: 'Chưa có Golem trên sân — gọi Golem trước' });
+            if (!(i >= 0 && i < 3)) return;
+            g.skillCooldowns[i] = 0;
+            g.queuedSkills = [i];
+            g.golemAutos = 0;
         } else if (data.type === 'toggleMember') {
             // Bật / tắt 1 nhân vật ra trận (để test riêng từng nhân vật). Luôn giữ ít nhất 1 người.
             const cls = data.value;
@@ -2061,7 +2070,8 @@ io.on('connection', (socket) => {
     socket.on('chooseMode', (data = {}) => {
         const room = rooms[socket.roomId];
         if (!room || !room.players[socket.id] || !MODES.includes(data.mode)) return;
-        if (data.mode.startsWith('duel') && !C.features(progressOf(socket.progressKey)).has('pvp')) return socket.emit('modeError', { text: A.unlockText('pvp') });
+        // Đấu nằm trong Test (11/2026): ở Server test / chơi thử luôn mở; server chính vẫn cần mở khoá pvp
+        if (data.mode.startsWith('duel') && socket.lcServer === 'main' && !C.features(progressOf(socket.progressKey)).has('pvp')) return socket.emit('modeError', { text: A.unlockText('pvp') });
         stopLoop(room);
         room.mode = data.mode;
         room.status = 'selecting';
@@ -5810,12 +5820,15 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
             let ux = side, uz = 0;
             if (target) { const dx = target.x - m.x, dz = (target.z || 0) - (m.z || 0), d = Math.hypot(dx, dz); if (d > 0.1) { ux = dx / d; uz = dz / d; } }
             const x0 = m.x + ux * 0.8, z0 = (m.z || 0) + uz * 0.8;
-            extra.tornado = { x0, z0, ux, uz, length: sp.length, travel: sp.travel, width: sp.width };
+            // bay tới MÉP SÂN theo hướng bắn (người dùng yêu cầu 11/2026), giữ nguyên tốc độ bay (travel tỉ lệ theo quãng đường)
+            const edge = Math.abs(ux) > 0.05 ? ((ux > 0 ? ARENA_BOUNDS.maxX : ARENA_BOUNDS.minX) - x0) / ux : sp.length;
+            const len = Math.max(sp.length, Math.min(120, edge)), travel = Math.round(sp.travel * len / sp.length);
+            extra.tornado = { x0, z0, ux, uz, length: len, travel, width: sp.width };
             foesOf(opp, now).forEach(({ e, i }) => {
                 const rx = e.x - x0, rz = (e.z || 0) - z0;
                 const along = rx * ux + rz * uz, perp = Math.abs(-rx * uz + rz * ux);
-                if (along < -0.6 || along > sp.length || perp > sp.width) return;
-                const delay = sp.impact + Math.max(0, along) / sp.length * sp.travel;
+                if (along < -0.6 || along > len || perp > sp.width) return;
+                const delay = sp.impact + Math.max(0, along) / len * travel;
                 const eff = hitTarget(m, e, i, opp, sp.multiplier, now, { cc: !!(sp.stun || sp.freeze || sp.push), delay, aoe: true });
                 eff.delay = delay;
                 if (!eff.isMiss) later(delay, () => {
@@ -5934,7 +5947,7 @@ function summonGolem(room, pid, idx, sp, now) {
         pAtk: 0, mAtk: Math.round(st.mAtk * sp.atkMult), pDef: Math.round(m.pDef * sp.pDefMult), mDef: Math.round(m.mDef * sp.mDefMult),
         crit: gdef.crit, critDmg: gdef.critDmg, acc: gdef.acc, dodge: gdef.dodge, pen: m.pen ?? 0, block: gdef.block, lifesteal: 0,
         mpAtk: 0, mpSec: 0, atkSpeed: gdef.atkSpeed, atkRange: gdef.atkRange, range: gdef.range, moveSpeed: gdef.moveSpeed,
-        alive: true, x: m.x + side * 2.5, y: 0, z: m.z || 0, side,
+        alive: true, x: m.x + side * 2.5, y: 0, z: m.z || 0, side: m.side,   // phe 'left' | 'right' (trước ghi nhầm số 1 / -1 -> Nộ Lửa lùi về phía địch rồi lao ngược)
         state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: now,
         skillCooldowns: [0, 0, 0], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: [],
         skills: P.scaleSkills(gdef.skills, m.rank ?? 0), passives: [], talentLevels: { 1: 0, 2: 0 },
@@ -6635,7 +6648,7 @@ function broadcastState(roomId) {
             })
         };
     });
-    io.to(roomId).emit('stateUpdate', { players: enrichedPlayers, clock: now, speed: room.speed ?? DEFAULT_SPEED, timeScale: timeScaleOf(room) });
+    io.to(roomId).emit('stateUpdate', { players: enrichedPlayers, clock: now, speed: room.speed ?? DEFAULT_SPEED, timeScale: timeScaleOf(room), enemyGodMode: !!room.enemyGodMode });
 }
 
 function checkWinCondition(roomId) {

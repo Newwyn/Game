@@ -4,7 +4,8 @@
 // Thay cho onclick="..." trong HTML: mọi nút khai báo data-action / data-skill
 // và được xử lý tập trung ở đây.
 import { settings, setSetting } from '../core/settings.js';
-import { net } from '../net/socket.js';
+import { net, socket } from '../net/socket.js';
+import { myId } from '../state.js';
 import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
 import { cameraRig } from '../core/cameraRig.js';
@@ -44,6 +45,17 @@ function queueSkill(memberIndex, skillIndex) {
 function requestReset() {
     hideBattleResult();
     net.requestReset();
+}
+
+/** Nút Bất tử / Skill miễn phí / Quái bất tử luôn KHỚP với server (server tự tắt tool khi vào ải, đấu, đổi trận,
+ *  khởi động lại… -> trước đây nút vẫn hiện ON mà không còn tác dụng). Gọi mỗi lần nhận stateUpdate. */
+function syncDebugToggles(players, enemyGodMode) {
+    const me = players?.[myId()];
+    if (!me) return;
+    const want = { noMana: !!me.debugNoMana, godMode: !!me.debugGodMode, enemyGod: !!enemyGodMode };
+    if (want.noMana !== debugState.noMana) { debugState.noMana = want.noMana; setToggleLabel('btn-debug-no-mana', want.noMana, '✨ Skill miễn phí'); }
+    if (want.godMode !== debugState.godMode) { debugState.godMode = want.godMode; setToggleLabel('btn-debug-god-mode', want.godMode, '🛡️ Bất tử'); }
+    if (want.enemyGod !== !!debugState.enemyGod) { debugState.enemyGod = want.enemyGod; setToggleLabel('btn-enemy-god', want.enemyGod, '🛡️ Quái bất tử'); }
 }
 
 /** Vào chế độ ĐẤU: server đã tắt mọi tool -> trả các nút bật/tắt test về OFF */
@@ -86,6 +98,7 @@ const ACTIONS = {
     toggleMember: (classId) => net.debugAction('toggleMember', classId),
     debugKill: (classId) => net.debugAction('kill', classId),
     elemSpell: (key) => net.debugAction('elemSpell', key),   // Elarion: đặt thẳng 1 phép vào nút KN2 (test)
+    golemSkill: (i) => net.debugAction('golemSkill', Number(i)),   // Golem: dùng ngay 1 kỹ năng (test)
     monsterLevel: (arg) => net.debugEnemyAction('monsterLevel', undefined, arg),
     backToMenu: () => net.backToMenu(),
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
@@ -211,6 +224,7 @@ function changePanelScale(id, step) {
 
 export function setupInput() {
     updateShakeButton();
+    socket.on('stateUpdate', (d) => syncDebugToggles(d.players, d.enemyGodMode));
     document.addEventListener('click', onClick);
     window.addEventListener('keydown', onKeyDown);
     // Lăn chuột để zoom camera

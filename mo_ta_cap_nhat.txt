@@ -1,3 +1,10 @@
+Hieu ung diem anh (pixelfx, MIT) cho ca 11 nhan vat + danh thuong cua nhan vat va quai + sua No Lua cua Golem lao nguoc + Test co Dau Tap / Dau PVP + nut Bat tu luon khop voi server
+
+- Elarion / Golem / Nerissa lam lai theo y ban (Thien Thach, Loc Xoay toi mep ban do + rong hon, Giap Bang Set kieu khien Sera, Frost breath dung mieng Golem, vong nuoc quanh Nerissa)
+- Tool thu: 3 nut cho Golem dung ky nang ngay
+- Chi tiet: NHAT_KY_CAP_NHAT.md (10/11 toi)
+- 118 bai kiem tra tu dong
+
 Seraphine: Khien Anh Sang -> Divine Shield, Thanh Niem -> Blessing (hieu ung diem anh pixelfx cua Patch, MIT)
 
 Quai co bo hinh dong day du nhu nhan vat (dot 1: Goblin Cuop, Goblin Nem Bom, Linh Valoria, Mat Tham) + trang xem thu tools/enemy-viewer.html

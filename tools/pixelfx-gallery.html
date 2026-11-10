@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chọn hiệu ứng pixelfx</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --dim: #94a3b8; --line: #334155; --accent: #2dd4bf; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px system-ui, sans-serif; }
+  header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  select { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: inherit; }
+  h2 { font-size: 15px; margin: 16px 16px 0; color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; padding: 12px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; }
+  .card canvas { width: 100%; image-rendering: pixelated; background: #111827; border-radius: 6px; }
+  .card b { display: block; margin-top: 6px; font-size: 16px; }
+  .card span { color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <strong>Chọn hiệu ứng (pixelfx, MIT)</strong>
+  <label>Màu <select id="pal"></select></label>
+</header>
+<div id="root"></div>
+<script type="module">
+// Trang xem trước để người dùng chọn hiệu ứng pixelfx cho kỹ năng: ?set=lyra2 (danh sách bên dưới)
+import { createFrame, clearFrame, createFx, composite, drawActor, stockActor, painterFor, PAL } from '../src/vendor/pixelfx/core/index.js';
+const MODS = import.meta.glob('../src/vendor/pixelfx/fx/*/*.js', { eager: true });
+const CUSTOM = import.meta.glob('../src/vfx/pixelfx-custom/*.js', { eager: true });
+const mod = (n) => n.startsWith('custom/') ? CUSTOM[`../src/vfx/pixelfx-custom/${n.slice(7)}.js`] : MODS[`../src/vendor/pixelfx/fx/${n}.js`];
+const SETS = {
+  hawk: { pal: 'cyber', groups: [['Mắt Ưng Gió (tự vẽ)', [['Mới', 'custom/hawk-sight', 'Vòng ngắm trên đầu + gió + lông vũ']]]] },
+  nerissa: { pal: 'water', groups: [['Nerissa (tự vẽ)', [['Thủy Vũ Hoàn', 'custom/water-aura', 'Vòng nước quanh người lúc múa'], ['Giọt Thủy Vũ', 'custom/water-hit', 'Trúng đòn thường']]], ['Khiên', [['Giáp nước', 'holy/divine-shield', 'Khiên bong bóng màu nước']]]] },
+  lyra2: {
+    pal: 'cyber',
+    groups: [
+      ['Lúc Lyra gọi gió (bung ra 1 lần)', [
+        ['A', 'holy/feather-burst', 'Lông vũ bung ra rồi rơi lắc lư'],
+        ['B', 'arcane/magic-circle-cast', 'Vòng phép sáng dưới chân'],
+        ['C', 'arcane/mana-burst', 'Bùng năng lượng tỏa ra'],
+        ['D', 'holy/sunburst', 'Mặt trời tia sáng xoay chậm'],
+      ]],
+      ['Trên người cả đội khi được tăng chính xác (8 giây, thay dải gió xoay)', [
+        ['1', 'holy/halo', 'Vòng sáng lơ lửng trên đầu, bụi sáng rơi'],
+        ['2', 'status/haste', 'Vệt gió / dư ảnh phía sau người'],
+        ['3', 'weather/god-rays', 'Tia sáng xiên chiếu xuống'],
+        ['4', 'arcane/rune-circle', 'Vòng ký tự dưới chân'],
+      ]],
+    ],
+  },
+};
+const set = SETS[new URLSearchParams(location.search).get('set') ?? 'lyra2'];
+const palSel = document.getElementById('pal');
+for (const k of ['(màu gốc)', ...Object.keys(PAL)]) palSel.add(new Option(k, k));
+palSel.value = set.pal;
+const root = document.getElementById('root');
+const cards = [];
+for (const [title, list] of set.groups) {
+  root.insertAdjacentHTML('beforeend', `<h2>${title}</h2>`);
+  const grid = document.createElement('div'); grid.className = 'grid'; root.append(grid);
+  for (const [tag, name, desc] of list) {
+    const m = mod(name); if (!m) continue;
+    const [W, H] = m.meta.size, [OX, OY] = m.meta.origin;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const div = document.createElement('div'); div.className = 'card';
+    div.append(c); div.insertAdjacentHTML('beforeend', `<b>${tag}</b><span>${desc}</span>`);
+    grid.append(div);
+    cards.push({ m, c, ctx: c.getContext('2d'), frame: createFrame(W, H, -OX, -OY), img: new ImageData(W, H), fx: null });
+  }
+}
+function restart() {
+  const p = palSel.value in PAL ? PAL[palSel.value] : undefined;
+  for (const k of cards) k.fx = createFx(k.m, { x: 0, y: 0, ...(p ? { palette: p } : {}), ...(k.m.meta.actor ? { actor: stockActor(2) } : {}) });
+}
+palSel.onchange = restart;
+restart();
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  for (const k of cards) {
+    k.fx.update(dt);
+    if (k.fx.done()) restart();
+    const f = clearFrame(k.frame);
+    k.fx.draw(f, 'back');
+    { const p = painterFor(f); p.place(0, 0, false, 0); drawActor(p, stockActor(2)); }   // người mẫu đứng giữa để so cỡ
+    k.fx.draw(f, 'front');
+    composite(f, k.img.data, 0xff27180f);
+    k.ctx.putImageData(k.img, 0, 0);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

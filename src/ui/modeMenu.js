@@ -1,8 +1,9 @@
 // ============================================================
 // MÀN HÌNH CHỌN CHẾ ĐỘ — lúc mới vào game / bấm 🏠 Menu
 // ============================================================
-//   🧪 Test : đánh quái, có Tool Phe Mình / Phe Quái, nhân vật theo level / bậc đang có
-//   ⚔️ Đấu  : không có tool, mọi nhân vật Lv60 SSS
+//   🧪 Test (11/2026: thẻ Đấu bỏ khỏi màn đầu, chuyển vào trong Test — Đấu luôn mở ở đây):
+//      - Đấu Tập : đánh quái, có Tool Phe Mình / Phe Quái, nhân vật theo level / bậc đang có
+//      - Đấu PVP : không có tool, mọi nhân vật Lv60 SSS
 //        - Đấu với quái : đội của bạn vs 3 quái mặc định (Lv60)
 //        - Đấu với tướng: chọn đội 1P (bạn) và 2P (AI) rồi đấu
 import { net, socket } from '../net/socket.js';
@@ -13,7 +14,6 @@ export function unlockText(feature) {
     const entry = account?.unlocks?.find(u => u.feature === feature);
     return entry ? `Mở ở cấp tài khoản ${entry.level}` : 'Đang tải cấp mở khóa…';
 }
-const pvpOpen = () => !!account && account.level >= (account.unlocks.find(u => u.feature === 'pvp')?.level ?? Infinity);
 let root = null;
 let step = 'main';
 
@@ -28,9 +28,10 @@ function el() {
         const b = e.target.closest('[data-mode]');
         if (!b) return;
         const m = b.dataset.mode;
-        if (m.startsWith('duel') && !pvpOpen()) return;
+        if (m === 'test') { step = 'test'; render(); return; }      // Test -> chọn Đấu Tập / Đấu PVP
         if (m === 'duel') { step = 'duel'; render(); return; }
-        if (m === 'back') { step = 'main'; render(); return; }
+        if (m === 'back') { step = step === 'duel' ? 'test' : 'main'; render(); return; }
+        if (m === 'practice') { hide(); net.chooseMode('test'); return; }   // Đấu Tập = Test như cũ
         if (m === 'campaign') {   // Cốt truyện: vào bản đồ thế giới (nơi xuất phát), từ đó chọn ải / trang bị
             hide();
             openWorldHub();
@@ -43,7 +44,7 @@ function el() {
 }
 
 function card(mode, icon, title, desc, cls = '') {
-    return `<button class="mm-card ${cls}" data-mode="${mode}" ${mode.startsWith('duel') && !pvpOpen() ? 'disabled aria-disabled="true"' : ''}><span class="mm-icon">${icon}</span><b>${title}</b><small>${desc}</small></button>`;
+    return `<button class="mm-card ${cls}" data-mode="${mode}"><span class="mm-icon">${icon}</span><b>${title}</b><small>${desc}</small></button>`;
 }
 
 // 🧪 Thử nhanh (cho người thử game): đặt cấp tài khoản · nhảy tới ải (kèm cấp đội hợp lý) · chơi lại từ đầu
@@ -76,10 +77,18 @@ function render() {
         <p>Chọn chế độ</p>
         <div class="mm-row">
             ${card('campaign', '📖', 'Cốt truyện', 'Chương 1: Ngọn Lửa Dưới Thánh Huy · vượt ải nhận thưởng, mở khoá tính năng & anh hùng', 'campaign')}
-            ${card('test', '🧪', 'Test', 'Đánh quái · có tool tăng cấp, bất tử, skill miễn phí… để thử nhân vật', 'test')}
-            ${card('duel', pvpOpen() ? '⚔️' : '🔒', 'Đấu', pvpOpen() ? 'Không có tool · mọi nhân vật Lv60 SSS' : unlockText('pvp'), 'duel')}
+            ${card('test', '🧪', 'Test', 'Đấu Tập (có tool thử nhân vật) hoặc Đấu PVP', 'test')}
         </div>
         ${testStrip()}
+    </div>` : step === 'test' ? `
+    <div class="mm-box">
+        <h1>🧪 TEST</h1>
+        <p>Chọn kiểu đấu</p>
+        <div class="mm-row">
+            ${card('practice', '🧪', 'Đấu Tập', 'Đánh quái · có tool tăng cấp, bất tử, skill miễn phí… để thử nhân vật', 'test')}
+            ${card('duel', '⚔️', 'Đấu PVP', 'Đấu với quái / đấu với tướng · không có tool · mọi nhân vật Lv60 SSS', 'duel')}
+        </div>
+        <button class="mm-back" data-mode="back">← Quay lại</button>
     </div>` : `
     <div class="mm-box">
         <h1>⚔️ ĐẤU</h1>

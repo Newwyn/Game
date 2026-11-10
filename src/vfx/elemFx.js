@@ -269,6 +269,7 @@ export function spawnMeteor(m) {
     // rơi: vẽ sẵn chúi ~35° xuống phải -> xoay thêm cho khớp đường rơi
     const x0 = m.x - dir * 9, y0 = 15, y1 = FLOOR + 2.0;
     const ball = sprite('meteorFall', 5.5);
+    if (m.pixelFall) ball.visible = false;
     const drawn = Math.atan2(-330, 471), path = Math.atan2(y1 - y0, (m.x - x0) * dir);
     ball.rotation.z = (path - drawn) * dir;
     ball.scale.x = dir;
@@ -278,7 +279,7 @@ export function spawnMeteor(m) {
     });
     gameTimeout(() => {
         // nổ lớn 4 khung (loé trên đất -> bùng lên, đá lửa văng -> cột lửa khói to nhất -> sụp thành khói, mép hố đỏ rực)
-        playGroup('meteorBoom', 6.0, m.x, FLOOR + 0.02, (m.z ?? 0) + 0.75, { life: 1.05, w: [0.45, 1, 1.3, 1.6], a: 0.02, b: 0.8 });
+        if (!m.pixelFall) playGroup('meteorBoom', 6.0, m.x, FLOOR + 0.02, (m.z ?? 0) + 0.75, { life: 1.05, w: [0.45, 1, 1.3, 1.6], a: 0.02, b: 0.8 });
         flash({ x: m.x, z: m.z }, FIRE, { size: 8, y: 1.2, life: 0.45, opacity: 0.6 });
         spawnShockwave({ x: m.x, z: m.z }, { color: FIRE, radius: (m.radius ?? 4) * 1.2, life: 0.65 });
         spawnEmbers(m.x, m.z, { count: 24, radius: 2.4, life: 1.1 });
@@ -333,6 +334,7 @@ export function spawnZap(from, to) {
 }
 /** Lốc Xoáy: phễu gió xoáy sét KHỔNG LỒ (4 khung lặp, chóp dưới chạm đất) quét thẳng tới */
 export function spawnTornado(t) {
+    if (t.pixel) return;   // pixelfx 'nature/tornado' vẽ thay (events.js)
     const H = 6.4;
     const m = frames('tornado', H);
     let k = 0;
@@ -416,6 +418,7 @@ export function spawnGrowingOrb(b) {
     const orb = frames('orb', 1);   // gốc = lõi trắng giữa cầu
     const glow = fxPlane(glowTexture(), 1.4, 1.4, { color: FIRE, opacity: 0.45 });
     const g = new THREE.Group(); g.add(glow, orb);
+    if (b.pixel) g.visible = false;   // pixelfx 'shadow/void-orb' vẽ thay (events.js)
     gameTimeout(() => {
         let zt = 0, ph = 0;
         addAnim(g, grow, (p, fx, dt) => {
@@ -605,7 +608,7 @@ function bendRibbon(mesh, len, t, { amp, h, lambda, speed, phase }) {
  * charge: giây dồn lực (cầu băng + cầu lửa xoay quanh nhau tụ vào tay) · duration: giây giữ tia · alive(): false -> tắt ngay.
  * Trả về { stop(), setStacks(n, big), pulse() }: n = tầng lửa (tia lửa dày dần), big = đủ tầng (tia lửa TO hẳn).
  */
-export function spawnSolarBeam({ getOrigin, ux = 1, uz = 0, len = 40, charge = 0.7, duration = 7, alive } = {}) {
+export function spawnSolarBeam({ getOrigin, ux = 1, uz = 0, len = 40, charge = 0.7, duration = 7, alive, noPalmRing = false } = {}) {
     const sx = ux < 0 ? -1 : 1;
     const ang = Math.atan2(uz, Math.abs(ux));
     const root = new THREE.Group();
@@ -715,8 +718,8 @@ export function spawnSolarBeam({ getOrigin, ux = 1, uz = 0, len = 40, charge = 0
         const ms = (big ? 1.5 : 1.0 + stacks * 0.06) * (1 + 0.1 * Math.sin(t * 38)) * Math.max(0.2, shrink);
         [mGlow, mFire, mIce].forEach(m => { m.position.x = 0.45; });
         mGlow.scale.setScalar(1.6 * ms); mGlow.material.opacity = 0.85 * k;
-        mFire.scale.set(ms, ms, 1); mFire.rotation.z = t * 6; mFire.material.opacity = k;
-        mIce.scale.set(ms * 0.95, ms * 0.95, 1); mIce.rotation.z = -t * 3; mIce.material.opacity = 0.9 * k;
+        mFire.scale.set(ms, ms, 1); mFire.rotation.z = t * 6; mFire.material.opacity = noPalmRing ? 0 : k;
+        mIce.scale.set(ms * 0.95, ms * 0.95, 1); mIce.rotation.z = -t * 3; mIce.material.opacity = noPalmRing ? 0 : 0.9 * k;
         // cuối tia (mép bản đồ): nổ liên tục
         const tipX = len * ext;
         tFire.position.set(tipX, 0, 0.02); tIce.position.set(tipX - 0.4, 0, 0.01);
@@ -1088,12 +1091,13 @@ export function spawnInhale(pos, dir = 1, life = 2) {
  * getMouth(): vị trí miệng mỗi khung hình (Golem chồm tới / lùi) · alive(): false (Golem gục / tan) -> tắt ngay
  * Trả về { stop() }.
  */
-export function spawnBreath(pos, dir = 1, life = 6, { getMouth, alive } = {}) {
+export function spawnBreath(pos, dir = 1, life = 6, { getMouth, alive, noCone = false } = {}) {
     // luồng bão tuyết 4 khung lặp: gốc nhóm = mũi nhọn bên trái của tranh = miệng Golem, loe dần về phía địch (~9,6 đơn vị)
     const H = 3.2;
     const cone = frames('blizzard', H, { opacity: 0 });
     const g = new THREE.Group();
     g.add(cone);
+    if (noCone) cone.visible = false;   // pixelfx 'ice/frost-breath' vẽ thay luồng phun cũ
     g.scale.x = dir;
     g.rotation.z = -dir * 0.14;   // chúi xuống hàng địch
     let t = 0, endAt = life, k = 0;
@@ -1108,7 +1112,7 @@ export function spawnBreath(pos, dir = 1, life = 6, { getMouth, alive } = {}) {
         cone.material.opacity = k * (0.9 + 0.1 * Math.sin(f.age * 50));
         cone.scale.y = 1 + 0.05 * Math.sin(f.age * 40);
         t -= dt;
-        if (t > 0 || k < 0.3) return;
+        if (t > 0 || k < 0.3 || noCone) return;
         t = 0.07;
         const s = fxPlane(glowTexture(), 0.7, 0.7, { color: Math.random() < 0.5 ? 0xffffff : ICE, opacity: 0.9 });
         const spread = (Math.random() - 0.5) * 0.6, d = 9 + Math.random() * 5;
@@ -1166,6 +1170,7 @@ export function spawnFistDash(f) {
     const dir = Math.sign(f.toX - f.fromX) || 1;
     const trail = frames('fistTrail', 1.9, { opacity: 0 });   // gốc = giữa đầu lửa
     trail.scale.x = dir;
+    if (f.noTrail) trail.visible = false;   // pixelfx 'fire/fireball' vẽ thay (ảnh cũ bị xén phẳng ở đầu lửa)
     let t = 0;
     addAnim(trail, life, (p, fx, dt) => {
         setFx(fx.mesh, loopFrame(fx.age, 14, 4));

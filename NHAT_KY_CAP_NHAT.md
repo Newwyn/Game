@@ -5,6 +5,33 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 10/11/2026 (tối) — HIỆU ỨNG ĐIỂM ẢNH CHO CẢ 11 NHÂN VẬT + QUÁI · SỬA NỘ LỬA GOLEM · TEST CÓ ĐẤU PVP
+
+- **Đánh thường có hiệu ứng ra đòn** cho mọi nhân vật và quái (vệt chém / cú đấm / vết cào / loé ở tay), màu theo nhân vật; quái lấy theo màu của nó.
+- **Rok:** sư tử + khiên cũ giữ nguyên, thêm vệt chém, tia va chạm, vòm khiên lục giác vàng, nổ vàng khi khiên bùng.
+- **Jessica:** vệt chém lưỡi liềm như Rok; sét chỉ có khi đang Tàng Hình; sửa hiệu ứng KN2 bị nhảy lung tung khi quay trái; tia sét ở ngang ngực.
+- **Seraphine:** thiên thần bay tới -> hiệu ứng hồi máu; hồi sinh có cột sáng hồi sinh.
+- **Lyra:** KN2 bỏ lốc gió, thay lông vũ bung; Mắt Ưng Gió tự vẽ (vòng ngắm trên đầu).
+- **Ignar:** nổ lửa nhỏ / lớn, cột lửa, vòng lửa, tụ lửa ở tay lúc niệm.
+- **Zerith, Brakk, Grix, Sylva:** thêm hiệu ứng điểm ảnh cho đòn đánh và các chiêu chính.
+- **Nerissa:** đánh thường "Giọt Thủy Vũ" (tự vẽ); lúc múa có "Thủy Vũ Hoàn" (3 dải nước xoắn quanh người, tự vẽ) thay vòng dưới chân; giáp nước = khiên bong bóng màu nước.
+- **Elarion:**
+  - Thiên Thạch pixel (đá lăn giữ như cũ); đánh thường bỏ giật sét.
+  - Băng Hoại Hỏa Thiên: bỏ vòng xoay ở tay, quả cầu tụ băng ngay lòng bàn tay.
+  - Giáp Băng Sét: khiên bong bóng như Sera, màu xanh điện + sét chạy quanh.
+  - Lốc Xoáy: lốc pixel bay tới mép bản đồ, vùng trúng rộng 1,8 -> 3,5 ô.
+  - Hơi Nước: thêm mưa / sét Storm; Hỏa Lôi Cầu: Void Orb + Thunderclap; Tốc Lôi: Electrified; Lôi Xích: Zap trên từng mục tiêu; lướt lùi có Haste.
+- **Golem:**
+  - **Sửa lỗi Nộ Lửa:** lúc gọi Golem, server ghi phe của nó là số (1/-1) thay vì 'left'/'right' -> Golem lùi về phía địch rồi lao ngược về phía đồng đội. Giờ lùi về phía mình rồi lao đấm sang địch.
+  - Vệt lửa cũ (ảnh bị xén ở đầu) thay bằng cầu lửa pixel; đánh thường = cú đấm nặng; phun băng = Frost breath bám đúng miệng + Blizzard, bỏ luồng phun cũ.
+- **Test:** màn đầu chỉ còn Cốt truyện + Test. Bấm Test -> **Đấu Tập** (Test như cũ) hoặc **Đấu PVP** (Đấu với quái / tướng, luôn mở trong Test).
+- **Tool thử:** thêm 3 nút "Golem — dùng kỹ năng ngay" (Nộ Lửa / Bão Tuyết / Hào Quang Sét).
+- **Sửa lỗi nút Bất tử / Skill miễn phí / Quái bất tử** hiện ON mà không chạy: server tự tắt tool (vào ải, Đấu, server khởi động lại) nhưng nút không biết. Giờ nút tự khớp với server mỗi lần nhận trạng thái trận.
+- Nguồn hiệu ứng: thư viện pixelfx của Patch (MIT) — chép đủ vào src/vendor/pixelfx/; hiệu ứng tự vẽ cùng phong cách ở src/vfx/pixelfx-custom/. Xem bản cũ: ?<tên>Fx=old (VD ?elarionFx=old, ?nerissaFx=old, ?swingFx=old).
+- Đã thử: bấm thật trong trận Test cho từng nhân vật / phép; trang xem riêng tools/pixelfx-gallery.html?set=nerissa; 118 bài kiểm tra tự động đạt.
+
+---
+
 ## 10/11/2026 (khuya) — HIỆU ỨNG ĐIỂM ẢNH CHO SERAPHINE (Divine Shield · Blessing)
 
 - Khiên Ánh Sáng -> **Divine Shield**: bong bóng vàng kiểu điểm ảnh quanh đồng đội được che (viền sáng, kinh tuyến xoay, vệt bóng lướt), khiên vỡ thì mờ dần.

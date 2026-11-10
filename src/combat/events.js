@@ -1,4 +1,5 @@
 import { spawnBossWarning, spawnBossBanner, handleBossUlt, clearBossUlt } from '../vfx/bossFx.js';
+import { spawnPixelFx, ROK_PIXEL, JESS_PIXEL, SERA_PIXEL, LYRA_PIXEL, IGNAR_PIXEL, ZERITH_PIXEL, BRAKK_PIXEL, NERISSA_PIXEL, ELARION_PIXEL, GRIX_PIXEL, SYLVA_PIXEL, autoSwingFx, spawnPixelMover } from '../vfx/pixelFx.js';
 // ============================================================
 // SỰ KIỆN CHIẾN ĐẤU TỪ SERVER -> ANIMATION + VFX
 // ============================================================
@@ -110,6 +111,8 @@ function showHit(target, e, { fx = true, size = 1 } = {}) {
 // ------------------------------------------------------------
 // Đánh thường
 // ------------------------------------------------------------
+/** Elarion: màu loé ra đòn theo viên ngọc giữ gần nhất */
+const ELEM_SWING = { f: 'fire', i: 'ice', b: 'arcane' };
 function onAutoAttack(data) {
     const attackerView = getView(data.attackerId, data.attackerIndex);
     const attacker = game.roomData?.players?.[data.attackerId];
@@ -132,17 +135,31 @@ function onAutoAttack(data) {
             const dir = attackerView.facingLeft ? -1 : 1;
             // Sát Thủ ĐANG TÀNG HÌNH (Kỹ năng 3): chém sấm tím đen; bình thường: nhát chém thường
             const isAssassin = attacker.squad?.[data.attackerIndex]?.classId === 'assassin';
-            if (isAssassin && (attackerView.isStealthed || data.isCrit)) {
+            if (isAssassin && (attackerView.isStealthed || (data.isCrit && !JESS_PIXEL))) {   // pixelfx: sét chỉ khi Tàng Hình
                 // Jessica: tàng hình -> vệt chém sấm tím; chí mạng -> chém chữ X sấm (tranh jessicaFx)
                 if (data.isCrit) spawnThunderX(target.position, { dir, size: 1.7 });
                 else spawnThunderSlash(target.position, { dir, size: 1.5 });
+                if (JESS_PIXEL) {
+                    spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
+                    spawnPixelFx(data.isCrit ? 'impacts/crit-hit' : 'lightning/zap-hit', { pos: target.position, flip: dir < 0, palette: 'arcane', scale: data.isCrit ? 0.9 : 0.8 });
+                }
+            } else if (isAssassin && JESS_PIXEL) {
+                // Jessica đánh thường (KHÔNG tàng hình): chỉ chém — vệt chém cũ + vệt chém lưỡi liềm tím (như Rok); sét tím chỉ khi Tàng Hình (nhánh trên)
+                if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.05 });   // chí mạng: nhát chém to hơn, vẫn không sét
+                else spawnSlashVfx(target.position, { dir, size: 1 });
+                spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
             } else if (attacker.squad?.[data.attackerIndex]?.classId === 'warrior') {
                 // Rok: nhát BỔ DỌC bằng kiếm — vệt thép sáng gần thẳng đứng, to rõ
-                if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.1 });
+                if (ROK_PIXEL) {
+                    // pixelfx: vệt chém lưỡi liềm quanh Rok + tia lửa trúng đòn trên quái (chí mạng: to hơn)
+                    spawnPixelFx('melee/sword-slash', { view: attackerView, seed: data.targetIndex + 3 });
+                    spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: dir < 0, scale: data.isCrit ? 1.5 : 1.1, seed: Math.floor(Math.random() * 99) });
+                } else if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.1 });
                 else spawnSlashVfx(target.position, { dir, style: 'blade', size: 1.15, angle: -1.15 });
                 cameraRig.shake(0.08, 80);
             } else {
                 const size = isAssassin ? 1 : 0.75; // quái: vệt nhỏ hơn cho đỡ rối
+                autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId]);   // + vệt chém / loé ra đòn (pixelfx)
                 if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: size + 0.05 });
                 else spawnSlashVfx(target.position, { dir, size });
             }
@@ -153,11 +170,15 @@ function onAutoAttack(data) {
     // Tu Sĩ: giơ gậy phóng cầu ánh sáng (sát thương phép), số hiện khi cầu chạm
     if (attacker.squad?.[data.attackerIndex]?.classId === 'priest') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             spawnSunOrb(staffPoint(attackerView), chestOf(target, 0.95), { duration: 0.25, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
-                if (!data.dodged) spawnSunBurst(target.position, { size: 1.2 });
+                if (!data.dodged) {
+                    spawnSunBurst(target.position, { size: 1.2 });
+                    if (SERA_PIXEL) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'gold', scale: 0.8 });   // + tia sáng vàng
+                }
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -168,11 +189,15 @@ function onAutoAttack(data) {
     // Phù Thủy lửa: ném quả cầu lửa từ lòng bàn tay, số hiện khi cầu chạm
     if (attacker.squad?.[data.attackerIndex]?.classId === 'mage') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             spawnFireball(palmPoint(attackerView), chestOf(target, 0.95), { duration: 0.23, size: 0.75, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
-                if (!data.dodged) spawnIgnarHit(target.position);
+                if (!data.dodged) {
+                    spawnIgnarHit(target.position);
+                    if (IGNAR_PIXEL) spawnPixelFx('explosions/small-explosion', { pos: target.position, scale: 0.3, maxLife: 0.9 });   // + nổ lửa nhỏ
+                }
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -183,11 +208,13 @@ function onAutoAttack(data) {
     // Zerith: vung liềm bổ xuống — vệt liềm đỏ thẫm, sát thương phép
     if (attacker.squad?.[data.attackerIndex]?.classId === 'reaper') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
             if (data.dodged) return;
             spawnScytheSlash(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit });
+            if (ZERITH_PIXEL) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: attackerView.facingLeft, palette: 'blood', scale: data.isCrit ? 1.2 : 0.9 });   // + tia máu
             if (data.isCrit) cameraRig.shake(0.1, 90);
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -199,12 +226,14 @@ function onAutoAttack(data) {
     if (attacker.squad?.[data.attackerIndex]?.classId === 'wrestler') {
         const giant = !!attackerView._giantOn;
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
             if (data.dodged) return;
             // bản sprite: nổ đá loé đúng chỗ nắm đấm trong tranh (khung đấm có điểm 'fist')
             spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant, at: attackerView.pointWorld?.('fist') });
+            if (BRAKK_PIXEL) spawnPixelFx('impacts/blunt-hit', { pos: target.position, flip: attackerView.facingLeft, palette: 'lava', scale: giant ? 1.3 : 0.95 });   // + cú đấm nặng
             cameraRig.shake(giant ? 0.12 : 0.07, 80);
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -218,11 +247,16 @@ function onAutoAttack(data) {
         const held = attacker.squad[data.attackerIndex].held ?? [];
         const el = held[held.length - 1] ?? 'b';
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             if (aClass === 'elem_golem') {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
-                if (!data.dodged) { spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant: true }); cameraRig.shake(0.08, 80); }
+                if (!data.dodged) {
+                    if (ELARION_PIXEL) spawnPixelFx('impacts/blunt-hit', { pos: target.position, flip: attackerView.facingLeft, scale: data.isCrit ? 1.5 : 1.25 });   // cú đấm đá nặng (pixelfx)
+                    else spawnPunchHit(target.position, attackerView.facingLeft ? -1 : 1, { crit: data.isCrit, giant: true });
+                    cameraRig.shake(0.08, 80);
+                }
                 return;
             }
             spawnElemBolt(attackerView.parts?.handN ? handOf(attackerView) : chestOf(attackerView, 1.3), chestOf(target, 1.0), el, { onHit: () => {
@@ -238,11 +272,13 @@ function onAutoAttack(data) {
     // Nerissa: vung dải lụa bắn giọt nước (sát thương phép), số hiện khi giọt nước chạm
     if (attacker.squad?.[data.attackerIndex]?.classId === 'dancer') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             spawnWaterBolt(ribbonPoint(attackerView), chestOf(target, 1.0), { duration: 0.2, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) spawnSplash(target.position, { size: data.isCrit ? 1.4 : 1.0 });
+                if (NERISSA_PIXEL && !data.dodged) spawnPixelFx('custom/water-hit', { pos: target.position, scale: data.isCrit ? 1.5 : 1.2, seed: data.targetIndex + 5 });   // + Giọt Thủy Vũ (tự vẽ)
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -254,12 +290,14 @@ function onAutoAttack(data) {
     if (attacker.squad?.[data.attackerIndex]?.classId === 'alchemist') {
         ensureGoblinView(attackerView);
         const fire = (delayMs = 0) => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             const dur = Math.max(0.15, (450 - delayMs) / 1000);
             spawnGoblinVial(grixHandPoint(attackerView), chestOf(target, 0.9), { duration: dur, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) spawnPoisonSplash(target.position, { size: 0.88 });
+                if (GRIX_PIXEL && !data.dodged) spawnPixelFx('nature/acid-splash', { pos: target.position, scale: 0.4, maxLife: 1.2 });   // + độc bắn tóe
             } });
         };
         if (attackerView.isBusy) { fire(0); return; }
@@ -271,12 +309,14 @@ function onAutoAttack(data) {
     const atkClass = attacker.squad?.[data.attackerIndex]?.classId;
     if (atkClass === 'summoner' || atkClass === 'sylva_eagle') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             const eagle = atkClass === 'sylva_eagle';
             (eagle ? spawnEagleFeather : spawnSylvaDart)(chestOf(attackerView, eagle ? 0.75 : 1.1), chestOf(target, 0.95), { duration: eagle ? 0.2 : 0.24, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) spawnSylvaDartHit(chestOf(target, 0.95), { eagle });
+                if (SYLVA_PIXEL && !data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, palette: eagle ? 'gold' : 'leaf', scale: 0.75 });
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -287,10 +327,12 @@ function onAutoAttack(data) {
     // Xạ Thủ: nhả tên tại khoảnh khắc ra đòn, sát thương hiện khi mũi tên tới nơi
     if (attacker.squad?.[data.attackerIndex]?.classId === 'archer') {
         const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             spawnLyraArrow(bowPoint(attackerView), chestOf(target, 0.95), { duration: 0.2, size: 0.8, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { size: 0.8 });
+                if (LYRA_PIXEL && !data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'cyber', scale: 0.8 });   // + tia lửa xanh ngọc
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -366,6 +408,7 @@ function onSkillExecuted(data) {
                 spawnGust(caster.position, { width: 2.8 });
                 spawnWindCircle(caster.position, { radius: 1.7, life: 0.7 });
                 spawnFeatherBurst(caster.position, { size: 1.1, y: 1.6 });
+                if (LYRA_PIXEL) spawnPixelFx('holy/feather-burst', { pos: caster.position, palette: 'cyber', scale: 1.2, lift: (caster.height ?? 2.9) * 0.55 });   // + lông vũ xanh ngọc bung ra (người dùng chọn A, 11/2026)
                 spawnRisingSparkles(caster.position, { count: 10, color: 0x5eead4, radius: 1.2 });
                 cameraRig.shake(0.12, 160);
                 // cả đội +20% chính xác: mắt chim ưng bật lên trên đầu từng người
@@ -398,6 +441,7 @@ function onSkillExecuted(data) {
                 spawnPillarCircle(pl.x, pl.z, { radius: pl.radius ?? 5, time: wait });
                 gameTimeout(() => {
                     spawnFirePillar(pl.x, pl.z, { hits: pl.hits, gap: pl.gap / 1000, radius: pl.radius ?? 5 });
+                    if (IGNAR_PIXEL) spawnPixelFx('fire/flame-pillar', { pos: { x: pl.x, z: pl.z }, scale: 1.0, maxLife: Math.max(1.6, (pl.hits ?? 3) * (pl.gap ?? 400) / 1000 + 0.6) });   // + cột lửa phun trào
                     cameraRig.shake(0.16, 200);
                 }, wait * 1000);
             } });
@@ -405,6 +449,7 @@ function onSkillExecuted(data) {
         case 'fire_god':
             caster.playAction('summon');
             spawnFireWings(caster.position, { dir: caster.facingLeft ? -1 : 1 });
+            if (IGNAR_PIXEL) spawnPixelFx('fire/fire-ring', { pos: caster.position, scale: 1.1, maxLife: 2 });   // + vòng lửa lan ra quanh chân
             cameraRig.shake(0.2, 220);
             break;
         case 'heal':
@@ -421,6 +466,7 @@ function onSkillExecuted(data) {
             // hóa Thần Chết: giơ tay gọi -> cánh tử thần bung, Hộ Vệ hiện ra (view tự vẽ theo trạng thái reaper_form)
             caster.playAction('summon', { onHit: () => {
                 spawnReaperWings(caster.position, caster.facingLeft ? -1 : 1);
+                if (ZERITH_PIXEL) spawnPixelFx('shadow/dark-explosion', { pos: caster.position, palette: 'blood', scale: 0.5, maxLife: 1.6 });   // + nổ bóng tối khi hoá Thần Chết
                 spawnReaperSummon(caster.position, { life: 0.9, aura: false });
                 cameraRig.shake(0.22, 240);
             } });
@@ -435,6 +481,7 @@ function onSkillExecuted(data) {
             // hoá Khổng Lồ: ưỡn ngực gầm -> rồng đất bốc lên, cả người phình to (view tự đổi sang tranh khổng lồ theo trạng thái giant_form)
             caster.playAction('roar', { onHit: () => {
                 spawnGiantTransform(caster.position, caster.facingLeft ? -1 : 1);
+                if (BRAKK_PIXEL) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, scale: 1.6 });   // + đất lún khi hoá Khổng Lồ
                 cameraRig.shake(0.3, 300);
             } });
             break;
@@ -445,7 +492,7 @@ function onSkillExecuted(data) {
             break;
         case 'elem_storm':
             // lốc 3 nguyên tố bùng lên đúng lúc dang tay lên trời (mốc ra đòn của động tác gọi bão)
-            caster.playAction('storm', { onHit: () => { spawnStormStart(caster.position, { height: caster.height ?? 2.6 }); cameraRig.shake(0.12, 180); } });
+            caster.playAction('storm', { onHit: () => { spawnStormStart(caster.position, { height: caster.height ?? 2.6 }); if (ELARION_PIXEL) spawnPixelFx('lightning/thunderclap', { view: caster, palette: 'arcane', scale: 0.8 }); cameraRig.shake(0.12, 180); } });
             // Bão Nguyên Tố: +2 Orb ngay
             if (data.orbGain) gameTimeout(() => { spawnOrbGift(caster.position); spawnRisingGlyph(caster.position, `+${data.orbGain}◆`, '#e9d5ff', '#7c3aed'); }, 300);
             break;
@@ -464,6 +511,7 @@ function onSkillExecuted(data) {
             const dance = { dance_tide: 1, dance_flow: 2, dance_god: 3 }[data.type];
             const go = () => {
                 spawnDanceStart(caster.position, dance, caster.facingLeft ? -1 : 1);
+                if (NERISSA_PIXEL) spawnPixelFx('water/ripples', { pos: caster.position, scale: dance === 3 ? 1.0 : 0.8, maxLife: 2.4 });   // + gợn nước loang dưới chân
                 if (dance === 3) cameraRig.shake(0.12, 180);
             };
             if (!caster.playAction('spin', { onHit: go })) go();
@@ -499,6 +547,8 @@ function onSkillExecuted(data) {
                 spawnRisingSparkles(caster.position);
                 const vanishFx = () => {
                     spawnStealthBurst(caster.position, { size: 2.6 });   // khói sấm tím bùng (tranh jessicaFx)
+                    // + pixelfx: bom khói tím cuộn quanh chỗ biến mất (blink-out / blink-in bỏ: vẽ hình bóng trắng thô đè lên tranh)
+                    if (JESS_PIXEL) spawnPixelFx('explosions/smoke-bomb', { pos: caster.position, palette: 'shadow', scale: 0.5, maxLife: 1.6 });
                     done();
                     // Sấm phù trợ: đồng đội khác +né -> cánh sét bật trên đầu
                     const squad = game.roomData?.players?.[data.casterId]?.squad ?? [];
@@ -633,6 +683,7 @@ function meleeStrike(caster, data, hitFrame, processHit) {
                 }
                 gameTimeout(() => {
                     spawnThunderSlash(tp, { dir: faceLeft ? -1 : 1, size: 1.6 });
+                    if (JESS_PIXEL) spawnPixelFx('melee/double-slash', { pos: { x: stopX, z: tp.z ?? 0 }, flip: faceLeft, palette: 'arcane', scale: 0.9 });   // + chém chữ X tím (gốc = chỗ Jessica dừng chém, nhát chém rơi đúng lên quái)
                     h.view.flashHit();
                     processHit(h.effect);
                     cameraRig.shake(0.12, 90);
@@ -657,6 +708,7 @@ function meleeStrike(caster, data, hitFrame, processHit) {
                     const dir = caster.facingLeft ? -1 : 1;
                     spawnSparkBurst(last.position, { size: 1.5 });
                     if (data.isBackstab) { spawnThunderX(last.position, { dir, size: 2.1 }); cameraRig.shake(0.35, 280); }
+                    if (JESS_PIXEL) spawnPixelFx(data.isBackstab ? 'impacts/crit-hit' : 'lightning/zap-hit', { pos: last.position, flip: dir < 0, palette: 'arcane', scale: data.isBackstab ? 1.1 : 0.9 });
                     else { spawnThunderSlash(last.position, { dir, size: 1.8 }); cameraRig.shake(0.18, 150); }
                     last.flashHit();
                 },
@@ -675,17 +727,20 @@ function meleeStrike(caster, data, hitFrame, processHit) {
 function warriorTaunt(caster, data, opponentId) {
     caster.playAction('taunt', {
         onHit: () => {
-            spawnRokRoar(caster, { radius: 9 });
+            spawnRokRoar(caster, { radius: 9 });   // giữ hình con sư tử khổng lồ (tranh)
+            if (ROK_PIXEL) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
             cameraRig.shake(0.45, 520);   // sư tử khổng lồ: rung mạnh hơn
             data.effects.forEach(e => {
                 const v = getView(opponentId, e.targetIndex);
                 if (!v) return;
-                spawnTauntIcon(v);
+                if (ROK_PIXEL) spawnPixelFx('ui/exclamation', { view: v, delay: 0.05 + (e.dist ?? 3) * 0.03 });   // quái bị khiêu khích: dấu "!" bật trên đầu
+                else spawnTauntIcon(v);
                 // sóng gầm lan tới quái nào thì quái đó trúng đòn (xa trúng sau)
                 gameTimeout(() => {
                     spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
                     if (e.isMiss) return;
-                    spawnRoarHit(v.position);
+                    if (ROK_PIXEL) spawnPixelFx('impacts/hit-spark', { pos: v.position, flip: v.position.x < caster.position.x, scale: 0.9 });
+                    else spawnRoarHit(v.position);
                     v.flashHit();
                 }, 60 + (e.dist ?? 3) * 45);
             });
@@ -730,7 +785,8 @@ function warriorPush(caster, data, opponentId, hitFrame) {
             data.effects.forEach(e => {
                 const t = getView(opponentId, e.targetIndex);
                 if (!t) return;
-                spawnImpact(t.position);
+                if (ROK_PIXEL) spawnPixelFx('impacts/blunt-hit', { pos: t.position, flip: caster.facingLeft, scale: 1.2 });   // pixelfx: cú húc khiên nặng
+                else spawnImpact(t.position);
                 spawnDamageNumber(t.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
                 t.flashHit();
                 if (e.knockback && t.leapTo) {
@@ -739,7 +795,11 @@ function warriorPush(caster, data, opponentId, hitFrame) {
                     gameTimeout(() => { spawnLandingDust(t.position, 10); cameraRig.shake(0.12, 120); }, 420);
                 }
             });
-            spawnRokBash(caster);
+            if (ROK_PIXEL) {
+                // pixelfx: đất nứt + sóng chấn động lan ra trước mặt Rok (rung đất làm quái gần choáng nhẹ)
+                const f = caster.facingLeft ? -1 : 1;
+                spawnPixelFx('impacts/ground-slam', { pos: { x: caster.position.x + f * 1.3, z: caster.position.z }, flip: caster.facingLeft, scale: 0.45, maxLife: 3.5 });
+            } else spawnRokBash(caster);
             cameraRig.shake(0.35, 240);
         },
     });
@@ -770,6 +830,7 @@ function archerSnipe(caster, data, opponentId) {
             spawnGaleShot(from, to, { duration: 0.12, onHit: () => {
                 showHit(t, e, { fx: false });
                 if (!e.isMiss) spawnGaleBlast(t.position, { dir: Math.sign(to.x - from.x) || 1 });
+                if (LYRA_PIXEL && !e.isMiss) spawnPixelFx('impacts/crit-hit', { pos: t.position, flip: to.x < from.x, palette: 'cyber', scale: 0.9 });   // + nổ chí mạng xanh ngọc
                 cameraRig.shake(0.2, 160);
                 if (e.knockback && t.leapTo) t.leapTo(e.toX, e.toZ ?? t.basePos.z, { duration: 0.28, height: 0.4 });
                 else t.teleport(e.toX ?? t.basePos.x, e.toZ ?? t.basePos.z);
@@ -817,6 +878,7 @@ function archerRelease(caster, data, opponentId) {
                     size: spirit ? 1.1 : 1.35, color: spirit ? 0xa5f3fc : 0x5eead4, z: pos.z,
                     onHit: () => {
                         showHit(t, e, { size: spirit ? 0.9 : 1.15 });
+                        if (LYRA_PIXEL && !e.isMiss) spawnPixelFx(k === shots.length - 1 ? 'lightning/thunderclap' : 'impacts/hit-spark', { pos: t.position, palette: 'cyber', scale: k === shots.length - 1 ? 0.7 : 0.7 });
                         if (k === shots.length - 1) { spawnSkyBlast(t.position); spawnShockwave(t.position, { color: 0x5eead4, radius: 2, life: 0.5 }); cameraRig.shake(0.35, 260); }
                         else cameraRig.shake(0.07, 60);
                     },
@@ -924,7 +986,12 @@ function elemSpell(caster, data, opponentId) {
     if (data.spell !== 'beams' && data.spell !== 'steam' && !isShadowCast) caster.playAction('spell');
     switch (data.spell) {
         case 'meteor':
-            if (data.meteor) spawnMeteor(data.meteor);
+            if (data.meteor) {
+                // pixelfx 'fire/meteor' (chạm đất ở 0,62s của hiệu ứng) thay quả cầu rơi + nổ; đá lăn giữ như cũ
+                const m = data.meteor, fallS = (m.fall ?? 800) / 1000, mdir = Math.sign((m.xEnd ?? m.x + 1) - m.x) || 1;
+                if (ELARION_PIXEL) spawnPixelFx('fire/meteor', { pos: { x: m.x, z: m.z ?? 0 }, flip: mdir < 0, scale: 0.75, maxLife: 2.4, delay: Math.max(0, fallS - 0.62) });
+                spawnMeteor(ELARION_PIXEL ? { ...m, pixelFall: true } : m);
+            }
             gameTimeout(() => cameraRig.shake(0.28, 260), data.meteor?.fall ?? 800);
             break;
         case 'frost':
@@ -937,6 +1004,7 @@ function elemSpell(caster, data, opponentId) {
         case 'chain': {
             const pts = [handOf(caster), ...(data.chain ?? []).map(i => getView(opponentId, i)).filter(Boolean).map(v => chestOf(v, 1.0))];
             gameTimeout(() => spawnChainLightning(pts, 0.12), 300);
+            if (ELARION_PIXEL) pts.slice(1).forEach((pt, k) => spawnPixelFx('lightning/zap-hit', { pos: { x: pt.x, z: pt.z }, scale: 0.9, delay: 0.3 + k * 0.12, seed: k + 3 }));
             elemHits(data.effects, opponentId, { fx: (t) => spawnElemHit(t.position, 'b') });
             break;
         }
@@ -950,7 +1018,12 @@ function elemSpell(caster, data, opponentId) {
             });
             break;
         case 'tornado':
-            if (data.tornado) gameTimeout(() => spawnTornado(data.tornado), 300);
+            if (data.tornado) {
+                const tn = data.tornado;
+                gameTimeout(() => spawnTornado(ELARION_PIXEL ? { ...tn, pixel: true } : tn), 300);
+                if (ELARION_PIXEL) gameTimeout(() => spawnPixelMover('nature/tornado', { from: { x: tn.x0, z: tn.z0 }, to: { x: tn.x0 + tn.ux * tn.length, z: tn.z0 + tn.uz * tn.length },
+                    time: (tn.travel ?? 900) / 1000, scale: 1.6 }), 300);
+            }
             elemHits(data.effects, opponentId);
             break;
         case 'steam': {
@@ -966,8 +1039,9 @@ function elemSpell(caster, data, opponentId) {
                 if (!r.shadow && caster) {
                     caster.playAction('storm', { onComplete: () => { if (rainClouds.has(rKey)) caster.setLocomotion?.('channel'); } });
                 }
-                const c = spawnRainCloud(r, channelView);
+                const c = spawnRainCloud(ELARION_PIXEL ? { ...r, pixel: true } : r, channelView);
                 rainClouds.set(rKey, c);
+                if (ELARION_PIXEL) spawnPixelFx('weather/storm', { pos: { x: r.shadow?.x ?? r.x ?? 0, z: r.shadow?.z ?? r.z ?? 0 }, scale: 0.75, soft: 0.6, maxLife: dur / 1000, until: () => rainClouds.get(rKey) !== c });
                 gameTimeout(() => { if (rainClouds.get(rKey) === c) rainClouds.delete(rKey); }, dur);
             };
             if (delay > 0) {
@@ -989,7 +1063,9 @@ function elemSpell(caster, data, opponentId) {
         }
         case 'firebolt':
             if (data.firebolt) {
-                spawnGrowingOrb(data.firebolt);
+                const fb = data.firebolt;
+                spawnGrowingOrb(ELARION_PIXEL ? { ...fb, pixel: true } : fb);
+                if (ELARION_PIXEL) spawnPixelFx('shadow/void-orb', { pos: { x: fb.x, z: fb.z ?? 0 }, scale: 0.55, delay: (fb.start ?? 0) / 1000, maxLife: (fb.grow ?? 2000) / 1000 });
                 gameTimeout(() => cameraRig.shake(0.2, 220), (data.firebolt.start ?? 0) + (data.firebolt.grow ?? 2000));
             }
             break;
@@ -1019,8 +1095,15 @@ function elemSpell(caster, data, opponentId) {
                 const alive = () => !!game.roomData?.players?.[data.casterId]?.squad?.[data.casterIdx]?.alive && caster.root.visible;
                 endSolarBeam(caster, null, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: false });
                 const h = spawnSolarBeam({ getOrigin: () => palmsOf(caster), ux: b.ux, uz: b.uz, len: b.len, charge: (b.charge ?? 700) / 1000,
-                    duration: (b.duration ?? 7000) / 1000, alive });
+                    duration: (b.duration ?? 7000) / 1000, alive, noPalmRing: ELARION_PIXEL });
                 solarBeams.set(bKey, h);
+                if (ELARION_PIXEL) {
+                    // quả cầu tụ năng lượng của spell-charge nằm ở điểm (15, -22) px của tranh -> dời gốc để quả cầu trùng lòng bàn tay
+                    const sc = 0.8, u = (caster.height ?? 2.9) / 44 * sc, fl = !!caster.facingLeft;
+                    spawnPixelFx('arcane/spell-charge', { view: caster, bare: true, palette: 'ice', scale: sc, flip: fl,
+                        getPos: () => { const q = palmsOf(caster); return { x: q.x - (fl ? -1 : 1) * 15 * u, y: q.y - 22 * u, z: (q.z ?? 0) + 0.3 }; },
+                        maxLife: ((b.charge ?? 700) + (b.duration ?? 7000)) / 1000, until: () => solarBeams.get(bKey) !== h });
+                }
                 caster.playAction('beamCharge', { onComplete: () => { if (solarBeams.get(bKey) === h && alive()) caster.playAction('beam', { hold: true }); } });
                 gameTimeout(() => { if (solarBeams.get(bKey) === h) cameraRig.shake(0.32, 280); }, b.charge ?? 700);
                 gameTimeout(() => endSolarBeam(caster, h, { casterId: data.casterId, casterIdx: data.casterIdx, shadow: false }), (b.charge ?? 700) + (b.duration ?? 7000) + 500);
@@ -1063,8 +1146,14 @@ function golemSkill(caster, data, opponentId) {
         caster.playAction('breath', { hold: true });
         gameTimeout(() => { if (alive()) caster.playAction?.('breathEnd'); }, dur);
         breaths.get(caster)?.stop();
-        breaths.set(caster, spawnBreath(mouthOf(caster), dir, dur / 1000, { getMouth: () => mouthOf(caster), alive }));
+        breaths.set(caster, spawnBreath(mouthOf(caster), dir, dur / 1000, { getMouth: () => mouthOf(caster), alive, noCone: ELARION_PIXEL }));
         spawnBlizzardRoar(caster.position, dir);
+        if (ELARION_PIXEL) {
+            // luồng băng bám đúng MIỆNG Golem mỗi khung (gốc hiệu ứng = vòi phun bên trái tranh)
+            const mouthNow = () => { const w = caster.pointWorld?.('mouth', { sticky: true }); const m = w ?? mouthOf(caster); return { x: m.x + dir * 0.05, y: m.y, z: (m.z ?? 0) + 0.5 }; };
+            spawnPixelFx('ice/frost-breath', { pos: caster.position, getPos: mouthNow, flip: dir < 0, scale: 1.1, maxLife: dur / 1000, until: () => !alive() });
+            spawnPixelFx('weather/blizzard', { pos: { x: caster.position.x + dir * 7, z: caster.position.z }, scale: 0.55, soft: 1, maxLife: dur / 1000, until: () => !alive() });
+        }
     } else if (data.type === 'golem_aura') {
         // giơ nắm đấm lên trời -> sét đánh trúng tay (nắm đấm hoá sét suốt Hào Quang Sét)
         caster.playAction('aura', { onHit: () => { spawnSkyStrike(coreOf(caster)); cameraRig.shake(0.22, 220); } });
@@ -1159,6 +1248,7 @@ function onElemFx(d) {
                 const fx0 = d.fromX ?? d.x, fz0 = d.fromZ ?? (d.z ?? 0);
                 const tx = d.toX ?? caster.position.x, tz = d.toZ ?? caster.position.z;
                 caster.teleport(fx0, fz0);
+                if (ELARION_PIXEL) spawnPixelFx('status/haste', { view: caster, flip: tx < fx0, palette: 'arcane', maxLife: retreatMs / 1000 + 0.15 });   // + vệt tăng tốc khi lướt
                 if (caster.leapTo) {
                     caster.leapTo(tx, tz, { duration: retreatMs / 1000, height: 0.35 });
                 } else {
@@ -1197,6 +1287,7 @@ function onElemFx(d) {
             break;
         case 'fireboltHit':
             spawnFireBoltBlast(d.x, d.z, d.radius);
+            if (ELARION_PIXEL) spawnPixelFx('lightning/thunderclap', { pos: { x: d.x, z: d.z ?? 0 }, scale: 0.85 });
             elemHits(d.effects, d.targetId, { fx: (t, e) => { if (e.orbLost) spawnRisingGlyph(t.position, '−◆', '#c4b5fd', '#6d28d9'); } });
             break;
         case 'echoHit': {
@@ -1206,7 +1297,7 @@ function onElemFx(d) {
             break;
         }
         case 'teamHaste':
-            (d.allies ?? []).forEach(i => { const v = getView(d.casterId, i); if (v) spawnHasteBurst(v.position); });
+            (d.allies ?? []).forEach(i => { const v = getView(d.casterId, i); if (v) { spawnHasteBurst(v.position); if (ELARION_PIXEL) spawnPixelFx('lightning/electrified', { view: v, bare: true, maxLife: 1.6 }); } });
             break;
         case 'push': {
             // Lốc Xoáy: hất văng ra sau (server đã dời vị trí)
@@ -1233,7 +1324,13 @@ function onElemFx(d) {
         case 'fistDash':
             if (caster?.leapTo) caster.leapTo(d.toX, d.toZ, { duration: d.time / 1000, height: 0 });
             caster?.playAction?.('dash');
-            spawnFistDash({ fromX: d.fromX, fromZ: d.fromZ, toX: d.toX, toZ: d.toZ, time: d.time, getFist: caster?.parts?.handF ? () => frontFistOf(caster) : null });
+            spawnFistDash({ fromX: d.fromX, fromZ: d.fromZ, toX: d.toX, toZ: d.toZ, time: d.time, getFist: caster?.parts?.handF ? () => frontFistOf(caster) : null, noTrail: ELARION_PIXEL });
+            if (ELARION_PIXEL) {
+                // quả cầu lửa pixel trùm nắm đấm suốt đường lao (đầu lửa = gốc hiệu ứng)
+                const fdir = Math.sign(d.toX - d.fromX) || 1;
+                spawnPixelMover('fire/fireball', { from: { x: d.fromX + fdir * 1.6, z: d.fromZ }, to: { x: d.toX + fdir * 1.6, z: d.toZ }, lift: 1.8, time: d.time / 1000,
+                    scale: 0.7, flip: fdir < 0, getPos: caster?.parts?.handF ? () => { const q = frontFistOf(caster); return q && { x: q.x + fdir * 0.3, y: q.y, z: (q.z ?? 0) + 0.5 }; } : null });
+            }
             elemHits(d.effects, d.targetId, { lift: 0.95, fx: (t) => spawnElemHit(t.position, 'f', { size: 1.05 }) });
             break;
         case 'golemShock':
@@ -1312,6 +1409,7 @@ function onFireHits(d) {
     const opponentId = opponentIdOf(d.casterId);
     if (d.kind === 'meteor' || d.kind === 'meteor2') {
         spawnMeteorImpact(d.x, d.z, { size: d.kind === 'meteor' ? 4.4 : 3.3, radius: d.radius });
+        if (IGNAR_PIXEL) spawnPixelFx('explosions/big-explosion', { pos: { x: d.x, z: d.z }, scale: d.kind === 'meteor' ? 0.6 : 0.45, maxLife: 2.2 });   // + nổ lớn, cột khói cuộn
         cameraRig.shake(d.kind === 'meteor' ? 0.24 : 0.15, 200);
     }
     if (d.kind === 'burn') pulseBurn(d.x, d.z, { radius: d.radius });
@@ -1343,6 +1441,7 @@ function onFireGod(d) {
             if (!t) return;
             spawnFireball(from, chestOf(t, 0.95), { duration: 0.26, size: 1.1, swirl: true, onHit: () => {
                 spawnFireExplosion(t.position, { size: 1.9, life: 0.45 });
+                if (IGNAR_PIXEL) spawnPixelFx('explosions/small-explosion', { pos: t.position, scale: 0.45, maxLife: 1.2 });
                 d.effects.forEach(e => { const v = viewOf(e); if (v) showHit(v, e, { fx: false }); });
             } });
         } });
@@ -1357,6 +1456,7 @@ function onFireGod(d) {
                 gameTimeout(() => spawnFireball(palmPoint(caster), chestOf(t, 1.0), { duration: 0.28, size: 1.0, swirl: true, onHit: () => {
                     showHit(t, e, { fx: false });
                     if (!e.isMiss) spawnIgnarHit(t.position, { size: 1.3 });
+                    if (IGNAR_PIXEL && !e.isMiss) spawnPixelFx('explosions/small-explosion', { pos: t.position, scale: 0.35, maxLife: 1 });
                 } }), k * 50);
             });
         } });
@@ -1461,6 +1561,7 @@ function reaperScythe(caster, data, opponentId) {
     gameTimeout(() => ph.slam(), slamAt - 110);
     gameTimeout(() => caster.playAction('slam', { onHit: () => {
         spawnReapSlam(front(), dir, { size });
+        if (ZERITH_PIXEL) spawnPixelFx('melee/scythe-reap', { view: caster, follow: false, pos: caster.position, palette: 'blood', maxLife: 1.4 });   // + liềm đỏ thẫm quét khổng lồ
         cameraRig.shake(0.38, 280);
         data.effects.filter(e => e.slam).forEach(e => {
             const t = getView(opponentId, e.targetIndex);
@@ -1511,6 +1612,7 @@ function brakkGrab(caster, data, opponentId) {
     gameTimeout(() => {
         const at = data.slam ?? { x: caster.position.x + dir * 1.3, z: caster.position.z };
         spawnBrakkSlam(at, { size: data.giant ? 1.35 : 1, dir, radius: data.radius ?? 3, giant: data.giant });
+        if (BRAKK_PIXEL) spawnPixelFx('impacts/ground-slam', { pos: at, scale: data.giant ? 0.6 : 0.45, maxLife: 2 });   // + đất nứt, sóng chấn, đá văng
         cameraRig.shake(data.giant ? 0.5 : 0.38, 320);
         data.effects.forEach(e => {
             const t = getView(opponentId, e.targetIndex);
@@ -1534,6 +1636,7 @@ function brakkStomp(caster, data, opponentId) {
     }, 100);
     gameTimeout(() => {
         spawnStompWave(caster.position, { radius: data.radius ?? 4, giant: data.giant });
+        if (BRAKK_PIXEL) spawnPixelFx('nature/quake', { pos: caster.position, scale: data.giant ? 0.75 : 0.55, maxLife: 2 });   // + đất rung, rãnh nứt đỏ
         cameraRig.shake(data.giant ? 0.45 : 0.35, 300);
         if (data.shield > 0) {
             spawnBrakkShieldPop(caster.position, { height: 3.2 * (caster._giantSc ?? 1) });
@@ -1632,6 +1735,7 @@ function onBrakkFx(d) {
                 showHit(t, e, { fx: false });
                 if (e.isMiss) return;
                 spawnUppercut(t.position, dir);
+                if (BRAKK_PIXEL) spawnPixelFx('melee/uppercut', { pos: t.position, flip: dir < 0, palette: 'lava', scale: 1.1 });   // + đấm móc + ngôi sao va chạm
                 cameraRig.shake(0.25, 220);
                 if (e.knockup && t.leapTo && t.member?.alive !== false) t.leapTo(e.toX, e.toZ, { duration: (d.upTime ?? 800) / 1000, height: 2.8 });
             });
@@ -1649,6 +1753,7 @@ function onBrakkFx(d) {
             }
             const cry = () => {
                 spawnBattleCry(caster.position, caster.facingLeft ? -1 : 1, { height: caster.height * (caster._giantSc ?? 1), at: caster.pointWorld?.('mouth', { sticky: true }) });
+                if (BRAKK_PIXEL) spawnPixelFx('status/rage', { view: caster, bare: true, maxLife: 1.5 });   // + gân giận, hơi bốc
                 cameraRig.shake(0.2, 260);
                 foes.forEach((v, k) => gameTimeout(() => spawnCryIcon(v, { life: (d.duration ?? 3000) / 1000, y: v.height + 0.35 }), 200 + k * 70));
             };
@@ -1711,6 +1816,7 @@ function onReaperFx(d) {
             const gx = caster ? (caster.position.x < target.position.x ? 1 : -1) : (target.facingLeft ? 1 : -1);   // Thần Chết đứng phía phe Zerith
             const at = { x: target.basePos.x, z: target.basePos.z };
             spawnJudgement(at, gx, { lift, fall, height: 3.8 });
+            if (ZERITH_PIXEL) spawnPixelFx('shadow/curse', { view: target, bare: true, palette: 'blood', maxLife: 2.2 });   // + đầu lâu nguyền rủa trên mục tiêu
             spawnRisingGlyph(target.position, '☠', '#fecdd3', '#9f1239');
             const H = 3.0;
             target.teleport(at.x, at.z, true);
@@ -1849,6 +1955,8 @@ function priestSupport(caster, data) {
                     const now = gameNow();
                     if (t.member?.statusEffects?.some(ef => ef.type === 'stun' && ef.endTime > now)) spawnSeraIcon(t.position, 'cleanse', { height: t.height ?? 2.9, size: 0.85, x: -0.4 });
                     spawnSunlight(t.position, { big: angel, height: t.height ?? 2.9 });
+                    // + pixelfx hồi máu (cánh hoa sáng dưới chân, vòng sáng chạy dọc người, tim nhỏ bay lên) — có thiên thần thì nổ đúng lúc thiên thần tới
+                    if (SERA_PIXEL) spawnPixelFx('holy/heal', { view: t, bare: true, seed: k + 2, scale: 1.3 });
                     spawnDamageNumber(t.position, e.heal, 'heal');
                 } else {
                     spawnSunFlare(t.position, { y: 0.75, size: 1.3, life: 0.4 });
@@ -1876,11 +1984,14 @@ function onReviveStart(data) {
     const priest = getView(data.casterId, data.casterIdx), dead = getView(data.casterId, data.targetIdx);
     if (!priest || !dead) return;
     spawnLittleAngel(staffPoint(priest), () => chestOf(dead, 1.2), { duration: (data.flight ?? 1200) / 1000, size: 1.35 });
+    // + pixelfx: thiên thần tới gần -> ánh sáng đổ xuống người ngã, đôi cánh sáng bung, lông vũ tan
+    if (SERA_PIXEL) spawnPixelFx('holy/resurrection', { view: dead, bare: true, delay: Math.max(0, (data.flight ?? 1200) / 1000 - 0.6), maxLife: 3.2 });
 }
 function onRevived(data) {
     const v = getView(data.casterId, data.targetIdx);
     if (!v) return;
     spawnReviveFx(v.position, { height: v.height ?? 2.9 });
+    if (SERA_PIXEL) spawnPixelFx('holy/heal', { view: v, bare: true, scale: 1.3 });   // + hồi máu lúc sống lại
     spawnDamageNumber(v.position, data.hp, 'heal');
     cameraRig.shake(0.15, 200);
 }
@@ -1901,6 +2012,7 @@ function onArcherShots(data) {
                 if (t) spawnLyraArrow(from, chestOf(t, 1.0), { duration: 0.2, size: spirit ? 0.7 : 0.8, onHit: () => {
                     showHit(t, e, { size: 0.7 });
                     if (spirit && !e.isMiss) spawnFeatherBurst(t.position, { size: 0.6 });
+                    if (LYRA_PIXEL && !e.isMiss) spawnPixelFx('impacts/hit-spark', { pos: t.position, flip: t.position.x < from.x, palette: 'cyber', scale: 0.65 });
                 } });
                 return;
             }
@@ -1923,8 +2035,11 @@ function onGuardBurst(data) {
     const opponentId = opponentIdOf(data.casterId);
     // Khiên Thần nổ sóng (lần CUỐI — khiên hết giờ / vỡ / bị hạ: vỡ tan) + sóng vàng loang tới bán kính nổ
     rok.onGuardBurst?.(data.final);
-    spawnGoldRing(rok.position, { radius: 5.5, life: 0.5 });
-    spawnHitSpark(rok.position, { count: 8, color: 0xffe08a, size: 1.3 });
+    if (ROK_PIXEL) spawnPixelFx('lightning/thunderclap', { view: rok, palette: 'gold', scale: 0.8 });   // pixelfx: khiên nổ — loé trắng, tia vàng đâm đất, sóng chấn lan
+    else {
+        spawnGoldRing(rok.position, { radius: 5.5, life: 0.5 });
+        spawnHitSpark(rok.position, { count: 8, color: 0xffe08a, size: 1.3 });
+    }
     cameraRig.shake(data.final ? 0.4 : 0.28, data.final ? 320 : 240);
     data.effects.forEach(e => {
         const v = getView(opponentId, e.targetIndex);
@@ -1955,7 +2070,7 @@ function onGuardBurst(data) {
 function warriorGuard(caster, data) {
     caster.playAction('guardStart', {
         onHit: () => {
-            caster.raiseDivineShield?.();
+            caster.raiseDivineShield?.();   // giữ tấm Khiên Thần (tranh); pixelfx thêm vòm lục giác (_updateIronGuard)
             spawnGoldRing(caster.position, { radius: 3, life: 0.45 });
             spawnHitSpark(caster.position, { count: 10, color: 0xffe08a, size: 1.2 });
             cameraRig.shake(0.15, 160);
@@ -1997,7 +2112,10 @@ function throwProjectiles(caster, data, opponentId, hitFrame, processHit) {
                 const to = target.position.clone().add(UP);
                 if (caster.def?.projectile === 'talisman') spawnTalismanShot(from, to, { duration: 0.2 });
                 else spawnProjectile(from, to, '#facc15', 0.2, caster.createProjectileMesh?.()); // bay nhanh
-                gameTimeout(() => processHit(effect), 200);
+                gameTimeout(() => {
+                    processHit(effect);
+                    if (JESS_PIXEL && caster.def?.projectile === 'talisman') spawnPixelFx('lightning/zap-hit', { pos: target.position, flip: caster.facingLeft, palette: 'arcane', scale: 0.8 });   // + bùa nổ sét tím
+                }, 200);
             }, idx * 120);
         });
     };
@@ -2152,6 +2270,7 @@ function onCastStart(data) {
         // Ignar niệm KN1 / KN2 (1s): gồng nhẹ, vòng lửa nhỏ dưới chân
         v.playAction?.('charge', { hold: true });
         spawnSummonCircle(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1, size: 2.6 });
+        if (IGNAR_PIXEL) spawnPixelFx('arcane/spell-charge', { view: v, palette: 'fire', maxLife: (data.castTime ?? 1000) / 1000 });   // + năng lượng lửa tụ vào tay
         return;
     }
     if (v && def?.type === 'reaper_scythe') {
@@ -2244,6 +2363,7 @@ function onGoblinFx(d) {
         case 'detonate': {
             if (d.kind === 'flaskHit' && d.x != null) {
                 spawnFlaskSplash({ x: d.x, z: d.z }, { radius: d.radius ?? 3.5, kind: d.flaskKind ?? 'near' });
+                if (GRIX_PIXEL) spawnPixelFx('nature/poison-cloud', { pos: { x: d.x, z: d.z }, scale: 0.7, maxLife: 2.5 });   // + màn khí độc là là mặt đất
                 cameraRig.shake(0.14, 150);
             }
             if (d.kind === 'bogTick' && d.x != null) {
@@ -2373,6 +2493,7 @@ function onSylvaFx(d, waited = 0) {
             spawnSylvaSummon(d.x ?? summon?.position.x ?? caster?.position.x ?? 0, d.z ?? summon?.position.z ?? caster?.position.z ?? 0, {
                 summonType: d.summonType ?? 'wolf',
             });
+            if (SYLVA_PIXEL) spawnPixelFx('nature/thorns', { pos: { x: d.x ?? summon?.position.x ?? caster?.position.x ?? 0, z: d.z ?? summon?.position.z ?? caster?.position.z ?? 0 }, scale: 0.55, maxLife: 1.8 });   // + gai rừng trồi lên nơi thú hiện
             cameraRig.shake(d.summonType === 'bear' ? 0.18 : 0.12, 160);
             break;
         }
@@ -2524,6 +2645,7 @@ function onSylvaFx(d, waited = 0) {
             const v = getView(d.casterId, d.targetIndex);
             if (v) {
                 spawnLeafShield(v, d.duration ?? 7000);
+                if (SYLVA_PIXEL) spawnPixelFx('nature/healing-bloom', { view: v, scale: 1.1, maxLife: 2.2 });   // + chồi xanh nở hoa
                 if (d.shield > 0) spawnDamageNumber(v.position, d.shield, 'shield');
             }
             break;

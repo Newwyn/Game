@@ -30,6 +30,7 @@ import { makeWaterBubble, makeGoddessAura, makeNoteHalo, makeDanceRing, spawnMan
 import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
+import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -743,6 +744,8 @@ export class CutoutCharacterView extends CharacterView {
      * Mờ vào / mờ ra theo trạng thái guard; trúng đòn thì cả vòm loé sáng (onGuardHit).
      */
     _updateIronGuard(dt, on) {
+        // thử nghiệm pixelfx (?rokFx=old để bỏ): vòm khiên lục giác (force-field) màu vàng suốt thời gian Dựng Khiên
+        if (ROK_PIXEL && this.def.guardFx) this._updatePixGuard(dt, on);   // + vòm lục giác pixelfx, vẫn giữ Khiên Thần (tranh) bên dưới
         // Rok bản 3: KHIÊN THẦN vẽ bằng tranh (visual.guardFx = rokFx.makeDivineShield) thay Thần Hộ Vệ + vòm lục giác
         if (this.def.guardFx) {
             if (!this._guardFx && !on) return;
@@ -754,6 +757,46 @@ export class CutoutCharacterView extends CharacterView {
             }
             return;
         }
+        this._updateIronDome(dt, on);
+    }
+
+    /** Hiệu ứng điểm ảnh lặp gắn theo trạng thái (key = tên biến lưu): tạo khi bật, mờ dần khi tắt, vẽ lại khi đổi hướng mặt */
+    _pixStatus(key, on, name, { palette, seed, bare = false, scale = 1 } = {}) {
+        let P = this[key];
+        if (!P && !on) return;
+        const flip = !!this.facingLeft;
+        if (on && (!P || P.done() || P.flip !== flip)) {
+            if (P) this.root.remove(P.group);
+            const A = actorOf(this);
+            P = this[key] = pixelLayer(pixelMod(name), { height: this.height, scale, actor: bare && A ? { ...A, pixels: new Uint32Array(A.pixels.length) } : A, palette, flip, seed });
+            P.flip = flip;
+            this.root.add(P.group);
+        }
+        P.group.position.y = GROUND_Y + (this._hover ?? 0) + (this._lift ?? 0);
+        if (!on) P.stop();
+        P.step(this._pixDt ?? 0.016);
+        if (P.done()) { this.root.remove(P.group); this[key] = null; }
+    }
+
+    /** Vòm khiên lục giác vàng pixelfx (scifi/force-field) suốt thời gian Dựng Khiên — thêm bên cạnh Khiên Thần (tranh) */
+    _updatePixGuard(dt, on) {
+        {
+            let P = this._pixGuard;
+            if (!P && !on) return;
+            if (on && (!P || P.done())) {
+                if (P) this.root.remove(P.group);
+                P = this._pixGuard = pixelLayer(pixelMod('scifi/force-field'), { height: this.height, actor: actorOf(this), palette: 'gold', flip: this.facingLeft, seed: 8 });
+                this.root.add(P.group);
+            }
+            P.group.position.y = GROUND_Y + (this._lift ?? 0);
+            if (!on) P.stop();
+            P.step(dt);
+            if (P.done()) { this.root.remove(P.group); this._pixGuard = null; }
+        }
+    }
+
+    /** Vòm lục giác cũ (bản khung xương, khi nhân vật không có Khiên Thần bằng tranh) */
+    _updateIronDome(dt, on) {
         if (on && !this._ironDome) {
             const g = new THREE.Group();
             const domeMat = new THREE.MeshBasicMaterial({ map: getHexDomeTexture(), transparent: true, depthWrite: false,
@@ -1075,6 +1118,7 @@ export class CutoutCharacterView extends CharacterView {
 
     /** Tam Nguyên: hiệu ứng bám người — tạo khi cần, mờ dần rồi bỏ */
     _updateElemFx(dt, effs, now) {
+        this._pixDt = dt;
         const fade = (key, on, make, rate = 8) => {
             let o = this[key];
             if (on && !o) { o = this[key] = make(); o.k = 0; this.root.add(o.group); }
@@ -1088,6 +1132,16 @@ export class CutoutCharacterView extends CharacterView {
         const ice = fade('_iceBlock', frozen, () => makeIceBlock(this.height), 14);
         ice?.update(dt, ice.k);
         const ward = effs.find(e => e.type === 'storm_ward' && e.endTime > now);
+        if (ELARION_PIXEL) {
+            // pixelfx: vòm lục giác điện xanh (Giáp Băng Sét) + dòng điện chạy quanh người (Tốc Lôi)
+            this._pixStatus('_pixWard', !!ward, 'holy/divine-shield', { palette: 'electric', seed: 4, bare: true });
+            this._pixStatus('_pixWardVolt', !!ward, 'lightning/electrified', { bare: true });
+            this._pixStatus('_pixVolt', effs.some(e => e.type === 'storm_self' && e.endTime > now), 'lightning/electrified', { bare: true });
+            const g = effs.some(e => e.type === 'golem_haste' && e.endTime > now);
+            const sa = fade('_sparkAura', g, () => makeSparkAura(this.height), 6);
+            sa?.update(dt, sa.k, this.position);
+            return;
+        }
         const dome = fade('_wardDome', !!ward, () => makeWardDome(this.height));
         dome?.update(dt, dome.k, ward?.maxHp ? Math.max(0, ward.hp / ward.maxHp) : 0);
         // Tốc Lôi (Elarion) / tay có sét (Golem — Hào Quang Sét): sét lách tách quanh người
@@ -1109,7 +1163,13 @@ export class CutoutCharacterView extends CharacterView {
         };
         // giáp nước (Hòa Âm 1+2): bong bóng, sáng theo máu giáp còn lại
         const ws = effs.find(e => e.type === 'water_shield' && e.endTime > now && e.hp > 0);
-        const bubble = fade('_waterBubble', !!ws, () => makeWaterBubble(this.height));
+        if (NERISSA_PIXEL) {
+            this._pixDt = dt;
+            this._pixStatus('_pixWaterShield', !!ws, 'holy/divine-shield', { palette: 'water', seed: 6, bare: true });
+            const dancing = effs.some(e => /^dance_(tide|flow|god)$/.test(e.type) && e.endTime > now);
+            this._pixStatus('_pixWaterAura', dancing, 'custom/water-aura', { seed: 6 });
+        }
+        const bubble = fade('_waterBubble', !!ws && !NERISSA_PIXEL, () => makeWaterBubble(this.height));
         bubble?.update(dt, bubble.k, ws?.maxHp ? Math.max(0, ws.hp / ws.maxHp) : 0);
         // Thủy Thần Vũ: Thủy Thần hiện ra sau lưng rồi giữ suốt điệu múa (chỉ trên người Nerissa)
         const god = effs.some(e => e.type === 'dance_god' && e.endTime > now);
@@ -1118,9 +1178,9 @@ export class CutoutCharacterView extends CharacterView {
         // Sóng Triều: vòng thủy triều dưới chân · Lưu Thủy: vòng hoa sen (múa cả 2: hoa sen)
         const flow = effs.some(e => e.type === 'dance_flow' && e.endTime > now);
         const tide = !flow && effs.some(e => e.type === 'dance_tide' && e.endTime > now);
-        const tr = fade('_tideRing', tide, () => makeDanceRing('tideRing'), 5);
+        const tr = fade('_tideRing', tide && !NERISSA_PIXEL, () => makeDanceRing('tideRing'), 5);
         tr?.update(dt, tr.k);
-        const lr = fade('_lotusRing', flow, () => makeDanceRing('lotusRing'), 5);
+        const lr = fade('_lotusRing', flow && !NERISSA_PIXEL, () => makeDanceRing('lotusRing'), 5);
         lr?.update(dt, lr.k);
         // cả 3 điệu: nốt nhạc bay vòng quanh người
         const all3 = effs.length > 0 && this.member?.danceKey === '123';
@@ -1237,6 +1297,23 @@ export class CutoutCharacterView extends CharacterView {
 
     /** Vệt gió đặc trưng của Gió dẫn đường: 3 dải gió lưỡi liềm xoáy quanh người ở 3 độ cao + quầng gió dưới chân */
     _updateWindAura(dt, on) {
+        // pixelfx: "Mắt Ưng Gió" tự vẽ (src/vfx/pixelfx-custom/hawk-sight.js) thay 3 dải gió bay vòng quanh người
+        if (LYRA_PIXEL) {
+            let P = this._pixWind;
+            if (!P && !on) return;
+            const flip = !!this.facingLeft;
+            if (on && (!P || P.done() || P.flip !== flip)) {   // đổi hướng mặt -> vẽ lại cho vệt gió luôn ở sau lưng
+                if (P) this.root.remove(P.group);
+                P = this._pixWind = pixelLayer(pixelMod('custom/hawk-sight'), { height: this.height, actor: actorOf(this), flip, seed: 7 });
+                P.flip = flip;
+                this.root.add(P.group);
+            }
+            P.group.position.y = GROUND_Y + (this._hover ?? 0) + (this._lift ?? 0);
+            if (!on) P.stop();
+            P.step(dt);
+            if (P.done()) { this.root.remove(P.group); this._pixWind = null; }
+            return;
+        }
         if (on && !this._windAura) {
             const g = new THREE.Group();
             for (let i = 0; i < 3; i++) {
