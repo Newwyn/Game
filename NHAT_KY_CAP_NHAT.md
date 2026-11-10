@@ -5,6 +5,15 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 10/11/2026 (khuya) — HIỆU ỨNG ĐIỂM ẢNH CHO SERAPHINE (Divine Shield · Blessing)
+
+- Khiên Ánh Sáng -> **Divine Shield**: bong bóng vàng kiểu điểm ảnh quanh đồng đội được che (viền sáng, kinh tuyến xoay, vệt bóng lướt), khiên vỡ thì mờ dần.
+- Thánh Niệm -> **Blessing**: cột sáng vàng rủ xuống từng đồng đội, hạt sáng rơi và tắt đúng trên đầu / vai (dùng hình bóng thật của nhân vật).
+- Nguồn: thư viện pixelfx của Patch (patch.gg/patch/pixel-effects, github.com/patch-gg/pixelfx), giấy phép MIT — mã gốc để nguyên ở src/vendor/pixelfx/ (kèm LICENSE).
+- Kỹ thuật: src/vfx/pixelHoly.js (vẽ vào khung điểm ảnh -> 2 tấm sau / trước nhân vật, NearestFilter) · CutoutCharacterView._updatePixelHoly. So với bản cũ: ?seraFx=old.
+
+---
+
 ## 10/11/2026 (đêm) — QUÁI CÓ BỘ HÌNH ĐỘNG ĐẦY ĐỦ NHƯ NHÂN VẬT (đợt 1: 4/22)
 
 - Trước: mỗi quái chỉ 4 khung (đứng · đánh · 2 bước). Giờ quái được vẽ đủ như nhân vật: đứng + thủ thế, đánh thường 8 khung, chạy 8, trúng đòn + choáng, gục + ăn mừng (tranh Flow).

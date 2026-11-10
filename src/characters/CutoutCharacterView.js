@@ -29,6 +29,7 @@ import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.
 import { makeWaterBubble, makeGoddessAura, makeNoteHalo, makeDanceRing, spawnManaRise } from '../vfx/nerissaFx.js';
 import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
+import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -683,8 +684,15 @@ export class CutoutCharacterView extends CharacterView {
         this._updatePrayLoop(praying);
         // Khiên Ánh Sáng (bong bóng; đang niệm thì mọc cánh) + hào quang Thánh Niệm của đồng đội
         const holy = alive ? effs.find(e => e.type === 'holy_shield' && e.endTime > now && e.hp > 0) : null;
-        this._updateHolyShield(dt, holy);
-        this._updateBlessAura(dt, alive && effs.some(e => e.type === 'pray_blessing' && e.endTime > now));
+        const blessed = alive && effs.some(e => e.type === 'pray_blessing' && e.endTime > now);
+        if (PIXEL_HOLY) {
+            // thử nghiệm: hiệu ứng điểm ảnh pixelfx (Divine Shield / Blessing) thay bong bóng + vòng sáng cũ (?seraFx=old để so)
+            this._updatePixelHoly(dt, 'shield', !!holy);
+            this._updatePixelHoly(dt, 'bless', blessed);
+        } else {
+            this._updateHolyShield(dt, holy);
+            this._updateBlessAura(dt, blessed);
+        }
         // Đồng đội được Dựng Khiên của Chiến Binh bảo hộ (+20% thủ): 3 khiên nhỏ bay vòng quanh người
         const aura = alive && !guard && effs.some(e => e.type === 'guard_aura' && e.endTime > now);
         this._updateOrbitShields(dt, aura);
@@ -887,6 +895,20 @@ export class CutoutCharacterView extends CharacterView {
         P.body.material.opacity = 0.62 * P.k * (0.85 + 0.15 * Math.sin(this._time * 3));
         P.ring.material.opacity = 0.55 * P.k;
         P.ring.rotation.z += dt * 1.2;
+    }
+
+    /** Hiệu ứng điểm ảnh (src/vfx/pixelHoly.js) gắn theo trạng thái: tạo lần đầu khi bật, tự mờ dần khi tắt */
+    _updatePixelHoly(dt, kind, on) {
+        this._pix ??= {};
+        let P = this._pix[kind];
+        if (!P && !on) return;
+        if (!P) {
+            P = this._pix[kind] = makePixelHoly(kind, this, this.height);
+            P.group.position.y = GROUND_Y;
+            this.root.add(P.group);
+        }
+        P.group.position.y = GROUND_Y + (this._hover ?? 0) + (this._lift ?? 0);
+        P.update(dt, on);
     }
 
     /** Khiên Ánh Sáng: bong bóng vàng bao quanh người; khiên lúc niệm có thêm đôi cánh. Mờ dần theo máu khiên còn lại */

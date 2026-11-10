@@ -1,3 +1,5 @@
+Seraphine: Khien Anh Sang -> Divine Shield, Thanh Niem -> Blessing (hieu ung diem anh pixelfx cua Patch, MIT)
+
 Quai co bo hinh dong day du nhu nhan vat (dot 1: Goblin Cuop, Goblin Nem Bom, Linh Valoria, Mat Tham) + trang xem thu tools/enemy-viewer.html
 
 Valdric nhay vut len bo xuong khi tung Thanh Hoa Phan Quyet + sua loi ca doi chet o don cuoi van dung im voi mau cu + tool thu khong bat bang ai de len tran
