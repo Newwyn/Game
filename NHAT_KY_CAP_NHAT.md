@@ -5,6 +5,61 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 10/11/2026 (đêm) — QUÁI CÓ BỘ HÌNH ĐỘNG ĐẦY ĐỦ NHƯ NHÂN VẬT (đợt 1: 4/22)
+
+- Trước: mỗi quái chỉ 4 khung (đứng · đánh · 2 bước). Giờ quái được vẽ đủ như nhân vật: đứng + thủ thế, đánh thường 8 khung, chạy 8, trúng đòn + choáng, gục + ăn mừng (tranh Flow).
+- Xong: Goblin Cướp, Goblin Ném Bom, Lính Valoria, Mật Thám. Chiến Binh Lửa dở (2/5 tấm). Còn 17 loại — xem art/enemies/TIEN_DO.md.
+- Quái thường chỉ đánh thường; trùm giữ kỹ năng đang có (sẽ có tấm động tác riêng cho từng kỹ năng).
+- Flow chặn khi tạo liên tục (~25 tấm) -> làm tiếp đợt sau.
+- Kỹ thuật: tools/enemy_refs.py (hình mẫu) · art/enemies/prompts.py (câu lệnh) · tools/flow_mark_sheet.py (xoá dấu Flow trên tấm 1200x896) · tools/enemy_spec.py + tools/enemy_ingest.sh (đóng gói) · src/characters/sprite/enemySprites.js (fullSpriteOf: có enemyfull_<art> thì dùng) · tools/enemy-viewer.html (xem thử).
+
+---
+
+## 10/11/2026 (khuya) — VALDRIC NHẢY LÊN BỔ XUỐNG · NGƯỜI CHẾT Ở ĐÒN CUỐI NGÃ XUỐNG ĐÚNG
+
+- Thánh Hỏa Phán Quyết: hết 5 giây niệm -> khiên tan, Valdric bật nhảy vút lên (vòng đỏ báo chỗ đáp giữa đội địch) rồi bổ kiếm xuống — chạm đất mới nổ + trừ máu, bổ xong nhảy về chỗ cũ. Lúc đang nhảy không phá khiên được nữa. Số liệu: game/judgment.js slamMs 900.
+- Sửa lỗi: đòn cuối làm cả đội gục (nổ Phán Quyết, hoặc bất kỳ đòn nào kết thúc trận) -> trước đây máy chủ báo hết trận mà không gửi trạng thái cuối, nhân vật đứng im với thanh máu cũ. Giờ gửi trạng thái cuối trước (checkWinCondition) + nhân vật gục khi đang diễn dở động tác thì bỏ động tác để ngã xuống (CharacterView).
+- Tool thử: bấm nút bất kỳ trong lúc đang đánh (Bất tử, Thắng/Thua ngay...) không còn bật bảng ải đè lên trận.
+- Kỹ thuật: server.js (processJudgment phase 'leap', damageJudgmentShield, checkWinCondition, testTool), src/vfx/bossFx.js (leap / blast / cancel), src/characters/CutoutCharacterView.js (leapTo hold), src/characters/CharacterView.js, tests/judgment.test.js.
+
+---
+
+## 10/11/2026 (tối) — BẢNG THẮNG / THUA CHỜ 2 GIÂY
+
+- Trận vừa kết thúc: màn hình trận đứng thêm 2 giây (thấy cảnh gục ngã / ăn mừng) rồi mới hiện bảng Thắng / Thua — cả Test, Cốt truyện, hầm ngục (bảng kết quả ải và lời thoại sau ải cũng chờ).
+- Tool thử: "Thắng ngay / Thua ngay" không còn gửi lại bảng ải (trước đây bảng ải đè lên bảng kết quả).
+- Kỹ thuật: src/ui/overlays.js (RESULT_DELAY_MS 2000, afterBattleEnd), src/ui/campaign.js (stageResult chờ afterBattleEnd), server.js (testTool battleWin/battleLose).
+
+---
+
+## 10/11/2026 — GIỚI HẠN 3 PHÚT · TUYỆT KỸ VALDRIC "THÁNH HỎA PHÁN QUYẾT" · HIỆU ỨNG TRÙM VẼ BẰNG FLOW · XOÁ DẤU MỜ FLOW
+
+### 1. Mỗi ải tối đa 3 phút
+- Cốt truyện, nhánh, hầm ngục, cỏ cao: đồng hồ ⏱ đếm ngược dưới tên ải (còn 30 giây chuyển đỏ, 10 giây nhấp nháy). Tạm dừng thì đồng hồ dừng.
+- Hết giờ chưa thắng = thua, màn kết quả ghi "⏰ HẾT GIỜ!". Test / Đấu không giới hạn.
+
+### 2. Valdric: chiêu khống chế + tuyệt kỹ
+- **Cột Lửa**: đứng trong vòng đỏ lúc lửa phun -> choáng 1,5 giây. **Vòng Lửa Huy Hiệu** (cả 2 dạng): phong ấn kỹ năng 2 giây (vẫn đánh thường).
+- Nhịp: chiêu – chiêu – Vòng Lửa (phong ấn) -> **Thánh Hỏa Phán Quyết**: Valdric niệm 5 giây trong khiên lửa (Cốt truyện 5%, Khó 20%, Địa ngục 25% máu tối đa).
+  Khiên chặn hết sát thương; chiêu **choáng / hất / đẩy / túm** phá khiên ×3 + 5%. Phá kịp: Valdric choáng 2,5 giây + nhận thêm 25% sát thương 4 giây.
+  Không kịp: nổ lửa thánh — cả đội mất 60% máu (Cốt truyện), 85% (Khó), **chết cả đội (Địa ngục)**.
+- Trên màn hình: khung tên chiêu + thanh máu khiên + đếm ngược + gợi ý dùng chiêu choáng.
+- Giả lập ải 20 (đội Lv19, bấm chiêu ngẫu nhiên): thắng 6/6 + 2/2.
+
+### 3. Hiệu ứng kỹ năng trùm vẽ lại bằng Flow
+- 9 tấm tranh Flow (nền đen) -> cắt + tách nền bằng tools/fx_grid_pack.py (art/boss/fx/make_specs.py): vết cào, tiếng hú, cuồng nộ, chém bóng tối, cột lửa, khiên đen, ấn nguyền, sao choáng, ổ khoá phong ấn, linh hồn, vòng cảnh báo, hố nứt, vòng lửa, vòng phép phán quyết, sóng xung kích, vết cháy, khiên lửa thánh (4 mức nứt), vụ nổ phán quyết, vỡ khiên, tia lửa trúng người.
+- Bản vẽ bằng code bỏ (cất ở art/boss/fx/code_ve_cu).
+
+### 4. Xoá dấu mờ (ngôi sao) của Flow
+- tools/remove_flow_mark.py: lấy khuôn dấu từ tranh gốc rồi trừ ngược lớp trắng mờ + lấp viền — 20 tranh bản đồ / tranh nền cốt truyện, 125 tấm hình động nhân vật S/SS (đóng gói lại atlas). Bản gốc sao lưu ở .team/backup_flow_mark/.
+
+### Kỹ thuật
+- Codex: server.js (đồng hồ, tuyệt kỹ, khiên, phong ấn) + game/judgment.js (số liệu) + tests/judgment.test.js.
+- Claude: src/vfx/bossFx.js (handleBossUlt, phát hiệu ứng Flow), src/ui/battleTimer.js + src/styles/battleTimer.css, src/ui/hud.js (biểu tượng Phong ấn / Vỡ khiên), màn kết quả hết giờ.
+- 118 bài kiểm tra tự động.
+
+---
+
 ## 09/11/2026 (khuya) — CẢNH NỀN TRẬN VẼ BẰNG CODE (thay khối 3D)
 - Bạn chê bản khối 3D của Codex xấu → vẽ lại **23 cảnh bằng code** (`tools/battle_bg.py`, cách vẽ kiểu beanfx): mỗi nơi 3 lớp — **lớp xa** (trời, núi, rặng cây / thành phố / tường), **lớp gần** (bụi, đá, cột, chậu lửa — lệch nhẹ khi máy quay di chuyển nên có chiều sâu), **đất lặp** (rêu + cỏ + hoa + lá rụng, đá lát, ván gỗ).
 - Chi tiết: viền sáng phía nắng + mép tối phía khuất, chùm lá sáng tối, nhà có ngói từng hàng / khung gỗ / ống khói có khói / hộp hoa, tường xây từng viên đá, mây có mặt sáng, chim bay, ánh đèn / lửa / trăng toả sáng.

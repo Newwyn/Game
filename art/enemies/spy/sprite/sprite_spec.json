@@ -1,0 +1,77 @@
+{
+ "note": "Quái spy: bộ hình động đầy đủ (Flow, 10/11/2026) — tools/enemy_spec.py",
+ "atlasScale": 0.8,
+ "maxWidth": 4096,
+ "pad": 4,
+ "calib": "idle1",
+ "key": "jade",
+ "out": "src/assets/sprites/enemyfull_spy",
+ "meta": "src/characters/sprite/enemyfull_spy.json",
+ "format": "webp",
+ "sheets": {
+  "attack": {
+   "file": "art/enemies/spy/sprite/sprite-attack.jpg",
+   "scale": 1.0,
+   "split": true,
+   "anchor": "heel"
+  },
+  "dead-victory": {
+   "file": "art/enemies/spy/sprite/sprite-dead-victory.jpg",
+   "scale": 1.0,
+   "split": true,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ],
+   "ground": "group"
+  },
+  "hurt-stun": {
+   "file": "art/enemies/spy/sprite/sprite-hurt-stun.jpg",
+   "scale": 1.0,
+   "split": true,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "idle": {
+   "file": "art/enemies/spy/sprite/sprite-idle.jpg",
+   "scale": 1.0,
+   "split": true,
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "toe"
+    ]
+   ]
+  },
+  "move": {
+   "file": "art/enemies/spy/sprite/sprite-move.jpg",
+   "scale": 1.0,
+   "split": true,
+   "anchor": "body"
+  }
+ }
+}

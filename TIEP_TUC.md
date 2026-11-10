@@ -1,4 +1,4 @@
-# ▶️ TIẾP TỤC LÀM — Legend of Capsules (cập nhật 08/11/2026 tối)
+# ▶️ TIẾP TỤC LÀM — Legend of Capsules (cập nhật 10/11/2026 đêm)
 
 File này để mở máy khác là làm tiếp được ngay. Lịch sử chi tiết từng lần sửa: `NHAT_KY_CAP_NHAT.md` (mới nhất ở trên). Lộ trình: `docs/superpowers/plans/2026-11-06-ban1-lo-trinh.md`.
 
@@ -7,7 +7,7 @@ File này để mở máy khác là làm tiếp được ngay. Lịch sử chi t
 git pull
 npm install
 npm run dev        # server socket :3000 + vite :5173 → mở http://localhost:5173
-npm test           # 81 bài kiểm tra (node --test)
+npm test           # 118 bài kiểm tra (node --test)
 ```
 - `npm run dev` luôn để server ở cổng 3000 (vite chuyển socket sang) — kể cả khi công cụ khác đặt biến PORT.
 - Lưu tiến trình người chơi: `data/progress.json` (không đẩy GitHub — máy mới bắt đầu từ đầu). Mỗi trình duyệt có mã riêng trong localStorage `loc.clientId`.
@@ -18,7 +18,10 @@ npm test           # 81 bài kiểm tra (node --test)
 - Bản đồ thế giới 3D (mặc định) / 2D Pokémon; **vùng Elf** đi qua cổng phía đông kinh thành. Trong nhà (quán Lena, lò rèn, nhà Bà Mira) vẽ phẳng.
 - Giao diện bản đồ: bản đồ nhỏ, thanh chức năng (C/I/J/M/Esc), **Nhân vật** (chỉ số, kỹ năng, trang bị, trang phục), **Túi đồ 4 phần**, **Cửa hàng vật phẩm**, **Cài đặt**. Cỏ cao gặp quái.
 - Tranh trang phục S / SS đủ 11 anh hùng. Icon vẽ AI: `src/assets/icons/` (tài nguyên, nguyên liệu, ô đồ, nút chức năng, vật phẩm nhiệm vụ).
+- **10/11:** mỗi ải tối đa 3 phút · Valdric có tuyệt kỹ Thánh Hỏa Phán Quyết (khiên 5 giây, nhảy bổ xuống) · bảng Thắng/Thua chờ 2 giây · hiệu ứng trùm vẽ bằng Flow · xoá dấu Flow trên tranh.
+- **Quái có bộ hình động đầy đủ như nhân vật — đang làm (4/22)**: tiến độ + cách làm ở `art/enemies/TIEN_DO.md` (đọc trước khi làm tiếp). Xem thử: `tools/enemy-viewer.html`.
 - **Chưa xong** (gợi ý thứ tự):
+  0. Làm tiếp bộ hình động quái (Chiến Binh Lửa dở 2/5, còn 17 loại) — Flow chặn nếu tạo dồn dập, làm chậm từng đợt.
   1. Đi bộ thử 3 căn nhà + 2 bản đồ Elf bằng tay, chỉnh lưới đi được nếu lệch (`tools/build_maps.py` → OPS / INTERIORS).
   2. Nhạc nền / tiếng động (bạn muốn để sau).
   3. Chương 3 — tộc Rồng (Brakk), theo gợi mở ở kết chương 2.

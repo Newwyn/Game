@@ -1,124 +1,113 @@
+// ============================================================
+// HIỆU ỨNG KỸ NĂNG TRÙM — tranh vẽ bằng Google Flow (nền đen, art/boss/fx/*.png) cắt bằng art/boss/fx/make_specs.py
+//   boss_fx.webp: claw · howl · rage · shadow · pillar · dshield · curse · stun · seal · wisp
+//                 + hình nằm đất (1 khung, code tự cho nở / mờ): warn · slam · firering · ucircle · ushock · burn · sealring · target
+//   boss_ult.webp: tuyệt kỹ Valdric "Thánh Hỏa Phán Quyết" — ushield (lặp) · ushieldDmg (4 mức nứt) · ublast · ushatter · uhit
+// events.js gọi: spawnBossBanner (tên chiêu) · spawnBossWarning (cảnh báo + đòn trúng của 10 chiêu) · handleBossUlt (sự kiện bossUlt)
+// Mỗi hiệu ứng = 1 mặt phẳng flipbook (1 lượt vẽ), tự huỷ khi hết — nhẹ cho điện thoại.
+// ============================================================
 import * as THREE from 'three';
-import { addAnim, fxBudget } from './vfx.js';
+import { addAnim } from './vfx.js';
+import { makeFlipbook, FLOOR } from './flipbook.js';
+import fxUrl from '../assets/sprites/boss_fx.webp';
+import FX from './bossFxAtlas.json';
+import ultUrl from '../assets/sprites/boss_ult.webp';
+import ULT from './bossUltAtlas.json';
+import '../styles/battleTimer.css';   // khung tuyệt kỹ (#ult-hud) dùng chung tệp kiểu với đồng hồ ải
 
-const COLORS = { b_wolf: 0xb84b37, b_skarn: 0x9aa34b, b_morwen: 0x713cb4,
-    b_valdric: 0xff741e, b_warden: 0x78aaa5, b_hollow: 0x57b65e,
-    b_vexa: 0xb45bfa, b_thalor: 0x8bcaff, b_malkor: 0xffe8a0 };
-const TAU = Math.PI * 2;
-// Retained module resources. addAnim owns each cloned material, never these geometries.
-const GEO = {
-    disc: new THREE.CircleGeometry(1, 40), ring: new THREE.RingGeometry(0.94, 1, 48),
-    arc: new THREE.RingGeometry(0.90, 1, 24, 0, Math.PI * 1.4),
-    hex: new THREE.RingGeometry(0.83, 1, 6), plane: new THREE.PlaneGeometry(1, 1),
-    bubble: new THREE.IcosahedronGeometry(1, 1),
-    column: new THREE.CylinderGeometry(0.35, 1, 1, 12, 1, true),
-};
-const BASE = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false,
-    side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending });
+const FB = makeFlipbook(fxUrl, FX);
+const UB = makeFlipbook(ultUrl, ULT);
+const TINT = { b_hollow: 0x9dffb0, b_vexa: 0xe0b0ff, b_thalor: 0xb0d4ff, b_malkor: 0xfff0c0 };   // trùm chương 2 dùng chung hình, nhuộm nhẹ
 const pending = new WeakMap();
-function mesh(geometry, color, opacity = 1) {
-    const material = BASE.clone(); material.color.setHex(color); material.opacity = opacity;
-    const object = new THREE.Mesh(geometry, material);
-    object.userData.sharedGeometry = true;
-    return object;
-}
-function at(object, pos, y = 0) { object.position.set(pos.x, y, pos.z); return object; }
-function ground(object) { object.rotation.x = -Math.PI / 2; return object; }
-function fade(object, life, update, alpha = 1) {
-    addAnim(object, life, (p, fx, dt) => {
-        object.material.opacity = alpha * (1 - p);
-        update?.(p, fx, dt);
+
+// ---------- trình phát ----------
+// zOff: đẩy về phía máy quay (hình nhân vật che mất hiệu ứng đặt đúng chỗ đứng của họ)
+function place(m, pos, y = 0, zOff = 0) { m.position.set(pos.x, FLOOR + y, (pos.z ?? 0) + zOff); m.userData.zOff = zOff; return m; }
+/** Phát 1 lượt hết các khung trong `life` giây (mờ vào / mờ ra) */
+function once(fb, m, life, { follow = null, y = 0, fadeOut = 0.2, update = null } = {}) {
+    const n = fb.count(m.userData.fx.group);
+    addAnim(m, life, (p, fx) => {
+        fb.set(m, Math.floor(p * n));
+        m.material.opacity = Math.min(1, (1 - p) / fadeOut);
+        if (follow) { m.position.x = follow.position.x; m.position.z = follow.position.z + (m.userData.zOff ?? 0); m.position.y = FLOOR + y; }
+        update?.(p, fx);
     });
-    return object;
+    return m;
 }
-function pulse(pos, color, radius = 3, life = 0.8, vertical = false, delay = 0) {
-    const ring = at(mesh(vertical ? GEO.arc : GEO.ring, color), pos, vertical ? 1.5 : -0.38);
-    if (!vertical) ground(ring);
-    fade(ring, life, p => {
-        const t = Math.max(0, (p - delay) / (1 - delay));
-        ring.visible = p >= delay;
-        ring.scale.setScalar(0.2 + radius * t);
-        if (vertical) ring.rotation.z = t * 0.7;
-    }, 0.85);
-}
-// A single Points draw per burst, <= 24 particles; positions and seeds allocated only at spawn.
-function particles(pos, color, count = 20, mode = 'burst', life = 0.9, end = null) {
-    count = fxBudget(Math.min(count, 24), 3);
-    const data = new Float32Array(count * 3), seed = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-        seed[i * 3] = Math.random() * TAU;
-        seed[i * 3 + 1] = 0.4 + Math.random() * 1.5;
-        seed[i * 3 + 2] = Math.random();
-    }
-    const geometry = new THREE.BufferGeometry();
-    const attribute = new THREE.BufferAttribute(data, 3).setUsage(THREE.DynamicDrawUsage);
-    geometry.setAttribute('position', attribute);
-    const material = new THREE.PointsMaterial({ color, size: mode === 'dust' ? 0.24 : 0.12,
-        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
-    const points = new THREE.Points(geometry, material); points.frustumCulled = false;
-    addAnim(points, life, p => {
-        material.opacity = (1 - p) * 0.85;
-        for (let i = 0; i < count; i++) {
-            const j = i * 3, a = seed[j], speed = seed[j + 1], phase = seed[j + 2];
-            let r = speed * p * 2, y = 0.2 + Math.sin(p * Math.PI) * speed;
-            let x = pos.x, z = pos.z;
-            if (mode === 'gather') { r = speed * (1 - p); y = 0.5 + p * 1.7; }
-            if (mode === 'drip') { r = phase * 0.5; y = 1.6 - p * 2; }
-            if (mode === 'dust') y = -0.2 + Math.sin(p * Math.PI) * 0.6;
-            if (mode === 'ring') { r = (end?.radius ?? 4) * p; y = -0.3 + Math.sin(p * Math.PI) * (0.3 + phase); }
-            if (mode === 'soul' && end) {
-                const t = Math.max(0, Math.min(1, p * 1.4 - phase * 0.35));
-                x += (end.x - pos.x) * t; z += (end.z - pos.z) * t;
-                r = Math.sin(t * Math.PI) * 0.3; y = 1 + Math.sin(t * Math.PI) * 1.4;
-            }
-            data[j] = x + Math.cos(a + p * 3) * r;
-            data[j + 1] = y; data[j + 2] = z + Math.sin(a + p * 3) * r;
-        }
-        attribute.needsUpdate = true;
+/** Phát lặp `fps` khung/giây; until(fx) trả true thì mờ dần rồi tắt */
+function loop(fb, m, life, { fps = 12, follow = null, y = 0, until = null, update = null } = {}) {
+    const n = fb.count(m.userData.fx.group);
+    let end = -1;
+    addAnim(m, life, (p, fx) => {
+        fb.set(m, Math.floor(fx.age * fps) % n);
+        if (end < 0 && until?.(fx)) end = fx.age;
+        const out = end < 0 ? 1 : 1 - (fx.age - end) / 0.25;
+        m.material.opacity = Math.min(1, fx.age / 0.12, out, (fx.life - fx.age) / 0.2);
+        if (out <= 0) fx.life = fx.age;
+        if (follow) { m.position.x = follow.position.x; m.position.z = follow.position.z + (m.userData.zOff ?? 0); m.position.y = FLOOR + y; }
+        update?.(p, fx);
     });
+    return m;
 }
-function streak(from, to, color, width = 0.3, life = 0.65, y = 0.8) {
-    const dx = to.x - from.x, dz = to.z - from.z;
-    const slash = ground(mesh(GEO.plane, color));
-    slash.position.set((from.x + to.x) / 2, y, (from.z + to.z) / 2);
-    slash.rotation.z = -Math.atan2(dz, dx);
-    const length = Math.max(0.1, Math.hypot(dx, dz));
-    return fade(slash, life, p => slash.scale.set(length, width * (1 - p), 1), 0.8);
+/** Hình nằm đất 1 khung: nở từ `from` lên 1 rồi mờ dần (vòng lửa, sóng xung kích, hố nứt) */
+function grow(m, life, from = 0.3, { fadeAt = 0.55 } = {}) {
+    const sx = m.scale.x, sy = m.scale.y;
+    addAnim(m, life, (p) => {
+        const k = from + (1 - from) * (1 - (1 - Math.min(1, p / 0.45)) ** 3);
+        m.scale.set(sx * k, sy * k, 1);
+        m.material.opacity = p < fadeAt ? Math.min(1, p * 8) : 1 - (p - fadeAt) / (1 - fadeAt);
+    });
+    return m;
 }
-function aura(view, pos, color, life = 0.7) {
-    const glow = at(mesh(GEO.bubble, color), pos, 1);
-    fade(glow, life, p => {
-        if (view) { glow.position.x = view.position.x; glow.position.z = view.position.z; }
-        glow.scale.set(0.6 + p * 0.5, 1.4 + p * 0.4, 0.6 + p * 0.5);
-    }, 0.22);
-}
+const tint = (m, classId) => { if (TINT[classId]) m.material.color.setHex(TINT[classId]); return m; };
+
 export function spawnBossBanner(pos, name) {
-    const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 96;
+    const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 112;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(50,0,10,0.85)'; ctx.fillRect(0, 0, 768, 96);
-    ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff0e5'; ctx.fillText(name, 384, 62);
+    const g = ctx.createLinearGradient(0, 0, 768, 0);
+    g.addColorStop(0, 'rgba(60,0,10,0)'); g.addColorStop(0.2, 'rgba(70,6,14,0.9)'); g.addColorStop(0.8, 'rgba(70,6,14,0.9)'); g.addColorStop(1, 'rgba(60,0,10,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 18, 768, 76);
+    ctx.font = '900 46px Outfit, sans-serif'; ctx.textAlign = 'center';
+    ctx.lineWidth = 8; ctx.strokeStyle = '#2a0006'; ctx.strokeText(name, 384, 72);
+    ctx.fillStyle = '#ffe2c8'; ctx.fillText(name, 384, 72);
     const map = new THREE.CanvasTexture(canvas);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest: false, depthWrite: false }));
-    sprite.position.set(pos.x, (pos.y ?? 0) + 3.6, pos.z); sprite.scale.set(7, 0.875, 1);
-    addAnim(sprite, 1.2, p => { sprite.material.opacity = Math.min(1, (1 - p) * 5); });
+    sprite.position.set(pos.x, (pos.y ?? 0) + 3.8, pos.z); sprite.scale.set(7, 1.02, 1);
+    addAnim(sprite, 1.4, p => { sprite.material.opacity = Math.min(1, p * 8, (1 - p) * 5); sprite.position.y = (pos.y ?? 0) + 3.8 + p * 0.3; });
 }
+
+/** Vòng / vạch cảnh báo đỏ trên đất cho tới lúc trúng */
 function telegraph(shape, seconds) {
-    const line = shape.kind === 'line';
-    const length = line ? Math.hypot(shape.toX - shape.x, shape.toZ - shape.z) : shape.radius;
-    // Ring damage is a filled disk on the server, so retain the interior warning.
-    const fill = ground(mesh(line ? GEO.plane : GEO.disc, 0xff243e));
-    fill.material.blending = THREE.NormalBlending;
-    fill.position.set(line ? (shape.x + shape.toX) / 2 : shape.x, -0.43, line ? (shape.z + shape.toZ) / 2 : shape.z);
-    fill.rotation.z = line ? -Math.atan2(shape.toZ - shape.z, shape.toX - shape.x) : 0;
-    fill.scale.set(Math.max(0.01, length), line ? shape.width : length, 1);
-    addAnim(fill, seconds, p => { fill.material.opacity = 0.18 + p * 0.27; });
-    const edge = ground(mesh(line ? GEO.plane : GEO.ring, 0xff6573));
-    edge.position.copy(fill.position); edge.position.y += 0.015; edge.rotation.copy(fill.rotation);
-    addAnim(edge, seconds, p => {
-        edge.scale.set(Math.max(0.01, length * (line ? p : 1)), line ? 0.06 : length, 1);
-        edge.material.opacity = 0.8;
-    });
+    if (shape.kind === 'line') {
+        const len = Math.hypot(shape.toX - shape.x, shape.toZ - shape.z);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff2a3c, transparent: true, depthWrite: false, fog: false }));
+        m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(shape.toZ - shape.z, shape.toX - shape.x);
+        m.position.set((shape.x + shape.toX) / 2, FLOOR + 0.03, (shape.z + shape.toZ) / 2);
+        addAnim(m, seconds, p => { m.scale.set(len * Math.min(1, p * 3), shape.width, 1); m.material.opacity = 0.25 + 0.25 * Math.sin(p * Math.PI * 6) ** 2; });
+        return;
+    }
+    const d = FB.decal('warn', shape.x, shape.z, shape.radius);
+    addAnim(d, seconds, (p, fx) => { d.material.opacity = Math.min(1, p * 6) * (0.65 + 0.35 * Math.sin(fx.age * 14) ** 2); });
+}
+
+function stunStars(view, ms) {
+    if (!view || !ms) return;
+    loop(FB, FB.frames('stun', 0.9), ms / 1000, { fps: 14, follow: view, y: 3.2 });
+}
+function sealIcon(view, ms) {
+    if (!view || !ms) return;
+    loop(FB, FB.frames('seal', 1.1), ms / 1000, { fps: 10, follow: view, y: 3.5 });
+}
+/** Hiệu ứng bám người cho tới khi trạng thái hết (khiên đen Morwen / lời nguyền) */
+function lasting(view, group, height, y, type, classId) {
+    if (!view) return;
+    let seen = false;
+    const m = tint(FB.frames(group, height), classId);
+    loop(FB, m, 7, { fps: 12, follow: view, y, until: () => {
+        const on = (view.member?.statusEffects ?? []).some(e => e.type === type && (type !== 'boss_shield' || e.hp > 0));
+        seen ||= on;
+        return view.member?.alive === false || (seen && !on);
+    } });
 }
 function chooseTarget(foes, skill) {
     let chosen = null, score = skill === 'pounce' ? Infinity : -Infinity;
@@ -130,73 +119,11 @@ function chooseTarget(foes, skill) {
     }
     return chosen;
 }
-function windup(d, boss, target, color, seconds) {
-    const pos = boss?.position ?? d;
-    aura(boss, pos, color, Math.min(seconds, 0.45));
-    particles(pos, color, 12, 'gather', seconds);
-    const cue = at(mesh(d.skill === 'shield' ? GEO.bubble : d.skill === 'curse' ? GEO.hex : GEO.arc, color), pos, 1.2);
-    if (['slam', 'ring', 'pillars'].includes(d.skill)) { ground(cue); cue.position.y = -0.30; }
-    addAnim(cue, seconds, p => {
-        cue.material.opacity = 0.2 + p * 0.4;
-        const s = d.skill === 'slam' ? 1.6 - p : 0.5 + p * 0.6;
-        cue.scale.setScalar(s); // Rotation updates below are absolute, frame-rate independent.
-        if (d.skill === 'cry') cue.scale.y = 1 + p * 1.5;
-        if (d.skill === 'howl') cue.position.y = 1.2 + p;
-        if (d.skill === 'curse') cue.rotation.z = p * TAU;
-        if (d.skill === 'shield') { cue.scale.y = s * 1.5; cue.material.wireframe = true; }
-        if (d.skill === 'drain') cue.rotation.y = p * TAU;
-        if (d.skill === 'pillars') cue.position.y = -0.3 + p * 1.4;
-        if (d.skill === 'ring') cue.rotation.z = -p * TAU;
-        if (d.skill === 'pounce') cue.rotation.z = -p * Math.PI;
-        if (d.skill === 'dash') { cue.scale.set(1.8, 0.3 + p * 0.2, 1); cue.rotation.y = Math.atan2(d.shapes?.[0]?.toZ - d.z || 0, d.shapes?.[0]?.toX - d.x || 1); }
-    });
-    if (target && ['pounce', 'curse'].includes(d.skill)) {
-        const mark = at(mesh(d.skill === 'curse' ? GEO.hex : GEO.arc, color), target.position, 2.8);
-        addAnim(mark, seconds, p => { mark.position.x = target.position.x; mark.position.z = target.position.z; mark.rotation.z = p * 2; mark.material.opacity = 0.4 + p * 0.5; });
-    }
-}
-function lasting(view, color, shield) {
-    if (!view) return;
-    const duration = shield ? 5 : 6;
-    const life = shield ? duration + 0.35 : duration;
-    const object = at(mesh(shield ? GEO.bubble : GEO.hex, color), view.position, shield ? 1 : 3);
-    object.material.wireframe = shield;
-    const type = shield ? 'boss_shield' : 'boss_curse';
-    let seen = false, ending = -1;
-    addAnim(object, life, (p, fx) => {
-        let active = false;
-        for (const effect of view.member?.statusEffects ?? []) {
-            if (effect.type === type && (!shield || effect.hp > 0)) { active = true; break; }
-        }
-        seen ||= !!active;
-        if (ending < 0 && (view.member?.alive === false || (seen && !active) || fx.age >= duration - (shield ? 0 : 0.35))) ending = fx.age;
-        const shatter = ending < 0 ? 0 : Math.min(1, (fx.age - ending) / 0.35);
-        object.position.x = view.position.x; object.position.z = view.position.z;
-        object.rotation.y = p * TAU; object.rotation.z = shield ? 0 : p * TAU;
-        object.scale.set(1.15 + shatter, (shield ? 1.7 : 0.65) + shatter, 1.15 + shatter);
-        object.material.opacity = (shield ? 0.35 : 0.8) * (1 - shatter);
-        if (ending >= 0 && !object.userData.broken) {
-            object.userData.broken = true;
-            particles(view.position, color, 16, shield ? 'burst' : 'drip', 0.35);
-        }
-        if (shatter >= 1) fx.life = fx.age;
-    });
-    if (!shield) {
-        // Hanging chain links below the sigil; short-lived so they do not obscure attacks.
-        for (let i = 0; i < 6; i++) {
-            const link = at(mesh(GEO.hex, color), view.position, 2.6 - (i % 3) * 0.4);
-            link.position.x += i < 3 ? -0.5 : 0.5; link.scale.set(0.13, 0.24, 0.13);
-            fade(link, 1.1, null, 0.75);
-        }
-        particles(view.position, 0xa355d5, 10, 'drip', 1.1);
-    }
-}
-// Existing warning entry point also accepts the complete boss event + resolved views.
-// Keeping dispatch here confines combat integration to the authorized handler block.
+
 export function spawnBossWarning(d, seconds, context) {
     if (!context) { telegraph(d, seconds); return; }
     const { boss, allies = [], foes = [], shake } = context;
-    const color = COLORS[boss?.member?.classId] ?? 0xb55b86;
+    const cls = boss?.member?.classId;
     const pos = boss?.position ?? d;
     let casts = boss && pending.get(boss);
     if (d.kind === 'warning') {
@@ -206,80 +133,223 @@ export function spawnBossWarning(d, seconds, context) {
             casts.set(d.skill, { target, summons: new Set(allies.filter(v => v?.member?.summon && v.member.alive).map(v => v.member.summonId)) });
         }
         for (const shape of d.shapes ?? []) telegraph(shape, seconds);
-        windup(d, boss, target, color, Math.min(1.2, seconds));
+        if (target && ['pounce', 'curse'].includes(d.skill)) {   // đánh dấu người bị nhắm
+            const mk = FB.decal('target', target.position.x, target.position.z, 1.1);
+            addAnim(mk, seconds, (p, fx) => { mk.position.x = target.position.x; mk.position.z = target.position.z; mk.material.opacity = 0.6 + 0.4 * Math.sin(fx.age * 12) ** 2; });
+        }
+        if (d.skill === 'cry' && boss) loop(FB, tint(FB.frames('rage', 3), cls), seconds, { fps: 14, follow: boss });
         return;
     }
     const cast = casts?.get(d.skill); casts?.delete(d.skill);
     const hits = (d.effects ?? []).map(e => ({ e, view: foes[e.targetIndex] })).filter(h => h.view);
-    // DoT packets have no telegraphs and no pending cast. Never replay a leap/pillar/sigil.
-    if (!cast && !(d.shapes?.length) && ['pounce', 'pillars', 'curse'].includes(d.skill) && hits.length) {
-        for (const { view } of hits.slice(0, 3)) particles(view.position, d.skill === 'pounce' ? 0xa92032 : color, 6, 'drip', 0.45);
-        return;
-    }
+    for (const { e, view } of hits) { stunStars(view, e.stun); sealIcon(view, e.seal); }
+    // gói sát thương theo thời gian (không có cảnh báo trước): chỉ nhỏ giọt, không phát lại cả chiêu
+    if (!cast && !(d.shapes?.length) && ['pounce', 'pillars', 'curse'].includes(d.skill) && hits.length) return;
     const target = hits[0]?.view ?? cast?.target;
     switch (d.skill) {
     case 'howl': {
-        pulse(pos, color, 3.5); pulse(pos, color, 3, 1.1, true); pulse(pos, color, 4, 1.1, true, 0.25);
-        // Wait in the normal VFX loop for the next squad snapshot; no timers or guessed spawn point.
-        const watcher = new THREE.Group();
+        once(FB, tint(place(FB.frames('howl', 4.6, { additive: true }), pos, 0.9), cls), 0.9, { follow: boss, y: 0.9 });
+        shake?.();
+        const watcher = new THREE.Group();   // chờ sói con xuất hiện -> bụi đỏ chỗ nó
         addAnim(watcher, 1.2, (p, fx) => {
-            let summoned;
             for (const v of context.getAllies?.() ?? allies) {
-                if (cast && v?.member?.alive && v.member.bossOwner === d.casterIdx && !cast.summons.has(v.member.summonId)) { summoned = v; break; }
+                if (cast && v?.member?.alive && v.member.bossOwner === d.casterIdx && !cast.summons.has(v.member.summonId)) {
+                    grow(FB.decal('slam', v.position.x, v.position.z, 1.4), 0.6); fx.life = fx.age; break;
+                }
             }
-            if (summoned && !watcher.userData.done) { watcher.userData.done = true; particles(summoned.position, color, 20, 'dust', 0.7); pulse(summoned.position, color, 1.2, 0.6); fx.life = fx.age; }
         });
         break;
     }
     case 'pounce':
-        if (target) {
-            streak(d, target.position, color, 0.65);
-            for (let i = 0; i < 3; i++) {
-                const claw = at(mesh(GEO.arc, color), target.position, 1.1 + i * 0.23);
-                claw.scale.set(0.8, 0.18, 1); claw.rotation.z = -0.8;
-                fade(claw, 0.65, p => { claw.position.x = target.position.x + (p - 0.5) * 0.9; });
-            }
-            if (!hits[0]?.e.isMiss) particles(target.position, 0xae1b32, 14, 'drip', 1.1);
-        }
+        if (target) once(FB, tint(place(FB.frames('claw', 2.6, { additive: true }), target.position, 1.0, 0.7), cls), 0.5, { follow: target, y: 1.0 });
         break;
     case 'slam':
-        pulse(d, color, d.shapes?.[0]?.radius ?? 3.5);
-        for (let i = 0; i < 12; i++) {
-            const a = i * TAU / 12, r = d.shapes?.[0]?.radius ?? 3.5;
-            const crack = ground(at(mesh(GEO.plane, color), d, -0.36));
-            crack.rotation.z = -a;
-            fade(crack, 0.85, p => { const reach = r * Math.min(1, p * 4); crack.position.x = d.x + Math.cos(a) * reach / 2; crack.position.z = d.z + Math.sin(a) * reach / 2; crack.scale.set(reach, 0.04 + (i % 3) * 0.02, 1); }, 0.9);
-        }
-        particles(d, 0xb5a38c, 24, 'dust'); shake?.(); break;
+        grow(FB.decal('slam', d.x, d.z, (d.shapes?.[0]?.radius ?? 3.5) * 1.15), 1.0, 0.5); shake?.(); break;
     case 'cry':
-        for (const ally of allies) if (ally?.member?.alive) { aura(ally, ally.position, color, 1); pulse(ally.position, color, 1.3, 1); }
+        for (const ally of allies) if (ally?.member?.alive) loop(FB, tint(FB.frames('rage', 3), cls), 1.4, { fps: 14, follow: ally });
         break;
     case 'dash': {
         const line = d.shapes?.[0]; if (!line) break;
-        const end = { x: line.toX, z: line.toZ };
-        streak(line, end, 0x291337, 1.1, 0.6).material.blending = THREE.NormalBlending; streak(line, end, color, 0.16, 0.8);
-        for (let i = 1; i <= 4; i++) {
-            const ghost = at(mesh(GEO.bubble, color), { x: line.x + (end.x - line.x) * i / 5, z: line.z + (end.z - line.z) * i / 5 }, 1);
-            ghost.scale.set(0.45, 1.2, 0.4); fade(ghost, 0.3 + i * 0.12, null, 0.22);
-        }
+        const len = Math.hypot(line.toX - line.x, line.toZ - line.z);
+        const m = tint(place(FB.frames('shadow', len / 3, { additive: true }), line, 1.0), cls);
+        m.rotation.y = -Math.atan2(line.toZ - line.z, line.toX - line.x);
+        once(FB, m, 0.55);
         break;
     }
-    case 'shield': lasting(boss, color, true); break;
+    case 'shield': lasting(boss, 'dshield', 3.8, 0, 'boss_shield', cls); break;
     case 'pillars':
-        for (const shape of (d.shapes ?? []).slice(0, 3)) {
-            pulse(shape, color, shape.radius, 0.8);
-            const column = at(mesh(GEO.column, color), shape);
-            fade(column, 1.1, p => { const h = 5 * Math.sin(Math.PI * Math.min(1, p * 1.5)); column.position.y = -0.4 + h / 2; column.scale.set(shape.radius * (0.7 - p * 0.3), Math.max(0.01, h), shape.radius * (0.7 - p * 0.3)); }, 0.5);
-            particles(shape, color, 12, 'burst', 1);
+        for (const s of (d.shapes ?? []).slice(0, 3)) {
+            once(FB, tint(place(FB.frames('pillar', 5.6, { additive: true }), s, 0, 0.9), cls), 1.15);
+            grow(FB.decal('burn', s.x, s.z, s.radius * 1.1), 1.6, 0.8, { fadeAt: 0.4 });
+        }
+        shake?.(); break;
+    case 'ring':
+        grow(tint(FB.decal('firering', d.x, d.z, (d.shapes?.[0]?.radius ?? 4) * 1.15), cls), 1.0, 0.15); shake?.(); break;
+    case 'curse': lasting(cast?.target ?? chooseTarget(foes, 'curse'), 'curse', 1.5, 3.1, 'boss_curse', cls); break;
+    case 'drain':
+        for (const { view } of hits.slice(0, 8)) {
+            const w = tint(FB.frames('wisp', 0.9, { additive: true }), cls);
+            const from = view.position.clone(), to = pos.clone ? pos.clone() : new THREE.Vector3(pos.x, 0, pos.z);
+            loop(FB, w, 0.9, { fps: 16, update: (p) => {
+                const k = p * p * (3 - 2 * p);
+                w.position.set(from.x + (to.x - from.x) * k, FLOOR + 1.6 + Math.sin(p * Math.PI) * 1.4, from.z + (to.z - from.z) * k);
+                w.rotation.z = Math.atan2(0, to.x - from.x) + (to.x < from.x ? Math.PI : 0);
+            } });
         }
         break;
-    case 'ring':
-        pulse(d, color, d.shapes?.[0]?.radius ?? 4, 1.1);
-        pulse(d, color, d.shapes?.[0]?.radius ?? 4, 1.1, false, 0.18);
-        particles(d, color, 24, 'ring', 1.1, d.shapes?.[0]); break;
-    case 'curse': lasting(cast?.target ?? chooseTarget(foes, 'curse'), color, false); break;
-    case 'drain':
-        for (const { view } of hits.slice(0, 10)) particles(view.position, color, 6, 'soul', 1.1, pos);
-        aura(boss, pos, 0xbfffc9, 1.2); pulse(pos, color, 1.5, 1.1, true); break;
     }
 }
+
+// ============================================================
+// TUYỆT KỸ VALDRIC — "Thánh Hỏa Phán Quyết": vòng phép + khiên lửa + vết nứt theo máu khiên + vỡ khiên / nổ
+//   + khung trên màn hình (tên chiêu · thanh máu khiên · đếm ngược 5s · gợi ý dùng chiêu choáng)
+// ============================================================
+const slams = new Map();  // 'casterId:idx' -> chỗ bật nhảy của cú bổ Phán Quyết
+const ults = new Map();   // 'casterId:idx' -> { circle, shield, crack, hud, endsAt, ratio }
+let hudEl = null;
+function hud() {
+    if (hudEl) return hudEl;
+    hudEl = document.createElement('div');
+    hudEl.id = 'ult-hud';
+    hudEl.innerHTML = `<b class="ult-name">🔥 THÁNH HỎA PHÁN QUYẾT</b>
+        <div class="ult-bar"><i></i><span class="ult-hp"></span></div>
+        <div class="ult-row"><span class="ult-time"></span><span class="ult-hint">Phá khiên trước khi hết giờ! Chiêu <b>choáng / hất / đẩy</b> phá khiên ×3</span></div>`;
+    document.body.appendChild(hudEl);
+    return hudEl;
+}
+function hudShow(text, cls) {
+    const el = hud();
+    el.className = `on ${cls ?? ''}`;
+    if (text) el.querySelector('.ult-name').textContent = text;
+}
+function hudHide(delay = 0) {
+    if (!hudEl) return;
+    const el = hudEl;
+    setTimeout(() => { if (![...ults.values()].length) el.className = ''; }, delay);
+}
+function hudUpdate(u) {
+    const el = hud();
+    el.querySelector('.ult-bar i').style.width = `${Math.max(0, u.ratio * 100)}%`;
+    el.querySelector('.ult-hp').textContent = `Khiên ${Math.round(u.shield)} / ${u.shieldMax}`;
+    const left = Math.max(0, (u.endsAt - performance.now()) / 1000);
+    el.querySelector('.ult-time').textContent = `⏳ ${left.toFixed(1)}s`;
+}
+function endUlt(key) {
+    const u = ults.get(key);
+    if (!u) return null;
+    ults.delete(key);
+    u.alive = false;
+    return u;
+}
+
+/** Sự kiện bossUlt từ server: { phase: start | shield | break | blast | cancel, ... } */
+export function handleBossUlt(d, { boss, foes = [], shake, showDamage } = {}) {
+    const key = `${d.casterId}:${d.casterIdx}`;
+    if (d.phase === 'start') {
+        endUlt(key);
+        const u = { alive: true, shield: d.shield, shieldMax: d.shieldMax, ratio: 1, endsAt: performance.now() + (d.durationMs ?? 5000), flash: 0 };
+        ults.set(key, u);
+        const life = (d.durationMs ?? 5000) / 1000 + 1;
+        const still = () => !u.alive;
+        if (boss) {
+            const ring = FB.decal('ucircle', boss.position.x, boss.position.z, 4.4);
+            let ringEnd = -1;
+            addAnim(ring, life, (p, fx) => {
+                if (ringEnd < 0 && !u.alive) ringEnd = fx.age;
+                const out = ringEnd < 0 ? 1 : 1 - (fx.age - ringEnd) / 0.3;
+                ring.material.opacity = Math.min(1, fx.age * 4, out) * (0.8 + 0.2 * Math.sin(fx.age * 9));
+                if (out <= 0) fx.life = fx.age;
+            });
+            // khiên nguyên (lặp) khi còn > 80% · dưới đó đổi sang khiên nứt 4 mức theo máu khiên
+            const sh = UB.frames('ushield', 5.4, { additive: true }), dmg = UB.frames('ushieldDmg', 5.0, { additive: true });
+            sh.userData.zOff = dmg.userData.zOff = 0.9;
+            const flash = (m) => m.material.color.setRGB(1 + u.flash, 1 + u.flash * 0.6, 1 + u.flash * 0.4);
+            loop(UB, sh, life, { fps: 10, follow: boss, until: still, update: () => {
+                u.flash = Math.max(0, u.flash - 0.08); flash(sh);
+                sh.visible = u.ratio > 0.8;
+            } });
+            loop(UB, dmg, life, { fps: 0, follow: boss, until: still, update: () => {
+                flash(dmg); dmg.visible = u.ratio <= 0.8;
+                UB.set(dmg, Math.min(3, Math.floor((0.8 - u.ratio) / 0.8 * 4)));
+            } });
+        }
+        hudShow(`🔥 ${d.name ?? 'THÁNH HỎA PHÁN QUYẾT'}`.toUpperCase(), d.blast === 'kill' ? 'deadly' : '');
+        const tick = new THREE.Group();   // cập nhật khung trên màn hình theo nhịp vẽ
+        addAnim(tick, life + 1, (p, fx) => { if (!u.alive) { fx.life = fx.age; return; } hudUpdate(u); });
+        return;
+    }
+    const u = ults.get(key);
+    if (d.phase === 'shield' && u) {
+        u.shield = d.shield; u.shieldMax = d.shieldMax; u.ratio = d.shieldMax ? d.shield / d.shieldMax : 0;
+        if (d.cc) {   // chiêu khống chế trúng khiên: loé + mảnh vỡ nhỏ
+            u.flash = 1;
+            if (boss) once(UB, place(UB.frames('uhit', 2.2, { additive: true }), boss.position, 2.0, 1.2), 0.4);
+            hud().classList.add('cc'); setTimeout(() => hudEl?.classList.remove('cc'), 300);
+        }
+        return;
+    }
+    if (d.phase === 'break') {
+        endUlt(key);
+        if (boss) {
+            once(UB, place(UB.frames('ushatter', 6, { additive: true }), boss.position, 2.6, 1.2), 0.8);
+            stunStars(boss, d.stunMs ?? 2500);
+        }
+        shake?.(0.2, 260);
+        hudShow('💥 VỠ KHIÊN! Valdric bị choáng — dồn sát thương!', 'broke');
+        hudHide(1800);
+        return;
+    }
+    if (d.phase === 'leap') {
+        // hết giờ phá khiên: khiên tan, Valdric bật vút lên trời rồi bổ xuống giữa đội địch (vòng đỏ = chỗ sắp nổ)
+        endUlt(key);
+        const live = foes.filter(v => v?.member?.alive !== false && v.root?.visible !== false);
+        if (boss?.leapTo) {
+            const from = boss.position.clone();
+            const cx = live.length ? live.reduce((a, v) => a + v.position.x, 0) / live.length : from.x;
+            const cz = live.length ? live.reduce((a, v) => a + v.position.z, 0) / live.length : from.z;
+            const side = Math.sign(from.x - cx) || 1;
+            const tx = cx + side * 1.2, tz = cz;   // đáp sát mép đội địch (không đè lên đầu)
+            boss.facingLeft = tx < from.x;
+            boss.leapTo(tx, tz, { duration: (d.slamMs ?? 900) / 1000, height: 4.5, apex: 0.7, hold: true });
+            slams.set(key, { from, boss });
+            telegraph({ x: tx, z: tz, radius: 6.5 }, (d.slamMs ?? 900) / 1000);
+            once(FB, place(FB.frames('slam', 4.5, { additive: true }), from, 0.2), 0.6);   // bụi tung chỗ bật nhảy
+        }
+        shake?.(0.15, 250);
+        hudShow('☠️ PHÁN QUYẾT GIÁNG XUỐNG!', 'blast');
+        return;
+    }
+    if (d.phase === 'blast') {
+        endUlt(key);
+        const sl = slams.get(key); slams.delete(key);
+        if (boss) {
+            boss.playAction?.('attack');   // nhát bổ lúc chạm đất (dạng 2 tự đổi sang khung bùng lửa)
+            once(UB, place(UB.frames('ublast', 10, { additive: true }), boss.position), 1.8);
+            grow(FB.decal('ushock', boss.position.x, boss.position.z, 10), 1.1, 0.1);
+            // bổ xong: nhảy về chỗ cũ (rồi theo lại vị trí server)
+            if (sl && boss.leapTo) setTimeout(() => {
+                const bx = boss._lastServerX ?? sl.from.x, bz = boss._lastServerZ ?? sl.from.z, face = boss.facingLeft;
+                boss.facingLeft = bx < boss.position.x;
+                boss.leapTo(bx, bz, { duration: 0.6, height: 3 });   // đáp xong tự theo lại vị trí server
+                setTimeout(() => { boss.facingLeft = face; }, 650);
+            }, 800);
+        }
+        for (const e of d.effects ?? []) {
+            const v = foes[e.targetIndex];
+            if (v) { once(UB, place(UB.frames('uhit', 2.6, { additive: true }), v.position, 1.2, 0.7), 0.55); showDamage?.(v, e); }
+        }
+        shake?.(0.45, 600);
+        const flash = document.createElement('div'); flash.className = 'ult-flash'; document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 900);
+        hudShow('☠️ PHÁN QUYẾT GIÁNG XUỐNG!', 'blast');
+        hudHide(1600);
+        return;
+    }
+    if (d.phase === 'cancel') {
+        endUlt(key); hudHide(0);
+        const sl = slams.get(key); slams.delete(key);   // bị huỷ giữa cú nhảy (VD gục -> dạng 2): đáp xong nhảy về chỗ server
+        if (sl?.boss?.leapTo) setTimeout(() => sl.boss.leapTo(sl.boss._lastServerX ?? sl.from.x, sl.boss._lastServerZ ?? sl.from.z, { duration: 0.5, height: 2 }), 900);
+    }
+}
+/** Hết trận / rời trận: dọn khung tuyệt kỹ */
+export function clearBossUlt() { ults.clear(); slams.clear(); hudHide(0); }

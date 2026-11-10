@@ -1,0 +1,116 @@
+{
+ "note": "Tuyet ky Valdric \"Thanh Hoa Phan Quyet\" (Flow, nen den).",
+ "out": "src/assets/sprites/boss_ult.webp",
+ "meta": "src/vfx/bossUltAtlas.json",
+ "maxWidth": 2048,
+ "sheets": {
+  "shield": {
+   "file": "art/boss/fx/boss-ult-shield_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "ushield",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "bottom",
+     "pivot": "bottom"
+    },
+    {
+     "name": "ushieldDmg",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "bottom",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "blast": {
+   "file": "art/boss/fx/boss-ult-blast_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "cuts": [
+    [
+     896,
+     0,
+     904,
+     448
+    ],
+    [
+     596,
+     0,
+     604,
+     448
+    ]
+   ],
+   "cutFeather": 20,
+   "groups": [
+    {
+     "name": "ublast",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "bottom",
+     "pivot": "bottom",
+     "smoke": [
+      6,
+      7
+     ]
+    }
+   ]
+  },
+  "shatter": {
+   "file": "art/boss/fx/boss-ult-shatter_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "ushatter",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "core",
+     "pivot": "center"
+    },
+    {
+     "name": "uhit",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "center"
+    }
+   ]
+  }
+ }
+}

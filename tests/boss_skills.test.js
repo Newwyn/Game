@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../server.js'), 'utf8');
 const pure = source.split('// BOSS_SKILLS_BEGIN')[1].split('// BOSS_SKILLS_END')[0];
-const { BOSS_SKILLS, bossNextTime, bossTargets, bossInShape } = vm.runInNewContext(pure.slice(pure.indexOf('\n')) + '\n;({ BOSS_SKILLS, bossNextTime, bossTargets, bossInShape })');
+const { BOSS_SKILLS, bossNextTime, bossTargets, bossInShape } = vm.runInNewContext(pure.slice(pure.indexOf('\n')) + '\n;({ BOSS_SKILLS, bossNextTime, bossTargets, bossInShape })', { JUDGMENT: require('../game/judgment').JUDGMENT });
 test('mọi trùm (5 trùm chương 1 + 4 trùm chương 2) có 2 chiêu có tên, hợp lệ, có cảnh báo trước', () => {
     assert.equal(Object.keys(BOSS_SKILLS).length, 9);
     for (const skills of Object.values(BOSS_SKILLS)) {
@@ -20,7 +20,7 @@ test('clock deadlines are stable while paused and phase two starts its own coold
     const howl = BOSS_SKILLS.b_wolf[0], ring = BOSS_SKILLS.b_valdric[1];
     assert.equal(bossNextTime(howl, 100, undefined, false), 100 + howl.first);
     assert.equal(bossNextTime(howl, 4000, 100 + howl.first, false), 100 + howl.first);
-    assert.equal(bossNextTime(ring, 5000, undefined, false), null);
+    assert.equal(bossNextTime(ring, 5000, undefined, false), 15000);
     assert.equal(bossNextTime(ring, 5000, undefined, true), 15000);
 });
 test('target selection uses HP percentage, attack, distance, unique random living heroes', () => {

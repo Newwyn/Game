@@ -1,0 +1,268 @@
+{
+ "note": "Hieu ung trum chuong 1-2 (Flow, nen den). Nhom giu ten cu cho src/vfx/bossFx.js.",
+ "out": "src/assets/sprites/boss_fx.webp",
+ "meta": "src/vfx/bossFxAtlas.json",
+ "maxWidth": 2048,
+ "sheets": {
+  "clawhowl": {
+   "file": "art/boss/fx/boss-fx-claw-howl_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "cuts": [
+    [
+     296,
+     448,
+     304,
+     896
+    ],
+    [
+     596,
+     448,
+     604,
+     896
+    ],
+    [
+     896,
+     448,
+     904,
+     896
+    ]
+   ],
+   "cutFeather": 16,
+   "groups": [
+    {
+     "name": "claw",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "core",
+     "pivot": "center"
+    },
+    {
+     "name": "howl",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "center"
+    }
+   ]
+  },
+  "rageshadow": {
+   "file": "art/boss/fx/boss-fx-rage-shadow_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "rage",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "bottom",
+     "pivot": "bottom"
+    },
+    {
+     "name": "shadow",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "center"
+    }
+   ]
+  },
+  "pillar": {
+   "file": "art/boss/fx/boss-fx-pillar_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "pillar",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "bottom",
+     "pivot": "bottom",
+     "smoke": [
+      6,
+      7
+     ]
+    }
+   ]
+  },
+  "shieldcurse": {
+   "file": "art/boss/fx/boss-fx-shield-curse_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "dshield",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "bottom",
+     "pivot": "bottom"
+    },
+    {
+     "name": "curse",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "center"
+    }
+   ]
+  },
+  "status": {
+   "file": "art/boss/fx/boss-fx-status_clean.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "stun",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "seal",
+     "cells": [
+      4,
+      5
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "wisp",
+     "cells": [
+      6,
+      7
+     ],
+     "align": "core",
+     "pivot": "center"
+    }
+   ]
+  },
+  "ground": {
+   "file": "art/boss/fx/boss-fx-ground_clean.png",
+   "grid": [
+    2,
+    4
+   ],
+   "scale": 0.6,
+   "regionThr": 28,
+   "groups": [
+    {
+     "name": "warn",
+     "cells": [
+      0
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "slam",
+     "cells": [
+      1
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "firering",
+     "cells": [
+      2
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "ucircle",
+     "cells": [
+      3
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "ushock",
+     "cells": [
+      4
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "burn",
+     "cells": [
+      5
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "sealring",
+     "cells": [
+      6
+     ],
+     "align": "cell",
+     "pivot": "center"
+    },
+    {
+     "name": "target",
+     "cells": [
+      7
+     ],
+     "align": "cell",
+     "pivot": "center"
+    }
+   ]
+  }
+ }
+}

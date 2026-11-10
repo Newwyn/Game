@@ -28,6 +28,7 @@ import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
 import { setupLanding } from './ui/landing.js';
 import { setupTestPanel } from './ui/testPanel.js';
+import { setupBattleTimer } from './ui/battleTimer.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
 import { setupWorld } from './ui/world.js';
@@ -90,6 +91,8 @@ setupExtras();
 setupModeMenu();
 // 🧪 bảng tool thử (chỉ hiện ở Server test)
 setupTestPanel();
+// ⏱️ đồng hồ ải 3 phút
+setupBattleTimer();
 // Tool phe quái: cấp quái hiện tại
 socket.on('monsterLevel', (d) => {
     const a = document.getElementById('monster-level-label'), b = document.getElementById('monster-level-big');

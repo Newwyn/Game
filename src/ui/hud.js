@@ -400,6 +400,8 @@ function effectInfo(ef, m) {
         case 'boss_shield': return ['🛡', '#a78bfa', 'Khiên Đen', 'Khiên bằng 15% máu tối đa trong 5 giây'];
         case 'boss_haste': return ['⚔', '#f87171', 'Hét Xung Phong', 'Tăng 25% tốc đánh trong 6 giây'];
         case 'boss_phase2': return ['💢', '#f87171', ef.name ?? 'Giai đoạn 2', ef.desc ?? 'Trùm mạnh lên'];
+        case 'sealed': return ['🔒', '#f59e0b', ef.name ?? 'Phong ấn', ef.desc ?? 'Không dùng được kỹ năng (đánh thường vẫn được)', true];
+        case 'judgment_broken': return ['💥', '#4ade80', 'Vỡ khiên', 'Valdric nhận thêm 25% sát thương'];
         case 'gear_travel': return ['🧩', '#4ade80', 'Lữ Khách', `Đồng đội khác tộc: +${pc(ef.value)}% sát thương`];
         case 'gear_atk': return ['🧩', '#fbbf24', 'Chiến Lược Gia', `Cả đội +${pc(ef.value)}% tấn công`];
         case 'grabbed': return ['✊', '#f97316', 'Bị túm', 'Bị Brakk nhấc bổng — sắp bị quật xuống đất', true];

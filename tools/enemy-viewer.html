@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xem hình động quái</title>
+<style>
+  :root { --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --dim: #94a3b8; --line: #334155; --accent: #f59e0b; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px system-ui, sans-serif; }
+  header { padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  select, button { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: inherit; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 16px; }
+  .clip { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; }
+  .clip canvas { width: 100%; height: auto; background: repeating-conic-gradient(#243045 0 25%, #1b2537 0 50%) 0 0 / 24px 24px; border-radius: 6px; }
+  .clip b { display: block; margin-top: 4px; }
+  .clip span { color: var(--dim); font-size: 12px; }
+  #msg { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <strong>Hình động quái</strong>
+  <select id="pick"></select>
+  <label>Tốc độ <select id="fps"><option>4</option><option selected>8</option><option>12</option></select> khung/giây</label>
+  <span id="msg"></span>
+</header>
+<div id="grid"></div>
+<script type="module">
+// Trang xem thử bộ hình động đầy đủ của quái (src/assets/sprites/enemyfull_<art>.webp + src/characters/sprite/enemyfull_<art>.json)
+const metas = import.meta.glob('../src/characters/sprite/enemyfull_*.json', { eager: true, import: 'default' });
+const imgs = import.meta.glob('../src/assets/sprites/enemyfull_*.webp', { eager: true, import: 'default' });
+const arts = Object.keys(metas).map(k => k.match(/enemyfull_(.+)\.json$/)[1]).sort();
+const pick = document.getElementById('pick'), grid = document.getElementById('grid'), msg = document.getElementById('msg');
+const fpsSel = document.getElementById('fps');
+for (const a of arts) pick.add(new Option(a, a));
+const q = new URLSearchParams(location.search).get('art');
+if (q && arts.includes(q)) pick.value = q;
+let timer = null;
+
+function show(art) {
+  clearInterval(timer); grid.innerHTML = '';
+  const meta = metas[`../src/characters/sprite/enemyfull_${art}.json`];
+  const url = imgs[`../src/assets/sprites/enemyfull_${art}.webp`];
+  if (!meta) { msg.textContent = 'Chưa có quái nào được đóng gói'; return; }
+  const groups = {};
+  for (const name of Object.keys(meta.frames)) {
+    const m = name.match(/^(.*?)(\d+)$/); if (!m) continue;
+    (groups[m[1]] ??= []).push(name);
+  }
+  for (const g of Object.values(groups)) g.sort((a, b) => parseInt(a.match(/\d+$/)) - parseInt(b.match(/\d+$/)));
+  // khung chung cho mọi động tác: gốc chân ở giữa đáy
+  let L = 0, R = 0, T = 0, B = 0;
+  for (const f of Object.values(meta.frames)) {
+    const [, , w, h] = f.rect, [ox, oy] = f.org;
+    L = Math.max(L, ox); R = Math.max(R, w - ox); T = Math.max(T, oy); B = Math.max(B, h - oy);
+  }
+  const W = 2 * Math.max(L, R) + 8, H = T + B + 8, baseX = W / 2, baseY = T + 4;
+  const img = new Image(); img.src = url;
+  const cards = Object.entries(groups).map(([name, frames]) => {
+    const div = document.createElement('div'); div.className = 'clip';
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    div.append(c); div.insertAdjacentHTML('beforeend', `<b>${name}</b><span>${frames.length} khung</span>`);
+    grid.append(div);
+    return { c, ctx: c.getContext('2d'), frames, i: 0 };
+  });
+  msg.textContent = `${art}: ${Object.keys(meta.frames).length} khung`;
+  const tick = () => {
+    for (const k of cards) {
+      const f = meta.frames[k.frames[k.i % k.frames.length]]; k.i++;
+      const [x, y, w, h] = f.rect, [ox, oy] = f.org;
+      k.ctx.clearRect(0, 0, W, H);
+      k.ctx.strokeStyle = '#475569'; k.ctx.beginPath(); k.ctx.moveTo(0, baseY + 0.5); k.ctx.lineTo(W, baseY + 0.5); k.ctx.stroke();
+      if (img.complete) k.ctx.drawImage(img, x, y, w, h, baseX - ox, baseY - oy, w, h);
+    }
+  };
+  img.onload = tick;
+  timer = setInterval(tick, 1000 / Number(fpsSel.value));
+}
+pick.onchange = () => show(pick.value);
+fpsSel.onchange = () => show(pick.value);
+show(pick.value);
+</script>
+</body>
+</html>

@@ -12,7 +12,39 @@ import { WOLF_SPRITE } from './sylvaPetSprites.js';
 const IMAGES = import.meta.glob('../../assets/sprites/enemy_*.webp', { eager: true, import: 'default' });
 const METAS = import.meta.glob('./enemy_*.json', { eager: true, import: 'default' });
 
+// Bộ hình động ĐẦY ĐỦ như nhân vật (10/11/2026, tranh Flow): art/enemies/<art>/sprite/*.jpg -> tools/enemy_spec.py + tools/sprite_pack.py
+//   -> src/assets/sprites/enemyfull_<art>.webp + enemyfull_<art>.json. Có bộ này thì dùng thay bộ 4 khung cũ.
+const FULL_IMAGES = import.meta.glob('../../assets/sprites/enemyfull_*.webp', { eager: true, import: 'default' });
+const FULL_METAS = import.meta.glob('./enemyfull_*.json', { eager: true, import: 'default' });
+
+// khung ra đòn của tấm đánh thường (mặc định 4) — tranh nào AI vẽ nhát chém rõ nhất ở khung khác thì ghi ở đây
+const RELEASE = { soldier: 6 };
+
+function fullSpriteOf(art) {
+    const meta = FULL_METAS[`./enemyfull_${art}.json`], image = FULL_IMAGES[`../../assets/sprites/enemyfull_${art}.webp`];
+    if (!meta || !image) return null;
+    const r = (pre, n) => Array.from({ length: n }, (_, i) => `${pre}${i + 1}`).filter(f => meta.frames[f]);
+    const clips = {
+        ready: { mode: 'loop', frames: r('ready', 4), fps: 3 },
+        cast: { mode: 'still', frames: ['ready1'] },
+        attack: { mode: 'strike', frames: r('attack', 8), release: RELEASE[art] ?? 4 },     // khung ra đòn (khớp mốc sát thương của server)
+        move: { mode: 'clip', frames: r('move', 8), noLift: true },
+        hurt: { mode: 'clip', frames: r('hurt', 4) },
+        stunned: { mode: 'clip', frames: r('stun', 4) },
+        fall: { mode: 'still', frames: ['idle1'] }, land: { mode: 'still', frames: ['idle1'] },
+        dead: { mode: 'once', frames: r('dead', 4), fps: 7, drawnDeath: true },
+        victory: { mode: 'clip', frames: r('victory', 3) },
+        victoryIdle: { mode: 'loop', frames: r('victory', 4).slice(-2), fps: 2.5 },
+    };
+    // trùm: mỗi kỹ năng 1 tấm 8 khung (skill-<id> -> khung <id>1..8), khung 5 = lúc chiêu bung ra
+    const skills = new Set(Object.keys(meta.frames).map(f => f.match(/^([a-z_]+?)\d+$/)?.[1]).filter(k => k && !['idle', 'ready', 'attack', 'move', 'hurt', 'stun', 'dead', 'victory'].includes(k)));
+    for (const k of skills) clips[`skill_${k}`] = { mode: 'strike', frames: r(k, 8), release: 5 };
+    return { image, meta, idle: { C: { frames: ['idle1'], breath: true } }, defaultIdle: 'C', clips, phase2: null, lean: [], full: true };
+}
+
 function spriteOf(art) {
+    const full = fullSpriteOf(art);
+    if (full) return full;
     const meta = METAS[`./enemy_${art}.json`], image = IMAGES[`../../assets/sprites/enemy_${art}.webp`];
     if (!meta || !image) return null;
     const p2 = !!meta.frames.p2_idle1;

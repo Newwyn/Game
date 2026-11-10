@@ -173,7 +173,9 @@ export class CharacterView {
         // Animation lặp theo trạng thái ('attacking' = đứng chờ hồi đòn -> idle;
         // nhát chém chỉ phát khi có sự kiện autoAttack)
         // gục khi đang giữ 1 động tác (VD Golem đang phun bão tuyết) -> bỏ động tác đó để ngã xuống
-        if (!member.alive && this._oneShot?.hold) this._interruptOneShot?.();
+        // gục khi đang diễn dở 1 động tác (trúng đòn, đang chém, đang giữ chiêu...) -> bỏ ngay để ngã xuống
+        //   (trận vừa kết thúc thì không còn gói trạng thái nào nữa — chờ diễn xong là đứng im luôn)
+        if (!member.alive && this._oneShot) this._interruptOneShot?.();
         if (!this.isBusy) {
             if (!member.alive) this.setLocomotion('dead');
             else if (member.state === 'moving') this.setLocomotion('move');

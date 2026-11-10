@@ -9,7 +9,7 @@ import '../styles/account.css';
 import { net, socket } from '../net/socket.js';
 import { openCampaignSquadSelect } from './squadSelect.js';
 import { showModeMenu, unlockText } from './modeMenu.js';
-import { hideBattleResult } from './overlays.js';
+import { hideBattleResult, afterBattleEnd } from './overlays.js';
 import { showGear } from './gear.js';
 import { showWorld, hideWorld } from './world.js';
 import { playStory, stageBackdrop } from './story.js';
@@ -725,13 +725,13 @@ export function renderStageResult(data = {}) {
     const box = ensureResultEl();
     box.innerHTML = `
     <div class="cp-result-card ${win ? 'win' : 'lose'}">
-        <div class="cp-result-badge">${win ? '🏆 Thắng' : '💀 Thua'}</div>
-        <h2 class="cp-result-title">${win ? 'CHIẾN THẮNG!' : 'THẤT BẠI!'}</h2>
+        <div class="cp-result-badge">${win ? '🏆 Thắng' : data.timeout ? '⏰ Hết giờ' : '💀 Thua'}</div>
+        <h2 class="cp-result-title">${win ? 'CHIẾN THẮNG!' : data.timeout ? 'HẾT GIỜ!' : 'THẤT BẠI!'}</h2>
         ${accountHTML(data.account)}
         ${data.accountLevelUp ? `<div class="cp-first-clear-banner account-toast" role="status">⬆️ Tài khoản lên cấp ${data.accountLevelUp.after.level}!</div>` : ''}
         <p class="cp-result-sub">
             ${lastSelectedStage ? `${lastSelectedStage.no ? `Ải ${lastSelectedStage.no}: ` : ''}${lastSelectedStage.name ?? ''} · ` : ''}
-            ${win ? 'Đội của bạn đã vượt ải thành công!' : 'Đừng nản lòng, hãy nâng cấp đội hình và thử lại!'}
+            ${win ? 'Đội của bạn đã vượt ải thành công!' : data.timeout ? 'Quá 3 phút chưa hạ được kẻ địch — mạnh lên rồi thử lại nhé!' : 'Đừng nản lòng, hãy nâng cấp đội hình và thử lại!'}
         </p>
 
         ${win ? `
@@ -869,8 +869,11 @@ export function setupCampaign() {
 
     socket.on('stageResult', (data) => {
         // thắng ải lần đầu: lời thoại sau ải (kết chương sau ải 20) rồi mới hiện bảng kết quả
-        if (data?.story?.length) { hideBattleResult(); playStory(data.story, data.speakers, () => renderStageResult(data)); }
-        else renderStageResult(data);
+        hideBattleResult();   // bảng chung không hiện nữa — dùng bảng kết quả ải
+        afterBattleEnd(() => {
+            if (data?.story?.length) playStory(data.story, data.speakers, () => renderStageResult(data));
+            else renderStageResult(data);
+        });
     });
 
     socket.on('battleStart', (data) => {

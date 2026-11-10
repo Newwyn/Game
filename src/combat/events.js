@@ -1,4 +1,4 @@
-import { spawnBossWarning, spawnBossBanner } from '../vfx/bossFx.js';
+import { spawnBossWarning, spawnBossBanner, handleBossUlt, clearBossUlt } from '../vfx/bossFx.js';
 // ============================================================
 // SỰ KIỆN CHIẾN ĐẤU TỪ SERVER -> ANIMATION + VFX
 // ============================================================
@@ -2125,6 +2125,17 @@ export function registerCombatEvents(hooks = {}) {
             shake: () => cameraRig.shake(0.09, 140),
         });
     });
+    // 🔥 Tuyệt kỹ Valdric "Thánh Hỏa Phán Quyết" (khiên 5s — phá kịp hay nổ cả đội)
+    socket.on('bossUlt', d => {
+        handleBossUlt(d, {
+            boss: getView(d.casterId, d.casterIdx),
+            foes: game.views?.[opponentIdOf(d.casterId)] ?? [],
+            shake: (i = 0.09, ms = 140) => cameraRig.shake(i, ms),
+            showDamage: (view, e) => showHit(view, { ...e, isCrit: true }),
+        });
+    });
+    socket.on('battleEnd', clearBossUlt);
+    socket.on('mainMenu', clearBossUlt);
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);

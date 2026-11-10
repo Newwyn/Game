@@ -1,3 +1,14 @@
+Quai co bo hinh dong day du nhu nhan vat (dot 1: Goblin Cuop, Goblin Nem Bom, Linh Valoria, Mat Tham) + trang xem thu tools/enemy-viewer.html
+
+Valdric nhay vut len bo xuong khi tung Thanh Hoa Phan Quyet + sua loi ca doi chet o don cuoi van dung im voi mau cu + tool thu khong bat bang ai de len tran
+
+Bang Thang / Thua cho 2 giay sau khi tran ket thuc (kip thay canh guc nga / an mung) + tool thu Thang/Thua ngay khong con bi bang ai de len
+
+Moi ai toi da 3 phut (het gio = thua) + Valdric co chieu choang / phong an va tuyet ky "Thanh Hoa Phan Quyet" (khien 5s, chieu choang pha nhanh, khong pha kip thi no ca doi, Dia nguc chet het) + hieu ung ky nang trum ve lai bang Flow + xoa dau mo cua Flow tren tranh ban do / cot truyen / nhan vat S-SS
+
+- Codex: may chu (dong ho, tuyet ky); Claude: hieu ung, giao dien, xoa dau mo
+- 118 bai kiem tra tu dong
+
 Valdric 2 dang (ha lan dau -> song lai dang bung lua) + loi thoai sau tran dung cho (ve bao lai NPC: Ba Mira, Sera, So Agnes, Elise) + cat canh ket chuong 1 (phong benh nha vua -> le dang quang) + canh nen tran theo ban do (24 kieu: rung, mo, cau da, dai sanh, thap dem, rung Elf...) + bo hieu ung pixel cua Rok
 - Canh nen tran ve lai bang code (23 canh, 3 lop: xa / gan / dat) thay khoi 3D
 

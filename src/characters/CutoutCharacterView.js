@@ -1394,10 +1394,11 @@ export class CutoutCharacterView extends CharacterView {
      * Nhảy tới vị trí mới theo đường vòng cung (VD nhảy lùi khi Phóng Bùa).
      * Giữ nguyên hướng mặt; trong lúc nhảy bỏ qua vị trí server.
      */
-    leapTo(x, z, { duration = 0.55, height = 1.1, flip = 0, flipFrom = 0.12, flipTo = 0.62, path = null, apex = 0.5 } = {}) {
+    leapTo(x, z, { duration = 0.55, height = 1.1, flip = 0, flipFrom = 0.12, flipTo = 0.62, path = null, apex = 0.5, hold = false } = {}) {
         // flip: số vòng lộn (dương = lộn ngửa ra sau), xoay trong khoảng [flipFrom, flipTo] của cú nhảy
         // path: (p 0..1) => {x, z, lift} — tự vẽ đường bay (VD bị Brakk túm nhấc qua đầu rồi quật xuống)
-        this._leap = { from: this.basePos.clone(), to: new THREE.Vector3(x, 0, z), t: 0, duration, height, flip, flipFrom, flipTo, path, apex };
+        // hold: đáp xong vẫn đứng yên chỗ đáp (không trượt về vị trí server) cho tới lần nhảy / dịch chuyển sau
+        this._leap = { from: this.basePos.clone(), to: new THREE.Vector3(x, 0, z), t: 0, duration, height, flip, flipFrom, flipTo, path, apex, hold };
         this.posLocked = true;
     }
 
@@ -1428,7 +1429,7 @@ export class CutoutCharacterView extends CharacterView {
             this._leap = null;
             this._lift = 0;
             if (this.parts.hips) this.parts.hips.rotation.z = 0;
-            this.teleport(L.to.x, L.to.z, false);
+            this.teleport(L.to.x, L.to.z, L.hold);
         }
     }
 

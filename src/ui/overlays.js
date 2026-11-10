@@ -7,6 +7,17 @@ import { playBeep } from '../audio/sfx.js';
 
 const $ = (id) => document.getElementById(id);
 
+// Trận vừa kết thúc: chờ 2 giây (xem cảnh gục ngã / ăn mừng) rồi mới hiện bảng Thắng / Thua
+const RESULT_DELAY_MS = 2000;
+let battleEndAt = 0;
+let pendingResult = null;
+
+/** Chạy fn khi đã qua đủ 2 giây kể từ lúc trận kết thúc (bảng kết quả cốt truyện / hầm ngục dùng chung) */
+export function afterBattleEnd(fn) {
+    const wait = battleEndAt + RESULT_DELAY_MS - Date.now();
+    if (wait > 0) setTimeout(fn, wait); else fn();
+}
+
 export function showWaiting(message) {
     $('loading-text').textContent = message;
 }
@@ -16,6 +27,7 @@ export function enterBattleUI(data) {
     const loading = $('loading-screen');
     loading.style.opacity = '0';
     setTimeout(() => { loading.style.display = 'none'; }, 500);
+    if (pendingResult) { clearTimeout(pendingResult); pendingResult = null; }
     $('battle-result').style.display = 'none';
     $('pause-menu').style.display = 'none';
     $('combat-hud').style.display = 'flex';
@@ -31,6 +43,7 @@ export function enterBattleUI(data) {
 }
 
 export function hideBattleResult() {
+    if (pendingResult) { clearTimeout(pendingResult); pendingResult = null; }
     $('battle-result').style.display = 'none';
     $('pause-menu').style.display = 'none';
 }
@@ -83,6 +96,12 @@ function onPauseState(data) {
 }
 
 function onBattleEnd(data) {
+    battleEndAt = Date.now();
+    if (pendingResult) clearTimeout(pendingResult);
+    pendingResult = setTimeout(() => { pendingResult = null; showBattleEnd(data); }, RESULT_DELAY_MS);
+}
+
+function showBattleEnd(data) {
     const isWin = data.winnerId === myId();
     const resultEl = $('battle-result');
     resultEl.style.display = 'flex';

@@ -1,3 +1,4 @@
+const { STAGE_TIME_LIMIT_MS, JUDGMENT, difficulty: judgmentDifficulty, shieldDamage, blastDamage, nextCast, ultimateReady } = require('./game/judgment');
 const Accounts = require('./game/accounts').createAccounts();
 const TestTools = require('./game/testTools');
 const A = require('./game/account');
@@ -1016,7 +1017,7 @@ function finishDungeon(room, pr, win) {
     res.newFeatures = [...C.features(pr)].filter(f => !beforeFeatures.has(f));
     P.saveAll(PROGRESS);
     const t = D.findTier(id);
-    io.to(socketId).emit('stageResult', { ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
+    io.to(socketId).emit('stageResult', { ...(room.stageTimeout ? { timeout: true } : {}), ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Kết thúc trận quái hoang: thưởng nhỏ, không tốn / hoàn thể lực */
 function finishWild(room, pr, win) {
@@ -1026,7 +1027,7 @@ function finishWild(room, pr, win) {
     const leveled = {};
     if (win) for (const c of new Set(classes)) leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, rewards.exp);
     P.saveAll(PROGRESS);
-    io.to(socketId).emit('stageResult', { account: A.accountState(pr), features: [...C.features(pr)], win, firstClear: false, rewards, leveled, newHeroes: [], drops: [], charms: 0, autoSalvaged: null, newFeatures: [],
+    io.to(socketId).emit('stageResult', { ...(room.stageTimeout ? { timeout: true } : {}), account: A.accountState(pr), features: [...C.features(pr)], win, firstClear: false, rewards, leveled, newHeroes: [], drops: [], charms: 0, autoSalvaged: null, newFeatures: [],
         stage: { id, name: W.POOLS[scene].name, diff: 'story', wild: true }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Gói dữ liệu màn Hầm ngục / Quán ăn / Cửa hàng anh hùng */
@@ -1096,6 +1097,7 @@ function gearPayload(pr) {
 }
 /** Kết thúc ải Cốt truyện (thắng / thua / hoà / bỏ trận) — chỉ áp 1 lần mỗi trận */
 function finishStage(room, win) {
+    cancelRoomJudgments(room);
     if (room.mode !== 'campaign' || !room.stage || room.stageApplied) return;
     room.stageApplied = true;
     const { id, diff, classes, key, socketId } = room.stage;
@@ -1122,7 +1124,7 @@ function finishStage(room, win) {
     }
     Object.assign(res, win ? dropGear(pr, st, diff, res.firstClear) : { drops: [], charms: 0, autoSalvaged: null });
     P.saveAll(PROGRESS);
-    io.to(socketId).emit('stageResult', { ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
+    io.to(socketId).emit('stageResult', { ...(room.stageTimeout ? { timeout: true } : {}), ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, no: st?.no ?? st?.baseNo, name: st?.name, diff },
         wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
 }
 /** Điền số liệu vào mô tả thiên phú: {value%} (tỉ lệ ×100) · {value‰} (phần nghìn -> %) · {key} (số thường) */
@@ -1412,6 +1414,7 @@ function passiveCritBonus(attacker, target, now) {
 }
 
 function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}) {
+    const cc = !!opts.cc;
     const atkEff = getEffectiveStats(attacker, now).stats;
     const tgtEff = getEffectiveStats(target, now).stats;
 
@@ -1532,7 +1535,7 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Phán Quyết Tử Thần: đòn của Zerith lên mục tiêu có Ấn Tử của mình -> phá sạch khiên trước khi tính
     //   -> CHỈ Lưỡi Hái Hất Hồn (kỹ năng 2) lúc Đêm Tử Thần (kỹ năng 3) mới phá (opts.breakShield)
     if (opts.breakShield && deathMarkOf(attacker, target, now)) wipeShields(target, now);
-    const shield = activeShield(target, now);
+    const shield = target.ult ? null : activeShield(target, now);
     if (shield) {
         const absorbed = Math.min(shield.hp, finalDamage);
         shield.hp -= absorbed;
@@ -1541,7 +1544,7 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
         return { damage: rest, absorbed, isMiss: false, isBlock: rest === 0 || isBlock, isCrit, isMagic: isMagical, guarded: shield.type === 'guard', shared };
     }
 
-    return { damage: finalDamage, isMiss: false, isBlock, isCrit, isMagic: isMagical, shared };
+    return { damage: finalDamage, cc, isMiss: false, isBlock, isCrit, isMagic: isMagical, shared };
 }
 
 /** Đặc tính tộc của nhân vật (null với quái) */
@@ -1901,6 +1904,7 @@ io.on('connection', (socket) => {
         const skillIndex = data.skillIndex;
         if (!member || !member.alive || skillIndex === undefined || member.summon) return;
 
+        if (isSealed(member, rooms[roomId].clock)) return;
         if (member.queuedSkills.includes(skillIndex)) {
             // Toggle off: Remove from queue
             member.queuedSkills.splice(member.queuedSkills.indexOf(skillIndex), 1);
@@ -2242,7 +2246,9 @@ io.on('connection', (socket) => {
             }
         } else result = TestTools.apply(progressOf(socket.progressKey), d, HERO_IDS());
         socket.emit('testToolResult', result);
-        if (result.ok) {
+        // đang trong trận (bất tử, thắng / thua ngay...): không gửi lại bảng ải — bảng ải sẽ hiện đè lên trận / bảng kết quả
+        const fighting = room && room.players[socket.id] && ['active', 'paused'].includes(room.status) || d.op === 'battleWin' || d.op === 'battleLose';
+        if (result.ok && !fighting) {
             const pr = progressOf(socket.progressKey);
             afterProgress(null);
             socket.emit('campaignState', campaignPayload(pr, socket.progressKey));
@@ -2483,6 +2489,7 @@ function startBattleLoop(roomId) {
         room.interval = null;
     }
 
+    room.stageTimer = null; room.stageTimeout = false;
     const tickRate = 50; // 50ms per tick
 
     room.interval = setInterval(() => {
@@ -2504,7 +2511,15 @@ function startBattleLoop(roomId) {
         if (room.status === 'active') room.clock += realDt * ts;
         const now = room.clock;
         curRoom = room;
-        if (room.status === 'active') runPending(room, now);
+        if (room.status === 'active') {
+            for (const [pid, team] of Object.entries(room.players)) for (let idx = 0; idx < team.squad.length; idx++) {
+                const m = team.squad[idx];
+                if (m.ult && now >= m.ult.endsAt) processJudgment(room, pid, idx, Object.keys(room.players).find(id => id !== pid), now);
+            }
+            checkWinCondition(room.id);
+            if (room.winner) return;
+            runPending(room, now);
+        }
 
         // COUNTDOWN PHASE (giây thật)
         if (room.status === 'starting') {
@@ -2514,6 +2529,7 @@ function startBattleLoop(roomId) {
                 room.countdown--;
                 if (room.countdown < -1) {
                     room.status = 'active';
+                    processStageTimer(room);
                 }
             }
             broadcastState(roomId);
@@ -2525,6 +2541,9 @@ function startBattleLoop(roomId) {
             return; // Stop processing frame if playing against bot and paused
         }
 
+        if (room.status !== 'active') return;
+        checkWinCondition(room.id);
+        if (room.winner || processStageTimer(room)) return;
         processPoison(room, now);
         processSuddenDeath(room, now);
         const playerIds = Object.keys(room.players);
@@ -2556,6 +2575,8 @@ function startBattleLoop(roomId) {
                 processSylva(room, playerId, memberIndex, opponentId, now);   // Thần Hươu (ở lại cả khi Sylva gục) · Khiên Lá
                 if (!member.alive) return;
                 processBossSkills(room, playerId, memberIndex, opponentId, now);
+                if (member.ult || member.judgmentReadyAt > now && ultimateReady(member.bossCasts)) { member.state = 'acting'; return; }
+                if (isSealed(member, now)) member.queuedSkills = [];
                 processSylvaUnit(room, playerId, memberIndex, opponentId, now);   // thú của Sylva: hết giờ · Ưng Nhãn · Hộ Chủ
                 if (!member.alive) return;
 
@@ -3187,6 +3208,7 @@ function skillLock(skillDef, member, opponentData, now) {
 function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = {}) {
     const room = rooms[roomId];
     const member = room.players[casterId].squad[casterIdx];
+    if (member.ult || (isSealed(member, room.clock) && member.state !== 'casting')) return;
     const skillDef = skillsOf(member)[skillIdx];
     const playerIds = Object.keys(room.players);
     const actualOpponentId = playerIds.find(id => id !== casterId); 
@@ -3265,7 +3287,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             sealedTargets.forEach(obj => {
                 const target = obj.member;
                 const multiplier = skillDef.multiplier * 1.8; // Strong backstab for all sealed
-                const result = calculateDamage(member, target, multiplier, now, { forceCrit: isStealth });
+                const result = calculateDamage(member, target, multiplier, now, { cc: skillHasCC(skillDef), forceCrit: isStealth });
                 const dmg = result.damage;
                 // lướt chém lần lượt: vanish 320ms -> mỗi nhát cách 150ms
                 if (dealDamage(target, dmg, opponentData, 380 + chainHits.length * 150, null, member, result)) extra.killed = true;
@@ -3283,7 +3305,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 member.z = target.z; 
                 member.lockedTargetIndex = opponentData.squad.indexOf(target);
                 
-                const result = calculateDamage(member, target, skillDef.multiplier, now, { forceCrit: isStealth });
+                const result = calculateDamage(member, target, skillDef.multiplier, now, { cc: skillHasCC(skillDef), forceCrit: isStealth });
                 const dmg = result.damage;
                 if (dealDamage(target, dmg, opponentData, 380, null, member, result)) extra.killed = true;
                 effects.push({ targetIndex: opponentData.squad.indexOf(target), damage: dmg, isCrit: result.isCrit, isBlock: result.isBlock });
@@ -3297,7 +3319,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             enemy.statusEffects.push({ type: 'taunted', endTime: now + skillDef.duration, sourceIndex: casterIdx, defDown: skillDef.defDown ?? 0, by: member.name ?? 'Rok' });
             enemy.lockedTargetIndex = -1;
             // sát thương diện rộng của tiếng gầm
-            const result = calculateDamage(member, enemy, skillDef.multiplier, now, { aoe: true });
+            const result = calculateDamage(member, enemy, skillDef.multiplier, now, { cc: skillHasCC(skillDef), aoe: true });
             // sóng gầm bung ở 0.42s rồi lan ra: xa trúng sau
             const tauntDist = Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0));
             if (!result.isMiss) dealDamage(enemy, result.damage, opponentData, (skillDef.impact ?? 0) + tauntDist * 45, null, member, result);
@@ -3313,7 +3335,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             member.x = target.x - dir * 1.6;
             member.z = target.z;
             clampToArena(member);
-            const result = calculateDamage(member, target, skillDef.multiplier, now);
+            const result = calculateDamage(member, target, skillDef.multiplier, now, { cc: skillHasCC(skillDef) });
             dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0, null, member, result);
             target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'stun');
             target.statusEffects.push({ type: 'stun', endTime: now + (skillDef.impact ?? 0) + ccTime(target, skillDef.stun, now) });
@@ -3325,7 +3347,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             ? opponentData.squad[member.targetIndex] : findBestTarget(member, opponentData.squad, now);
         if (target) {
             const ti = opponentData.squad.indexOf(target);
-            const result = calculateDamage(member, target, skillDef.multiplier, now);
+            const result = calculateDamage(member, target, skillDef.multiplier, now, { cc: skillHasCC(skillDef) });
             dealDamage(target, result.damage, opponentData, skillDef.impact ?? 0, null, member, result);
             const dir = Math.sign(target.x - member.x) || (member.side === 'left' ? 1 : -1);
             const fromX = target.x;
@@ -3370,8 +3392,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 member.x += away * skillDef.backstep;
                 clampToArena(member);
             }
-            const eff = hitTarget(member, target, ti, opponentData, skillDef.multiplier, now,
-                { forceCrit: true, penBonus: skillDef.penBonus, delay: skillDef.impact });
+            const eff = hitTarget(member, target, ti, opponentData, skillDef.multiplier, now, { cc: skillHasCC(skillDef), forceCrit: true, penBonus: skillDef.penBonus, delay: skillDef.impact });
             const dir = Math.sign(target.x - member.x) || (member.side === 'left' ? 1 : -1);
             if (!eff.killed && !eff.isMiss && !ccImmune(target, now)) {
                 target.x += dir * skillDef.push;
@@ -3428,7 +3449,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             // mũi thứ `order` rời dây ở 0.16s + order×60ms, bay vòng cung ARC_FLIGHT ms
             // nhả dây (impact) -> xếp hàng sau lưng (formTime) -> phóng lần lượt (arrowGap) -> bay (arcFlight)
             const delay = (skillDef.impact ?? 0) + (skillDef.formTime ?? 0) + order * (skillDef.arrowGap ?? 60) + (skillDef.arcFlight ?? 450);
-            effects.push({ ...hitTarget(member, t, ti, opponentData, shot.mult, now, { noBlock: true, delay }), role: shot.role, order });
+            effects.push({ ...hitTarget(member, t, ti, opponentData, shot.mult, now, { cc: skillHasCC(skillDef), noBlock: true, delay }), role: shot.role, order });
         });
     } else if (skillDef.type === 'sylva_call' || skillDef.type === 'sylva_bear' || skillDef.type === 'sylva_deer') {
         castSylvaSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, extra);
@@ -3455,7 +3476,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             for (const { e, i, poison, stacks } of victims) {
                 if (!e.alive) continue;
                 e.statusEffects = e.statusEffects.filter(ef => ef !== poison);
-                const effect = hitTarget(member, e, i, opponentData, skillDef.perStack * stacks, t, { noBlock: true, aoe: true });
+                const effect = hitTarget(member, e, i, opponentData, skillDef.perStack * stacks, t, { cc: skillHasCC(skillDef), noBlock: true, aoe: true });
                 hits.push({ ...effect, stacks });
                 if (!e.alive && !effect.isMiss) spreads.push({ e, i });
             }
@@ -3540,7 +3561,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         const ux = (to.x - from.x) / len, uz = (to.z - from.z) / len;
         plan.hits.forEach(({ e, i, along }) => {
             const delay = Math.round(skillDef.impact + skillDef.dashTime * Math.max(0, Math.min(1, along / len)));
-            effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { delay, aoe: true }), delay, seg: 0 });
+            effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { cc: skillHasCC(skillDef), delay, aoe: true }), delay, seg: 0 });
         });
         extra.path = [{ fromX: from.x, fromZ: from.z, toX: to.x, toZ: to.z, at: skillDef.impact, time: skillDef.dashTime }];
         member.x = to.x; member.z = to.z;
@@ -3579,10 +3600,10 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             const fx = (e.x - member.x) * dir;
             if (fx < -1 || Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) > (form ? skillDef.formRadius : skillDef.radius)) return;
             // Đêm Tử Thần: Lưỡi Hái Hất Hồn PHÁ SẠCH KHIÊN mục tiêu mang Ấn Tử (cả nhát hất lên lẫn nhát bổ xuống)
-            const eff = hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { delay: impact, aoe: true, breakShield: form });
+            const eff = hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { cc: skillHasCC(skillDef), delay: impact, aoe: true, breakShield: form });
             if (!eff.isMiss) later(impact, () => knockUp(e, skillDef.knockup));
             effects.push({ ...eff, knockup: !eff.isMiss });
-            if (form) effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.slamMultiplier, now, { delay: slamAt, noBlock: true, aoe: true, breakShield: true }), slam: true });
+            if (form) effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.slamMultiplier, now, { cc: skillHasCC(skillDef), delay: slamAt, noBlock: true, aoe: true, breakShield: true }), slam: true });
         });
         extra.dir = dir; extra.form = form; extra.impact = impact; extra.slamAt = slamAt; extra.radius = form ? skillDef.formRadius : skillDef.radius;
     } else if (skillDef.type === 'reaper_night') {
@@ -3624,7 +3645,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                 target.statusEffects.push({ type: 'stun', endTime: now + skillDef.impact + ccTime(target, skillDef.stun, now) });
                 target.lockedTargetIndex = -1;
             }
-            const eff = hitTarget(member, target, ti, opponentData, mult, now, { delay: skillDef.impact, noBlock: true });
+            const eff = hitTarget(member, target, ti, opponentData, mult, now, { cc: skillHasCC(skillDef), delay: skillDef.impact, noBlock: true });
             grabbed = { ...eff, grab: carry, fromX: tFromX, fromZ: tFromZ, toX: target.x, toZ: target.z || 0, stunned: carry };
             effects.push(grabbed);
             member.lockedTargetIndex = -1;
@@ -3635,7 +3656,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         squad.forEach((e, i) => {
             if (!e.alive || e === target) return;
             if (Math.hypot(e.x - cx, (e.z || 0) - landZ) > radius) return;
-            effects.push({ ...hitTarget(member, e, i, opponentData, aoeMult, now, { delay: skillDef.impact, aoe: true }), shock: true });
+            effects.push({ ...hitTarget(member, e, i, opponentData, aoeMult, now, { cc: skillHasCC(skillDef), delay: skillDef.impact, aoe: true }), shock: true });
         });
         extra.leap = { fromX, fromZ, toX: landX, toZ: landZ };
         extra.slam = { x: cx, z: landZ };
@@ -3646,13 +3667,12 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         const ku = skillDef.knockup;
         opponentData.squad.forEach((e, i) => {
             if (!e.alive || Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) > skillDef.radius) return;
-            const eff = hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { delay: skillDef.impact, aoe: true });
+            const eff = hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { cc: skillHasCC(skillDef), delay: skillDef.impact, aoe: true });
             const up = !eff.isMiss && ccTime(e, ku, now) > 0;
             if (!eff.isMiss) later(skillDef.impact, () => knockUp(e, ku));
             effects.push({ ...eff, knockup: up });
             // Khổng Lồ: rơi xuống đất chịu thêm sát thương
-            if (giant && up) effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.fallMultiplier, now,
-                { delay: skillDef.impact + ccTime(e, ku, now), noBlock: true, aoe: true }), fall: true });
+            if (giant && up) effects.push({ ...hitTarget(member, e, i, opponentData, skillDef.fallMultiplier, now, { cc: skillHasCC(skillDef), delay: skillDef.impact + ccTime(e, ku, now), noBlock: true, aoe: true }), fall: true });
         });
         const amount = Math.round(member.hp * skillDef.shieldPct);
         later(skillDef.impact, () => {
@@ -3802,7 +3822,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     } else if (skillDef.type === 'aoe_damage') {
         opponentData.squad.forEach((enemy, i) => {
             if (enemy.alive) {
-                const result = calculateDamage(member, enemy, skillDef.multiplier, now);
+                const result = calculateDamage(member, enemy, skillDef.multiplier, now, { cc: skillHasCC(skillDef) });
                 const dmg = result.damage;
                 
                 dealDamage(enemy, dmg, opponentData, skillDef.impact ?? 0, null, member, result);
@@ -3818,7 +3838,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             clampToArena(member);
         }
         const createHit = (target) => {
-            const result = calculateDamage(member, target, skillDef.multiplier, now);
+            const result = calculateDamage(member, target, skillDef.multiplier, now, { cc: skillHasCC(skillDef) });
             const dmg = result.damage;
             
             // APPLY SEAL
@@ -3919,12 +3939,14 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
     if (dmg > 0) later(delay, () => onHitTaken(target));
     if (oppData.debugGodMode || !(dmg > 0)) { if (after) later(delay, after); return false; }
     target.pendingDmg = (target.pendingDmg || 0) + dmg;
-    const willKill = target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now());
+    const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now());
     later(delay, () => {
         target.pendingDmg = Math.max(0, (target.pendingDmg || 0) - dmg);
         const tt = curRoom?.clock ?? Date.now();
-        if (target.alive && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt)) {
-            let hp = target.hp - dmg;
+        if (target.alive && !oppData.debugGodMode && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt)) {
+            if (damageJudgmentShield(target, dmg, !!hit?.cc)) { after?.(); return; }
+            const vulnerable = target.statusEffects.some(e => e.type === 'judgment_broken' && e.endTime > tt);
+            let hp = target.hp - Math.round(dmg * (vulnerable ? 1 + JUDGMENT.vulnerability : 1));
             // Đêm Tử Thần: Zerith không thể chết (máu tối thiểu 1)
             if (hp <= 0 && reaperUndying(target)) hp = 1;
             target.hp = Math.max(0, hp);
@@ -3987,6 +4009,7 @@ function archerExtraShots(roomId, casterId, casterIdx, opponentId, targetIdx, no
 // ============================================================
 /** Choáng `ms` (đã trừ Kiên Cường); không rút ngắn choáng dài hơn đang có */
 function applyStun(enemy, ms, now) {
+    if (enemy.ult) { if (enemy.ultCCAt !== now) damageJudgmentShield(enemy, 0, true); return; }
     const end = now + ccTime(enemy, ms, now);
     const cur = enemy.statusEffects.find(ef => ef.type === 'stun' && ef.endTime > now);
     if (!cur) enemy.statusEffects.push({ type: 'stun', endTime: end });
@@ -4085,7 +4108,7 @@ function fireGodAttack(roomId, casterId, casterIdx, opponentId, targetIdx, now) 
         opp.squad.forEach((e, i) => {
             if (!canBeTargeted(e, now)) return;
             const delay = IMPACT + effects.length * 50;
-            const eff = hitTarget(member, e, i, opp, sk.volleyMultiplier, now, { delay });
+            const eff = hitTarget(member, e, i, opp, sk.volleyMultiplier, now, { cc: true, delay });
             if (!eff.isMiss) later(delay, () => { if (e.alive) applyStun(e, sk.volleyStun, curRoom?.clock ?? now); });
             effects.push({ ...eff, delay });
         });
@@ -4134,9 +4157,7 @@ function guardBurst(roomId, casterId, casterIdx, opponentId, now, final = false)
         const result = calculateDamage(member, enemy, skillDef.burstMultiplier, now, { aoe: true });
         if (!result.isMiss) {
             if (!opp.debugGodMode && !socketGod(opp)) {
-                enemy.hp = Math.max(0, enemy.hp - result.damage);
-                if (enemy.hp === 0) killMember(enemy, opp.squad);
-                else afterHpLoss(enemy);
+                dealDamage(enemy, result.damage, opp, 0, null, member, { ...result, cc: !!skillDef.burstStun });
             }
             // choáng nhẹ (không rút ngắn choáng dài hơn đang có)
             const stunEnd = now + ccTime(enemy, skillDef.burstStun ?? 0, now);
@@ -4320,6 +4341,7 @@ function reaperUndying(m) {
 }
 /** Nhân vật gục: Thiên Thần Hộ Mệnh của Tu Sĩ + Linh Hồn Báo Thù của Zerith */
 function killMember(target, squad) {
+    cancelJudgment(target);
     if (enterSecondForm(target)) return;   // trùm 2 dạng (Valdric): gục lần đầu -> sống lại dạng 2
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
@@ -4392,6 +4414,7 @@ function processDeathJudgement(roomId, casterId, casterIdx, opponentId, now) {
 }
 /** Hất tung 1 mục tiêu `ms` (đã trừ kháng khống chế) */
 function knockUp(e, ms) {
+    if (e.ult) { if (e.ultCCAt !== curRoom.clock) damageJudgmentShield(e, 0, true); return; }
     if (!e.alive) return;
     const t = curRoom?.clock ?? Date.now();
     const dur = ccTime(e, ms, t);
@@ -4435,7 +4458,7 @@ function processReaperGuardian(roomId, casterId, casterIdx, opponentId, now) {
         const effects = [];
         opp.squad.forEach((e, i) => {
             if (!e.alive || Math.hypot(e.x - target.x, (e.z || 0) - (target.z || 0)) > sk.guardianReapRadius) return;
-            const eff = hitTarget(member, e, i, opp, reap.multiplier, now, { delay: IMPACT, aoe: true });
+            const eff = hitTarget(member, e, i, opp, reap.multiplier, now, { cc: true, delay: IMPACT, aoe: true });
             if (!eff.isMiss) later(IMPACT, () => knockUp(e, reap.knockup));
             effects.push({ ...eff, knockup: !eff.isMiss });
             effects.push({ ...hitTarget(member, e, i, opp, reap.slamMultiplier, now, { delay: SLAM, noBlock: true, aoe: true }), slam: true });
@@ -4488,6 +4511,7 @@ function giantForm(m, now) {
 }
 /** Đang miễn mọi khống chế / hiệu ứng bất lợi (5 giây đầu Khổng Lồ) */
 function ccImmune(m, now) {
+    if (m?.ult) return true;
     if (m?.summon && !takesDebuffs(m)) return true;   // triệu hồi KHÔNG nhận debuff (Golem): không dính khống chế
     const g = giantForm(m, now);
     return !!g && now < (g.immuneUntil ?? 0);
@@ -4569,7 +4593,7 @@ function brakkUplift(roomId, casterId, casterIdx, opponentId, targetIdx, now) {
     g.autos = (g.autos ?? 0) + 1;
     if (!turn) return false;
     const impact = CLASS_DEFS.wrestler.autoImpact;
-    const eff = hitTarget(m, target, targetIdx, opp, g.upliftMultiplier ?? 1.3, now, { delay: impact, noBlock: true });
+    const eff = hitTarget(m, target, targetIdx, opp, g.upliftMultiplier ?? 1.3, now, { cc: true, delay: impact, noBlock: true });
     m.mp = Math.min(m.maxMp, m.mp + m.mpAtk);
     const fromX = target.x, fromZ = target.z || 0;
     let up = false;
@@ -4678,6 +4702,8 @@ function afterHpLoss(m) {
     checkBossPhase(m);
 }
 /** Trùm chương 1: máu dưới ngưỡng -> giai đoạn 2 (1 lần): +tấn công, +tốc đánh, (Valdric) hồi máu + đổi tranh bùng lửa */
+function isSealed(m, now) { return m.statusEffects?.some(e => e.type === 'sealed' && e.endTime > now); }
+function skillHasCC(sk) { return !!(sk.stun || sk.push || sk.knockup || ['grab', 'knockback', 'uplift', 'reap'].includes(sk.type)); }
 // BOSS_SKILLS_BEGIN: isolated data / pure helpers, also exercised by node:test.
 const BOSS_SKILLS = {
     b_wolf: [
@@ -4691,8 +4717,8 @@ const BOSS_SKILLS = {
         { id: 'dash', name: 'Chém Bóng Đêm', cooldown: 11000, warning: 1000, width: 2, multiplier: 1.5 },
         { id: 'shield', name: 'Khiên Đen', cooldown: 20000, warning: 1000, duration: 5000, hpRatio: 0.15 }],
     b_valdric: [
-        { id: 'pillars', name: 'Cột Lửa', cooldown: 9000, warning: 1200, radius: 2.2, count: 3, multiplier: 1.2, magic: true, duration: 3000, dot: 0.02 },
-        { id: 'ring', name: 'Vòng Lửa Huy Hiệu', cooldown: 10000, warning: 1200, radius: 4, multiplier: 1, magic: true, phase2: true }],
+        { id: 'pillars', name: 'Cột Lửa', cooldown: 9000, warning: 1200, radius: 2.2, count: 3, multiplier: 1.2, magic: true, duration: 3000, dot: 0.02, stun: 1500 },
+        { id: 'ring', name: 'Vòng Lửa Huy Hiệu', cooldown: 10000, warning: 1200, radius: 4, multiplier: 1, magic: true, seal: JUDGMENT.sealMs }],
     b_warden: [
         { id: 'curse', name: 'Lời Nguyền', cooldown: 12000, warning: 1000, duration: 6000, healCut: 0.4, dot: 0.02 },
         { id: 'drain', name: 'Hút Hồn', cooldown: 16000, warning: 1200, currentHp: 0.06 }],
@@ -4736,11 +4762,111 @@ function bossInShape(e, shape) {
 }
 // BOSS_SKILLS_END
 
+// JUDGMENT_RUNTIME_BEGIN
+function processStageTimer(room) {
+    if (room.mode !== 'campaign' || room.status !== 'active' || room.winner) return false;
+    const now = room.clock;
+    room.stageTimer ??= { endsAt: now + STAGE_TIME_LIMIT_MS, next: now };
+    const leftMs = Math.max(0, room.stageTimer.endsAt - now);
+    if (now >= room.stageTimer.next || leftMs === 0) {
+        io.to(room.id).emit('battleTimer', { limitMs: STAGE_TIME_LIMIT_MS, leftMs });
+        room.stageTimer.next = now + JUDGMENT.timerEventMs;
+    }
+    if (leftMs > 0) return false;
+    const winnerId = Object.keys(room.players).find(id => room.players[id].isNPC);
+    const loserId = Object.keys(room.players).find(id => !room.players[id].isNPC);
+    if (!winnerId || !loserId) return false;
+    room.winner = winnerId; room.stageTimeout = true;
+    cancelRoomJudgments(room);
+    io.to(room.id).emit('battleEnd', { winnerId, loserId, timeout: true });
+    finishStage(room, false);
+    return true;
+}
+function ultEvent(m, data) {
+    const at = locate(m);
+    if (at) io.to(curRoom.id).emit('bossUlt', { ...data, casterId: at.pid, casterIdx: at.idx });
+}
+function flushJudgmentShield(m) {
+    if (!m.ultShieldEvent) return;
+    ultEvent(m, m.ultShieldEvent);
+    m.ultShieldEvent = null; m.ultShieldSentAt = curRoom.clock;
+}
+function cancelJudgment(m) {
+    if (!m.ult) return;
+    flushJudgmentShield(m);
+    m.ult = null; m.bossCasts = 0;
+    ultEvent(m, { phase: 'cancel' });
+}
+function cancelRoomJudgments(room) {
+    const previous = curRoom; curRoom = room;
+    for (const team of Object.values(room.players)) for (const m of team.squad) cancelJudgment(m);
+    curRoom = previous;
+}
+function damageJudgmentShield(m, damage, cc) {
+    if (!m.ult) return false;
+    const u = m.ult, now = curRoom.clock;
+    if (u.slamAt) return true;   // đang nhảy bổ xuống: hết giờ phá khiên, đòn đánh trượt qua
+    if (cc) m.ultCCAt = now;
+    const hit = Math.min(u.shield, shieldDamage(damage, u.shieldMax, cc));
+    u.shield -= hit;
+    m.ultShieldEvent = { phase: 'shield', shield: u.shield, shieldMax: u.shieldMax, cc, hit };
+    if (now >= (m.ultShieldSentAt ?? -Infinity) + JUDGMENT.shieldEventMs || u.shield === 0) flushJudgmentShield(m);
+    if (u.shield === 0) {
+        m.ult = null; m.bossCasts = 0; m.actionUntil = 0; m.state = 'idle';
+        m.statusEffects = m.statusEffects.filter(e => !['stun', 'knockup', 'grabbed', 'knocked'].includes(e.type));
+        m.statusEffects.push({ type: 'stun', endTime: now + JUDGMENT.stunMs, noCleanse: true });
+        m.statusEffects.push({ type: 'judgment_broken', name: 'Phán Quyết bị phá', desc: 'Nhận thêm 25% sát thương', endTime: now + JUDGMENT.brokenMs, noCleanse: true });
+        ultEvent(m, { phase: 'break', stunMs: JUDGMENT.stunMs });
+        if (process.env.LOC_DEBUG) console.log('[judgment] break', curRoom.id);
+    }
+    return true;
+}
+function processJudgment(room, pid, idx, oppId, now) {
+    const m = room.players[pid].squad[idx];
+    if (m.ult) {
+        if (now >= (m.ultShieldSentAt ?? -Infinity) + JUDGMENT.shieldEventMs) flushJudgmentShield(m);
+        // Thân thể không nhận khống chế trong lúc niệm phép.
+        m.statusEffects = m.statusEffects.filter(e => !['stun', 'knockup', 'grabbed', 'knocked'].includes(e.type));
+        if (now < m.ult.endsAt) return true;
+        if (!m.ult.slamAt) {   // hết 5 giây: nhảy vút lên — chạm đất mới nổ
+            flushJudgmentShield(m);
+            m.ult.slamAt = now + JUDGMENT.slamMs; m.actionUntil = m.ult.slamAt;
+            ultEvent(m, { phase: 'leap', slamMs: JUDGMENT.slamMs });
+            return true;
+        }
+        if (now < m.ult.slamAt) return true;
+        m.ult = null; m.bossCasts = 0; m.actionUntil = now; m.state = 'idle';
+        const team = room.players[oppId], effects = [], diff = judgmentDifficulty(room.stage?.diff);
+        team.squad.forEach((e, i) => {
+            if (!e.alive || e.summon) return;
+            const damage = team.debugGodMode || socketGod(team) ? 0 : Math.min(e.hp, blastDamage(e.maxHp, diff));
+            e.hp = Math.max(0, e.hp - damage);
+            if (e.hp === 0) killMember(e, team.squad);
+            else if (damage > 0) afterHpLoss(e);
+            effects.push({ targetId: oppId, targetIndex: i, damage, killed: !e.alive });
+        });
+        ultEvent(m, { phase: 'blast', effects });
+        if (process.env.LOC_DEBUG) console.log('[judgment] blast', room.id, diff);
+        return true;
+    }
+    if (!ultimateReady(m.bossCasts)) return false;
+    if (now < m.judgmentReadyAt || now < (m.actionUntil ?? 0) || m.statusEffects.some(e => ['stun', 'knockup', 'grabbed', 'knocked'].includes(e.type) && e.endTime > now)) return true;
+    const diff = judgmentDifficulty(room.stage?.diff), shieldMax = Math.round(m.maxHp * JUDGMENT.shieldPct[diff]);
+    m.ult = { endsAt: now + JUDGMENT.durationMs, shield: shieldMax, shieldMax };
+    m.actionUntil = m.ult.endsAt; m.ultShieldSentAt = -Infinity; m.ultCCAt = null;
+    ultEvent(m, { phase: 'start', name: JUDGMENT.name, durationMs: JUDGMENT.durationMs, shield: shieldMax, shieldMax, diff, blast: JUDGMENT.blast[diff] });
+    if (process.env.LOC_DEBUG) console.log('[judgment] start', room.id, diff, 'form', m.phase2On ? 2 : 1);
+    return true;
+}
+// JUDGMENT_RUNTIME_END
+
 function processBossSkills(room, pid, idx, oppId, now) {
     const m = room.players[pid].squad[idx], opp = room.players[oppId];
     if (!m.alive || !opp || !BOSS_SKILLS[m.classId]) return;
+    if (m.classId === 'b_valdric' && processJudgment(room, pid, idx, oppId, now)) return;
     m.bossTimers ??= {};
     for (const sk of BOSS_SKILLS[m.classId]) {
+        if (m.classId === 'b_valdric' && m.bossCasts === JUDGMENT.casts - 1 && sk.id !== 'ring') continue;
         const next = bossNextTime(sk, now, m.bossTimers[sk.id], m.phase2On);
         if (next == null) continue;
         m.bossTimers[sk.id] = next;
@@ -4760,6 +4886,7 @@ function processBossSkills(room, pid, idx, oppId, now) {
         later(sk.warning, () => {
             if (!m.alive || room.winner) return;
             const time = room.clock, effects = [];
+            if (m.classId === 'b_valdric') { m.bossCasts = nextCast(m.bossCasts); m.judgmentReadyAt = time + JUDGMENT.gapMs; }
             const status = (e, type, extra = {}) => {
                 e.statusEffects = e.statusEffects.filter(f => f.type !== type);
                 const ef = { type, duration: sk.duration, endTime: time + sk.duration, ...extra };
@@ -4806,7 +4933,8 @@ function processBossSkills(room, pid, idx, oppId, now) {
                     const hit = hitTarget(m, e, i, opp, sk.multiplier, time, { dmgType: sk.magic ? 'magic' : 'physical', aoe: sk.id !== 'pounce', ground: sk.id !== 'pounce' });
                     effects.push(hit);
                     if (!hit.isMiss && e.alive) {
-                        if (sk.stun) applyStun(e, sk.stun, time);
+                        if (sk.stun) { applyStun(e, sk.stun, time); hit.stun = sk.stun; }
+                        if (sk.seal) { status(e, 'sealed', { name: 'Phong ấn', desc: 'Không thể dùng kỹ năng', debuff: true, duration: sk.seal, endTime: time + sk.seal }); hit.seal = sk.seal; }
                         if (sk.dot) status(e, sk.id === 'pounce' ? 'boss_bleed' : 'boss_burn', { debuff: true });
                     }
                 });
@@ -4984,6 +5112,7 @@ function checkFireWard(m) {
     const pushed = [];
     opp.squad.forEach((e, i) => {
         if (!e.alive || isJudged(e, now) || Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) > w.pushRadius) return;
+        if (e.ult) { damageJudgmentShield(e, 0, true); return; }
         if (ccImmune(e, now)) return;
         const dir = Math.sign(e.x - m.x) || (m.side === 'left' ? 1 : -1);
         const fromX = e.x;
@@ -5025,10 +5154,10 @@ const _judgeKeep = new WeakMap();   // hiệu ứng được giữ lại trong l
 function checkJudgement(target) {
     if (!target?.alive || !curRoom) return;
     const now = curRoom.clock ?? Date.now();
-    if (isJudged(target, now) || reaperForm(target, now)) return;
+    if (target.ult || isJudged(target, now) || reaperForm(target, now)) return;
     if (hasReviveGuard(target, now)) return;   // 2 giây bất tử sau hồi sinh (Sera) kháng luôn phán quyết
     const mark = target.statusEffects.find(ef => ef.type === 'death_mark' && ef.endTime > now);
-    if (!mark || target.hp / target.maxHp >= mark.execute) return;
+    if (target.ult || !mark || target.hp / target.maxHp >= mark.execute) return;
     const tAt = locate(target);
     if (!tAt) return;
     const team = curRoom.players[tAt.pid];
@@ -5051,7 +5180,9 @@ function checkJudgement(target) {
         const t = curRoom?.clock ?? now;
         const shielded = target.statusEffects.some(ef => SHIELD_TYPES.has(ef.type) && ef.endTime > t && ef.hp > 0);
         let killed = false;
-        if (shielded) {
+        if (target.ult) {
+            if (!team.debugGodMode && !socketGod(team)) damageJudgmentShield(target, target.hp, true);
+        } else if (shielded) {
             for (const ef of target.statusEffects) if (SHIELD_TYPES.has(ef.type)) { ef.hp = 0; if (ef.type !== 'guard') ef.dormant = false; }
         } else if (!team.debugGodMode && !socketGod(team)) {
             const left = target.hp;
@@ -5425,6 +5556,8 @@ function pickGem(room, pid, idx, gemId, now) {
 
 /** Kỹ năng dùng được ngay về mặt điều kiện riêng (ngoài Orb / hồi chiêu): Sách cần đủ 3 viên, nút phép cần có phép */
 function skillUsable(m, idx) {
+    if (isSealed(m, curRoom?.clock)) return false;
+    if (m.ult) return false;
     if (m.classId !== 'elementalist') return true;
     const sk = skillsOf(m)[idx];
     if (sk?.type === 'elem_book') return (m.held?.length ?? 0) >= 3 && !!SPELL_BY_RECIPE[recipeOf(m.held)];
@@ -5479,6 +5612,7 @@ function processElementalist(roomId, pid, idx, oppId, now) {
 /** Đóng băng = choáng (đứng im, bị ngắt niệm) + lớp băng phủ người. Trả về thời gian thật sự bị đóng băng */
 function applyFreeze(e, ms, now) {
     if (!e.alive) return 0;
+    if (e.ult) { if (e.ultCCAt !== now) damageJudgmentShield(e, 0, true); return 0; }
     const dur = ccTime(e, ms, now);
     if (dur <= 0) return 0;
     applyStun(e, ms, now);
@@ -5508,7 +5642,7 @@ function wardCounter(attacker, mage, now) {
     later(1, () => {
         const t = room.clock ?? now;
         if (!attacker.alive) return;
-        const eff = hitTarget(mage, attacker, at.idx, room.players[at.pid], ward.counter ?? 0.3, t, { noCounter: true, aoe: true });
+        const eff = hitTarget(mage, attacker, at.idx, room.players[at.pid], ward.counter ?? 0.3, t, { cc: true, noCounter: true, aoe: true });
         if (!eff.isMiss) applyStun(attacker, ward.counterStun ?? 500, t);
         emitElem(room.id, { kind: 'shock', casterId: mt.pid, casterIdx: mt.idx, targetId: at.pid, targetIndex: at.idx, effect: eff });
     });
@@ -5530,7 +5664,7 @@ function addChill(e, now, n = 1) {
 }
 /** Đòn băng: sát thương + Hàn Khí (eff.frozen / eff.chill để client vẽ) */
 function iceHit(m, e, i, opp, mult, now, opts = {}) {
-    const eff = hitTarget(m, e, i, opp, mult, now, { aoe: true, ...opts });
+    const eff = hitTarget(m, e, i, opp, mult, now, { cc: (e.statusEffects.find(x => x.type === 'chill' && x.endTime > now)?.stacks ?? 0) >= CHILL.max - 1, aoe: true, ...opts });
     if (!eff.isMiss) {
         const fr = addChill(e, now);
         if (fr) eff.frozen = fr;
@@ -5642,7 +5776,7 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
             list.forEach((e, k) => {
                 const i = opp.squad.indexOf(e);
                 const delay = sp.impact + k * sp.bounceGap;
-                const eff = hitTarget(m, e, i, opp, sp.multiplier, now, { delay });
+                const eff = hitTarget(m, e, i, opp, sp.multiplier, now, { cc: !!(sp.stun || sp.freeze || sp.push), delay });
                 eff.delay = delay;
                 if (!eff.isMiss) later(delay, () => {
                     const t = room.clock;
@@ -5682,7 +5816,7 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
                 const along = rx * ux + rz * uz, perp = Math.abs(-rx * uz + rz * ux);
                 if (along < -0.6 || along > sp.length || perp > sp.width) return;
                 const delay = sp.impact + Math.max(0, along) / sp.length * sp.travel;
-                const eff = hitTarget(m, e, i, opp, sp.multiplier, now, { delay, aoe: true });
+                const eff = hitTarget(m, e, i, opp, sp.multiplier, now, { cc: !!(sp.stun || sp.freeze || sp.push), delay, aoe: true });
                 eff.delay = delay;
                 if (!eff.isMiss) later(delay, () => {
                     const t = room.clock;
@@ -5719,7 +5853,7 @@ function castElemSpell(room, pid, idx, oppId, sp, now, effects, extra) {
             later(sp.impact + sp.grow, () => {
                 const t = room.clock;
                 const hits = foesOf(opp, t).filter(o => distXZ(o.e, pt.x, pt.z) <= sp.radius).map(o => {
-                    const eff = hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { aoe: true });
+                    const eff = hitTarget(m, o.e, o.i, opp, sp.multiplier, t, { cc: !!sp.stun, aoe: true });
                     if (!eff.isMiss) {
                         applyStun(o.e, sp.stun, t);
                         if (!opp.debugNoMana) { const lost = Math.min(o.e.mp, sp.orbBurn * ORB_COST); o.e.mp -= lost; eff.orbLost = lost / ORB_COST; }
@@ -5986,7 +6120,7 @@ function bearCharge(room, pid, slot, oppId, sk, now) {
         if (!e.alive || !canBeTargeted(e, now)) return;
         const f = Math.max(0, Math.min(1, (e.x - fromX) / ((toX - fromX) || 1)));
         const at = t0 + Math.round(T * f);
-        effects.push({ ...hitTarget(b, e, i, opp, sk.chargeMultiplier, now, { aoe: true, noBlock: true, delay: at }), at });
+        effects.push({ ...hitTarget(b, e, i, opp, sk.chargeMultiplier, now, { cc: true, aoe: true, noBlock: true, delay: at }), at });
         later(at, () => { if (e.alive && takesDebuffs(e)) { knockUp(e, sk.knockup); later(sk.knockup, () => { if (e.alive) applyStun(e, sk.stun, room.clock); }); } });
     });
     hitPass(x0, x1, 0);
@@ -6039,7 +6173,7 @@ function sylvaAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
             const cur = opp.squad[targetIdx];
             const tg = cur?.alive && canBeTargeted(cur, t) ? { e: cur, i: targetIdx } : foesOf(opp, t).find(o => canBeTargeted(o.e, t));
             if (!tg) return;
-            const effect = hitTarget(s, tg.e, tg.i, opp, d.orbMultiplier, t, { delay: 300 });
+            const effect = hitTarget(s, tg.e, tg.i, opp, d.orbMultiplier, t, { cc: !!d.push, delay: 300 });
             let pushed = null;
             if (!effect.isMiss && takesDebuffs(tg.e) && !ccImmune(tg.e, t)) {
                 const dir = Math.sign(tg.e.x - s.x) || (s.side === 'left' ? 1 : -1);
@@ -6100,6 +6234,7 @@ function processSylvaUnit(room, pid, idx, oppId, now) {
             s.x = e.x - dir * 1.2; s.z = e.z || 0; clampToArena(s);
             s.actionUntil = now + 500;
             let pushed = null, taunt = false;
+            if (e.ult) damageJudgmentShield(e, 0, true);
             if (takesDebuffs(e) && !ccImmune(e, now)) {
                 const fromX = e.x;
                 e.x += dir * d.guardPush; clampToArena(e);
@@ -6163,8 +6298,9 @@ function golemAfterAuto(roomId, pid, idx, oppId, now) {
     const opp = room.players[oppId];
     if (charged && opp) {
         const hits = foesOf(opp, now).map(o => {
-            const eff = hitTarget(g, o.e, o.i, opp, charged.multiplier, now, { aoe: true, delay: 250 });
-            if (!eff.isMiss && Math.random() < charged.stunChance) { later(250, () => applyStun(o.e, charged.stun, room.clock)); eff.stunned = true; }
+            const stun = Math.random() < charged.stunChance;
+            const eff = hitTarget(g, o.e, o.i, opp, charged.multiplier, now, { cc: stun, aoe: true, delay: 250 });
+            if (!eff.isMiss && stun) { later(250, () => applyStun(o.e, charged.stun, room.clock)); eff.stunned = true; }
             return eff;
         });
         emitElem(roomId, { kind: 'golemShock', casterId: pid, casterIdx: idx, targetId: oppId, effects: hits });
@@ -6209,7 +6345,7 @@ function castGolemSkill(room, pid, idx, oppId, sk, now, effects, extra) {
                 const along = (rx * (x1 - bx) + rz * (z1 - bz)) / len, perp = Math.abs(-rx * (z1 - bz) + rz * (x1 - bx)) / len;
                 if (along < -0.5 || along > len + 1 || perp > sk.width) return;
                 const delay = Math.max(0, Math.min(len, along)) / len * sk.dashTime;
-                const eff = hitTarget(g, e, i, opp, sk.multiplier, t, { delay, aoe: true });
+                const eff = hitTarget(g, e, i, opp, sk.multiplier, t, { cc: !!sk.knockup, delay, aoe: true });
                 eff.delay = delay;
                 if (!eff.isMiss) later(delay, () => knockUp(e, sk.knockup));
                 hits.push(eff);
@@ -6301,7 +6437,7 @@ function processRain(room, pid, idx, oppId, now) {
         const foes = opp ? foesOf(opp, now) : [];
         if (foes.length) {
             const o = foes[Math.floor(Math.random() * foes.length)];
-            strike = hitTarget(m, o.e, o.i, opp, rain.strike, now, { aoe: true, delay: 150 });
+            strike = hitTarget(m, o.e, o.i, opp, rain.strike, now, { cc: true, aoe: true, delay: 150 });
             if (!strike.isMiss) later(150, () => applyStun(o.e, rain.stun, room.clock));
         }
         emitElem(room.id, { kind: 'rainTick', casterId: pid, casterIdx: idx, targetId: oppId, heals, strike, ...(rain.shadow ? { shadow: true } : {}) });
@@ -6512,8 +6648,12 @@ function checkWinCondition(roomId) {
     const dead = ids.filter(id => room.players[id].squad.filter(m => !m.summon).every(m => !m.alive));
     if (!dead.length) return;
     dead.forEach(id => room.players[id].squad.forEach((m, i) => { if (m.summon && m.alive) vanishSummon(room, id, i, 'ownerDefeated'); }));
+    // gửi trạng thái cuối TRƯỚC khi báo hết trận: vòng lặp trận dừng ngay sau đây — thiếu gói này thì
+    //   người vừa gục ở đòn cuối vẫn đứng im với thanh máu cũ trên màn hình
+    broadcastState(roomId);
     if (dead.length >= 2) {
         room.winner = 'draw';
+        cancelRoomJudgments(room);
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
         finishStage(room, false);   // Cốt truyện: hoà = thua
         return;
@@ -6521,6 +6661,7 @@ function checkWinCondition(roomId) {
     const loserId = dead[0];
     const winnerId = ids.find(id => id !== loserId);
     room.winner = winnerId;
+    cancelRoomJudgments(room);
     io.to(roomId).emit('battleEnd', { winnerId, loserId });
     finishStage(room, !room.players[winnerId]?.isNPC);
 }
@@ -6594,9 +6735,8 @@ function processSuddenDeath(room, now) {
             const team = room.players[pid], m = alive[k][0];
             if (!m.alive || team.debugGodMode || socketGod(team)) return;
             const dmg = Math.max(1, Math.round(m.maxHp * SUDDEN_DEATH.pct));
-            m.hp = Math.max(0, m.hp - dmg);
+            dealDamage(m, dmg, team);
             hits.push({ targetId: pid, targetIndex: team.squad.indexOf(m), damage: dmg });
-            if (m.hp <= 0) killMember(m, team.squad);
         });
         if (hits.length) io.to(room.id).emit('suddenDeath', { kind: 'tick', hits });
         checkWinCondition(room.id);
