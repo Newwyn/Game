@@ -865,3 +865,21 @@ function mistTexture() {
     MIST = new THREE.CanvasTexture(c);
     return MIST;
 }
+
+/**
+ * Dựng 1 nhóm vật theo danh sách [kiểu, ...tham số] (cùng các kiểu BUILD của bản đồ) — dùng cho SÂN ĐẤU (src/core/battleScene3d.js):
+ * trận đấu dùng lại nhà / tháp / tường / sạp / lều… của bản đồ nên cùng một phong cách. Trả { group, anim: [fn(t)] }.
+ */
+export async function buildProps(items, style = {}, seedNo = 7) {
+    seed = seedNo;
+    const group = new THREE.Group(), anim = [], B = new Batch();
+    const ctx = { B, group, anim, cover() {}, lam, rnd, pick, style, oldMode: false };
+    for (const [kind, ...args] of items) {
+        const f = BUILD[kind];
+        if (!f) { console.warn('[world3d] không có kiểu', kind); continue; }
+        f(ctx, ...args);
+    }
+    await loadModels(B.keys());
+    B.flush(group);
+    return { group, anim };
+}
