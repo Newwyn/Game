@@ -8,6 +8,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const URLS = import.meta.glob('../assets/world3d/**/*.glb', { query: '?url', import: 'default', eager: true });   // chỉ là đường dẫn, mô hình tải khi cần
 export const uTime = { value: 0 };   // thời gian chung cho cỏ cây lay gió
+export const uHeroPos = { value: new THREE.Vector3(0, -999, 0) };     // tâm nhân vật chính (thế giới)
+export const uCamPos = { value: new THREE.Vector3(0, 20, 20) };       // vị trí camera
+export const uSeeThrough = { value: 1.0 };                            // 0..1: bật nhìn xuyên vật che (?seeThrough=off để tắt)
 
 // bộ Nature (xanh ngọc) -> tông ấm như tranh nền của game
 const RECOLOR = {
@@ -18,20 +21,65 @@ const SWAY = { grass: 0.5, leafsGreen: 0.05, leafsDark: 0.05, leafsFall: 0.05 };
 // đổi màu ô đỏ (mái) trong bảng màu bộ thị trấn
 const ROOF = { brown: [150, 92, 58], straw: [196, 152, 84], blue: [64, 112, 196], red: null, slate: [92, 98, 112] };
 
-export function addSway(mat, amp) {
+/**
+ * Gắn hiệu ứng cho vật liệu:
+ *  - amp > 0: đung đưa theo gió (cỏ, hoa, tán cây, lúa)
+ *  - occlude = true: khoét vòng tròn dither mềm mép quanh nhân vật khi vật che khuất camera
+ *  - cloud = true: bóng mây nhẹ trôi chậm trên bề mặt
+ */
+export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = {}) {
+    if (mat.userData?._patched) return mat;
+    mat.userData = { ...(mat.userData ?? {}), _patched: true };
     mat.onBeforeCompile = (sh) => {
         sh.uniforms.uTime = uTime;
-        sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        sh.uniforms.uHeroPos = uHeroPos;
+        sh.uniforms.uCamPos = uCamPos;
+        sh.uniforms.uSeeThrough = uSeeThrough;
+        sh.vertexShader = 'uniform float uTime;\nvarying vec3 vWorldPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
           #ifdef USE_INSTANCING
             vec4 swp = modelMatrix * instanceMatrix * vec4(position, 1.0);
           #else
             vec4 swp = modelMatrix * vec4(position, 1.0);
           #endif
-          float shh = max(position.y, 0.0);
-          transformed.x += sin(uTime * 1.6 + swp.x * 0.55 + swp.z * 0.35) * ${amp.toFixed(3)} * shh * shh;
-          transformed.z += cos(uTime * 1.2 + swp.x * 0.4) * ${(amp * 0.6).toFixed(3)} * shh * shh;`);
+          ${sway > 0 ? `float shh = max(position.y, 0.0);
+          float swx = sin(uTime * 1.6 + swp.x * 0.55 + swp.z * 0.35) * ${sway.toFixed(3)} * shh * shh;
+          float swz = cos(uTime * 1.2 + swp.x * 0.4) * ${(sway * 0.6).toFixed(3)} * shh * shh;
+          transformed.x += swx;
+          transformed.z += swz;
+          swp.x += swx; swp.z += swz;` : ''}
+          vWorldPos = swp.xyz;`);
+        sh.fragmentShader = 'uniform float uTime;\nuniform vec3 uHeroPos;\nuniform vec3 uCamPos;\nuniform float uSeeThrough;\nvarying vec3 vWorldPos;\n'
+            + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+          ${occlude ? `if (uSeeThrough > 0.01 && vWorldPos.y > 0.32) {
+            vec3 ch = uHeroPos - uCamPos;
+            float chLen2 = dot(ch, ch);
+            vec3 cp = vWorldPos - uCamPos;
+            float tProj = dot(cp, ch) / max(chLen2, 0.001);
+            if (tProj > 0.12 && tProj < 0.985) {
+              vec3 closest = uCamPos + ch * tProj;
+              vec3 diff = (vWorldPos - closest) * vec3(1.0, 0.72, 1.0);
+              float dist = length(diff);
+              float rOuter = 2.35;
+              if (dist < rOuter) {
+                float fade = smoothstep(0.65, rOuter, dist);
+                float depthFade = smoothstep(0.985, 0.90, tProj);
+                float alpha = mix(1.0, mix(0.4, 1.0, fade), uSeeThrough * depthFade);   // chỉ LÀM MỜ bớt (còn ~40% vật che), không khoét trong suốt hẳn — người chơi yêu cầu
+                vec2 bp = floor(gl_FragCoord.xy);
+                float bayer = fract(dot(bp, vec2(0.5, 0.25)) + fract(bp.x * 0.25 + bp.y * 0.75) * 0.5);
+                if (alpha < bayer * 0.92 + 0.06) discard;
+              }
+            }
+          }` : ''}
+          ${cloud ? `vec2 cUv = vWorldPos.xz * 0.075 + vec2(uTime * 0.018, uTime * 0.009);
+          float cN = sin(cUv.x * 2.3 + cos(cUv.y * 1.9)) * cos(cUv.y * 2.1 - sin(cUv.x * 1.7));
+          gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
     };
-    mat.customProgramCacheKey = () => 'sway' + amp;
+    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}`;
+    return mat;
+}
+
+export function addSway(mat, amp) {
+    return patchMaterial(mat, { sway: amp, occlude: true, cloud: true });
 }
 
 const loader = new GLTFLoader();
@@ -46,8 +94,9 @@ function fixMaterial(kit, mat) {
     const m = mat.clone();
     m.metalness = 0; m.roughness = 0.9;
     if (RECOLOR[m.name] != null) m.color.setHex(RECOLOR[m.name]);
-    if (SWAY[m.name] != null) { addSway(m, SWAY[m.name]); m.side = THREE.DoubleSide; }
-    if (m.name.startsWith('flower') || m.name === 'grass') m.side = THREE.DoubleSide;
+    const sway = SWAY[m.name] ?? (m.name.startsWith('flower') ? 0.22 : 0);
+    if (sway > 0 || m.name === 'grass') m.side = THREE.DoubleSide;
+    patchMaterial(m, { sway, occlude: true, cloud: true });
     if (m.map) { m.map.magFilter = THREE.NearestFilter; m.map.colorSpace = THREE.SRGBColorSpace; }
     mats.set(key, m);
     return m;
@@ -106,7 +155,13 @@ export function proto(key) {
     const out = !rgb ? parts : parts.map(p => {
         if (!p.mat.map) return p;
         const mk = p.mat.uuid + '@' + v;
-        if (!mats.has(mk)) { const m = p.mat.clone(); m.map = recolorTexture(p.mat.map, rgb); mats.set(mk, m); }
+        if (!mats.has(mk)) {
+            const m = p.mat.clone();
+            m.map = recolorTexture(p.mat.map, rgb);
+            m.userData = {};
+            patchMaterial(m, { sway: 0, occlude: true, cloud: true });
+            mats.set(mk, m);
+        }
         return { geo: p.geo, mat: mats.get(mk) };
     });
     variants.set(key, out);

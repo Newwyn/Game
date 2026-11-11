@@ -40,6 +40,118 @@ export const LAYOUTS = {
             ['flowerbed', 16.0, 19.2, 17.0, 22.8],
             ['lamp', 12.6, 9.0], ['lamp', 26.2, 9.0], ['lamp', 12.6, 16.6], ['lamp', 26.0, 13.6],
         ],
+        // Chi tiết mới cho làng Ashford (bỏ qua khi mở ?mapDetail=old để so sánh)
+        detailItems: [
+            // --- 1. Quán rượu cô Lena (28.7..34.4 × 15.0..18.9, cửa 31.5) ---
+            ['tavernTable', 29.5, 19.5],
+            ['tavernTable', 26.8, 19.1],
+            ['model', 'survival/barrel', 28.2, 18.4, { s: 2.3 }],
+            ['model', 'survival/barrel', 28.3, 17.5, { s: 2.2, r: 0.4 }],
+            ['model', 'survival/barrel', 34.7, 18.4, { s: 2.3 }],
+            ['model', 'survival/box', 34.8, 17.5, { s: 2.1, r: 0.3 }],
+            ['shopSign', 30.2, 19.0, 'tavern'],
+            ['flowerPot', 32.5, 19.0, 'nature/flower_yellowA'],
+
+            // --- 2. Lò rèn bác Borin (30.1..34.2 × 5.6..9.9, cửa 32.1) ---
+            ['forgeProps', 30.6, 10.2],
+            ['shopSign', 32.9, 10.0, 'forge'],
+            ['model', 'survival/resource-stone', 34.6, 8.3, { s: 2.1 }],
+            ['model', 'survival/box-large', 29.5, 8.2, { s: 2.2, r: 0.2 }],
+            ['woodpile', 34.8, 7.0, 1.5],
+
+            // --- 3. Nhà bà Mira (18.6..22.9 × 1.2..5.5, cửa 20.8) + vườn rau ---
+            ['gardenPatch', 21.3, 4.8, 24.1, 6.6],
+            ['fence', [21.2, 4.7], [24.2, 4.7], 'nature/fence_planks', 1.1],
+            ['fence', [24.2, 4.7], [24.2, 6.7], 'nature/fence_planks', 1.1],
+            ['scarecrow', 23.6, 5.5],
+            ['veggieBasket', 21.8, 5.7],
+            ['flowerPot', 19.8, 5.65, 'nature/flower_purpleA'],
+            ['flowerPot', 21.6, 5.65, 'nature/flower_redA'],
+            ['model', 'nature/crop_pumpkin', 18.2, 5.2, { s: 1.7 }],
+
+            // --- 4. Nhà số 1 (tây bắc: 7.8..11.8 × 5.6..9.9, cửa 9.7) ---
+            ['woodpile', 7.1, 8.8, 0.3],
+            ['flowerPot', 8.8, 10.0, 'nature/flower_redA'],
+            ['flowerPot', 10.5, 10.0, 'nature/flower_yellowA'],
+            ['model', 'survival/barrel', 12.1, 6.8, { s: 2.2 }],
+            ['sack', 7.2, 9.7, 2],
+
+            // --- 5. Nhà số 2 (bắc: 12.9..17.1 × 1.8..6.2, cửa 15) ---
+            ['model', 'town/cart', 12.2, 6.2, { s: 1.25, r: 0.35 }],
+            ['sack', 13.5, 6.4, 3],
+            ['model', 'survival/box', 16.6, 6.35, { s: 2.1, r: -0.2 }],
+            ['flowerPot', 14.1, 6.3, 'nature/flower_yellowB'],
+            // dây phơi đồ giữa nhà số 2 và nhà bà Mira
+            ['clothesline', [17.0, 4.4], [18.7, 4.4]],
+
+            // --- 6. Nhà số 4 (đông bắc: 24.4..28.6 × 2.8..7.0, cửa 26.6) ---
+            ['haystack', 29.2, 5.0, 0.68],
+            ['veggieBasket', 25.3, 7.15],
+            ['sack', 27.8, 7.15, 2],
+            ['flowerPot', 25.8, 7.1, 'nature/flower_redB'],
+            ['clothesline', [22.8, 3.8], [24.5, 3.8]],
+
+            // --- 7. Nhà số 6 (tây nam: 7.2..11.4 × 14.6..18.9, cửa 9.3) ---
+            ['woodpile', 6.5, 17.2, 1.4],
+            ['model', 'survival/barrel', 6.6, 18.4, { s: 2.2 }],
+            ['flowerPot', 8.4, 19.0, 'nature/flower_purpleB'],
+            ['flowerPot', 10.2, 19.0, 'nature/flower_yellowA'],
+            ['clothesline', [8.0, 11.2], [8.0, 13.6]],
+
+            // --- 8. Nhà số 7 (nam: 11.8..15.8 × 18.6..22.8, cửa 13.6) ---
+            ['model', 'town/cart-high', 11.1, 20.8, { s: 1.15, r: 0.5 }],
+            ['sack', 12.4, 22.9, 3],
+            ['veggieBasket', 14.8, 22.9],
+            ['flowerPot', 12.8, 22.9, 'nature/flower_redA'],
+
+            // --- 9. Quảng trường, băng ghế, cột đèn, quầy hàng nhỏ & giếng ---
+            ['stall', 19.3, 9.6, 0xd35400, 0],
+            ['veggieBasket', 20.4, 9.8],
+            ['sack', 18.1, 9.8, 2],
+            ['model', 'graveyard/bench', 15.2, 14.5, { s: 1.45, r: 0.55 }],
+            ['model', 'graveyard/bench', 23.8, 10.6, { s: 1.45, r: -0.6 }],
+            ['model', 'graveyard/bench', 15.0, 10.5, { s: 1.45, r: 2.3 }],
+            ['lamp', 16.5, 7.6], ['lamp', 22.4, 7.6], ['lamp', 17.2, 17.6], ['lamp', 22.2, 17.6], ['lamp', 8.4, 10.4], ['lamp', 35.2, 10.4],
+            // quanh giếng cổ (5.6, 12.0)
+            ['model', 'survival/barrel', 4.3, 11.2, { s: 2.1 }],
+            ['flowerPot', 4.5, 13.1, 'nature/flower_yellowA'],
+
+            // --- 10. Bụi cây, đá, nấm, khóm hoa nhiều màu ở rìa rừng ---
+            ['model', 'nature/mushroom_redGroup', 6.4, 9.8, { s: 1.9 }],
+            ['model', 'nature/mushroom_tanGroup', 11.6, 14.2, { s: 1.8 }],
+            ['model', 'nature/mushroom_red', 35.5, 14.8, { s: 1.8 }],
+            ['model', 'nature/mushroom_tanTall', 6.2, 15.2, { s: 1.8 }],
+            ['model', 'nature/rock_largeA', 5.2, 9.4, { s: 1.35, r: 0.8 }],
+            ['model', 'nature/rock_smallFlatA', 12.2, 10.2, { s: 1.6, r: 1.2 }],
+            ['model', 'nature/rock_smallC', 28.4, 9.6, { s: 1.6 }],
+            ['model', 'nature/log', 5.5, 15.6, { s: 1.8, r: 0.4 }],
+
+            // --- 11. Vệt đất mòn & đá lát rải quanh quảng trường / đường đi ---
+            ['dirtPatch', 5.6, 12.0, 2.8, 2.6, 0.2],
+            ['dirtPatch', 19.4, 11.8, 2.2, 1.4, 0],
+            ['dirtPatch', 31.8, 10.4, 3.2, 1.8, 0.1],
+            ['dirtPatch', 31.5, 19.3, 3.4, 1.6, -0.1],
+            ['steppingStones', [
+                [9.7, 10.6, 1.1], [9.9, 11.3, 0.95], [10.4, 11.9, 1.05],
+                [15.0, 6.9, 1.1], [15.3, 7.6, 0.95],
+                [20.8, 6.1, 1.15], [20.5, 6.8, 1.0],
+                [26.6, 7.6, 1.1], [26.3, 8.3, 0.95],
+                [32.1, 10.5, 1.15], [31.5, 19.4, 1.2],
+                [19.5, 19.6, 1.1], [19.8, 20.6, 1.0], [19.6, 21.6, 1.1],
+                [35.5, 12.5, 1.05], [37.2, 12.4, 0.95], [39.0, 12.6, 1.1],
+            ]],
+
+            // --- 12. Sức sống: bướm lượn trên luống hoa & gà con mổ thóc ---
+            ['butterflies', [
+                [27.9, 10.5], [27.9, 14.9], [27.0, 16.4], [26.2, 17.8],
+                [16.5, 20.8], [22.5, 5.6], [9.5, 10.2], [5.8, 12.4],
+            ]],
+            ['chickens', [
+                [23.2, 6.2], [23.8, 6.5],
+                [8.5, 13.8], [9.1, 14.1],
+                [29.0, 6.2],
+            ]],
+        ],
     },
     // ---------------- Ngoại ô: cánh đồng, cối xay gió, mỏ đá ----------------
     outskirts: {
