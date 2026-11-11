@@ -1,3 +1,25 @@
+# TIẾP TỤC — viết 11/11/2026 16:55 (đọc cái này trước khi làm tiếp)
+
+## Việc dở ngay lúc dừng
+1. **Nhánh `team/cook`** (worktree `.team/wt/cook`, trợ lý Claude đang làm lúc dừng, có thể chưa xong / chưa commit): nấu ăn, túi đồ ăn, hái quả, chặt cây, đào quặng, câu cá, leo núi, dụng cụ 3 bậc, ghi chép, hình vật phẩm, mốc mở chức năng. Việc cần làm: xem `git -C .team/wt/cook status`, chạy test, commit trên nhánh, ghép vào main, bấm thử. Gỡ junction node_modules bằng PowerShell trước khi xoá worktree.
+2. **Tranh quái Flow**: `~/Downloads/morwen-sprite-idle.jpg` đã tải. Còn Morwen 4 tấm, sói, sói đầu đàn, Valdric, Người Gác Mộ + quái chương 2. Hôm 11/11 Flow đã tạo 9 tấm, chưa bị chặn. Cách làm: `art/enemies/TIEN_DO.md`.
+3. **Viết lại lời thoại nhiệm vụ** (`game/questData1.js`) theo giọng đã duyệt (`demo/DEMO_LOI_THOAI.md`).
+4. **Làm theo quyết định mới** của người chơi: `demo/Y_TUONG_TAI_NGUYEN_VA_TRANG_BI.md` mục 11.
+
+## Chưa bấm thử (cần kiểm tra bằng cú bấm thật)
+- Quả bom của Goblin Ném Bom trong ải 1.
+- Các chỗ nhảy (bậc, khe, đá nhảy, nhảy xa) và hình 3D của chúng; 6 vùng ngoài Ashford.
+- Chuỗi nhánh, ải c1-n6 / c1-n7, nhiệm vụ ẩn, nhảy rào bế mèo.
+- 12 / 23 cảnh sân đấu 3D chưa nhìn; tranh truyện hiện đúng ở từng ải.
+- Sera dạng S sau khi sửa cỡ; Sylva và các tướng mới bật lớp động tác.
+- Tool thử: Thắng / Thua ngay, Mở hết chương, phép Elarion, điện thoại.
+
+## Lưu ý
+- Thư mục `src/assets/battle/*` + `tools/battle_bg2.py`, `tools/bg_*.py`, `Claude outputs/` đang có thay đổi CHƯA commit của một phiên khác (nền trận màu nước) — người chơi không ưng, đừng commit nhầm.
+- Dữ liệu `data/progress.json` đã trả về bản sao lưu trước khi thử.
+
+---
+
 # ▶️ TIẾP TỤC LÀM — Legend of Capsules (cập nhật 10/11/2026 đêm)
 
 File này để mở máy khác là làm tiếp được ngay. Lịch sử chi tiết từng lần sửa: `NHAT_KY_CAP_NHAT.md` (mới nhất ở trên). Lộ trình: `docs/superpowers/plans/2026-11-06-ban1-lo-trinh.md`.

@@ -148,3 +148,16 @@ Mình đề xuất làm **Mức 1 trước**: có ngay NPC quản hội, có vi�
 6. Bảng "nơi nào làm gì" ở mục 7 có đúng ý không?
 7. Người gác cổng Arena: thêm ngay không?
 8. Guild: chọn Mức 1, Mức 2, hay để sau?
+
+---
+
+## 11. Người chơi đã quyết (11/11/2026, 16:50)
+
+1. **Tài nguyên riêng mỗi tộc** dùng để CHẾ TẠO TRANG BỊ HẦM NGỤC của tộc đó.
+2. **Không khoá mặc đồ theo cấp.** Thay vào đó có vật phẩm "hộp trang bị": mở ra nhận trang bị, người chơi TỰ CHỌN cấp khi mở (10, 20, 30, 40, 50, 60).
+3. Đồ rèn và đồ hầm ngục ngang nhau, không cần làm khó: thợ rèn rèn được cả đồ hầm ngục (bằng tài nguyên tộc).
+4. Tài nguyên KHÔNG quyết định dòng chỉ số. Sẽ có 1 VẬT PHẨM CỐ ĐỊNH để chọn dòng chỉ số: mỗi tháng chỉ mua được 4 lần, ngoài ra phải cày (dự kiến cày hầm ngục). Claude cần gợi ý tên + cách hoạt động.
+5. Đưa danh mục vật phẩm vào game trước (chưa có cách lấy): ĐỒNG Ý.
+6. Bảng "nơi nào làm gì": ĐỒNG Ý.
+7. Người gác cổng Arena: ĐỒNG Ý, mở ở cấp nhân vật chính khoảng 10.
+8. Guild mở khoảng cấp 20, làm CẢ HAI: (a) 2 hội lớn trong truyện ĐỐI ĐẦU nhau, sau này có kiểu PVP theo hội; (b) Guild do người chơi tạo. Chi tiết người chơi sẽ tìm hiểu rồi nói sau.
