@@ -18,7 +18,7 @@ import { MAPS } from '../world/maps.js';
 import { TERRAIN } from '../world/terrain3d.js';
 import { LAYOUTS } from './layouts.js';
 import { buildScene } from './build.js';
-import { uTime, uHeroPos, uCamPos, uSeeThrough } from './assets.js';
+import { uTime, uHeroPos, uCamPos, uSeeThrough, uQuality } from './assets.js';
 
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const CHAR_H = 1.55;
@@ -87,6 +87,7 @@ export function createView(host) {
     function setQuality(q) {
         if (q === quality) return;
         quality = q; resScale = 1; perf.reset();
+        uQuality.value = q === 'high' ? 1.0 : 0.0;
         applyRes();
         const s = q === 'high' ? 2048 : 1024;
         sun.shadow.mapSize.set(s, s); sun.shadow.map?.dispose(); sun.shadow.map = null;
@@ -204,28 +205,33 @@ export function createView(host) {
         frameNo++;
         if (!cur) return;
         let meX = state.focus.x, meZ = state.focus.z, meLift = 0;
-        // nhân vật
+        const mapHeights = MAPS[mapId]?.heights;
+        // nhân vật (h: độ cao bậc 0..2, nâng nhân vật + bóng dưới chân lên h * 0.45 ô; lúc nhảy bóng nhỏ lại)
         for (const s of state.actors) {
             if (!s.url || !s.meta) continue;
-            if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = s.lift ?? 0; }
+            const hLvl = Number(s.h ?? (s.key === 'me' ? state.focus?.h : null) ?? mapHeights?.[Math.floor(s.z)]?.[Math.floor(s.x)]) || 0;
+            const elev = hLvl * 0.45;
+            const lift = s.lift ?? 0;
+            if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = lift + elev; }
             const a = actor(s.key, s.url);
             a.seen = frameNo;
             a.g.visible = !s.hidden;
             const { cols = 3, rows = 4, cw, ch } = s.meta;
             a.tex.repeat.set(1 / cols, 1 / rows);
             a.tex.offset.set(s.col / cols, 1 - ((ROW[s.face] ?? 0) + 1) / rows);
-            const h = s.h ?? CHAR_H;
-            a.sp.scale.set(h * cw / ch, h, 1);
-            a.sp.position.y = s.lift ?? 0;
+            const charH = s.charH ?? CHAR_H;
+            a.sp.scale.set(charH * cw / ch, charH, 1);
+            a.sp.position.y = lift;
             if (a.ghost) { a.ghost.scale.copy(a.sp.scale); a.ghost.position.copy(a.sp.position); }
-            a.sh.scale.setScalar(1 - Math.min(0.5, (s.lift ?? 0) * 0.4));
+            const jumpAmt = Math.max(lift, Math.abs(hLvl - Math.round(hLvl)) * 0.9);
+            a.sh.scale.setScalar(1 - Math.min(0.55, jumpAmt * 0.55));
             if (a.dz) {
                 const p = s.dissolve ?? 0;
                 a.dz.uDz.value = p; a.dz.uGrid.value.set(cols * cw / 8, rows * ch / 8); a.dz.uRows.value = rows;
                 a.sh.scale.setScalar(Math.max(0.01, 1 - p));
                 a.bits.position.y = p * p * 1.6; a.bits.scale.set(1 + p, 1, 1 + p); a.bits.material.opacity = p > 0 ? Math.min(1, p * 4) * (1 - p) : 0;
             }
-            a.g.position.set(s.x, 0, s.z);
+            a.g.position.set(s.x, elev, s.z);
         }
         // đồ vật (ô trong items.webp)
         for (const s of state.items) {
@@ -238,7 +244,8 @@ export function createView(host) {
             a.sp.scale.set(h * cw / ch, h, 1);
             a.sp.position.y = s.bob ? Math.sin(t * 3.3) * 0.06 : 0;
             a.sh.scale.setScalar(s.size * 0.8);
-            a.g.position.set(s.x, 0, s.z);
+            const itemElev = (Number(s.h ?? mapHeights?.[Math.floor(s.z)]?.[Math.floor(s.x)]) || 0) * 0.45;
+            a.g.position.set(s.x, itemElev, s.z);
         }
         for (const [k, a] of actors) if (a.seen !== frameNo) {
             sprites.remove(a.g); a.tex.dispose(); actors.delete(k);
