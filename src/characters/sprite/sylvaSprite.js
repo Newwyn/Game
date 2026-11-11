@@ -22,6 +22,7 @@ export const SYLVA_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code (FrameSpriteView._juice) — tắt để so: ?sylvaAnim=old
     // Mốc ra đòn (registry SUMMONER.anims): chĩa gậy 0,25s · gọi Sói & Đại Bàng 0,35s · cắm gậy gọi Gấu 0,25s · Thần Hươu 0,2s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },

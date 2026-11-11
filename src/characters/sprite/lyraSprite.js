@@ -22,6 +22,7 @@ export const LYRA_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code (FrameSpriteView._juice) — tắt để so: ?lyraAnim=old
     // Mốc ra đòn (registry ARCHER.anims): nhả tên 0,2s · Tiễn Gió Chớp 0,42s · gọi gió 0,38s · nhả Thần Tiễn 0,16s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế: tên đặt sẵn trên dây

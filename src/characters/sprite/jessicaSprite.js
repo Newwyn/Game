@@ -19,6 +19,7 @@ export const JESSICA_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: true,   // chau chuốt động tác bằng code (FrameSpriteView._juice) — tắt để so: ?jessicaAnim=old
     // Mốc ra đòn (registry ASSASSIN.anims): chém 0,18s · Phóng Bùa lộn 0,42s · phóng đứng 0,2s · hiện ra chém 0,18s · Tàng Hình 0,38s
     // noSpin: tranh đã vẽ sẵn vòng lộn -> bỏ xoay lộn của khung xương (leapTo flip) · noLift: không nhún theo hông
     clips: {

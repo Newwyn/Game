@@ -287,10 +287,12 @@ export class FrameSpriteView extends CutoutCharacterView {
             const { time, h, dur } = this._strikeInfo;
             if (time < h) {                       // lấy đà: kéo người ra sau, hơi lùn xuống
                 const u = time / h, e = Math.sin(u * Math.PI * 0.5);
-                tx = -0.2 * e * (1 - u * 0.35); sy = 1 - 0.035 * e; sx = 1 + 0.03 * e; tilt = 0.035 * e;
+                const pull = this.sprite.juice === 'ranged' ? 0.4 : 1;
+                tx = -0.2 * pull * e * (1 - u * 0.35); sy = 1 - 0.035 * e; sx = 1 + 0.03 * e; tilt = 0.035 * pull * e;
             } else {                              // bật tới: giãn theo hướng chém rồi nảy về
                 const v = Math.min(1, (time - h) / Math.max(0.05, dur - h)), e = Math.exp(-v * 5.5);
-                tx = 0.34 * e * Math.cos(v * 9); sx = 1 + 0.09 * e; sy = 1 - 0.05 * e; tilt = -0.05 * e;
+                const ranged = this.sprite.juice === 'ranged';   // đánh xa (bắn tên, phép): giật LÙI nhẹ khi nhả thay vì lao tới
+                tx = (ranged ? -0.16 : 0.34) * e * Math.cos(v * 9); sx = 1 + (ranged ? 0.04 : 0.09) * e; sy = 1 - (ranged ? 0.02 : 0.05) * e; tilt = (ranged ? 0.04 : -0.05) * e;
                 const tag = name + ':' + Math.round((T - (time - h)) * 10);
                 if (J.lastStrike !== tag && time - h < 0.06) { J.lastStrike = tag; J.hold = 0.07; J.holdFrame = this._strikeInfo.hitFrame; }
             }

@@ -24,6 +24,7 @@ export const SERAPHINE_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code (FrameSpriteView._juice) — tắt để so: ?seraphineAnim=old
     // Mốc ra phép (registry PRIEST.anims): cầu sáng 0,22s · hồi máu 0,3s · khiên 0,28s · giơ gậy vào niệm 0,45s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế: gậy chĩa chéo, tay gần mở sẵn

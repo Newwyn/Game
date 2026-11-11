@@ -113,6 +113,9 @@ function showHit(target, e, { fx = true, size = 1 } = {}) {
 // ------------------------------------------------------------
 /** Elarion: màu loé ra đòn theo viên ngọc giữ gần nhất */
 const ELEM_SWING = { f: 'fire', i: 'ice', b: 'arcane' };
+// 11/2026 — DỌN HIỆU ỨNG (người chơi: "hiệu ứng làm sao khi chiến đấu dễ nhìn"): mỗi đòn chỉ 1 hiệu ứng chính, bỏ lớp trùng ý.
+//   Xem lại bản đầy đủ cũ: ?fxClean=0
+const FX_CLEAN = typeof location === 'undefined' || new URLSearchParams(location.search).get('fxClean') !== '0';
 function onAutoAttack(data) {
     const attackerView = getView(data.attackerId, data.attackerIndex);
     const attacker = game.roomData?.players?.[data.attackerId];
@@ -137,16 +140,15 @@ function onAutoAttack(data) {
             const isAssassin = attacker.squad?.[data.attackerIndex]?.classId === 'assassin';
             if (isAssassin && (attackerView.isStealthed || (data.isCrit && !JESS_PIXEL))) {   // pixelfx: sét chỉ khi Tàng Hình
                 // Jessica: tàng hình -> vệt chém sấm tím; chí mạng -> chém chữ X sấm (tranh jessicaFx)
-                if (data.isCrit) spawnThunderX(target.position, { dir, size: 1.7 });
-                else spawnThunderSlash(target.position, { dir, size: 1.5 });
+                if (!(JESS_PIXEL && FX_CLEAN)) { if (data.isCrit) spawnThunderX(target.position, { dir, size: 1.7 }); else spawnThunderSlash(target.position, { dir, size: 1.5 }); }
                 if (JESS_PIXEL) {
                     spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
                     spawnPixelFx(data.isCrit ? 'impacts/crit-hit' : 'lightning/zap-hit', { pos: target.position, flip: dir < 0, palette: 'arcane', scale: data.isCrit ? 0.9 : 0.8 });
                 }
             } else if (isAssassin && JESS_PIXEL) {
                 // Jessica đánh thường (KHÔNG tàng hình): chỉ chém — vệt chém cũ + vệt chém lưỡi liềm tím (như Rok); sét tím chỉ khi Tàng Hình (nhánh trên)
-                if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.05 });   // chí mạng: nhát chém to hơn, vẫn không sét
-                else spawnSlashVfx(target.position, { dir, size: 1 });
+                if (!FX_CLEAN) { if (data.isCrit) spawnBackstabVfx(target.position, { dir, style: 'crit', size: 1.05 }); else spawnSlashVfx(target.position, { dir, size: 1 }); }
+                else if (data.isCrit) spawnPixelFx('impacts/crit-hit', { pos: target.position, flip: dir < 0, palette: 'arcane', scale: 0.8 });   // chí mạng: nổ chí mạng nhỏ, vẫn không sét
                 spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
             } else if (attacker.squad?.[data.attackerIndex]?.classId === 'warrior') {
                 // Rok: nhát BỔ DỌC bằng kiếm — vệt thép sáng gần thẳng đứng, to rõ
@@ -177,7 +179,7 @@ function onAutoAttack(data) {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) {
                     spawnSunBurst(target.position, { size: 1.2 });
-                    if (SERA_PIXEL) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'gold', scale: 0.8 });   // + tia sáng vàng
+                    if (SERA_PIXEL && !FX_CLEAN) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'gold', scale: 0.8 });   // + tia sáng vàng
                 }
             } });
         };
@@ -332,7 +334,7 @@ function onAutoAttack(data) {
             if (!target) return;
             spawnLyraArrow(bowPoint(attackerView), chestOf(target, 0.95), { duration: 0.2, size: 0.8, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { size: 0.8 });
-                if (LYRA_PIXEL && !data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'cyber', scale: 0.8 });   // + tia lửa xanh ngọc
+                if (LYRA_PIXEL && !FX_CLEAN && !data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: target.position.x < attackerView.position.x, palette: 'cyber', scale: 0.8 });   // + tia lửa xanh ngọc
             } });
         };
         if (attackerView.isBusy) { fire(); return; }
@@ -728,7 +730,7 @@ function warriorTaunt(caster, data, opponentId) {
     caster.playAction('taunt', {
         onHit: () => {
             spawnRokRoar(caster, { radius: 9 });   // giữ hình con sư tử khổng lồ (tranh)
-            if (ROK_PIXEL) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
+            if (ROK_PIXEL && !FX_CLEAN) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
             cameraRig.shake(0.45, 520);   // sư tử khổng lồ: rung mạnh hơn
             data.effects.forEach(e => {
                 const v = getView(opponentId, e.targetIndex);
@@ -739,7 +741,7 @@ function warriorTaunt(caster, data, opponentId) {
                 gameTimeout(() => {
                     spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
                     if (e.isMiss) return;
-                    if (ROK_PIXEL) spawnPixelFx('impacts/hit-spark', { pos: v.position, flip: v.position.x < caster.position.x, scale: 0.9 });
+                    if (ROK_PIXEL) { if (!FX_CLEAN) spawnPixelFx('impacts/hit-spark', { pos: v.position, flip: v.position.x < caster.position.x, scale: 0.9 }); }
                     else spawnRoarHit(v.position);
                     v.flashHit();
                 }, 60 + (e.dist ?? 3) * 45);
@@ -798,7 +800,7 @@ function warriorPush(caster, data, opponentId, hitFrame) {
             if (ROK_PIXEL) {
                 // pixelfx: đất nứt + sóng chấn động lan ra trước mặt Rok (rung đất làm quái gần choáng nhẹ)
                 const f = caster.facingLeft ? -1 : 1;
-                spawnPixelFx('impacts/ground-slam', { pos: { x: caster.position.x + f * 1.3, z: caster.position.z }, flip: caster.facingLeft, scale: 0.45, maxLife: 3.5 });
+                spawnPixelFx('impacts/ground-slam', { pos: { x: caster.position.x + f * 1.3, z: caster.position.z }, flip: caster.facingLeft, scale: 0.45, maxLife: FX_CLEAN ? 1.5 : 3.5 });
             } else spawnRokBash(caster);
             cameraRig.shake(0.35, 240);
         },
@@ -2012,7 +2014,7 @@ function onArcherShots(data) {
                 if (t) spawnLyraArrow(from, chestOf(t, 1.0), { duration: 0.2, size: spirit ? 0.7 : 0.8, onHit: () => {
                     showHit(t, e, { size: 0.7 });
                     if (spirit && !e.isMiss) spawnFeatherBurst(t.position, { size: 0.6 });
-                    if (LYRA_PIXEL && !e.isMiss) spawnPixelFx('impacts/hit-spark', { pos: t.position, flip: t.position.x < from.x, palette: 'cyber', scale: 0.65 });
+                    if (LYRA_PIXEL && !FX_CLEAN && !e.isMiss) spawnPixelFx('impacts/hit-spark', { pos: t.position, flip: t.position.x < from.x, palette: 'cyber', scale: 0.65 });
                 } });
                 return;
             }

@@ -174,7 +174,7 @@ const ARCHER = {
 const PRIEST = {
     rig: SERA_RIG,
     clips: seraClips,
-    height: 2.9,
+    height: 2.7,   // 2,9 -> 2,7 (11/2026): Sera đứng thẳng + tóc xoã + gậy cao nên trông to hơn các tướng khom người thủ thế
     shadowSize: 1.4,
     skinKeys: SERA_SKINS,
     defaultSkins: SERA_DEFAULT_SKINS,
