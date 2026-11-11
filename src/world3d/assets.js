@@ -11,6 +11,7 @@ export const uTime = { value: 0 };   // thời gian chung cho cỏ cây lay gió
 export const uHeroPos = { value: new THREE.Vector3(0, -999, 0) };     // tâm nhân vật chính (thế giới)
 export const uCamPos = { value: new THREE.Vector3(0, 20, 20) };       // vị trí camera
 export const uSeeThrough = { value: 1.0 };                            // 0..1: bật nhìn xuyên vật che (?seeThrough=off để tắt)
+export const uQuality = { value: 1.0 };                               // 1 = high, 0 = low (giảm bớt hiệu ứng phụ khi máy yếu)
 
 // bộ Nature (xanh ngọc) -> tông ấm như tranh nền của game
 const RECOLOR = {
@@ -57,16 +58,18 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = 
             float tProj = dot(cp, ch) / max(chLen2, 0.001);
             if (tProj > 0.12 && tProj < 0.985) {
               vec3 closest = uCamPos + ch * tProj;
-              vec3 diff = (vWorldPos - closest) * vec3(1.0, 0.72, 1.0);
+              vec3 diff = (vWorldPos - closest) * vec3(0.95, 0.68, 0.95);
               float dist = length(diff);
-              float rOuter = 2.35;
+              float rOuter = 2.55;
               if (dist < rOuter) {
-                float fade = smoothstep(0.65, rOuter, dist);
-                float depthFade = smoothstep(0.985, 0.90, tProj);
-                float alpha = mix(1.0, mix(0.4, 1.0, fade), uSeeThrough * depthFade);   // chỉ LÀM MỜ bớt (còn ~40% vật che), không khoét trong suốt hẳn — người chơi yêu cầu
-                vec2 bp = floor(gl_FragCoord.xy);
-                float bayer = fract(dot(bp, vec2(0.5, 0.25)) + fract(bp.x * 0.25 + bp.y * 0.75) * 0.5);
-                if (alpha < bayer * 0.92 + 0.06) discard;
+                float edge = smoothstep(0.35, rOuter, dist);
+                float fade = edge * edge * (3.0 - 2.0 * edge);
+                float depthFade = smoothstep(0.985, 0.88, tProj);
+                float alpha = mix(1.0, mix(0.40, 1.0, fade), uSeeThrough * depthFade);   // giữ ~40% vật che, mép vòng mềm + nhiễu mịn IGN
+                float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+                float fine = fract(dot(gl_FragCoord.xy, vec2(0.75487766, 0.56984029)));
+                float noise = mix(ign, fine, 0.28);
+                if (alpha < noise * 0.94 + 0.04) discard;
               }
             }
           }` : ''}

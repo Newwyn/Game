@@ -5,7 +5,8 @@
 // ============================================================
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { proto, loadModels, addSway, patchMaterial } from './assets.js';
+import { proto, loadModels, addSway, patchMaterial, uHeroPos } from './assets.js';
+import { EXTRA_BUILD, buildJumpFeatures, buildRegionLife } from './life.js';
 
 export const isOldDetail = () => typeof location !== 'undefined' && new URLSearchParams(location.search).get('mapDetail') === 'old';
 
@@ -69,12 +70,21 @@ export async function buildScene(id, map, terrain, layout) {
 
     for (const o of map.objects ?? []) for (const [x, y] of o.area ?? [[o.x, o.y]]) coverRect(x, y, x + 1, y + 1);
     for (const n of map.npcs ?? []) coverRect(n.x, n.y, n.x + 1, n.y + 1);
+
+    // Dữ liệu tính năng nhảy (heights, gaps, stones — có thể chưa có trong map)
+    const H_AT = (x, z) => inside(x, z) ? (Number(map.heights?.[z]?.[x]) || 0) : 0;
+    const gapSet = new Set((map.gaps ?? []).map(([x, y]) => `${x},${y}`));
+    const stoneSet = new Set((map.stones ?? []).map(([x, y]) => `${x},${y}`));
+    const isSpecialTile = (x, z) => inside(x, z) && (gapSet.has(`${x},${z}`) || stoneSet.has(`${x},${z}`) || H_AT(x, z) > 0);
+    for (let z = 0; z < rows; z++) for (let x = 0; x < cols; x++) if (isSpecialTile(x, z)) coverRect(x, z, x + 1, z + 1);
+
     // ---------- công trình đặt tay ----------
     const oldMode = isOldDetail();
-    const ctx = { B, group, anim, cover: coverRect, lam, rnd, pick, style, oldMode };
-    // Chốt an toàn: vật trang trí thêm (detailItems) mà rơi vào ô ĐI ĐƯỢC thì bỏ — không để nhân vật đi xuyên vật.
+    const roofPerches = [], treeSpots = [];
+    const ctx = { B, group, anim, cover: coverRect, lam, rnd, pick, style, oldMode, roofPerches };
+    // Chốt an toàn: vật trang trí thêm (detailItems) mà rơi vào ô ĐI ĐƯỢC hoặc ô nhảy đặc biệt thì bỏ — không để nhân vật đi xuyên vật.
     //   (vật phẳng / bay trên cao thì không cần chặn)
-    const FLAT = new Set(['dirtPatch', 'steppingStones', 'butterflies', 'smoke', 'chickens', 'clothesline']);
+    const FLAT = new Set(['dirtPatch', 'steppingStones', 'butterflies', 'fireflies', 'groundFog', 'smoke', 'chickens', 'clothesline']);
     const posOf = (it) => {
         if (it[0] === 'model') return [it[2], it[3]];
         if (Array.isArray(it[1])) return it[1];
@@ -82,7 +92,8 @@ export async function buildScene(id, map, terrain, layout) {
         return [it[1], it[2]];
     };
     const walkable = (it) => { const [x, z] = posOf(it); return map.grid?.[Math.floor(z)]?.[Math.floor(x)] === '.'; };
-    const details = oldMode ? [] : (layout.detailItems ?? []).filter(it => FLAT.has(it[0]) || !walkable(it));
+    const onSpecial = (it) => { const [x, z] = posOf(it); return isSpecialTile(Math.floor(x), Math.floor(z)); };
+    const details = oldMode ? [] : (layout.detailItems ?? []).filter(it => !onSpecial(it) && (FLAT.has(it[0]) || !walkable(it)));
     const itemsList = [...(layout.items ?? []), ...details];
     for (const [kind, ...args] of itemsList) {
         const f = BUILD[kind];
@@ -104,16 +115,21 @@ export async function buildScene(id, map, terrain, layout) {
     const tileType = [];
     for (let z = -M; z < rows + M; z++) for (let x = -M; x < cols + M; x++) {
         let t = T(x, z);
-        if (!inside(x, z)) {
+        const ins = inside(x, z);
+        if (!ins) {
             const d = Math.max(x < 0 ? -x : x - cols + 1, z < 0 ? -z : z - rows + 1);
             if (t === 'b' || t === 's') t = 'g';
             if (t !== 'w' && t !== 'p' && d > 2 && rnd() < Math.min(0.85, d * 0.12)) t = 't';
         }
         tileType.push(t);
-        const y = t === 'w' ? -0.9 : t === 'p' ? -0.03 : t === 's' ? 0.0 : 0;
+        const keyXZ = `${x},${z}`;
+        const isGap = ins && gapSet.has(keyXZ);
+        const isStone = ins && stoneSet.has(keyXZ);
+        const elev = H_AT(x, z) * 0.45;
+        const y = (t === 'w' || isStone) ? -0.9 : isGap ? -0.78 : (t === 'p' ? -0.03 : 0) + elev;
         m4.compose(v1.set(x + 0.5, (y - 0.14 - 3) / 2, z + 0.5), q0, v2.set(1, y - 0.14 + 3, 1)); body.setMatrixAt(k, m4);
         body.setColorAt(k, col.setHSL(0.07, 0.36, 0.28 + rnd() * 0.05));
-        const bump = !oldMode && (t === 'g' || t === 'd' || t === 't' || t === 'b') ? (Math.sin(x * 0.7 + z * 0.5) * 0.015) : 0;
+        const bump = !oldMode && !isGap && !isStone && (t === 'g' || t === 'd' || t === 't' || t === 'b') ? (Math.sin(x * 0.7 + z * 0.5) * 0.015) : 0;
         m4.compose(v1.set(x + 0.5, y - 0.07 + bump * 0.5, z + 0.5), q0, v2.set(1, 0.14 + bump, 1)); top.setMatrixAt(k, m4);
         const [h, s, l] = tint[t] ?? GROUND[t] ?? GROUND.g;
         const n = (Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08) + Math.sin(x * 0.9) * Math.sin(z * 0.8) * 0.4) * 0.035;
@@ -123,11 +139,15 @@ export async function buildScene(id, map, terrain, layout) {
     group.add(body, top);
     top.userData.ground = true;
 
-    // ---------- mép đường mòn lởm chởm & đá lát lẫn cỏ (khi !oldMode) ----------
-    if (!oldMode && id === 'ashford') {
+    // ---------- bậc nhảy (heights), khe suối / hố (gaps), phiến đá nổi (stones) ----------
+    buildJumpFeatures(ctx, map, terrain, H_AT, gapSet, stoneSet);
+
+    // ---------- mép đường mòn lởm chởm & đá lát lẫn cỏ cho mọi vùng (khi !oldMode) ----------
+    if (!oldMode) {
         const edgeStones = [];
         const grassPatches = [];
         for (let z = 0; z < rows; z++) for (let x = 0; x < cols; x++) {
+            if (isSpecialTile(x, z)) continue;
             const t = T(x, z);
             if (t === 'p') {
                 // mép đường mòn tiếp giáp cỏ -> thêm sỏi / vệt đất lởm chởm ở rìa
@@ -193,24 +213,26 @@ export async function buildScene(id, map, terrain, layout) {
         if (t === 't') {
             const far = !ins;
             if (far && rnd() < 0.35) continue;
-            B.put(pick(far ? edgeTrees : trees), cx + (rnd() - 0.5) * 0.5, 0, cz + (rnd() - 0.5) * 0.5, rnd() * 6, treeScale[0] + rnd() * (treeScale[1] - treeScale[0]));
+            const tx = cx + (rnd() - 0.5) * 0.5, tz = cz + (rnd() - 0.5) * 0.5, tsc = treeScale[0] + rnd() * (treeScale[1] - treeScale[0]);
+            B.put(pick(far ? edgeTrees : trees), tx, 0, tz, rnd() * 6, tsc);
+            if (x >= -2 && x < cols + 2 && z >= -2 && z < rows + 2) treeSpots.push([tx, tz, tsc]);
             if (rnd() < 0.3) B.put(rnd() < 0.5 ? 'nature/plant_bushLarge' : 'nature/grass_leafsLarge', cx + (rnd() - 0.5), 0, cz + (rnd() - 0.5), rnd() * 6, 1.8);
         } else if (t === 'b') {
             B.put(pick(['nature/plant_bushLarge', 'nature/plant_bushDetailed', 'nature/rock_smallC']), cx, 0, cz, rnd() * 6, 2.2 + rnd() * 0.6);
         } else if (t === 'f') {
             for (let j = 0; j < 4; j++) wheatAt.push([cx + (rnd() - 0.5) * 0.8, cz + (rnd() - 0.5) * 0.8, rnd() * 6, 0.9 + rnd() * 0.35]);
         } else if ((t === 'g' || t === 'd') && ins) {   // cỏ / hoa chỉ trong bản đồ (ngoài viền đã mờ sương, bỏ cho nhẹ)
-            const n = !oldMode && id === 'ashford' ? 3 : 2;
-            const cluster = !oldMode && id === 'ashford' ? Math.sin(x * 0.45 + z * 0.38) * Math.cos(z * 0.52 - x * 0.25) : 0;
+            const n = !oldMode ? 3 : 2;
+            const cluster = !oldMode ? Math.sin(x * 0.45 + z * 0.38) * Math.cos(z * 0.52 - x * 0.25) : 0;
             for (let j = 0; j < n; j++) {
                 const r = rnd();
                 if (r > (cluster > 0.2 ? 0.88 : 0.72)) continue;
                 const name = t === 'd' ? (r < 0.4 ? 'nature/grass_leafs' : r < 0.6 ? 'nature/grass_large' : 'nature/plant_flatTall')
                     : r < 0.42 ? (rnd() < 0.5 ? 'nature/grass' : 'nature/grass_large') : r < 0.58 ? 'nature/grass_leafs' : r < (cluster > 0.15 ? 0.78 : 0.68) ? pick(flowers) : 'nature/plant_bushSmall';
-                const sc = !oldMode && id === 'ashford' ? 1.0 + rnd() * 1.25 : 1.3 + rnd() * 0.8;
+                const sc = !oldMode ? 1.0 + rnd() * 1.25 : 1.3 + rnd() * 0.8;
                 B.put(name, cx + (rnd() - 0.5) * 0.9, 0, cz + (rnd() - 0.5) * 0.9, rnd() * 6, sc, sc * (0.85 + rnd() * 0.35), sc);
             }
-        } else if (t === 'p' && rnd() < (!oldMode && id === 'ashford' ? 0.14 : 0.08)) {
+        } else if (t === 'p' && rnd() < (!oldMode ? 0.14 : 0.08)) {
             B.put('nature/stone_smallA', cx + (rnd() - 0.5) * 0.8, -0.03, cz + (rnd() - 0.5) * 0.8, rnd() * 6, 1 + rnd());
         } else if (t === 'w' && rnd() < (style.lilies ?? 0.04)) {
             B.put(rnd() < 0.5 ? 'nature/lily_large' : 'nature/lily_small', cx, -0.31, cz, rnd() * 6, 1.8);
@@ -221,6 +243,7 @@ export async function buildScene(id, map, terrain, layout) {
     }
 
     if (wheatAt.length) group.add(wheatField(wheatAt));
+    if (!oldMode) buildRegionLife(ctx, id, map, terrain, treeSpots, roofPerches);
     await loadModels(B.keys());
     B.flush(group);
     return { group, water, anim, top };
@@ -307,6 +330,7 @@ export const BUILD = {
 
         if (door != null && !ctx.oldMode) BUILD.dirtPatch(ctx, door, z1 + 0.55, 1.35, 0.85);
         if (sign) BUILD.model(ctx, 'survival/signpost-single', sign[0], sign[1], { s: 3 });
+        ctx.roofPerches?.push([(x0 + x1) / 2, h + rh * 0.48, (z0 + z1) / 2]);
         ctx.cover(x0, z0, x1, z1);
     },
     /** Dọn vùng: không tự rải cây / bụi / cỏ trong khung này */
@@ -778,15 +802,20 @@ export const BUILD = {
             return { g, x, z, ph: i * 2.3 + ctx.rnd() * 2 };
         });
         ctx.anim.push((t) => {
+            const hx = uHeroPos.value.x, hz = uHeroPos.value.z;
             for (const h of hens) {
-                const w = t * 0.9 + h.ph;
-                const peck = Math.max(0, Math.sin(t * 5.5 + h.ph * 2)) > 0.65 ? 0.38 : 0;
-                h.g.position.set(h.x + Math.cos(w) * 0.28, Math.abs(Math.sin(t * 4 + h.ph)) * 0.02, h.z + Math.sin(w) * 0.22);
+                const dist = Math.hypot(hx - h.x, hz - h.z);
+                const scared = dist < 3.6;
+                const w = t * (scared ? 3.8 : 0.9) + h.ph;
+                const peck = !scared && Math.max(0, Math.sin(t * 5.5 + h.ph * 2)) > 0.65 ? 0.38 : 0;
+                const hop = scared ? Math.abs(Math.sin(t * 9 + h.ph)) * 0.08 : Math.abs(Math.sin(t * 4 + h.ph)) * 0.02;
+                h.g.position.set(h.x + Math.cos(w) * 0.28, hop, h.z + Math.sin(w) * 0.22);
                 h.g.rotation.y = Math.atan2(Math.cos(w) * 0.22, -Math.sin(w) * 0.28);
                 h.g.rotation.x = peck;
             }
         });
     },
+    ...EXTRA_BUILD,
 };
 
 let BRICK = null;
