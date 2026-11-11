@@ -39,6 +39,11 @@ function idleMode(sprite, key) {
     return sprite.defaultIdle;
 }
 
+/** ?<tên>Anim=old (VD ?rokAnim=old): tắt lớp chau chuốt động tác để so với bản cũ */
+const JUICE_OFF = (idleParam) => {
+    try { return new URLSearchParams(location.search).get(String(idleParam ?? 'idle').replace(/Idle$/, '') + 'Anim') === 'old'; } catch { return false; }
+};
+
 // ---------- Nhịp khung đòn đánh (mode strike) ----------
 // Trước mốc ra đòn: khung đầu lướt nhanh, khung LẤY ĐÀ cuối (ngay trước cú đánh) giữ lâu nhất -> cú đánh bật ra dứt khoát.
 // Sau mốc ra đòn: khung TRÚNG giữ lâu cho thấy lực, các khung thu về nhanh dần.
@@ -103,7 +108,11 @@ export class FrameSpriteView extends CutoutCharacterView {
         this.cutoutRoot.add(this._spin);
 
         this._spTex = spriteTexture(sp.image, sp.pixel);
-        const geo = new THREE.PlaneGeometry(1, 1);
+        // juice (chau chuốt động tác bằng code, 11/2026 — thử trên Rok): mặt phẳng chia 8 hàng để thân trên đung đưa mềm
+        this._juiceOn = !!sp.juice && !JUICE_OFF(visual.spriteIdleParam);
+        this._rows = this._juiceOn ? 8 : 1;
+        this._j = { sway: 0, back: 0, ty: 0, tilt: 0, sx: 1, sy: 1, hold: 0, holdFrame: '', lastFrame: '', kick: 0, lastStrike: '' };
+        const geo = new THREE.PlaneGeometry(1, 1, 1, this._rows);
         const mat = new THREE.MeshBasicMaterial({ map: this._spTex, alphaToCoverage: true, side: THREE.DoubleSide, fog: false });
         mat.userData.baseShade = 1;
         this.materials.push(mat);
@@ -136,10 +145,14 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._frame = name;
         const [W, H] = meta.size, [x, y, w, h] = f.rect, [ox, oy] = f.org, u = this._u;
         const x0 = -ox * u, x1 = (w - ox) * u, y1 = oy * u, y0 = (oy - h) * u;
-        const g = this._spMesh.geometry;
-        g.attributes.position.array.set([x0, y1, 0, x1, y1, 0, x0, y0, 0, x1, y0, 0]);
+        const g = this._spMesh.geometry, R = this._rows, P = g.attributes.position.array, UV = g.attributes.uv.array;
+        for (let r = 0; r <= R; r++) {   // hàng 0 = đỉnh hình, hàng R = đáy
+            const k = r / R, py = y1 + (y0 - y1) * k, v = 1 - (y + h * k) / H;
+            P.set([x0, py, 0, x1, py, 0], r * 6);
+            UV.set([x / W, v, (x + w) / W, v], r * 4);
+        }
+        this._rowX = [x0, x1];   // mép trái / phải (để đung đưa từng hàng)
         g.attributes.position.needsUpdate = true;
-        g.attributes.uv.array.set([x / W, 1 - y / H, (x + w) / W, 1 - y / H, x / W, 1 - (y + h) / H, (x + w) / W, 1 - (y + h) / H]);
         g.attributes.uv.needsUpdate = true;
     }
 
@@ -174,6 +187,7 @@ export class FrameSpriteView extends CutoutCharacterView {
                 // Nhịp có lực: chia lại thời gian TRONG từng đoạn (mốc ra đòn h và độ dài đòn không đổi -> gameplay giữ nguyên)
                 k = time < h ? Math.min(pre - 1, weightedIndex(time / h, preWeights(pre)))
                     : pre + Math.min(post - 1, weightedIndex((time - h) / (dur - h), postWeights(post)));
+                this._strikeInfo = { time, h, dur, hitFrame: fr[pre] };
             } else if (cfg.mode === 'clip') {
                 const dur = cfg.dur ?? (this.actions[name]?.getClip().duration || 1);
                 k = Math.min(n - 1, Math.floor(((time % dur) / dur) * n + 1e-6));
@@ -227,6 +241,7 @@ export class FrameSpriteView extends CutoutCharacterView {
         }
         const br = breathing ? Math.sin((cfg ? this._clipT : this._idleT) * Math.PI) : 0;
         this._spMesh.scale.set(1 - 0.004 * br, 1 + 0.012 * br, 1);
+        if (this._juiceOn) this._juice(dt, cfg, breathing, dead);
 
         // lửa trên tay (chỉ nhân vật có cấu hình fire)
         const fire = this.sprite.fire ? this.palmFire : null;
@@ -249,6 +264,66 @@ export class FrameSpriteView extends CutoutCharacterView {
             fire.group.visible = show;
             if (show && !baseShow && dt > 0) fire.update(dt);
         }
+    }
+
+    /**
+     * CHAU CHUỐT ĐỘNG TÁC BẰNG CODE (giữ nguyên tranh) — học cách nhân vật King Raid "sống":
+     *   đứng: thở sâu hơn + thân trên đung đưa chậm · đánh: kéo người lấy đà -> bật tới + giãn theo hướng chém -> KHỰNG 1 nhịp
+     *   ở khung trúng (hit-stop) -> nảy về · chạy: nhún theo bước + chúi người · trúng đòn: giật lùi + bẹp · đổi khung: nảy nhẹ.
+     *   Chỉ đổi HÌNH (vị trí / co giãn mặt phẳng): mốc gây sát thương, thời lượng đòn giữ nguyên. Tắt: ?<tên>Anim=old.
+     */
+    _juice(dt, cfg, breathing, dead) {
+        const J = this._j, mesh = this._spMesh, name = this._clipName, mode = cfg?.mode;
+        const k = (rate) => Math.min(1, dt * rate);
+        let tx = 0, ty = 0, sx = 1, sy = 1, tilt = 0, sway = 0;
+        const T = this._time ?? 0;
+        if (dead) { /* tranh gục giữ nguyên */ }
+        else if (breathing || !cfg) {
+            // đứng / thủ thế: thở sâu (vai nhô) + thân trên đưa qua lại rất chậm
+            const b = Math.sin(T * 2.1);
+            sy = 1 + 0.014 * b; sx = 1 - 0.006 * b;
+            sway = Math.sin(T * 1.3 + 0.7) * 0.035;
+        } else if (mode === 'strike' && this._strikeInfo) {
+            const { time, h, dur } = this._strikeInfo;
+            if (time < h) {                       // lấy đà: kéo người ra sau, hơi lùn xuống
+                const u = time / h, e = Math.sin(u * Math.PI * 0.5);
+                tx = -0.2 * e * (1 - u * 0.35); sy = 1 - 0.035 * e; sx = 1 + 0.03 * e; tilt = 0.035 * e;
+            } else {                              // bật tới: giãn theo hướng chém rồi nảy về
+                const v = Math.min(1, (time - h) / Math.max(0.05, dur - h)), e = Math.exp(-v * 5.5);
+                tx = 0.34 * e * Math.cos(v * 9); sx = 1 + 0.09 * e; sy = 1 - 0.05 * e; tilt = -0.05 * e;
+                const tag = name + ':' + Math.round((T - (time - h)) * 10);
+                if (J.lastStrike !== tag && time - h < 0.06) { J.lastStrike = tag; J.hold = 0.07; J.holdFrame = this._strikeInfo.hitFrame; }
+            }
+        } else if (name === 'move') {
+            const st = Math.abs(Math.sin(T * 9.5));   // nhún theo bước chân
+            ty = 0.07 * st; tilt = -0.06; sy = 1 - 0.02 * (1 - st);
+        } else if (name === 'hurt') {
+            const u = Math.min(1, this._clipT / 0.32), e = Math.exp(-u * 4);
+            tx = -0.26 * e; sx = 1 + 0.07 * e; sy = 1 - 0.07 * e; tilt = 0.07 * e;
+        } else if (name === 'stunned') {
+            sway = Math.sin(T * 5) * 0.06; tilt = Math.sin(T * 2.5) * 0.04;
+        } else if (name === 'victory' || name === 'victoryIdle') {
+            const b = Math.abs(Math.sin(T * 3.2)); ty = 0.06 * b; sy = 1 + 0.02 * b;
+        } else if (mode === 'loop' || mode === 'hold') {
+            const b = Math.sin(T * 3); sy = 1 + 0.008 * b; sway = Math.sin(T * 1.7) * 0.02;
+        }
+        // KHỰNG ở khung trúng: giữ nguyên khung đó thêm 70 ms (đòn có lực)
+        if (J.hold > 0) { J.hold -= dt; if (J.holdFrame) this._setFrame(J.holdFrame); }
+        // đổi khung trong động tác: nảy nhẹ (đỡ cảm giác giật cục giữa 2 tranh)
+        if (this._frame !== J.lastFrame) { if (J.lastFrame && mode && mode !== 'still') J.kick = 1; J.lastFrame = this._frame; }
+        J.kick = Math.max(0, J.kick - dt * 9);
+        sx *= 1 + 0.025 * J.kick; sy *= 1 - 0.02 * J.kick;
+        // trượt êm tới giá trị đích (không đổi đột ngột khi chuyển động tác)
+        J.back += (tx - J.back) * k(26); J.ty += (ty - J.ty) * k(26);
+        J.sx += (sx - J.sx) * k(30); J.sy += (sy - J.sy) * k(30);
+        J.tilt += (tilt - J.tilt) * k(20); J.sway += (sway - J.sway) * k(10);
+        mesh.position.set(J.back, J.ty, 0);
+        mesh.scale.set(mesh.scale.x * J.sx, mesh.scale.y * J.sy, 1);
+        mesh.rotation.z = J.tilt;
+        // thân trên đung đưa: hàng càng cao lệch càng nhiều (chân đứng yên)
+        const R = this._rows, P = mesh.geometry.attributes.position.array, [x0, x1] = this._rowX ?? [0, 0];
+        for (let r = 0; r <= R; r++) { const f = Math.pow(1 - r / R, 1.7) * J.sway; P[r * 6] = x0 + f; P[r * 6 + 3] = x1 + f; }
+        mesh.geometry.attributes.position.needsUpdate = true;
     }
 
     /**

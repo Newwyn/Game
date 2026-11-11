@@ -19,6 +19,7 @@ export const ROK_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: true,   // chau chuốt động tác bằng code (FrameSpriteView._juice) — tắt để so: ?rokAnim=old
     // Mốc ra đòn (registry ROK.anims): đánh thường 0,24s · Sư Tử Gầm 0,42s · Đẩy Khiên 0,22s · Dựng Khiên 0,14s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế trong trận (khiên trước ngực)
