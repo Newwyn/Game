@@ -31,6 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
+const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
     makeThunderAura, updateThunderAura, surgeThunderAura, spawnAuraFlame, makeEyeGlow, updateEyeGlow,
@@ -745,7 +746,8 @@ export class CutoutCharacterView extends CharacterView {
      */
     _updateIronGuard(dt, on) {
         // thử nghiệm pixelfx (?rokFx=old để bỏ): vòm khiên lục giác (force-field) màu vàng suốt thời gian Dựng Khiên
-        if (ROK_PIXEL && this.def.guardFx) this._updatePixGuard(dt, on);   // + vòm lục giác pixelfx, vẫn giữ Khiên Thần (tranh) bên dưới
+        // (11/2026) vòm lục giác pixelfx quanh Rok đã BỎ theo yêu cầu người chơi — chỉ còn Khiên Thần (tranh). Xem lại: ?rokDome=1
+        if (ROK_PIXEL && this.def.guardFx && ROK_DOME) this._updatePixGuard(dt, on);
         // Rok bản 3: KHIÊN THẦN vẽ bằng tranh (visual.guardFx = rokFx.makeDivineShield) thay Thần Hộ Vệ + vòm lục giác
         if (this.def.guardFx) {
             if (!this._guardFx && !on) return;
