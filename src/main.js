@@ -27,7 +27,7 @@ import { setupProgressTool } from './ui/progressTool.js';
 import { setupSquadSelect } from './ui/squadSelect.js';
 import { setupModeMenu } from './ui/modeMenu.js';
 import { setupLanding } from './ui/landing.js';
-import { setupTestPanel } from './ui/testPanel.js';
+import { setupTestHub } from './ui/testHub.js';
 import { setupBattleTimer } from './ui/battleTimer.js';
 import { setupCampaign } from './ui/campaign.js';
 import { setupGear } from './ui/gear.js';
@@ -49,7 +49,7 @@ registerCombatEvents({
     onBattleStart: (data) => {
         setBattleTheme(themeForBattle(data));
         resetMemberAuto();   // AUTO từng tướng: gửi lại lựa chọn đã nhớ cho trận mới
-        // Chế độ: ĐẤU / CỐT TRUYỆN -> ẩn mọi tool test (CSS body.mode-duel)
+        // Chế độ: ĐẤU / CỐT TRUYỆN -> server tắt mọi công tắc test (Tool thử tự bật lại cái đã nhớ nếu được phép)
         const duel = data.mode === 'duel_monster' || data.mode === 'duel_hero' || data.mode === 'campaign' || data.mode === 'prologue';
         // Cốt truyện: AUTO chỉ có khi đã mở (qua ải 2)
         document.body.classList.toggle('no-auto', data.mode === 'campaign' && !(data.features ?? []).includes('auto'));
@@ -74,8 +74,11 @@ registerCombatEvents({
     onState: (players) => updateHUD(players),
 });
 
-// 📈 Tool Nhân Vật (level / bậc / tộc)
+// 📈 Tiến trình nhân vật (level / bậc / tộc) + bảng "Chi tiết nhân vật" của Tool thử
 setupProgressTool();
+// 🧪 Tool thử: 1 bảng lệnh duy nhất (phím `), chỉ ở Server test / Đấu Tập — đăng ký TRƯỚC bảng chọn đội để khi gõ trong ô lệnh
+//    thì phím số / Enter không lọt sang màn chọn đội
+setupTestHub();
 // ⚔️ Chọn đội hình trước trận (1-4 nhân vật)
 setupSquadSelect();
 // 📖 Chế độ Cốt truyện (chọn ải + kết quả)
@@ -89,17 +92,8 @@ setupHeroPanel();
 setupExtras();
 // 🏠 Chọn chế độ (Cốt truyện / Test / Đấu) — đăng ký SAU bảng chọn đội để hiện đè lên
 setupModeMenu();
-// 🧪 bảng tool thử (chỉ hiện ở Server test)
-setupTestPanel();
 // ⏱️ đồng hồ ải 3 phút
 setupBattleTimer();
-// Tool phe quái: cấp quái hiện tại
-socket.on('monsterLevel', (d) => {
-    const a = document.getElementById('monster-level-label'), b = document.getElementById('monster-level-big');
-    if (a) a.textContent = `Lv${d.level}`;
-    if (b) b.textContent = d.level;
-});
-
 // Trùm vào giai đoạn 2 (P5): băng chữ giữa màn hình 2,5 giây
 socket.on('bossPhase', (d) => {
     const el = document.createElement('div');
