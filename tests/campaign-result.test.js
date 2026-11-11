@@ -7,13 +7,13 @@ const P = require('../progression');
 
 test('thưởng đúng cấp, độ khó và lần đầu', () => {
     assert.deepEqual(baseRewards('c1-10', 'story', true), { exp: 860, gold: 150, stone: 3, diamond: 50 });
-    assert.deepEqual(baseRewards('c1-20', 'hell', true), { exp: 3520, gold: 500, stone: 15, diamond: 200 });
-    assert.deepEqual(baseRewards('c1-01', 'hard', true), { exp: 332, gold: 90, stone: 2, diamond: 10 });
-    assert.equal(C.rewardsFor('c1-05', 'hard', true).diamond, 30);
-    assert.equal(C.rewardsFor('c1-15', 'story', true).diamond, 30);
+    assert.deepEqual(baseRewards('c1-20', 'hell', true), { exp: 3520, gold: 500, stone: 15, diamond: 150 });
+    assert.deepEqual(baseRewards('c1-01', 'hard', true), { exp: 332, gold: 90, stone: 2, diamond: 100 });
+    assert.equal(C.rewardsFor('c1-05', 'hard', true).diamond, 100);
+    assert.equal(C.rewardsFor('c1-15', 'story', true).diamond, 50);
     assert.equal(C.rewardsFor('c1-20', 'hell', false).diamond, 0);
-    assert.equal(C.rewardsFor('c1-n2', 'story', true).diamond, 40);
-    assert.equal(C.rewardsFor('c1-n2', 'hell', true).diamond, 80);
+    assert.equal(C.rewardsFor('c1-n2', 'story', true).diamond, 50);
+    assert.equal(C.rewardsFor('c1-n2', 'hell', true).diamond, 150);
     assert.equal(C.rewardsFor('c1-n2', 'story', true).exp, 416);
 });
 test('thắng nhận thưởng, EXP và Lyra đúng một lần', () => {
@@ -29,7 +29,7 @@ test('thắng nhận thưởng, EXP và Lyra đúng một lần', () => {
     assert.deepEqual(result.leveled, { warrior: levels });
     assert.deepEqual(pr.heroes.warrior, expectedHero);
     assert.equal(pr.heroes.priest.exp, 0);
-    assert.deepEqual(pr.wallet, { gold: 670, diamond: 110, stone: 3 });
+    assert.deepEqual(pr.wallet, { gold: 670, diamond: 150, stone: 3 });
     assert.equal(pr.campaign.cleared.story['c1-12'], true);
     const again = C.applyResult(pr, battle, P, 0);
     assert.equal(again.firstClear, false);

@@ -64,5 +64,6 @@ export function tierSprite(base, classId, rank) {
     const t = tierOf(rank), art = ART[classId];
     if (!base || !t || !art) return base;
     const image = IMG[`../../assets/sprites/${art}_${t}_sprite.webp`], meta = META[`./${art}Sprite_${t}.json`];
-    return image && meta ? { ...base, image, meta, tier: t } : base;
+    // tierTopScale: tranh bậc thấp có tỉ lệ đỉnh tóc / đỉnh hình khác bản SSS (VD gậy Sera dạng S không cao hơn đầu) -> chiều cao người vẫn bằng nhau
+    return image && meta ? { ...base, image, meta, tier: t, topScale: base.tierTopScale?.[t] ?? base.topScale } : base;
 }

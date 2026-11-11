@@ -115,13 +115,14 @@ function rewardsFor(id, diff, firstClear, rng = Math.random) {
     if (rng() < Math.min(rates.smallMax, rates.smallBase + rates.smallPerLevel * n)) items.exp_small = rng() < rates.smallDouble ? 2 : 1;
     if (s.boss && (firstClear || rng() < rates.bigReplay)) items.exp_big = 1;
     if (n >= rates.refineMin && rng() < rates.refine) items.refine_stone = 1;
-    const diamond = s.flag ? 40 : [10, 30, 50, 100][s.boss];
+    // 11/2026 (người chơi quyết): mỗi ải lần đầu qua = 50 Kim Cương (Cốt truyện) · 100 (Khó) · 150 (Địa ngục), không phân biệt ải thường / trùm
+    const diamond = { story: 50, hard: 100, hell: 150 }[diff];
     return {
         items, accountExp: A.stageAccountExp(s, diff, firstClear),
         exp: Math.round((160 + 60 * n + n * n) * d.exp),   // cân bằng 09/11: + n² để chương 2 (ải cấp 21–40) cấp anh hùng vẫn bám kịp cấp ải (tính cả bình EXP rơi) · Khó ×1,5 có thể ra số lẻ
         gold: Math.round((50 + 10 * n) * d.exp),
         stone: (1 + Math.floor(n / 5)) * d.stone,
-        diamond: firstClear ? diamond * d.dia : 0,
+        diamond: firstClear ? diamond : 0,
     };
 }
 

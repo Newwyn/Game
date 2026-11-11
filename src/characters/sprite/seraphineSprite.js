@@ -17,6 +17,7 @@ export const SERAPHINE_SPRITE = {
     meta,
     // chiều cao nhân vật tính tới đỉnh TÓC (đầu gậy vòng mặt trời cao hơn tóc ~11%): đỉnh hình khung đứng × 0,89
     topScale: 0.89,
+    tierTopScale: { s: 1.0, ss: 0.9 },   // đo trên tranh từng bậc (11/2026): dạng S gậy ngang đầu -> trước đây Sera dạng S bị to hơn 12%
     // Đứng thả lỏng (ngoài trận): A = 4 khung thở · B = 2 khung chậm · C = 1 khung + thở bằng code (không nhấp nháy)
     idle: {
         A: { frames: r('idle', 4), fps: 4 },
