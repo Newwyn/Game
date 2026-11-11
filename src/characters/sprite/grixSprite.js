@@ -23,6 +23,7 @@ export const GRIX_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?grixAnim=old
     // Mốc ra đòn (registry ALCHEMIST.anims): ném lọ 0,25s · ném bình 0,35s · cắm gậy 0,25s · búng tay 0,2s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                  // khom người, gậy chĩa trước

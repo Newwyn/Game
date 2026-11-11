@@ -20,6 +20,7 @@ export const IGNAR_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?ignarAnim=old
     // Khung theo clip của khung xương (chạy ẩn). mode:
     //   strike : khung 1..release-1 trải tới hitTime, khung "release" ĐÚNG hitTime, phần còn lại trải tới hết clip
     //   clip   : trải đều theo thời gian clip (clip lặp thì lặp theo)

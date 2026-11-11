@@ -25,6 +25,7 @@ export const ELARION_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?elarionAnim=old
     // Mốc ra đòn (registry ELEMENTALIST.anims): đẩy chưởng 0,22s · đọc Sách 0,2s · tung phép 0,38s · gọi bão 0,3s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế: tay trước giơ ra, Sách mở bên tay

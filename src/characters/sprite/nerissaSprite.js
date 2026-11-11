@@ -22,6 +22,7 @@ export const NERISSA_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: 'ranged',   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?nerissaAnim=old
     // Mốc ra đòn (registry DANCER.anims): quất lụa 0,24s (khung 4: đầu dải lụa vươn xa nhất — giọt nước bay ra từ đây)
     // · xoay vào điệu 0,3s (khung 3: dang tay, lụa bung vòng tròn — vòng sóng nước bung)
     clips: {

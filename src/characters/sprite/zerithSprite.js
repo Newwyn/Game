@@ -24,6 +24,7 @@ export const ZERITH_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: true,   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?zerithAnim=old
     // Mốc ra đòn (registry REAPER.anims): bổ liềm 0,22s · quét hất 0,15s · bổ xuống 0,2s · gọi Thần Chết 0,2s · gắn Ấn Tử 0,15s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế: 2 tay cầm liềm chéo trước người

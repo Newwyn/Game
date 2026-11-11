@@ -39,7 +39,7 @@ function fullSpriteOf(art) {
     // trùm: mỗi kỹ năng 1 tấm 8 khung (skill-<id> -> khung <id>1..8), khung 5 = lúc chiêu bung ra
     const skills = new Set(Object.keys(meta.frames).map(f => f.match(/^([a-z_]+?)\d+$/)?.[1]).filter(k => k && !['idle', 'ready', 'attack', 'move', 'hurt', 'stun', 'dead', 'victory'].includes(k)));
     for (const k of skills) clips[`skill_${k}`] = { mode: 'strike', frames: r(k, 8), release: 5 };
-    return { image, meta, idle: { C: { frames: ['idle1'], breath: true } }, defaultIdle: 'C', clips, phase2: null, lean: [], full: true };
+    return { image, meta, idle: { C: { frames: ['idle1'], breath: true } }, defaultIdle: 'C', clips, phase2: null, lean: [], full: true, juice: true };   // juice: chau chuốt động tác như Rok
 }
 
 function spriteOf(art) {

@@ -23,6 +23,7 @@ export const BRAKK_SPRITE = {
         C: { frames: ['idle1'], breath: true },
     },
     defaultIdle: 'C',
+    juice: true,   // chau chuốt động tác bằng code như Rok (FrameSpriteView._juice) — tắt để so: ?brakkAnim=old
     // Mốc ra đòn (registry BRAKK.anims): đấm 0,2s · Bá Vương Quật quật 0,85s · Chấn Địa dậm 0,6s · gầm 0,3s · khiêu khích 0,3s · móc ngược 0,2s
     clips: {
         ready:   { mode: 'still', frames: ['ready1'] },                                   // thủ thế: 2 nắm đấm thủ trước ngực

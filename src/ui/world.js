@@ -6,7 +6,7 @@
 //   · Bản đồ + vị trí NPC / đồ vật / lối ra: src/world/maps.js · Luật (rương, việc, sự kiện…): server (game/world.js)
 // ============================================================
 import { net, socket } from '../net/socket.js';
-import { playStory, playCutscene, storyArt } from './story.js';
+import { playStory, playCutscene, storyArt, setStoryGender } from './story.js';
 import { MAPS } from '../world/maps.js';
 import { EXTRA } from '../world/mapsExtra.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
@@ -985,6 +985,7 @@ function applyState(d) {
     const first = !data || !scene;
     const teleported = data && d.teleportVersion !== data.teleportVersion;
     data = d;
+    setStoryGender(d.player?.gender);   // tranh truyện có nhân vật chính: chọn bản nam / nữ
     if (first || teleported || scene.id !== d.scene) loadScene(d.scene, d.x, d.y, d.face);
     else {   // cập nhật trạng thái (dấu ! ?, đồ vật) mà không dịch vị trí
         scene = d.scenes[d.scene];

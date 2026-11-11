@@ -100,7 +100,10 @@ export function playCutscene(list, segs, sp, onDone) {
 // 🎨 Tranh minh hoạ theo ĐOẠN TRUYỆN (có nhân vật, kiểu tranh Elise bên giường vua): src/assets/story/<khoá>.webp
 //   khoá: c1_wake (tỉnh dậy ở miếu) · c1_07_pre / c1_07_post (trước / sau ải 7)… Có tranh thì dùng thay tranh phong cảnh.
 const STORY_ART = import.meta.glob('../assets/story/*.webp', { eager: true, import: 'default' });
-export const storyArt = (key) => STORY_ART[`../assets/story/${key}.webp`] ?? null;
+//   Tranh có NHÂN VẬT CHÍNH (bàn tay, bóng lưng…) thì vẽ 2 bản: <khoá>_m.webp (nam) + <khoá>_f.webp (nữ) — tự chọn theo hồ sơ người chơi.
+let heroGender = 'm';
+export const setStoryGender = (g) => { heroGender = g === 'f' ? 'f' : 'm'; };
+export const storyArt = (key) => STORY_ART[`../assets/story/${key}_${heroGender}.webp`] ?? STORY_ART[`../assets/story/${key}.webp`] ?? null;
 const artKey = (id, phase) => `${String(id ?? '').replace('-', '_')}_${phase}`;
 /** Ải -> ảnh nền (c1-05 -> rừng, c2-15 -> Lunaria…); phase 'pre' | 'post': có tranh minh hoạ riêng thì ưu tiên */
 export function stageBackdrop(id, phase = 'pre') {
@@ -120,6 +123,7 @@ export function playStory(list, sp, onDone, { dim = true, bg = null } = {}) {
     if (!list?.length) { onDone?.(); return; }
     el();
     lines = list; speakers = sp ?? {}; i = 0; done = onDone;
+    if (speakers.me?.gender) setStoryGender(speakers.me.gender);
     root.classList.toggle('dim', dim);
     root.classList.toggle('st-bg', !!bg);
     root.style.backgroundImage = !bg ? '' : bg === 'dark'

@@ -1,5 +1,6 @@
 import { spawnBossWarning, spawnBossBanner, handleBossUlt, clearBossUlt } from '../vfx/bossFx.js';
-import { spawnPixelFx, ROK_PIXEL, JESS_PIXEL, SERA_PIXEL, LYRA_PIXEL, IGNAR_PIXEL, ZERITH_PIXEL, BRAKK_PIXEL, NERISSA_PIXEL, ELARION_PIXEL, GRIX_PIXEL, SYLVA_PIXEL, autoSwingFx, spawnPixelMover } from '../vfx/pixelFx.js';
+import { spawnPixelFx, ROK_PIXEL, JESS_PIXEL, SERA_PIXEL, LYRA_PIXEL, IGNAR_PIXEL, ZERITH_PIXEL, BRAKK_PIXEL, NERISSA_PIXEL, ELARION_PIXEL, GRIX_PIXEL, SYLVA_PIXEL, autoSwingFx, spawnPixelMover, rampOf } from '../vfx/pixelFx.js';
+const rampOfColor = (c) => (c ? rampOf(c) : undefined);
 // ============================================================
 // SỰ KIỆN CHIẾN ĐẤU TỪ SERVER -> ANIMATION + VFX
 // ============================================================
@@ -340,6 +341,42 @@ function onAutoAttack(data) {
         if (attackerView.isBusy) { fire(); return; }
         attackerView.playAction('attack', { onHit: fire });
         return;
+    }
+
+    // Quái ĐÁNH XA (Goblin Ném Bom, Mật Thám, quái phép…): ném / bắn 1 vật bay tới mục tiêu rồi mới trúng
+    //   (trước 11/2026 chỉ có vệt chém hiện trên mục tiêu -> không thấy quả bom bay ra và nổ)
+    {
+        const m = attacker.squad[data.attackerIndex], def = game.classDefs?.[m?.classId];
+        if (def?.range === 'ranged' && !m?.summon) {
+            const bomb = def.art === 'trapper';
+            const throwIt = () => {
+                const target = getView(data.targetId, data.targetIndex);
+                if (!target) return;
+                autoSwingFx(attackerView, m, def);
+                const dir = attackerView.facingLeft ? -1 : 1, T = bomb ? 0.42 : 0.24;
+                const from = new THREE.Vector3(attackerView.position.x + dir * 0.7, 1.5, attackerView.position.z);
+                const c = chestOf(target, bomb ? 0.5 : 0.95), to = new THREE.Vector3(c.x, c.y, c.z);
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(bomb ? 0.26 : 0.16, 10, 8), new THREE.MeshBasicMaterial({ color: bomb ? 0x1f2937 : (def.color ?? '#facc15') }));
+                if (bomb) {   // quả bom đen + ngòi lửa, bay vòng cung
+                    const fuse = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb020 }));
+                    fuse.position.set(0.12, 0.24, 0); mesh.add(fuse);
+                    let t = 0;
+                    const arc = () => { t += 1 / 60; if (t < T && mesh.parent) { mesh.position.y += Math.cos((t / T) * Math.PI) * 0.09; mesh.rotation.z += 0.3; requestAnimationFrame(arc); } };
+                    requestAnimationFrame(arc);
+                }
+                spawnProjectile(from, to, def.color ?? '#facc15', T, mesh);
+                gameTimeout(() => {
+                    showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
+                    if (data.dodged) return;
+                    if (bomb) { spawnPixelFx('explosions/small-explosion', { pos: target.position, scale: data.isCrit ? 0.55 : 0.42, maxLife: 1.2 }); cameraRig.shake(0.1, 110); }
+                    else spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: dir < 0, palette: rampOfColor(def.color), scale: 0.8 });
+                    target.flashHit();
+                }, T * 1000);
+            };
+            if (attackerView.isBusy) { throwIt(); return; }
+            attackerView.playAction('attack', { hitFrame: def.autoHitFrame, onHit: throwIt });
+            return;
+        }
     }
 
     // Đang diễn skill thì không ngắt — chỉ bắn hit ngay
