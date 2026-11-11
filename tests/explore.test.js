@@ -18,7 +18,7 @@ const obj = (pr, scene, id, now = NOW) => W.worldState(pr, now).scenes[scene].ob
 const mapsText = fs.readFileSync('src/world/maps.js', 'utf8'), extraText = fs.readFileSync('src/world/mapsExtra.js', 'utf8');
 const MAPS = JSON.parse(mapsText.split('export const MAPS = ')[1].trim().replace(/;$/, ''));
 const EXTRA = JSON.parse(extraText.split('export const EXTRA = ')[1].trim().replace(/;$/, ''));
-const PATCH = JSON.parse(extraText.split('export const PATCH = ')[1].split(';\n')[0]);
+const PATCH = JSON.parse(extraText.split('export const PATCH = ')[1].split(/;\r?\n/)[0]);   // chịu được xuống dòng kiểu Windows
 const rules = import('data:text/javascript;base64,' + Buffer.from((() => { const s = fs.readFileSync('src/ui/world.js', 'utf8').split('// MOVEMENT_RULES_BEGIN')[1].split('// MOVEMENT_RULES_END')[0]; return s.slice(s.indexOf('export const')); })()).toString('base64'));
 /** bản đồ như client thấy: gộp vật thêm + vá độ cao */
 function clientMap(id) {

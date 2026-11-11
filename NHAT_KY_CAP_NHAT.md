@@ -34,12 +34,18 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 **Tool thử**: gom về MỘT bảng (phím `): ô gõ lệnh khoảng 270 lệnh, 5 kịch bản bấm một lần, nhớ công tắc, mục "Vừa dùng". Gỡ 3 bảng cũ. Test: màn đầu chỉ còn Cốt truyện + Test.
 
-**Đang làm dở (nhánh riêng `team/cook`, CHƯA ghép)**: nấu ăn + túi đồ ăn trong trận, hái quả / chặt cây / đào quặng / câu cá / leo núi, dụng cụ 3 bậc rèn ở lò, ghi chép, hình vật phẩm nhiệm vụ, dời mốc mở chức năng vào chương 1.
+**Nấu ăn + khai thác (ghép 17:30, CHƯA ai bấm thử trong game)**
+- Nấu ở bếp quán cô Lena + 3 lửa trại; 10 món; túi đồ ăn 3 món / trận, dùng cách nhau 8 giây (chỉ ải cốt truyện / nhánh / quái hoang); món tủ của Rok / Jessica / Sera / Lyra +50%.
+- 27 điểm nhặt / hái / chặt / đào mọc lại 05:00 · 3 chỗ câu cá · 13 ghi chép (thẻ "Ghi chép") · 3 rương ẩn · câu nói của dân làng · Đồi Gió ở Rừng Sương (leo dây lên đỉnh).
+- Dụng cụ cuốc / rìu / cần câu 3 bậc, rèn ở lò (bậc 2 cấp 8–10, bậc 3 cấp 14–16).
+- Hình riêng cho vật phẩm; túi đồ chia Nguyên liệu / Món ăn / Dụng cụ / Vật phẩm nhiệm vụ.
+- Mốc mở chức năng mới: tự động 3 · trang bị 5 · lò rèn 7 · nấu ăn 8 · quán 9 · Khó 10 · hầm đồ bộ 12 · hầm trang sức 15 · Địa ngục 18 · PVP 25 (sẽ đổi khi làm người gác cổng Arena cấp 10).
+- Còn thiếu: hình 3D cho đồi, dây leo, lửa trại, phao câu (đang là hình phẳng / khối).
 
 **Chờ làm**: các quyết định ở `demo/Y_TUONG_TAI_NGUYEN_VA_TRANG_BI.md` mục 11 (hộp trang bị chọn cấp, tài nguyên tộc để chế đồ hầm ngục, vật phẩm chọn dòng chỉ số 4 lần / tháng, người gác cổng Arena cấp 10, Guild cấp 20: 2 hội đối đầu + guild người chơi).
 
 - Ai làm: Claude (trưởng nhóm, sân đấu 3D, động tác, ghép + thử) · Codex (lỗi di chuyển, nhảy, tranh truyện) · Antigravity (chi tiết bản đồ, chim thú, mờ vật che) · trợ lý Claude (lời thoại, nhiệm vụ, tool thử).
-- 155 bài kiểm tra tự động đạt. Nhiều phần mới CHƯA được bấm thử hết — danh sách ở `TIEP_TUC.md`.
+- 183 bài kiểm tra tự động đạt. Nhiều phần mới CHƯA được bấm thử hết — danh sách ở `TIEP_TUC.md`.
 
 ---
 

@@ -1,7 +1,7 @@
 # TIẾP TỤC — viết 11/11/2026 16:55 (đọc cái này trước khi làm tiếp)
 
 ## Việc dở ngay lúc dừng
-1. **Nhánh `team/cook`** (worktree `.team/wt/cook`, trợ lý Claude đang làm lúc dừng, có thể chưa xong / chưa commit): nấu ăn, túi đồ ăn, hái quả, chặt cây, đào quặng, câu cá, leo núi, dụng cụ 3 bậc, ghi chép, hình vật phẩm, mốc mở chức năng. Việc cần làm: xem `git -C .team/wt/cook status`, chạy test, commit trên nhánh, ghép vào main, bấm thử. Gỡ junction node_modules bằng PowerShell trước khi xoá worktree.
+1. **Nấu ăn + khai thác đã ghép vào main (17:30)** nhưng CHƯA ai bấm thử: bếp, túi đồ ăn trong trận, hái / chặt / đào / câu cá, leo Đồi Gió, rèn dụng cụ, thẻ Ghi chép, mốc mở chức năng. Cần Antigravity vẽ hình 3D cho đồi, dây leo, lửa trại, phao câu. Worktree `.team/wt/cook` còn đó: gỡ junction node_modules bằng PowerShell rồi xoá.
 2. **Tranh quái Flow**: `~/Downloads/morwen-sprite-idle.jpg` đã tải. Còn Morwen 4 tấm, sói, sói đầu đàn, Valdric, Người Gác Mộ + quái chương 2. Hôm 11/11 Flow đã tạo 9 tấm, chưa bị chặn. Cách làm: `art/enemies/TIEN_DO.md`.
 3. **Viết lại lời thoại nhiệm vụ** (`game/questData1.js`) theo giọng đã duyệt (`demo/DEMO_LOI_THOAI.md`).
 4. **Làm theo quyết định mới** của người chơi: `demo/Y_TUONG_TAI_NGUYEN_VA_TRANG_BI.md` mục 11.
