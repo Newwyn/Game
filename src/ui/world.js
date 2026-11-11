@@ -25,6 +25,46 @@ const ITEMS_IMG = import.meta.glob('../assets/overworld/items.webp', { eager: tr
 const ITEMS2_IMG = import.meta.glob('../assets/overworld/items2.webp', { eager: true, import: 'default' });
 
 const DIRS = { down: [0, 1], left: [-1, 0], right: [1, 0], up: [0, -1] };
+// MOVEMENT_RULES_BEGIN — luật thuần được kiểm tra độc lập.
+export const tileHeight = (m,x,y) => Number(m.heights?.[y]?.[x] ?? 0);
+export const isGap = (m,x,y) => (m.gaps??[]).some(p=>p[0]===x&&p[1]===y);
+export const canWalkTile = (m,x,y,nx,ny) => m.grid[ny]?.[nx]==='.' && !isGap(m,nx,ny) && tileHeight(m,x,y)===tileHeight(m,nx,ny);
+export function jumpTarget(m,x,y,dx,dy,running,blocked) {
+    const h=tileHeight(m,x,y);
+    const thin=(n)=> {
+        const xx=x+dx*n, yy=y+dy*n;
+        return m.grid[yy]?.[xx]!==undefined && !(m.noJump??[]).some(p=>p[0]===xx&&p[1]===yy)
+            && (isGap(m,xx,yy)||m.grid[yy][xx]==='#');
+    };
+    const land=(n,up)=>!blocked(x+dx*n,y+dy*n)&&!isGap(m,x+dx*n,y+dy*n)&&tileHeight(m,x+dx*n,y+dy*n)<=h+up;
+    if(running&&thin(1)&&thin(2)&&land(3,0)) return {tx:x+dx*3,ty:y+dy*3,cost:2};
+    if(thin(1)&&land(2,0)) return {tx:x+dx*2,ty:y+dy*2,cost:1};
+    if(land(1,1)) return {tx:x+dx,ty:y+dy,cost:1};
+    return null;
+}
+export const runningReady=(steps,face,lastFace,now,lastAt)=>steps>=2&&face===lastFace&&now-lastAt<=250;
+export function recoverStamina(s,now) {
+    if(s.value>=5) { s.at=now; return; }
+    const n=Math.floor((now-s.at)/1600);
+    if(n>0) { s.value=Math.min(5,s.value+n); s.at+=n*1600; }
+}
+export function spendStamina(s,cost,now) {
+    recoverStamina(s,now);
+    if(s.value<cost) return false;
+    if(s.value===5) s.at=now;
+    s.value-=cost; return true;
+}
+// MOVEMENT_RULES_END
+const stamina={value:5,at:0};
+let runSteps=0, runFace=null, runAt=-Infinity, jumpQueued=false, staminaFlash=0;
+function drawStamina(now) {
+    const bar=root?.querySelector('.wd-stamina');
+    if(!bar) return;
+    bar.setAttribute('aria-valuenow',String(stamina.value));
+    bar.setAttribute('aria-label',`Thể lực nhảy: ${stamina.value}/5`);
+    bar.classList.toggle('empty',now<staminaFlash);
+    [...bar.children].forEach((el,i)=>el.classList.toggle('filled',i<stamina.value));
+}
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const STEP_MS = 230;          // thời gian đi 1 ô
 const JUMP_MS = 420;
@@ -48,7 +88,7 @@ const groupOf = (o) => o.group ?? (o.solo ? [[0, 0]] : [[0, 0], [1, -1], [1, 1]]
 let root, canvas, ctx, hud, padEl;
 let data = null, scene = null, map = null, open = false;
 let onStages = null, onGear = null, onBack = null, onExtras = null, onStage = null, onWild = null;
-const me = { x: 0, y: 0, face: 'down', moving: null, jump: null, step: 0 };
+const me = { x: 0, y: 0, h: 0, face: 'down', moving: null, jump: null, step: 0 };
 let npcs = [];                // [{ id, x, y, face, home, moving, nextAt, def }]
 let dialog = null, puzzle = null, toastMsg = null, toastAt = 0, mapOpen = false, busy = false, fade = 0;
 const held = new Set();       // hướng đang giữ (bàn phím + phím ảo)
@@ -118,7 +158,7 @@ function bfs(goals) {
         const [x, y] = q.shift();
         for (const [dx, dy] of N4) {
             const nx = x + dx, ny = y + dy, k = key(nx, ny);
-            if (from.has(k) || blocked(nx, ny)) continue;
+            if (from.has(k) || blocked(nx, ny) || !canWalkTile(map,x,y,nx,ny)) continue;
             from.set(k, key(x, y));
             if (want.has(k)) {
                 const path = [];
@@ -146,7 +186,7 @@ function goalTiles(g) {
         if (!o) return null;
         if (o.trigger) return { stand: o.trigger.filter(([x, y]) => !blocked(x, y)), face: [] };
         const tiles = o.area ?? [[o.x, o.y]];
-        return { stand: around(tiles), face: tiles };
+        return { stand: around(tiles).filter(([x,y])=>tileHeight(map,x,y)===tileHeight(map,o.x,o.y)), face: tiles };
     }
     return { stand: [[g.x, g.y]], face: [] };
 }
@@ -194,7 +234,7 @@ function planAuto() {
     const gt = goalTiles(g);
     if (!gt || !gt.stand.length) { toast('⚠️ Không tới gần được chỗ đó'); return false; }
     const path = bfs(gt.stand);
-    if (!path) { toast('⚠️ Không tìm được đường tới đó'); return false; }
+    if (!path) { toast('Phải nhảy mới tới được'); return false; }
     auto.path = path; auto.face = gt.face;
     return true;
 }
@@ -278,7 +318,7 @@ function el() {
             <button class="wd-dp right" data-dir="right" aria-label="Phải">▶</button>
             <button class="wd-dp down" data-dir="down" aria-label="Xuống">▼</button>
         </div>
-        <div class="wd-ab"><button class="wd-btn-b" data-key="b" aria-label="Nhảy">B</button><button class="wd-btn-a" data-key="a" aria-label="Nói chuyện / xem">A</button></div>`;
+        <div class="wd-ab"><span class="wd-stamina" role="meter" aria-valuemin="0" aria-valuemax="5"><i></i><i></i><i></i><i></i><i></i></span><button class="wd-btn-b" data-key="b" aria-label="Nhảy">B</button><button class="wd-btn-a" data-key="a" aria-label="Nói chuyện / xem">A</button></div>`;
     document.body.appendChild(root);
     canvas = root.querySelector('canvas');
     ctx = canvas.getContext('2d');
@@ -326,7 +366,7 @@ function tileSize() {                                       // px màn hình / �
 }
 function blocked(x, y, ignoreNpc = false) {
     if (!map || x < 0 || y < 0 || x >= map.cols || y >= map.rows) return true;
-    if (map.grid[y][x] !== '.') return true;
+    if (map.grid[y][x] !== '.' || isGap(map,x,y)) return true;
     if (!ignoreNpc && npcs.some(n => !n.hidden && n.x === x && n.y === y)) return true;
     if ((map.objects ?? []).some(o => o.solid && (o.char ? groupOf(o).some(([ox, oy]) => o.x + ox === x && o.y + oy === y) : o.x === x && o.y === y) && visibleObj(o))) return true;
     return false;
@@ -393,13 +433,18 @@ function drawMini(t) {
 function update(dt, now) {
     if (!map) return;
     fade = loading3d && !flat() ? 1 : Math.max(0, fade - dt / 300);
+    recoverStamina(stamina,now); drawStamina(now);
     // đi / nhảy
     if (me.moving) {
         me.moving.t += dt;
+        me.h=tileHeight(map,me.x,me.y)+(tileHeight(map,me.moving.tx,me.moving.ty)-tileHeight(map,me.x,me.y))*ease(me.moving);
         if (me.moving.t >= me.moving.dur) {
+            if (!me.jump) { runSteps=runFace===me.face && now-runAt<=STEP_MS+250 ? runSteps+1 : 1; runFace=me.face; runAt=now; }
             me.x = me.moving.tx; me.y = me.moving.ty; me.moving = null; me.jump = null;
             me.step++; arriveAt = performance.now();
+            me.h=tileHeight(map,me.x,me.y);
             onArrive();
+            if(jumpQueued) { jumpQueued=false; pressB(); }
         }
     }
     if (canWalk()) {
@@ -421,7 +466,7 @@ function update(dt, now) {
         n.face = d;
         const [dx, dy] = DIRS[d], tx = n.x + dx, ty = n.y + dy;
         if (Math.abs(tx - n.home[0]) > 2 || Math.abs(ty - n.home[1]) > 2) continue;
-        if (blocked(tx, ty) || (tx === me.x && ty === me.y) || (me.moving && tx === me.moving.tx && ty === me.moving.ty)) continue;
+        if (!canWalkTile(map,n.x,n.y,tx,ty) || blocked(tx, ty) || (tx === me.x && ty === me.y) || (me.moving && tx === me.moving.tx && ty === me.moving.ty)) continue;
         n.moving = { tx, ty, t: 0 };
     }
 }
@@ -431,6 +476,7 @@ let queued = null;   // bấm trong lúc đang bước: nhớ lại, bước xon
 function tap(d) { cancelAuto(); if (canWalk()) { turnAt = 0; tryStep(d); } else if (me.moving && !me.jump) queued = d; }
 function tryStep(d) {
     const now = performance.now();
+    if(d!==runFace || now-runAt>250) runSteps=0;
     // đứng yên mà bấm hướng khác: chỉ quay mặt (giống Pokémon), giữ thêm chút mới đi
     if (me.face !== d && now - arriveAt > 60) { me.face = d; turnAt = now; return; }
     me.face = d;
@@ -439,7 +485,7 @@ function tryStep(d) {
     // lối ra ở mép bản đồ / ô cổng
     const exit = (map.exits ?? []).find(e => (e.tiles ?? []).some(([x, y]) => x === tx && y === ty) || (e.edge && edgeHit(e, tx, ty)));
     if (exit) return useExit(exit);
-    if (blocked(tx, ty)) { bump(); return; }
+    if (blocked(tx, ty) || !canWalkTile(map,me.x,me.y,tx,ty)) { bump(); return; }
     me.moving = { tx, ty, t: 0, dur: STEP_MS };
 }
 let turnAt = 0, arriveAt = 0;
@@ -464,6 +510,8 @@ function wildCheck() {
     return true;
 }
 function onArrive() {
+    const exit=map.exits.find(e=>(e.tiles??[]).some(([x,y])=>x===me.x&&y===me.y));
+    if(exit) { useExit(exit); return; }
     clearTimeout(saveTimer); saveTimer = setTimeout(() => save(true), 600);   // lưu vị trí ngay sau khi dừng bước
     if (wildCheck()) return;
     // bước vào ô sự kiện (đi qua là kích hoạt — như bụi cỏ Pokémon)
@@ -495,18 +543,18 @@ function pressA() {
         return interactWith({ kind: 'npc', id: n.id });
     }
     const o = (map.objects ?? []).find(q => (q.x === fx && q.y === fy || (q.area && q.area.some(([x, y]) => x === fx && y === fy))) && visibleObj(q));
-    if (o) return interactWith({ kind: 'obj', id: o.id });
+    if (o && tileHeight(map,o.x,o.y)===tileHeight(map,me.x,me.y)) return interactWith({ kind: 'obj', id: o.id });
 }
 function pressB() {
-    if (!open || dialog || puzzle || mapOpen || qlOpen || busy || me.moving) return;
+    if(me.moving && !me.jump) { jumpQueued=true; return; }
+    if (!canWalk()) return;
     cancelAuto();
-    const [dx, dy] = DIRS[me.face];
-    const x1 = me.x + dx, y1 = me.y + dy, x2 = me.x + 2 * dx, y2 = me.y + 2 * dy;
-    // nhảy qua vật cản mỏng 1 ô (hàng rào, luống hoa…) nếu ô sau đó đi được; không thì nhảy tại chỗ
-    if (blocked(x1, y1, true) && !blocked(x2, y2) && map.grid[y1]?.[x1] !== undefined && !(map.noJump ?? []).some(([x, y]) => x === x1 && y === y1)) {
-        me.moving = { tx: x2, ty: y2, t: 0, dur: JUMP_MS }; me.jump = true;
-    } else if (!blocked(x1, y1)) { me.moving = { tx: x1, ty: y1, t: 0, dur: JUMP_MS }; me.jump = true; }
-    else { me.moving = { tx: me.x, ty: me.y, t: 0, dur: JUMP_MS }; me.jump = true; }
+    const now=performance.now(), [dx,dy]=DIRS[me.face];
+    const target=jumpTarget(map,me.x,me.y,dx,dy,runningReady(runSteps,me.face,runFace,now,runAt),blocked);
+    if(!target) { bump(); runSteps=0; return; }
+    if(!spendStamina(stamina,target.cost,now)) { bump(); staminaFlash=now+450; drawStamina(now); return; }
+    me.moving={tx:target.tx,ty:target.ty,t:0,dur:JUMP_MS}; me.jump=true;
+    runSteps=0; runFace=null; drawStamina(now);
 }
 function interactWith({ kind, id }) {
     if (kind === 'obj') {
@@ -583,6 +631,14 @@ function draw(now) {
     ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const bg = img(MAP_IMG[`../assets/maps/${map.image}.webp`]);
     if (bg) ctx.drawImage(bg, -cx, -cy, map.cols * S, map.rows * S);
+    for(let y=0;y<map.rows;y++) for(let x=0;x<map.cols;x++) {
+        const h=tileHeight(map,x,y), gap=isGap(map,x,y);
+        if(!h&&!gap) continue;
+        ctx.fillStyle=gap?'#153d55':h===1?'rgba(240,210,140,.65)':'rgba(255,232,170,.8)';
+        ctx.fillRect(x*S-cx,y*S-cy,S,S);
+        ctx.strokeStyle=gap?'#4388a8':'#8b663b'; ctx.strokeRect(x*S-cx,y*S-cy,S,S);
+    }
+    for(const [x,y] of map.stones??[]) { ctx.fillStyle='#b3b8b7'; ctx.fillRect(x*S-cx+3,y*S-cy+3,S-6,S-6); }
     const list = [];   // vẽ theo hàng (y) để vật ở dưới che vật ở trên
     for (const o of map.objects ?? []) {
         const st = scene.objects.find(s => s.id === o.id);
@@ -603,7 +659,7 @@ function draw(now) {
                 const k = (o.big ? 1.3 : 0.9) * S / meta.ch;
                 const w = meta.cw * k, h = meta.ch * k;
                 const bob = st.state === 'ready' && !NO_BOB.has(o.sprite) ? Math.sin(now / 300) * S * 0.05 : 0;
-                ctx.drawImage(items, sx, sy, meta.cw, meta.ch, o.x * S - cx + S / 2 - w / 2, o.y * S - cy + S - h + bob, w, h);
+                ctx.drawImage(items, sx, sy, meta.cw, meta.ch, o.x * S - cx + S / 2 - w / 2, o.y * S - cy + S - h + bob - tileHeight(map,o.x,o.y)*S*.35, w, h);
             }
         } });
     }
@@ -628,7 +684,7 @@ function draw(now) {
     const lift = me.jump ? Math.sin(p * Math.PI) * S * 0.75 : 0;
     const shake = performance.now() - bumpAt < 150 ? Math.sin(performance.now() / 15) * S * 0.04 : 0;
     list.push({ y: me.y + (me.moving ? (me.moving.ty - me.y) * p : 0) + 0.01, draw: () =>
-        drawChar(data.player?.gender === 'f' ? 'hero_f' : 'hero_m', mx + shake, my, me.face, !!me.moving && !me.jump && p > 0.2 && p < 0.8, me.step, lift, S) });
+        drawChar(data.player?.gender === 'f' ? 'hero_f' : 'hero_m', mx + shake, my-me.h*S*.35, me.face, !!me.moving && !me.jump && p > 0.2 && p < 0.8, me.step, lift, S) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.draw());
     // lớp phủ trên đầu (tán cây / mái nhà) nếu bản đồ có
     if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
@@ -646,7 +702,7 @@ function draw3d(now) {
     const shake = performance.now() - bumpAt < 150 ? Math.sin(performance.now() / 15) * 0.05 : 0;
     const hero = sheet(data.player?.gender === 'f' ? 'hero_f' : 'hero_m');
     const actors = [{ key: 'me', url: hero.url, meta: hero.meta, x: mx + shake, z: mz, face: me.face,
-        col: (!!me.moving && !me.jump && p > 0.2 && p < 0.8) ? (me.step % 2 ? 0 : 2) : 1, lift: me.jump ? Math.sin(p * Math.PI) * 0.8 : 0 }];
+        col: (!!me.moving && !me.jump && p > 0.2 && p < 0.8) ? (me.step % 2 ? 0 : 2) : 1, h: me.h, lift: me.h*.35+(me.jump ? Math.sin(p * Math.PI) * 0.8 : 0) }];
     const marks = [];
     for (const n of npcs) {
         if (n.hidden) continue;
@@ -849,7 +905,7 @@ function loadScene(id, x, y, face) {
     map = MAPS[id];
     // Save cũ / phản hồi mạng không được đặt người chơi vào ô chặn.
     if (!Number.isInteger(x) || !Number.isInteger(y) || map.grid[y]?.[x] !== '.') [x, y] = map.spawn;
-    me.x = x; me.y = y; me.face = face ?? me.face; me.moving = null; me.jump = null; queued = null;
+    me.x = x; me.y = y; me.h=tileHeight(map,x,y); runSteps=0; runFace=null; jumpQueued=false; me.face = face ?? me.face; me.moving = null; me.jump = null; queued = null;
     npcs = (map?.npcs ?? []).map(p => {
         const s = scene.npcs.find(n => n.id === p.id);
         return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;

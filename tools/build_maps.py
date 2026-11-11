@@ -360,6 +360,150 @@ def apply_demo(out):
         row[10] = '.'
         out['road']['grid'][y] = ''.join(row)
 
+EXTRA_ANCHORS = {'forest': [{'id': 'sp_bandage', 'x': 6, 'y': 11, 'sprite': 'bandage', 'solid': True}, {'id': 'clue_wheel', 'x': 9, 'y': 12, 'sprite': 'wheel_tracks', 'solid': True}, {'id': 'sp_wolf', 'x': 29, 'y': 8, 'solid': True, 'char': 'npc_wolfboss', 'foe': True, 'face': 'down', 'group': [[0, 0], [-1, -1, 'npc_wolf'], [1, -1, 'npc_wolf']]}, {'id': 'sp_swamp', 'x': 8, 'y': 18, 'solid': True, 'char': 'ow_sera', 'solo': True, 'face': 'down', 'foeChars': ['npc_goblin'], 'group': [[0, 0], [-1, 0, 'npc_goblin'], [1, 0, 'npc_goblin']]}, {'id': 'sp_grix', 'x': 26, 'y': 16, 'solid': True, 'char': 'npc_grix', 'solo': True, 'face': 'down'}], 'outskirts': [{'id': 'sp_smoke', 'x': 39, 'y': 11, 'sprite': 'smoke', 'big': True, 'solid': True}, {'id': 'clue_arrows', 'x': 38, 'y': 13, 'sprite': 'ash_arrows', 'solid': True}], 'ashford': [{'id': 'clue_ledger', 'x': 30, 'y': 13, 'sprite': 'ledger', 'solid': True}], 'road': [{'id': 'sp_bridge', 'x': 12, 'y': 11, 'solid': True, 'char': 'npc_thug', 'foe': True, 'face': 'left', 'group': [[0, 0], [-1, -1], [-2, 0]]}], 'capital': [{'id': 'pages', 'x': 14, 'y': 16, 'sprite': 'pages', 'solid': True}, {'id': 'sp_square', 'x': 13, 'y': 11, 'solid': True, 'char': 'npc_villager_m', 'solo': True, 'face': 'down'}, {'id': 'sp_archive', 'x': 17, 'y': 17, 'sprite': 'archive_door', 'solid': True, 'big': True}, {'id': 'sp_relief', 'x': 37, 'y': 10, 'solid': True, 'char': 'npc_guard', 'solo': True, 'face': 'down'}, {'id': 'sp_tower', 'x': 17, 'y': 4, 'sprite': 'stairs', 'big': True, 'solid': True}, {'id': 'clue_poster', 'x': 16, 'y': 7, 'sprite': 'poster', 'solid': True}]}
+
+WORLD_ANCHORS = {'outskirts': {'npcs': [{'id': 'farmer', 'x': 18, 'y': 14, 'face': 'down'}, {'id': 'jessica', 'x': 26, 'y': 14, 'face': 'left'}], 'objects': [{'id': 'ambush', 'x': 27, 'y': 15, 'char': 'npc_goblin', 'trigger': [[22, 13], [22, 14], [22, 15], [22, 16], [23, 13], [23, 14], [23, 15], [23, 16], [24, 13], [24, 14], [24, 15], [24, 16], [25, 13], [25, 14], [25, 15], [25, 16]], 'solid': False}, {'id': 'wheat', 'x': 10, 'y': 6, 'sprite': 'wheat', 'solid': True}, {'id': 'hammer', 'x': 12, 'y': 20, 'sprite': 'hammer', 'solid': True}, {'id': 'mine', 'x': 32, 'y': 7, 'sprite': 'mine', 'big': True, 'solid': True}, {'id': 'field_chest', 'x': 35, 'y': 14, 'sprite': 'chest', 'solid': True}]}, 'forest': {'npcs': [], 'objects': [{'id': 'mushroom', 'x': 7, 'y': 6, 'sprite': 'mushroom', 'solid': True}, {'id': 'herb', 'x': 28, 'y': 18, 'sprite': 'herb', 'solid': True}, {'id': 'forest_chest', 'x': 33, 'y': 7, 'sprite': 'chest', 'solid': True}]}, 'ashford': {'npcs': [{'id': 'mira', 'x': 19, 'y': 9, 'face': 'down'}, {'id': 'borin', 'x': 31, 'y': 11, 'face': 'down'}, {'id': 'lena', 'x': 33, 'y': 19, 'face': 'down'}, {'id': 'sera', 'x': 8, 'y': 12, 'face': 'left'}, {'id': 'rok', 'x': 36, 'y': 12, 'face': 'left'}, {'id': 'villager_m', 'x': 14, 'y': 15, 'face': 'down'}, {'id': 'villager_f', 'x': 25, 'y': 13, 'face': 'down'}, {'id': 'kid', 'x': 23, 'y': 17, 'face': 'down'}], 'objects': [{'id': 'board', 'x': 19, 'y': 12, 'area': [[18, 11], [18, 12], [19, 11], [19, 12], [20, 11], [20, 12]]}, {'id': 'well', 'x': 5, 'y': 12, 'area': [[4, 10], [4, 11], [4, 12], [4, 13], [5, 10], [5, 11], [5, 12], [5, 13], [6, 10], [6, 11], [6, 12], [6, 13]]}, {'id': 'sq_chest', 'x': 13, 'y': 9, 'sprite': 'chest', 'solid': True}, {'id': 'well_chest', 'x': 7, 'y': 10, 'sprite': 'chest', 'solid': True}]}, 'road': {'npcs': [{'id': 'guard', 'x': 27, 'y': 12, 'face': 'left'}, {'id': 'merchant', 'x': 33, 'y': 7, 'face': 'down'}], 'objects': [{'id': 'bridge_chest', 'x': 8, 'y': 4, 'sprite': 'chest', 'solid': True}]}, 'capital': {'npcs': [{'id': 'corvin', 'x': 8, 'y': 16, 'face': 'down'}, {'id': 'elise', 'x': 28, 'y': 9, 'face': 'down'}, {'id': 'nun', 'x': 13, 'y': 8, 'face': 'down'}, {'id': 'villager_m2', 'x': 23, 'y': 18, 'face': 'left'}, {'id': 'merchant2', 'x': 19, 'y': 15, 'face': 'down'}], 'objects': [{'id': 'gate_board', 'x': 25, 'y': 18, 'sprite': 'board', 'big': True, 'solid': True}, {'id': 'market_chest', 'x': 29, 'y': 16, 'sprite': 'chest', 'solid': True}, {'id': 'pages', 'x': 11, 'y': 16, 'sprite': 'pages', 'solid': True}, {'id': 'crypt', 'x': 16, 'y': 9, 'sprite': 'mine', 'solid': True}]}, 'sylvaren': {'npcs': [{'id': 'aeris', 'x': 31, 'y': 9, 'face': 'down'}, {'id': 'elfmerchant', 'x': 24, 'y': 7, 'face': 'down'}, {'id': 'elfkid', 'x': 11, 'y': 9, 'face': 'down'}], 'objects': [{'id': 'moonwell', 'x': 12, 'y': 7, 'area': [[8, 5], [8, 6], [9, 5], [9, 6], [10, 5], [10, 6], [11, 5], [11, 6], [12, 5], [12, 6], [13, 5], [13, 6], [14, 5], [14, 6], [15, 5], [15, 6], [16, 5], [16, 6]]}, {'id': 'syl_chest', 'x': 5, 'y': 19, 'sprite': 'chest', 'solid': True}, {'id': 'ruin_stone', 'x': 20, 'y': 13, 'sprite': 'pages', 'solid': True}, {'id': 'shroom_glow', 'x': 34, 'y': 18, 'sprite': 'mushroom', 'solid': True}]}, 'lunaria': {'npcs': [{'id': 'oren', 'x': 21, 'y': 6, 'face': 'down'}, {'id': 'lun_guard', 'x': 32, 'y': 8, 'face': 'down'}, {'id': 'elfkid2', 'x': 9, 'y': 15, 'face': 'down'}], 'objects': [{'id': 'moon_fountain', 'x': 21, 'y': 14, 'area': [[19, 14], [20, 14], [21, 14], [22, 14], [23, 14], [24, 14]]}, {'id': 'lun_chest', 'x': 40, 'y': 20, 'sprite': 'chest', 'solid': True}, {'id': 'star_tome', 'x': 33, 'y': 9, 'sprite': 'pages', 'solid': True}, {'id': 'lun_board', 'x': 16, 'y': 12, 'sprite': 'board', 'big': True, 'solid': True}]}, 'tavern_in': {'npcs': [{'id': 'bard', 'x': 11, 'y': 6, 'face': 'left'}, {'id': 'hank', 'x': 4, 'y': 5, 'face': 'left'}], 'objects': [{'id': 'tavern_counter', 'x': 11, 'y': 3, 'area': [[8, 3], [9, 3], [10, 3], [11, 3], [12, 3], [13, 3]], 'solid': True}, {'id': 'tavern_chest', 'x': 13, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'forge_in': {'npcs': [{'id': 'mae', 'x': 4, 'y': 5, 'face': 'right'}], 'objects': [{'id': 'forge_anvil', 'x': 7, 'y': 4, 'area': [[6, 3], [6, 4], [7, 3], [7, 4], [8, 3], [8, 4]], 'solid': True}, {'id': 'forge_chest', 'x': 12, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'mira_in': {'npcs': [{'id': 'ella', 'x': 6, 'y': 5, 'face': 'down'}], 'objects': [{'id': 'mira_shelf', 'x': 7, 'y': 2, 'area': [[4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2]], 'solid': True}, {'id': 'mira_chest', 'x': 10, 'y': 7, 'sprite': 'chest', 'solid': True}]}}
+
+def apply_world(out):
+    import copy
+    for sid, anchors in WORLD_ANCHORS.items(): out[sid].update(copy.deepcopy(anchors))
+    # Đọc hình 3D chỉ để tính lưới; không sửa lớp vẽ.
+    import subprocess
+    js = "import {TERRAIN,footprint,bridgeCells} from './tools/world_audit.mjs'; console.log(JSON.stringify(Object.fromEntries(Object.keys(TERRAIN).map(id=>[id,{terrain:TERRAIN[id],foot:[...footprint(id)],bridge:[...bridgeCells(id)]}]))));"
+    art = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', js], text=True, encoding='utf-8'))
+    for sid, m in out.items():
+        if m.get('interior') or sid=='ashford': continue
+        a = art[sid]; foot = set(a['foot']); bridges = set(a['bridge'])
+        m['grid'] = [''.join('#' if f'{x},{y}' in foot or (t in 'tbw' and f'{x},{y}' not in bridges) else '.' if t in 'gpsfd' or f'{x},{y}' in bridges else '#' for x,t in enumerate(row)) for y,row in enumerate(a['terrain'])]
+    for y in [11,12]:
+        row=list(out['outskirts']['grid'][y]); row[6]='.'; out['outskirts']['grid'][y]=''.join(row)
+    # Mỗi làn có điểm quay về riêng.
+    def link(a,b,edge,lanes,other=None):
+        other = lanes if other is None else other
+        opposite = dict(left='right',right='left',up='down',down='up')
+        def cell(m,e,k,inset=0):
+            return [inset,k] if e=='left' else [m['cols']-1-inset,k] if e=='right' else [k,inset] if e=='up' else [k,m['rows']-1-inset]
+        for src,dst,e,ls,rs in [(a,b,edge,lanes,other),(b,a,opposite[edge],other,lanes)]:
+            out[src]['exits']=[v for v in out[src]['exits'] if v['scene']!=dst]
+            for k,r in zip(ls,rs): out[src]['exits'].append(dict(edge=e,a=k,b=k,scene=dst,at=cell(out[dst],opposite[e],r,1),face=e))
+    link('outskirts','forest','right',[11,12])
+    link('capital','sylvaren','right',[13,14])
+    link('sylvaren','lunaria','right',[13,14],[11,12])
+    out['road']['exits']=[e for e in out['road']['exits'] if e['scene']!='capital']+[dict(tiles=[[42,11]],scene='capital',at=[21,17],face='up')]
+    out['capital']['exits']=[e for e in out['capital']['exits'] if e['scene']!='road']+[dict(tiles=[[21,18]],scene='road',at=[41,11],face='left')]
+    # Dời vật động sang ô trống gần nhất; giữ vùng tương tác công trình.
+    xp='src/world/mapsExtra.js'
+    text=open(xp,encoding='utf-8').read()
+    extra=copy.deepcopy(EXTRA_ANCHORS)
+    for sid,m in out.items():
+        if m.get('interior'): continue
+        seen=component_world(m)
+        if sid=='ashford': continue
+        taken={tuple(m['spawn'])}
+        for src in out.values():
+            for e in src['exits']:
+                if e['scene']==sid: taken.add(tuple(e['at']))
+        for e in m['exits']:
+            taken.update(tuple(p) for p in e.get('tiles',[]))
+        objs={o['id']:o for o in m['objects'] if not o['id'].startswith('jump_')}
+        objs.update({o['id']:o for o in extra.get(sid,[])})
+        for o in [*m['npcs'],*objs.values()]:
+            if 'area' in o: continue
+            x,y=o['x'],o['y']
+            choices=sorted(seen,key=lambda p:(abs(p[0]-x)+abs(p[1]-y),p[1],p[0]))
+            pos=next(p for p in choices if p not in taken and sum((p[0]+dx,p[1]+dy) in seen for dx,dy in [(1,0),(-1,0),(0,1),(0,-1)])>=3)
+            o['x'],o['y']=pos; taken.add(pos)
+            if 'trigger' in o: o['trigger']=[p for p in o['trigger'] if tuple(p) in seen]
+        m['objects']=[o for k,o in objs.items() if k not in {o['id'] for o in extra.get(sid,[])}]
+    add_jump_sites(out,extra)
+    open(xp,'w',encoding='utf-8').write(text.split('export const EXTRA = ')[0]+'export const EXTRA = '+json.dumps(extra,ensure_ascii=False)+';\n')
+
+
+def add_jump_sites(out,extra):
+    dirs=[(1,0),(-1,0),(0,1),(0,-1)]
+    for sid,m in out.items():
+        h=[['0']*m['cols'] for _ in range(m['rows'])]; gaps=set(); sites=[]; stones=[]
+        m['heights']=[''.join(r) for r in h]; m['gaps']=[]; m['stones']=[]; m['jumpSites']=[]
+        if m.get('interior'): continue
+        objects={o['id']:o for o in m['objects']}; objects.update({o['id']:o for o in extra.get(sid,[])})
+        required=[*m['npcs'],*objects.values()]
+        reserved={tuple(m['spawn'])}
+        for src in out.values():
+            for e in src['exits']:
+                if e['scene']==sid: reserved.add(tuple(e['at']))
+        for e in m['exits']:
+            reserved.update(tuple(p) for p in e.get('tiles',[]))
+            if 'edge' in e:
+                for k in range(e['a'],e['b']+1):
+                    reserved.add((0,k) if e['edge']=='left' else (m['cols']-1,k) if e['edge']=='right' else (k,0) if e['edge']=='up' else (k,m['rows']-1))
+        for o in required:
+            reserved.add((o['x'],o['y']))
+            reserved.update(tuple(p) for p in o.get('trigger',o.get('area',[])))
+            for dx,dy in dirs: reserved.add((o['x']+dx,o['y']+dy))
+        seen=component_world(m)
+        used=set(reserved)
+        def good(cells):
+            if any(p not in seen or p in used for p in cells): return False
+            # Chỗ phụ không được cắt đường đi bộ hiện có.
+            banned=gaps|set(cells)|{(x,y) for y,row in enumerate(h) for x,c in enumerate(row) if c!='0'}
+            q=[tuple(m['spawn'])]; reached=set(q)
+            for x,y in q:
+                for dx,dy in dirs:
+                    p=(x+dx,y+dy)
+                    if p in seen and p not in banned and p not in reached: reached.add(p);q.append(p)
+            return (seen-banned)<=reached
+        # Hai bệ thưởng: bậc 1 -> bậc 2 để đứng -> rương ở bậc 2.
+        for n in range(2):
+            found=False
+            for y in range(2,m['rows']-2):
+                for x in range(2,m['cols']-4):
+                    cells=[(x,y),(x+1,y),(x+2,y)]
+                    if not good(cells) or not any(p in seen and p not in used for p in [(x-1,y),(x,y-1),(x,y+1)]): continue
+                    h[y][x]='1';h[y][x+1]=h[y][x+2]='2'
+                    chest=dict(id=f'jump_{sid}_step{n+1}',x=x+2,y=y,sprite='chest',solid=True,optional=True)
+                    m['objects'].append(chest)
+                    sites.append(dict(kind='steps',tiles=[list(p) for p in cells],chest=chest['id']))
+                    used.update((xx+dx,yy+dy) for xx,yy in cells for dx,dy in [*dirs,(0,0)])
+                    found=True;break
+                if found: break
+            assert found,(sid,'steps',n)
+        for width in [1,2]:
+            found=False
+            for y in range(2,m['rows']-2):
+                for x in range(3,m['cols']-width-2):
+                    cells=[(x+i,y) for i in range(width)]
+                    lane=[(x+i,y) for i in range(-3,width+2)]
+                    if any(p not in seen or p in used for p in lane) or not good(cells): continue
+                    gaps.update(cells);used.update(lane)
+                    sites.append(dict(kind='gap' if width==1 else 'run',tiles=[list(p) for p in cells],start=[x-3,y],landing=[x+width,y]))
+                    found=True;break
+                if found:break
+            assert found,(sid,'gap',width)
+        if sid=='road':
+            # Ao có sẵn bên bắc cầu: ba đá nổi và đảo hai ô, chỉ có thưởng phụ.
+            stones=[(12,7),(14,7),(16,7)]
+            island=[(18,7),(18,8)]
+            pond={(x,y) for y in range(6,10) for x in range(11,20)}
+            gaps.update(pond-set(stones)-set(island))
+            grid=[list(r) for r in m['grid']]
+            for x,y in stones+island: grid[y][x]='.'
+            m['grid']=[''.join(r) for r in grid]
+            chest=dict(id='jump_road_island',x=18,y=8,sprite='chest',solid=True,optional=True)
+            m['objects'].append(chest)
+            sites.append(dict(kind='pond',tiles=[list(p) for p in stones+island],chest=chest['id']))
+        m['heights']=[''.join(r) for r in h];m['gaps']=[list(p) for p in sorted(gaps)];m['stones']=[list(p) for p in (stones+island if sid=='road' else stones)];m['jumpSites']=sites
+
+
+def component_world(m):
+    seen={tuple(m['spawn'])}; q=list(seen)
+    for x,y in q:
+        for p in [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]:
+            xx,yy=p
+            if 0<=xx<m['cols'] and 0<=yy<m['rows'] and m['grid'][yy][xx]=='.' and p not in seen:
+                seen.add(p); q.append(p)
+    return seen
+
+
 def write_maps(out):
     with open('src/world/maps.js', 'w', encoding='utf-8') as f:
         f.write('// Tự sinh bởi tools/build_maps.py — sửa nguồn rồi sinh lại\nexport const MAPS = ' + json.dumps(out, ensure_ascii=False) + ';\n')
@@ -369,6 +513,7 @@ if '--data-only' in __import__('sys').argv:
     text = open('src/world/maps.js', encoding='utf-8').read()
     out = json.loads(text.split('export const MAPS = ', 1)[1].rstrip().rstrip(';'))
     apply_demo(out)
+    apply_world(out)
     write_maps(out)
     raise SystemExit(0)
 
@@ -610,6 +755,7 @@ for scene, R in INTERIORS.items():
                   'npcs': npcs, 'objects': objs, 'exits': R['exits']}
     Image.open(ROOM_RAW.format(R['src'])).convert('RGB').resize((1440, 960), Image.LANCZOS).save(f'src/assets/maps/{scene}.webp', quality=88)
 apply_demo(out)
+apply_world(out)
 open('src/world/maps.js', 'w', encoding='utf-8').write(
     '// Tự sinh bởi tools/build_maps.py — đừng sửa tay (sửa OPS / LAYOUT trong file đó rồi chạy lại)\n'
     '// grid: "." đi được, "#" chặn · toạ độ tính theo ô 32px của ảnh nền 1376x768 (43 x 24 ô)\n'

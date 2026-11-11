@@ -18,7 +18,7 @@ function sceneSpawn(id) {
 }
 function landing(id, x, y) {
     const m = MAPS[id];
-    if (Number.isInteger(x) && Number.isInteger(y) && m.grid[y]?.[x] === '.') return { x, y };
+    if (Number.isInteger(x) && Number.isInteger(y) && m.grid[y]?.[x] === '.' && !(m.gaps??[]).some(p=>p[0]===x&&p[1]===y)) return { x, y };
     return sceneSpawn(id);
 }
 
@@ -154,6 +154,10 @@ Object.assign(SCENES, {
 // Song song với Bảng ải: mỗi ải chính có 1 điểm trên bản đồ (gặp NPC hoặc tới đúng chỗ) -> xem lời trước ải -> mở BẢNG ẢI đúng ải đó.
 //   npc: nói chuyện với NPC đó khi ải này là ải kế tiếp · obj: vật hiện ra trên bản đồ (vị trí ở src/world/mapsExtra.js)
 //   ải 2 dùng sự kiện phục kích 'ambush' có sẵn · ải 18: Elise mở phần ĐỐI CHẤT (trình chứng cứ — game/evidence.js) trước
+// Rương nhảy dùng cơ chế mở một lần đã có.
+for (const [id,m] of Object.entries(MAPS)) for(const o of m.objects.filter(o=>o.id.startsWith('jump_')))
+    SCENES[id].objects.push({id:o.id,type:'chest',reward:{gold:120}});
+
 const STORY_SPOTS = {
     1: { npc: 'rok', scene: 'ashford', go: 'Gặp Rok ở cổng đông làng' },
     3: { obj: 'sp_bandage', scene: 'forest', label: 'Dải vải băng', go: 'Lần theo dải vải băng ở bìa Rừng Sương' },
@@ -266,6 +270,24 @@ const NPCS = {
 };
 
 // Việc: borin (N2, sau ải 4) · lena (N3, sau ải 10) · sera (sau khi được cứu ở ải 7: thuốc cho nhà cứu tế Ashford)
+// from: ải đã qua; until: ải chưa qua. Báo lại luôn ưu tiên hơn điều kiện ẩn.
+Object.assign(NPCS.sera,{showWhen:{from:'c1-07',quest:'sera'}});
+Object.assign(NPCS.jessica,{showWhen:{from:'c1-02',until:'c1-03'}});
+Object.assign(NPCS.rok,{showWhen:{until:'c1-10'}});
+Object.assign(NPCS.guard,{showWhen:{from:'c1-10',until:'c1-12'}});
+Object.assign(NPCS.nun,{showWhen:{from:'c1-13',until:'c1-15'}});
+Object.assign(NPCS.elise,{showWhen:{from:'c1-14',until:'c1-20'}});
+for(const s of Object.values(SCENES)) for(const o of s.objects) if(o.type==='story') {
+    const first=Math.min(...o.stages),last=Math.max(...o.stages);
+    o.showWhen={from:stage(first-1),until:stage(last)};
+}
+function shown(pr,def,id) {
+    if(Object.entries(REPORTS).some(([n,r])=>r.npc===id&&cleared(pr,+n)&&!pr.world?.reported?.[n])) return true;
+    const c=def?.showWhen;
+    if(!c) return true;
+    return (!c.from||c.from==='c1-00'||clearedId(pr,c.from))&&(!c.until||!clearedId(pr,c.until))&&(!c.quest||pr.world?.quests?.[c.quest]!=='done');
+}
+
 const QUESTS = {
     borin: { needNo: 4, items: ['hammer'], flag: 'bua_borin', reward: { gold: 500 } },
     lena: { needNo: 10, items: ['wheat', 'mushroom'], flag: 'nguyen_lieu_lena', reward: { gold: 300, diamond: 10 } },
@@ -467,6 +489,7 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     if (!sceneOpen(pr, sceneId)) return no('Khu này chưa mở');
     const s = SCENES[sceneId];
     if (s.npcs.includes(targetId)) {
+        if(!shown(pr,NPCS[targetId],targetId)) return no('Nhân vật đã rời khỏi đây');
         w.talked[targetId] = true;
         const q = QUESTS[targetId];
         const d = npcDialog(pr, targetId);
@@ -486,7 +509,7 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
         return ok({ lines: d.lines });
     }
     const o = findObj(sceneId, targetId);
-    if (!o) return no('Không có gì ở đây');
+    if (!o || !shown(pr,o,targetId)) return no('Không có gì ở đây');
     if (o.needNo && !cleared(pr, o.needNo)) return no(`Chưa thể làm gì — qua ải ${o.needNo} trước`);
     if (o.needStage && !clearedId(pr, o.needStage)) return no(`Chưa thể làm gì — qua ải ${c2no(o.needStage)} chương 2 trước`);
     if (o.type === 'chest') {
@@ -654,11 +677,11 @@ function worldState(pr, now = Date.now()) {
             id, name: s.name, area: s.area, interior: !!s.interior, areaName: AREAS[s.area].name, open: sceneOpen(pr, id), needNo: AREAS[s.area].needNo, needText: sceneNeedText(id),
             npcs: s.npcs.map(n => {
                 const d = npcDialog(pr, n);
-                const hidden = (n === 'jessica' && !cleared(pr, 2)) || (n === 'sera' && !cleared(pr, 7));   // chưa xuất hiện / chưa được cứu (đồng đội đã vào đội vẫn đứng ở làng)
+                const hidden = !shown(pr,NPCS[n],n);
                 return { id: n, ...NPCS[n], hidden, mark: d.event || d.report ? '!' : d.quest === 'offer' ? '!' : d.quest === 'turnin' ? '?' : null };
             }),
             objects: s.objects.map(o => {
-                const st = o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
+                const st = !shown(pr,o,o.id) ? 'hidden' : o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
                     : o.type === 'mine' ? (now < (w.mineAt[o.id] ?? 0) ? 'cooldown' : 'ready')
                     : o.type === 'item' ? (w.quests[o.quest] === 'active' && !w.bag[o.item] ? 'ready' : 'hidden')
                     : o.type === 'puzzle' ? (pr.flags[{ well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle]] ? 'done' : ((o.needNo && !cleared(pr, o.needNo)) || (o.needStage && !clearedId(pr, o.needStage)) ? 'locked' : 'ready'))
@@ -686,5 +709,5 @@ function presentTrial(pr, wallet, answers = {}) {
         lines: [...r.lines, ...tail].map(l => [...l]), startStage: 'c1-18' });
 }
 
-module.exports = { presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
+module.exports = { shown, presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
     sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };

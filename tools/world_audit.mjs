@@ -12,14 +12,14 @@ export const { LAYOUTS } = await moduleData('src/world3d/layouts.js');
 const { EXTRA } = await moduleData('src/world/mapsExtra.js');
 const WD = createRequire(import.meta.url)('../game/world.js');
 export const key = (x, y) => `${x},${y}`;
-export const walk = (m, x, y) => Number.isInteger(x) && Number.isInteger(y) && m.grid[y]?.[x] === '.';
+export const walk = (m, x, y) => Number.isInteger(x) && Number.isInteger(y) && m.grid[y]?.[x] === '.' && !(m.gaps??[]).some(p=>p[0]===x&&p[1]===y);
 const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
 export function flood(m, start = m.spawn, blocked = new Set()) {
     const seen = new Set(), q = [];
     if (walk(m, ...start) && !blocked.has(key(...start))) { seen.add(key(...start)); q.push(start); }
     for (let i = 0; i < q.length; i++) for (const [dx,dy] of dirs) {
         const x = q[i][0]+dx, y = q[i][1]+dy, k = key(x,y);
-        if (walk(m,x,y) && !seen.has(k) && !blocked.has(k)) { seen.add(k); q.push([x,y]); }
+        if (walk(m,x,y) && (m.heights?.[y]?.[x]??'0')===(m.heights?.[q[i][1]]?.[q[i][0]]??'0') && !seen.has(k) && !blocked.has(k)) { seen.add(k); q.push([x,y]); }
     }
     return seen;
 }
@@ -41,6 +41,14 @@ export function footprint(id) {
         } else if(type==='model') put(p[1],p[2]);
         else if(!['plaza','clear','mist','rails','stoneBridge'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
     }
+    return cells;
+}
+// Mặt cầu phủ nước theo hình học stoneBridge trong build.js.
+export function bridgeCells(id) {
+    const cells=new Set();
+    for(const [type,x0,z0,x1,z1] of LAYOUTS[id]?.items??[]) if(type==='stoneBridge')
+        for(let y=0;y<MAPS[id].rows;y++) for(let x=0;x<MAPS[id].cols;x++)
+            if(x+.5>=x0-.3&&x+.5<x1+.3&&y+.5>z0+.15&&y+.5<z1-.15) cells.add(key(x,y));
     return cells;
 }
 export function exitCells(m,e) {
@@ -82,12 +90,12 @@ export function audit(maps=MAPS) {
             for(const p of cells) if(near.length && !near.some(b=>distance(b.at,p)<=1)) add('b',p,`→ ${e.scene}: quay lại xa ô vừa rời`);
         }
         for(let y=0;y<m.rows;y++) for(let x=0;x<m.cols;x++) {
-            const k=key(x,y), t=TERRAIN[id]?.[y]?.[x], solid=foot.has(k)||'tbw'.includes(t??'!');
+            const k=key(x,y), t=TERRAIN[id]?.[y]?.[x], solid=foot.has(k)||('tbw'.includes(t??'!')&&!bridgeCells(id).has(k)&&!(m.stones??[]).some(p=>p[0]===x&&p[1]===y));
             if(walk(m,x,y)) {
                 if(solid) add('c',[x,y],`đi xuyên vật 3D (${foot.has(k)?'công trình':t})`);
                 if(!seen.has(k)) add('d',[x,y],'túi ô không tới được từ spawn');
                 if((!walk(m,x-1,y)&&!walk(m,x+1,y)) || (!walk(m,x,y-1)&&!walk(m,x,y+1))) add('d',[x,y],'khe rộng một ô — cần xem');
-            } else if('gp'.includes(t??'!')&&!solid&&dirs.some(([dx,dy])=>walk(m,x+dx,y+dy))) add('c',[x,y],'tường vô hình trên cỏ/đường');
+            } else if(!(m.gaps??[]).some(p=>p[0]===x&&p[1]===y)&&'gp'.includes(t??'!')&&!solid&&dirs.some(([dx,dy])=>walk(m,x+dx,y+dy))) add('c',[x,y],'tường vô hình trên cỏ/đường');
         }
         // Thử bỏ từng ô trong vùng đi lang thang: chỉ báo khi thực sự cắt thành phần liên thông.
         for(const n of m.npcs.filter(n=>WD.NPCS[n.id]?.wander)) for(let y=n.y-2;y<=n.y+2;y++) for(let x=n.x-2;x<=n.x+2;x++) {
@@ -112,7 +120,27 @@ export function report() {
     }
     const patch=read('tools/build_maps.py').match(/# AUDIT_CHANGES_BEGIN\n([\s\S]*?)# AUDIT_CHANGES_END/);
     if(patch) lines.push('## Các ô đã sửa ở Ashford','',...patch[1].trim().split('\n').map(s=>s.replace(/^# /,'- ')),'');
-    lines.push('## Phạm vi demo','','Đã sửa Ashford và lối nối trực tiếp. Các mục d/e chỉ liệt kê, chưa tự sửa. Các vùng khác giữ nguyên trừ hành lang phía bắc Vương Đạo nối Ashford. Thiếu ảnh nguồn .team/art nên sinh bằng chế độ --data-only từ dữ liệu hiện có.');
+    lines.push('## Kết quả và giới hạn', '',
+        'Đã sửa sáu vùng còn lại theo địa hình/công trình hiện có; giữ lưới Ashford đã duyệt. Cầu đá Vương Đạo được tính là mặt đi bộ phủ nước. Các mục d/e chỉ liệt kê.',
+        'CHƯA ĐẠT a/b/c = 0 toàn bộ: Ngoại ô còn c tại (6,11), (6,12). Hàng rào trong layouts.js từ (6.75,-0.5) tới (6.75,23.2), nối hàng rào đáy, chia hai phía. Giữ hai ô đường cũ để không cắt đường bắt buộc; cần sửa hình hàng rào/mở cổng, nhưng src/world3d/* bị cấm sửa. Audit vẫn báo thật, không miễn trừ.',
+        'BFS kiểm tra cả độ cao, khe và vật thể: mọi mục tiêu bắt buộc tới được bằng đi bộ; chỉ rương optional cần nhảy. Chưa kiểm tra hình/chuyển động bằng trình duyệt. Chế độ --data-only không cần ảnh nguồn.', '');
+    lines.push('## Chỗ nhảy và rương phụ', '', '| Vùng | Kiểu | Tọa độ | Rương |', '|---|---|---|---|');
+    for(const [id,m] of Object.entries(MAPS)) for(const site of m.jumpSites??[]) {
+        const chest=m.objects.find(o=>o.id===site.chest);
+        lines.push(`| ${id} | ${site.kind} | ${site.tiles.map(p=>`(${p})`).join(' → ')}${site.start?` · đà (${site.start}), đáp (${site.landing})`:''} | ${chest?`${chest.id} (${chest.x},${chest.y}), 120 vàng/lần duy nhất`:'—'} |`);
+    }
+    lines.push('', '## NPC và vật truyện theo tiến độ', '', '| Ai/vật | Ở đâu | Khi nào |', '|---|---|---|');
+    for(const [id,n]of Object.entries(WD.NPCS)) {
+        const locations=Object.entries(MAPS).flatMap(([sid,m])=>m.npcs.filter(v=>v.id===id).map(v=>`${sid} (${v.x},${v.y})`));
+        const c=n.showWhen;
+        lines.push(`| ${n.name} | ${locations.join('; ')} | ${c?`${c.from?'Sau '+c.from:'Từ đầu'}${c.until?', ẩn sau '+c.until:''}${c.quest?', ẩn khi nộp việc '+c.quest:''}`:'Thường trú'} |`);
+    }
+    for(const [id,sc]of Object.entries(WD.SCENES)) for(const o of sc.objects.filter(o=>o.showWhen)) {
+        const v=(EXTRA[id]??[]).find(v=>v.id===o.id)??MAPS[id].objects.find(v=>v.id===o.id);
+        lines.push(`| ${o.label} (${o.id}) | ${id} (${v?.x},${v?.y}) | Hiện khi ải kế tiếp thuộc ${o.stages.join(', ')}; ẩn sau ${o.showWhen.until} |`);
+    }
+    lines.push('', 'Sera: sp_swamp ở Rừng Sương trước khi thắng ải 7; sau đó ở Ashford tới khi nộp việc thảo dược. NPC đang chờ báo lại luôn hiện dù đã qua mốc until. Mọi điều kiện tính lại từ save trên server, áp dụng cả khi tương tác trực tiếp.',
+        'Đã rà chương 2: Aeris, Oren, vệ binh, thương nhân và trẻ em là NPC thường trú; giữ để không mất việc phụ/bí mật. Không có thực thể con đò trong MAPS/EXTRA/SCENES/STORY_SPOTS hiện tại nên chưa thể gắn điều kiện cho nó. Không thêm NPC giả hoặc sửa cốt truyện.', '');
     fs.mkdirSync(new URL('demo/',root),{recursive:true});
     fs.writeFileSync(new URL('demo/BAO_CAO_BAN_DO.md',root),lines.join('\n'));
     return result;
