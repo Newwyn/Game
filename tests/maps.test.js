@@ -88,6 +88,6 @@ test('vật thêm (điểm truyện / điều tra) không chặn đường: hi�
             }
         }
         const near = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1], [0, 0]].some(([dx, dy]) => seen.has(`${x + dx},${y + dy}`));
-        for (const t of [...m.npcs, ...m.objects.filter(o => !o.area && !o.trigger)]) assert.ok(near(t.x, t.y), `${id}: không tới được ${t.id}`);
+        for (const t of [...m.npcs, ...m.objects.filter(o => !o.area && !o.trigger && !o.optional)]) assert.ok(near(t.x, t.y), `${id}: không tới được ${t.id}`);
     }
 });

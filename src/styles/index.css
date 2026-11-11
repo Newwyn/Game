@@ -1516,3 +1516,10 @@ span.wd-act-ic { font-size: 22px; width: auto; height: auto; }
 .cp-stage-card.cp-spot-card { border-style: dashed; border-color: rgba(250, 204, 21, .6); background: rgba(250, 204, 21, .06); }
 .cp-stage-card.cp-spot-card:hover { background: rgba(250, 204, 21, .14); }
 .cp-spot-card .cp-stage-hint { color: #fde68a; }
+
+/* Năm nấc thể lực cạnh nút nhảy. */
+.wd-stamina { display:flex; gap:3px; align-self:center; padding:5px; border-radius:6px; background:#172437; }
+.wd-stamina i { width:7px; height:15px; border:1px solid #8ba0aa; border-radius:2px; background:#344151; }
+.wd-stamina i.filled { background:#75df99; }
+.wd-stamina.empty { animation:wd-stamina-flash .15s alternate 3; }
+@keyframes wd-stamina-flash { to { background:#d84646; transform:translateX(2px); } }

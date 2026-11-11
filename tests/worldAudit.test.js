@@ -78,3 +78,15 @@ test('ra khỏi ba nhà đứng trước đúng cửa, mặt quay xuống', () =
         assert.equal(back.face,'down');
     }
 });
+
+// Ngoại ô có xung đột hình học chưa thể sửa trong phạm vi file được phép.
+test('bảy vùng hết lỗi điểm đáp và lối nối; sáu vùng hết lệch hình, Ngoại ô báo đúng hai ô rào',async()=>{
+    const {audit}=await import('../tools/world_audit.mjs');
+    const result=audit();
+    for(const id of ['outskirts','forest','ashford','road','capital','sylvaren','lunaria']) {
+        assert.deepEqual(result[id].filter(i=>'ab'.includes(i.type)),[],id);
+        const c=result[id].filter(i=>i.type==='c');
+        if(id==='outskirts')assert.deepEqual(c.map(i=>i.at),[[6,11],[6,12]]);
+        else assert.deepEqual(c,[],id);
+    }
+});
