@@ -26,16 +26,16 @@ test('20 ải đúng thứ tự, phần, cấp và trùm', () => {
     assert.deepEqual([C.stages[6].guests, C.stages[6].joins], [['priest'], ['priest']]);
     assert.deepEqual(C.stages[11].joins, ['archer']);
 });
-test('5 nhánh đúng tên, cờ và điều kiện N5', () => {
-    assert.deepEqual(C.branches.map(b => b.name), ['Dưới Giếng Cổ', 'Mỏ Sâu', 'Bữa Ăn Còn Đủ Chỗ', 'Trang Sách Bị Xé', 'Hầm Mộ']);
-    assert.deepEqual(C.branches.map(b => b.flag), ['gieng_co', 'bua_borin', 'nguyen_lieu_lena', 'trang_sach', 'loi_vao_ham_mo']);
-    assert.deepEqual(C.branches.map(b => b.baseNo), [7, 4, 10, 20, 20]);   // theo thời điểm các truyện phụ
+test('7 nhánh đúng tên, cờ và điều kiện N5 (N6, N7: chuỗi nhiệm vụ Rok / Jessica)', () => {
+    assert.deepEqual(C.branches.map(b => b.name), ['Dưới Giếng Cổ', 'Mỏ Sâu', 'Bữa Ăn Còn Đủ Chỗ', 'Trang Sách Bị Xé', 'Hầm Mộ', 'Thanh Kiếm Của Đội Trưởng', 'Cái Tên Bị Gạch']);
+    assert.deepEqual(C.branches.map(b => b.flag), ['gieng_co', 'bua_borin', 'nguyen_lieu_lena', 'trang_sach', 'loi_vao_ham_mo', 'kiem_doi_truong', 'ten_bi_gach']);
+    assert.deepEqual(C.branches.map(b => b.baseNo), [7, 4, 10, 20, 20, 12, 16]);   // theo thời điểm các truyện phụ
     assert.equal(C.branches[4].needStoryNo, 20);
     assert.equal(C.branches[4].enemies[0].classId, 'b_warden');   // N5: trùm ẩn Người Gác Mộ
 });
 test('id duy nhất, quái chương 1 và vị trí hợp lệ', () => {
     const all = [...C.stages, ...C.branches];
-    assert.equal(new Set(all.map(s => s.id)).size, 25);
+    assert.equal(new Set(all.map(s => s.id)).size, 27);
     for (const s of all) for (const e of s.enemies) {
         assert.ok(/^(c1_(goblin|trapper|wolf|soldier|spy|fire)|b_(wolf|skarn|morwen|valdric|warden))$/.test(e.classId), e.classId);
         assert.ok(e.name.length > 0);

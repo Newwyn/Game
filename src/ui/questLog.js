@@ -2,6 +2,7 @@
 // 📜 BẢNG NHIỆM VỤ (QUEST LOG) & THEO DÕI NHIỆM VỤ (TRACKER)
 // Pure HTML-string builders — không gắn listener, không giữ state toàn cục.
 // Mọi sự kiện click được uỷ quyền qua các thuộc tính data-ql-*.
+// 5 thẻ: Chính tuyến · Phụ · Nhánh · Ẩn (chỉ cái đã tìm ra) · Hằng ngày (+ 🔎 Chứng cứ) — dữ liệu: game/quests.js (qlog)
 // ============================================================
 
 const STATE_ORDER = { active: 0, offered: 1, locked: 2, done: 3 };
@@ -12,6 +13,14 @@ const STATE_LABEL = {
     locked: 'Chưa mở',
     done: 'Đã xong'
 };
+// loại nhiệm vụ -> [nhãn, lớp màu, biểu tượng dòng]
+const TYPE = {
+    main: ['CHÍNH TUYẾN', 'main', '⭐'],
+    side: ['PHỤ', 'side', '◆'],
+    branch: ['NHÁNH', 'branch', '❖'],
+    hidden: ['ẨN', 'hidden', '🔮'],
+};
+const QUEST_TABS = ['main', 'side', 'branch', 'hidden'];
 
 /**
  * Escape chuỗi văn bản từ server trước khi chèn vào HTML.
@@ -28,8 +37,8 @@ export function esc(s) {
 }
 
 function tagHTML(type) {
-    const isMain = type === 'main';
-    return `<span class="ql-tag ${isMain ? 'ql-tag-main' : 'ql-tag-side'}">${isMain ? 'CHÍNH TUYẾN' : 'PHỤ'}</span>`;
+    const [label, cls] = TYPE[type] ?? TYPE.side;
+    return `<span class="ql-tag ql-tag-${cls}">${label}</span>`;
 }
 
 function rowSubText(q) {
@@ -49,30 +58,23 @@ function rowSubText(q) {
 
 function filterQuests(quests, tab) {
     const list = Array.isArray(quests) ? quests : [];
-    if (tab === 'main') {
-        return list
-            .filter(q => q && q.type === 'main')
-            .sort((a, b) => (STATE_ORDER[a.state] ?? 9) - (STATE_ORDER[b.state] ?? 9));
-    }
-    if (tab === 'side') {
-        return list
-            .filter(q => q && q.type === 'side')
-            .sort((a, b) => (STATE_ORDER[a.state] ?? 9) - (STATE_ORDER[b.state] ?? 9));
-    }
-    // mặc định: 'active' (cả chính tuyến + phụ đang làm)
-    return list.filter(q => q && q.state === 'active');
+    return list
+        .filter(q => q && q.type === tab)
+        .sort((a, b) => (STATE_ORDER[a.state] ?? 9) - (STATE_ORDER[b.state] ?? 9));   // xong thì xuống cuối
 }
 
 /**
  * Khung theo dõi nhiệm vụ nhỏ ở góc trên bên phải màn bản đồ thế giới (dưới thanh top bar).
  * @param {object|null} quest - Nhiệm vụ đang theo dõi hoặc null
+ * @param {object|null} daily - việc hôm nay (qlog.daily) -> nút mở thẻ Hằng ngày
  * @returns {string} HTML string
  */
-export function trackerHTML(quest) {
+export function trackerHTML(quest, daily = null) {
+    const dailyBtn = daily ? `<button type="button" class="ql-btn ql-trk-daily${daily.tasks.every(t => t.done) ? ' is-done' : ''}" data-ql-daily title="Việc hôm nay">📅 Hôm nay ${daily.tasks.filter(t => t.done).length}/${daily.tasks.length}</button>` : '';
     if (!quest) {
         return `<aside class="ql-tracker ql-tracker-empty" aria-label="Theo dõi nhiệm vụ">
             <span class="ql-trk-empty-text">Chưa theo dõi nhiệm vụ nào</span>
-            <button type="button" class="ql-btn ql-trk-open" data-ql-open>📜 Nhiệm vụ (J)</button>
+            <button type="button" class="ql-btn ql-trk-open" data-ql-open>📜 Nhiệm vụ (J)</button>${dailyBtn}
         </aside>`;
     }
 
@@ -89,50 +91,77 @@ export function trackerHTML(quest) {
         </div>
         <div class="ql-trk-obj">
             <span class="ql-trk-obj-text">${esc(quest.obj || '')}</span>
-            ${hasProg ? `<span class="ql-trk-prog">${have}/${need}</span>` : ''}
+            ${hasProg ? `<span class="ql-trk-prog">${quest.type === 'main' ? 'Bước ' : ''}${have}/${need}</span>` : ''}
         </div>
         ${hasProg ? `<div class="ql-trk-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>` : ''}
         <div class="ql-trk-actions">
             ${canGo ? `<button type="button" class="ql-btn ql-btn-go ql-trk-go" data-ql-go="${esc(quest.id)}">🧭 Tự đi tới</button>` : ''}
-            <button type="button" class="ql-btn ql-trk-open" data-ql-open>📜 Nhiệm vụ (J)</button>
+            <button type="button" class="ql-btn ql-trk-open" data-ql-open>📜 Nhiệm vụ (J)</button>${dailyBtn}
         </div>
     </aside>`;
 }
 
+const hms = (ms) => { const m = Math.ceil(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} giờ ${m % 60} phút` : `${m} phút`; };
+/** Thẻ Hằng ngày: 4 việc + thanh tiến độ, bên phải là tổng thưởng trong ngày */
+function dailyHTML(daily) {
+    const done = daily.tasks.filter(t => t.done).length, got = done * daily.each + (daily.bonusGot ? daily.bonus : 0);
+    const list = daily.tasks.map(t => {
+        const pct = Math.min(100, Math.round((t.have / Math.max(1, t.need)) * 100));
+        return `<div class="ql-row ql-daily-row${t.done ? ' is-done' : ''}">
+            <span class="ql-row-icon" aria-hidden="true">${t.done ? '✅' : t.fight ? '⚔️' : '🧺'}</span>
+            <span class="ql-row-main">
+                <span class="ql-row-title-line"><b class="ql-row-title">${esc(t.text)}</b><span class="ql-daily-count">${t.have}/${t.need}</span></span>
+                <span class="ql-prog-bar" role="progressbar" aria-valuenow="${t.have}" aria-valuemin="0" aria-valuemax="${t.need}"><i style="width:${pct}%"></i></span>
+                <small class="ql-row-sub">${t.done ? `Đã nhận +${daily.each} Kim Cương` : `Thưởng: +${daily.each} Kim Cương`}</small>
+            </span>
+        </div>`;
+    }).join('');
+    const detail = `<div class="ql-detail-content">
+        <div class="ql-detail-meta"><span class="ql-tag ql-tag-daily">HẰNG NGÀY</span><span class="ql-status-pill">${done}/${daily.tasks.length} việc</span></div>
+        <h3 class="ql-detail-title">📅 Việc hôm nay</h3>
+        <p class="ql-desc">Mỗi ngày có ${daily.tasks.length} việc nhỏ, làm ở đâu cũng được. Xong việc nào Kim Cương về ngay việc đó, không cần bấm nhận.</p>
+        <div class="ql-obj-box${done === daily.tasks.length ? ' is-done' : ''}">
+            <div class="ql-obj-head"><span class="ql-obj-label">Kim Cương hôm nay</span><b class="ql-obj-count">${got} / ${daily.total}</b></div>
+            <div class="ql-prog-bar" role="progressbar" aria-valuenow="${got}" aria-valuemin="0" aria-valuemax="${daily.total}"><i style="width:${Math.round(got / daily.total * 100)}%"></i></div>
+            <div class="ql-obj-text">${daily.bonusGot ? `Đã xong cả ${daily.tasks.length} việc: +${daily.bonus} Kim Cương thưởng thêm.` : `Xong cả ${daily.tasks.length} việc được thêm +${daily.bonus} Kim Cương.`}</div>
+        </div>
+        <div class="ql-reward">⏰ Việc mới sau <b>${esc(hms(daily.resetIn))}</b> (05:00 sáng mỗi ngày).</div>
+    </div>`;
+    return { list, detail };
+}
+
 /**
  * Bảng nhiệm vụ đầy đủ (modal kiểu sách / cẩm nang hành trình).
- * @param {Array<object>} quests - Danh sách nhiệm vụ từ server
- * @param {{ tab?: 'active'|'main'|'side', sel?: string|null, tracked?: string|null }} [opts]
+ * @param {Array<object>} quests - Danh sách nhiệm vụ (chính tuyến + phụ + nhánh + ẩn đã tìm ra)
+ * @param {{ tab?: string, sel?: string|null, tracked?: string|null, evidence?: object|null, qlog?: object|null }} [opts]
  * @returns {string} HTML string
  */
-export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked = null, evidence = null } = {}) {
+export function questLogHTML(quests = [], { tab = 'main', sel = null, tracked = null, evidence = null, qlog = null } = {}) {
     const safeQuests = Array.isArray(quests) ? quests : [];
-    const curTab = (tab === 'main' || tab === 'side' || tab === 'active' || (tab === 'evidence' && evidence)) ? tab : 'active';
+    const daily = qlog?.daily ?? null, hidden = qlog?.hidden ?? null;
+    const curTab = QUEST_TABS.includes(tab) || (tab === 'daily' && daily) || (tab === 'evidence' && evidence) ? tab : 'main';
+    const open = (t) => safeQuests.filter(q => q && q.type === t && q.state !== 'done' && q.state !== 'locked').length;
 
-    const counts = {
-        active: safeQuests.filter(q => q && q.state === 'active').length,
-        main: safeQuests.filter(q => q && q.type === 'main').length,
-        side: safeQuests.filter(q => q && q.type === 'side').length
-    };
-
-    const filtered = filterQuests(safeQuests, curTab);
+    const filtered = QUEST_TABS.includes(curTab) ? filterQuests(safeQuests, curTab) : [];
     const current = filtered.find(q => q.id === sel) ?? filtered[0] ?? null;
 
     const tabsMeta = [
-        ['active', 'Đang làm', counts.active],
-        ['main', 'Chính tuyến', counts.main],
-        ['side', 'Phụ', counts.side],
+        ['main', 'Chính tuyến', qlog?.main && qlog.main.i < qlog.main.total ? `${qlog.main.i}/${qlog.main.total}` : open('main')],
+        ['side', 'Phụ', open('side')],
+        ['branch', 'Nhánh', open('branch')],
+        ['hidden', 'Ẩn', hidden ? `${hidden.found}/${hidden.total}` : open('hidden')],
+        ...(daily ? [['daily', 'Hằng ngày', `${daily.tasks.filter(t => t.done).length}/${daily.tasks.length}`]] : []),
         ...(evidence ? [['evidence', '🔎 Chứng cứ', `${evidence.count}/${evidence.total}`]] : [])
     ];
 
-    const listHTML = filtered.length
+    let listHTML = filtered.length
         ? filtered.map(q => {
             const isSel = current && q.id === current.id;
             const isTracked = tracked != null && q.id === tracked;
-            const icon = q.type === 'main' ? '⭐' : '◆';
+            const [, cls, icon] = TYPE[q.type] ?? TYPE.side;
             const stateCls = `ql-state-${esc(q.state || 'active')}`;
             return `<button type="button" class="ql-row ${stateCls}${isSel ? ' is-selected' : ''}${q.state === 'done' ? ' is-done' : ''}" data-ql-sel="${esc(q.id)}">
-                <span class="ql-row-icon ${q.type === 'main' ? 'is-main' : 'is-side'}" aria-hidden="true">${icon}</span>
+                <span class="ql-row-icon is-${cls}" aria-hidden="true">${icon}</span>
                 <span class="ql-row-main">
                     <span class="ql-row-title-line">
                         <b class="ql-row-title">${esc(q.title)}</b>
@@ -142,11 +171,13 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
                 </span>
             </button>`;
         }).join('')
-        : `<div class="ql-empty">Chưa có nhiệm vụ nào ở mục này</div>`;
+        : `<div class="ql-empty">${curTab === 'hidden' ? 'Chưa tìm ra nhiệm vụ ẩn nào. Hãy thử làm những việc lạ quanh bản đồ…' : 'Chưa có nhiệm vụ nào ở mục này'}</div>`;
+    if (curTab === 'hidden' && hidden) listHTML = `<div class="ql-hidden-count">🔮 Đã tìm ra <b>${hidden.found} / ${hidden.total}</b> nhiệm vụ ẩn</div>${listHTML}`;
 
     let detailHTML = `<div class="ql-detail-empty">
-        <span class="ql-empty-illust" aria-hidden="true">📖</span>
-        <p>Chưa có nhiệm vụ nào ở mục này</p>
+        <span class="ql-empty-illust" aria-hidden="true">${curTab === 'hidden' ? '🔮' : '📖'}</span>
+        <p>${curTab === 'hidden' ? 'Nhiệm vụ ẩn không có dấu chỉ trên bản đồ. Tìm ra cái nào, nó mới hiện ở đây.' : 'Chưa có nhiệm vụ nào ở mục này'}</p>
+        ${curTab === 'hidden' && qlog?.titles?.length ? `<p class="ql-titles">🏅 Danh hiệu: ${qlog.titles.map(t => `<b>${esc(t)}</b>`).join(' · ')}</p>` : ''}
     </div>`;
 
     // 🔎 Sổ chứng cứ (game/evidence.js -> worldState.evidence): danh sách bên trái, chi tiết bên phải
@@ -166,8 +197,13 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
             <div class="ql-reward">⚖️ Chứng cứ sẽ dùng khi đối chất trước nhà vua (trước ải 18). Đã có <b>${evidence.count}/${evidence.total}</b>.</div>
         </div>` : detailHTML;
     }
+    // 📅 việc hằng ngày
+    if (curTab === 'daily') {
+        const d = dailyHTML(daily);
+        evList = d.list; detailHTML = d.detail;
+    }
 
-    if (current && curTab !== 'evidence') {
+    if (current && QUEST_TABS.includes(curTab)) {
         const hasProg = current.progress && Number(current.progress.need) > 0;
         const have = hasProg ? Math.max(0, Number(current.progress.have) || 0) : 0;
         const need = hasProg ? Math.max(1, Number(current.progress.need) || 1) : 1;
@@ -181,6 +217,7 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
         const objText = current.state === 'locked' && current.needNo != null
             ? `🔒 Mở sau ải ${esc(current.needNo)}`
             : esc(current.obj || '');
+        const stepText = current.step ? `Bước ${Number(current.step.i) || 1} / ${Number(current.step.total) || 1}` : current.type === 'main' && hasProg ? 'Số bước đã xong' : 'Mục tiêu hiện tại';
 
         detailHTML = `<div class="ql-detail-content">
             <div class="ql-detail-meta">
@@ -193,7 +230,7 @@ export function questLogHTML(quests = [], { tab = 'active', sel = null, tracked 
             ${current.desc ? `<p class="ql-desc">${esc(current.desc)}</p>` : ''}
             <div class="ql-obj-box ${current.state === 'done' ? 'is-done' : ''}${current.state === 'locked' ? ' is-locked' : ''}">
                 <div class="ql-obj-head">
-                    <span class="ql-obj-label">Mục tiêu hiện tại</span>
+                    <span class="ql-obj-label">${stepText}</span>
                     ${hasProg ? `<b class="ql-obj-count">${have} / ${need}</b>` : ''}
                 </div>
                 <div class="ql-obj-text">${objText}</div>

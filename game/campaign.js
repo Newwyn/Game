@@ -127,9 +127,11 @@ function rewardsFor(id, diff, firstClear, rng = Math.random) {
 }
 
 // Server gọi một lần khi kết thúc trận; thể lực đã trừ lúc vào trận.
-function applyResult(pr, { id, diff, classes, win }, P, now, rng = Math.random) {
+//   meta = { deaths, skills, kills } (server đếm trong trận; không truyền = không gọi) -> móc sự kiện nhiệm vụ (game/quests.js): bước chính tuyến, nhiệm vụ, việc hằng ngày
+function applyResult(pr, { id, diff, classes, win }, P, now, rng = Math.random, meta = null) {
     if (!findStage(id) || !DIFFS.includes(diff)) throw new Error('Ải hoặc độ khó không hợp lệ');
     ensureCampaign(pr, now);
+    const questHook = () => meta && require('./quests').battle(pr, pr.wallet, { id, diff, win: !!win, squad: new Set(classes).size, ...meta }, now ?? Date.now());
     const beforeFeatures = features(pr);
     const firstClear = !!win && !cleared(pr, id, diff);
     const result = {
@@ -139,6 +141,7 @@ function applyResult(pr, { id, diff, classes, win }, P, now, rng = Math.random) 
     if (!win) {
         result.refund = S.COST[diff] - 1;
         S.refund(pr.stamina, result.refund);
+        questHook();
         return result;
     }
     result.rewards = rewardsFor(id, diff, firstClear, rng);
@@ -159,6 +162,7 @@ function applyResult(pr, { id, diff, classes, win }, P, now, rng = Math.random) 
         if (!pr.owned.includes(hero)) { pr.owned.push(hero); result.newHeroes.push(hero); }
     }
     result.newFeatures = [...features(pr)].filter(f => !beforeFeatures.has(f));
+    questHook();
     return result;
 }
 

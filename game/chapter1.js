@@ -61,6 +61,9 @@ const branches = [
     { id: 'c1-n3', name: 'Bữa Ăn Còn Đủ Chỗ', baseNo: 10, flag: 'nguyen_lieu_lena', enemies: squad(['c1_wolf', 'Sói Rừng'], ['c1_wolf', 'Sói Rừng'], ['c1_goblin', 'Goblin Cướp']) },
     { id: 'c1-n4', name: 'Trang Sách Bị Xé', baseNo: 20, flag: 'trang_sach', enemies: squad(['c1_soldier', 'Lính Đốt Tài Liệu'], ['c1_spy', 'Mật Thám'], ['c1_fire', 'Lính Đốt Tài Liệu']) },
     { id: 'c1-n5', name: 'Hầm Mộ', baseNo: 20, flag: 'loi_vao_ham_mo', needStoryNo: 20, boss: 2, enemies: squad(['b_warden', 'Người Gác Mộ'], ['c1_soldier', 'Lính Gác Mộ'], ['c1_soldier', 'Lính Gác Mộ']) },
+    // 2 ải nhánh của chuỗi nhiệm vụ mới (game/questData1.js): cờ bật khi làm tới bước "tìm ra chỗ" của chuỗi
+    { id: 'c1-n6', name: 'Thanh Kiếm Của Đội Trưởng', baseNo: 12, flag: 'kiem_doi_truong', enemies: squad(['c1_soldier', 'Lính Đào Ngũ Giữ Trạm'], ['c1_wolf', 'Sói Săn'], ['c1_spy', 'Lính Nỏ Đào Ngũ']) },
+    { id: 'c1-n7', name: 'Cái Tên Bị Gạch', baseNo: 16, flag: 'ten_bi_gach', enemies: squad(['c1_soldier', 'Tay Đòi Nợ'], ['c1_spy', 'Kẻ Giữ Sổ'], ['c1_fire', 'Lính Hậu Cần']) },
 ];
 
 const PARTS = [
