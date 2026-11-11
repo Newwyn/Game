@@ -10,12 +10,14 @@ Quái thường chỉ đánh thường; trùm giữ kỹ năng đang có (ngư�
 | trapper (Goblin Ném Bom) | idle · attack · move · hurt-stun · dead-victory |
 | soldier (Lính Valoria) | idle · attack (ra đòn khung 6) · move · hurt-stun · dead-victory |
 | spy (Mật Thám) | idle · attack · move · hurt-stun · dead-victory |
+| fire (Chiến Binh Lửa) | idle · attack · move · hurt-stun · dead-victory (xong 11/11) |
+| skarn (trùm Skarn) | 5 tấm cơ bản (xong 11/11; khung attack5 thiếu rìu; CHƯA có tấm kỹ năng) |
 
 ## Đang dở
-- fire (Chiến Binh Lửa): có idle + attack; còn move · hurt-stun · dead-victory.
+- skarn: còn các tấm kỹ năng.
 
 ## Chưa làm
-wolf · wolfboss (dùng mẫu sói "mẫu 1" trong dự án Flow của Rok) · skarn · morwen · valdric (+ dạng 2) · warden ·
+wolf · wolfboss (dùng mẫu sói "mẫu 1" trong dự án Flow của Rok) · morwen · valdric (+ dạng 2) · warden ·
 c2scout · c2treant · c2wisp · c2spiritwolf · c2shroom · c2guard · c2cultist · hollow · vexa · thalor · malkor.
 Trùm cần thêm tấm kỹ năng (danh sách ở `prompts.py` SKILLS).
 
@@ -31,3 +33,5 @@ Trùm cần thêm tấm kỹ năng (danh sách ở `prompts.py` SKILLS).
 
 ## Lưu ý Flow
 - Tạo liên tục ~25 tấm thì Flow báo "hoạt động bất thường" và từ chối (cả nút thử lại). Dừng hẳn, để vài giờ rồi làm tiếp; đừng bấm dồn.
+
+- 11/11: Flow đổi bố cục theo chiều cao cửa sổ (nút lệch ~46px) -> chụp màn hình trước mỗi lượt, đừng bấm mù. Lưới ảnh: tấm mới nhất ở đầu -> `__dl(tên)`.

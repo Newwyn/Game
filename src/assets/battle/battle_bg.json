@@ -1,140 +1,140 @@
 {
  "forest": {
-  "sky": "#9ec1c0",
-  "sun": "#ecf5d8",
-  "light": 1.25,
-  "fog": "#6b8171"
+  "sky": "#6fb0ac",
+  "sun": "#f6f8d8",
+  "light": 1.45,
+  "fog": "#8db472"
  },
  "hall": {
-  "sky": "#30263a",
-  "sun": "#ffd6a0",
+  "sky": "#3a2c34",
+  "sun": "#ffd9a8",
   "light": 1.3,
-  "fog": "#6b5448"
+  "fog": "#6a5648"
  },
  "tower": {
-  "sky": "#0a1024",
-  "sun": "#a9c2ff",
-  "light": 0.95,
-  "fog": "#15182b"
+  "sky": "#060a1c",
+  "sun": "#b0c6ff",
+  "light": 1.0,
+  "fog": "#242a48"
  },
  "village": {
-  "sky": "#9cc6e6",
-  "sun": "#fff0d6",
+  "sky": "#74b1ea",
+  "sun": "#fff2dc",
   "light": 1.55,
-  "fog": "#76794e"
+  "fog": "#c4b68e"
  },
  "field": {
-  "sky": "#8fc3ea",
-  "sun": "#fff2cf",
+  "sky": "#6eb0ec",
+  "sun": "#fff4d2",
   "light": 1.6,
-  "fog": "#caab50"
+  "fog": "#bcbb70"
  },
  "mine": {
   "sky": "#14151d",
-  "sun": "#ffc890",
-  "light": 0.95,
-  "fog": "#3c3730"
+  "sun": "#ffcc98",
+  "light": 1.0,
+  "fog": "#3e362e"
  },
  "deepMine": {
   "sky": "#14151d",
-  "sun": "#b0c0ff",
-  "light": 0.8,
-  "fog": "#2a2b38"
+  "sun": "#b4c2ff",
+  "light": 0.85,
+  "fog": "#2e2c38"
  },
  "outpost": {
-  "sky": "#a8c4d8",
-  "sun": "#fff0d0",
+  "sky": "#84b4dc",
+  "sun": "#fff0d4",
   "light": 1.5,
-  "fog": "#a5a89d"
+  "fog": "#b9ad8c"
  },
  "swamp": {
-  "sky": "#6f8a80",
-  "sun": "#cfe6c8",
-  "light": 1.05,
-  "fog": "#506358"
+  "sky": "#5f8078",
+  "sun": "#d6ecd0",
+  "light": 1.1,
+  "fog": "#6f8a74"
  },
  "camp": {
-  "sky": "#b4bfae",
-  "sun": "#ffe0b8",
+  "sky": "#a8b4a8",
+  "sun": "#ffe2ba",
   "light": 1.35,
-  "fog": "#a59478"
+  "fog": "#9a8c6a"
  },
  "square": {
-  "sky": "#a2c8e8",
-  "sun": "#fff0d8",
+  "sky": "#74b1ea",
+  "sun": "#fff2dc",
   "light": 1.55,
-  "fog": "#ac9d86"
+  "fog": "#c4bcab"
  },
  "well": {
-  "sky": "#a2c8e8",
-  "sun": "#fff0d8",
+  "sky": "#74b1ea",
+  "sun": "#fff2dc",
   "light": 1.55,
-  "fog": "#ac9d85"
+  "fog": "#c4bcab"
  },
  "market": {
-  "sky": "#a2c8e8",
-  "sun": "#fff0d8",
+  "sky": "#74b1ea",
+  "sun": "#fff2dc",
   "light": 1.55,
-  "fog": "#ac9d86"
+  "fog": "#c4bcab"
  },
  "bridge": {
-  "sky": "#9cc8ea",
-  "sun": "#fff2da",
+  "sky": "#74b1ea",
+  "sun": "#fff4de",
   "light": 1.55,
-  "fog": "#3c637c"
+  "fog": "#9cb6c4"
  },
  "gate": {
-  "sky": "#9ab8d8",
-  "sun": "#f6f0e6",
+  "sky": "#7cb0e0",
+  "sun": "#f8f2e8",
   "light": 1.45,
-  "fog": "#67625a"
+  "fog": "#b4b0a8"
  },
  "battlement": {
-  "sky": "#8e9cb4",
-  "sun": "#f6f0e6",
-  "light": 1.3,
-  "fog": "#6d685f"
+  "sky": "#6a86c0",
+  "sun": "#ffe8c8",
+  "light": 1.35,
+  "fog": "#8c8a8e"
  },
  "castle": {
-  "sky": "#a0bcd8",
-  "sun": "#fff2e0",
+  "sky": "#74b1ea",
+  "sun": "#fff4e2",
   "light": 1.5,
-  "fog": "#a19582"
+  "fog": "#c4bcab"
  },
  "library": {
   "sky": "#2a2028",
-  "sun": "#ffd6a0",
-  "light": 1.15,
-  "fog": "#33261b"
+  "sun": "#ffd8a4",
+  "light": 1.2,
+  "fog": "#3c2e24"
  },
  "crypt": {
-  "sky": "#0e0e16",
-  "sun": "#b8c0ff",
-  "light": 0.8,
-  "fog": "#292935"
+  "sky": "#0b0d18",
+  "sun": "#bcc8ff",
+  "light": 0.9,
+  "fog": "#262b3e"
  },
  "ruins": {
-  "sky": "#0e0e16",
-  "sun": "#ffc890",
-  "light": 0.8,
-  "fog": "#29251f"
+  "sky": "#170d0a",
+  "sun": "#ffcc94",
+  "light": 0.9,
+  "fog": "#3d2b23"
  },
  "elf": {
-  "sky": "#123642",
-  "sun": "#b8f0e0",
-  "light": 1.1,
-  "fog": "#366156"
+  "sky": "#0c2a3a",
+  "sun": "#bcf2e2",
+  "light": 1.15,
+  "fog": "#2f6a5e"
  },
  "moon": {
-  "sky": "#0c1636",
-  "sun": "#c8dcff",
+  "sky": "#081030",
+  "sun": "#cadeff",
   "light": 1.3,
-  "fog": "#3e5c97"
+  "fog": "#4a64a0"
  },
  "road": {
-  "sky": "#9cc4e4",
+  "sky": "#74b1ea",
   "sun": "#fff2d8",
   "light": 1.55,
-  "fog": "#9ba5a9"
+  "fog": "#c2b68e"
  }
 }
