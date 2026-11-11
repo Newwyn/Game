@@ -66,7 +66,7 @@ test('trạng thái và tính năng theo mốc', () => {
     assert.deepEqual([...C.features(pr)], ['command', 'orb']);
     let state = C.chapterState(pr);
     assert.equal(state.stages.length, 20);
-    assert.equal(state.branches.length, 5);
+    assert.equal(state.branches.length, 7);
     assert.deepEqual(state.stages[0].status, { story: 'open', hard: 'locked', hell: 'locked' });
     clear(pr, 'story', 10); pr.account.level = 10;
     assert.deepEqual([...C.features(pr)], ['command', 'orb', 'auto', 'gear', 'forge', 'hard']);

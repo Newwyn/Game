@@ -70,9 +70,11 @@ test('NPC và vật truyện hiện/ẩn ở server, giữ đúng sau JSON reloa
     passed(p,7);assert.equal(npc('sera').hidden,false);
     assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_swamp').state,'hidden');
     assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_grix').state,'ready');
-    p.world.quests.sera='done';assert.ok(npc('sera').hidden);
+    p.world.quests.sera='done';assert.equal(npc('sera').hidden,false);   // còn nhiệm vụ phụ "Băng cho người bị thương" -> Sera ở lại tới khi xong
+    p.world.quests.s_bang='done';assert.ok(npc('sera').hidden);
     delete p.world.reported[7];assert.equal(npc('sera').hidden,false);
-    passed(p,20);assert.ok(npc('elise','capital').hidden);
+    passed(p,20);assert.equal(npc('elise','capital').hidden,false);   // Elise còn nhiệm vụ để giao (Bông hoa cho cha, chuỗi Hầm Mộ)
+    p.world.quests.s_hoa=p.world.quests.b_hammo='done';assert.ok(npc('elise','capital').hidden);
     delete p.world.reported[20];assert.equal(npc('elise','capital').hidden,false);
     assert.equal(npc('mira').hidden,false);
 });

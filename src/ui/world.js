@@ -6,7 +6,7 @@
 //   · Bản đồ + vị trí NPC / đồ vật / lối ra: src/world/maps.js · Luật (rương, việc, sự kiện…): server (game/world.js)
 // ============================================================
 import { net, socket } from '../net/socket.js';
-import { playStory, playCutscene, storyArt } from './story.js';
+import { playStory, playCutscene, storyArt, storyPlaying } from './story.js';
 import { MAPS } from '../world/maps.js';
 import { EXTRA } from '../world/mapsExtra.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
@@ -272,8 +272,35 @@ function onGroundTap(e) {
 }
 
 // ---------- nhiệm vụ: khung theo dõi + sổ nhiệm vụ (J) ----------
-let qlOpen = false, qlTab = 'active', qlSel = null, tracked = LS.get('wd_track') || 'main';
-const quests = () => data?.quests ?? [];
+let qlOpen = false, qlTab = 'main', qlSel = null, tracked = LS.get('wd_track') || 'main';
+// danh sách cho sổ + khung theo dõi: chính tuyến (kèm số bước, +20 Kim Cương mỗi bước) + phụ / nhánh / ẩn của bộ máy mới (qlog) + việc chương 2 kiểu cũ
+const CH2_SIDE = new Set(['aeris', 'oren', 'moonwell', 'moon_fountain']);
+function quests() {
+    const legacy = data?.quests ?? [], ql = data?.qlog;
+    if (!ql) return legacy;
+    const main = legacy.find(q => q.type === 'main');
+    const inCh1 = ql.main.i < ql.main.total;
+    return [...(main ? [{ ...main, progress: inCh1 ? { have: ql.main.i, need: ql.main.total } : null,
+        reward: inCh1 ? `+${ql.main.reward} Kim Cương mỗi bước · thưởng ải cốt truyện` : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
+}
+// màu dấu ! / ? theo loại nhiệm vụ: vàng chính tuyến · xanh lá phụ · tím nhánh
+const MARK_COLOR = { main: '#facc15', side: '#4ade80', branch: '#c084fc' };
+const markColor = (mk) => MARK_COLOR[mk] ?? '#facc15';
+/** dấu trên đầu người đứng trên bản đồ (vật kiểu person của nhiệm vụ) */
+const objMark = (o) => { const st = scene?.objects.find(q => q.id === o.id); return st?.state === 'ready' && st.mark ? st : null; };
+function openQuestLog(tab) { qlOpen = true; mapOpen = false; if (tab) { qlTab = tab; qlSel = null; } else qlSel = trackedQuest()?.id ?? null; renderHud(); }
+// ---------- dòng báo nhiệm vụ bay lên (+20 Kim Cương mỗi bước chính tuyến, xong nhiệm vụ, việc hôm nay…) ----------
+const noteQueue = [];
+let noteAt = 0;
+function pumpNotes(now) {
+    if (!noteQueue.length || now - noteAt < 950 || dialog || puzzle || busy || storyPlaying() || heroPanelOpen()) return;
+    noteAt = now;
+    const n = noteQueue.shift(), fx = document.createElement('div');
+    fx.className = `wd-float k-${n.k ?? 'info'}`;
+    fx.textContent = n.t;
+    root.appendChild(fx);
+    setTimeout(() => fx.remove(), 3300);
+}
 function trackedQuest() {
     const list = quests();
     return list.find(q => q.id === tracked && (q.state === 'active' || q.state === 'offered')) ?? list.find(q => q.type === 'main' && q.state === 'active') ?? null;
@@ -283,13 +310,14 @@ function goQuest(id) {
     if (!q?.target) return toast('Nhiệm vụ này chưa có chỗ để đi tới');
     tracked = id; LS.set('wd_track', id);
     qlOpen = false; renderHud();
-    startAuto({ scene: q.target.scene, kind: q.target.kind, id: q.target.id });
+    startAuto({ scene: q.target.scene, kind: q.target.kind, id: q.target.id, x: q.target.x, y: q.target.y });
 }
 /** Vị trí (ô) của mục tiêu nhiệm vụ đang theo dõi nếu nằm trong bản đồ hiện tại */
 function trackedSpot() {
     const t = trackedQuest()?.target;
     if (!t || t.scene !== scene?.id) return null;
     if (t.kind === 'npc') { const n = npcs.find(q => q.id === t.id && !q.hidden); return n ? npcPos(n) : null; }
+    if (t.kind === 'tile') return { x: t.x + 0.5, z: t.y + 0.5 };
     const o = (map.objects ?? []).find(q => q.id === t.id);
     if (!o) return null;
     const tiles = o.trigger ?? o.area ?? [[o.x, o.y]];
@@ -389,7 +417,11 @@ function frame(t) {
     if (fadeEl) fadeEl.style.opacity = !flat() ? fade : 0;
     if (toastMsg && t - toastAt > 3500) { toastMsg = null; renderHud(); }
     if (t - miniAt > 120) { miniAt = t; drawMini(t); }
+    pumpNotes(t);
+    // đứng yên: báo lại ô đang đứng vài giây một lần (server đo thời gian đứng yên cho nhiệm vụ) — tối đa 3 lần mỗi lần dừng
+    if (scene && !me.moving && standSent < 3 && performance.now() - arriveAt > 4000 * (standSent + 1)) { standSent++; socket.emit('worldStand', { scene: scene.id, x: me.x, y: me.y }); }
 }
+let standSent = 0;
 // ---------- 🗺️ bản đồ thu nhỏ (góc phải trên) ----------
 let mini = null, miniCtx = null, miniAt = 0;
 function drawMini(t) {
@@ -419,7 +451,8 @@ function drawMini(t) {
         const [x, y] = cells[0];
         dot((x + 0.5) * k, (y + 0.5) * k, e.door ? 2.5 : 3.5, e.door ? '#fbbf24' : '#22d3ee');
     }
-    for (const n of npcs) if (!n.hidden) dot((n.x + 0.5) * k, (n.y + 0.5) * k, n.mark ? 3.2 : 2.2, n.mark ? '#facc15' : '#e2e8f0');
+    for (const n of npcs) if (!n.hidden) dot((n.x + 0.5) * k, (n.y + 0.5) * k, n.mark ? 3.2 : 2.2, n.mark ? markColor(n.mk) : '#e2e8f0');
+    for (const o of map.objects ?? []) { const st = o.char && objMark(o); if (st) dot((o.x + 0.5) * k, (o.y + 0.5) * k, 3.2, markColor(st.mk)); }   // người của nhiệm vụ
     const tg = trackedSpot();
     if (tg) { const r = 4 + Math.sin(t / 200) * 1.5; dot(tg.x * k, tg.z * k, r, 'rgba(250, 204, 21, .35)', '#facc15'); }
     // nhân vật chính: chấm đỏ + mũi chỉ hướng
@@ -441,7 +474,7 @@ function update(dt, now) {
         if (me.moving.t >= me.moving.dur) {
             if (!me.jump) { runSteps=runFace===me.face && now-runAt<=STEP_MS+250 ? runSteps+1 : 1; runFace=me.face; runAt=now; }
             me.x = me.moving.tx; me.y = me.moving.ty; me.moving = null; me.jump = null;
-            me.step++; arriveAt = performance.now();
+            me.step++; arriveAt = performance.now(); standSent = 0;
             me.h=tileHeight(map,me.x,me.y);
             onArrive();
             if(jumpQueued) { jumpQueued=false; pressB(); }
@@ -554,12 +587,14 @@ function pressB() {
     if(!target) { bump(); runSteps=0; return; }
     if(!spendStamina(stamina,target.cost,now)) { bump(); staminaFlash=now+450; drawStamina(now); return; }
     me.moving={tx:target.tx,ty:target.ty,t:0,dur:JUMP_MS}; me.jump=true;
+    socket.emit('worldJump');   // việc hằng ngày "nhảy N lần"
     runSteps=0; runFace=null; drawStamina(now);
 }
 function interactWith({ kind, id }) {
     if (kind === 'obj') {
         const o = scene.objects.find(s => s.id === id);
         if (o?.type === 'stageBoard') { save(true); return onStages?.(); }
+        if (o?.type === 'dailyBoard') return openQuestLog('daily');   // bảng "việc hôm nay" -> thẻ Hằng ngày
     }
     busy = true;
     net.worldInteract(scene.id, id);
@@ -624,6 +659,13 @@ function drawDissolve(d, now, S, cx, cy) {
     }
     ctx.globalAlpha = 1;
 }
+/** dấu ! / ? nhấp nhô trên đầu (màu theo loại nhiệm vụ) */
+function drawMark(txt, mk, x, y, S, now) {
+    ctx.font = `900 ${Math.round(S * 0.6)}px Outfit, sans-serif`; ctx.textAlign = 'center';
+    ctx.lineWidth = Math.max(2, S * 0.08); ctx.strokeStyle = '#1e293b'; ctx.fillStyle = markColor(mk);
+    const yy = y - S * 0.55 + Math.sin(now / 250) * S * 0.08;
+    ctx.strokeText(txt, x + S / 2, yy); ctx.fillText(txt, x + S / 2, yy);
+}
 function draw(now) {
     if (!ctx || !map) return;
     ctx.imageSmoothingEnabled = false;
@@ -648,6 +690,7 @@ function draw(now) {
             const idle = !!o.solo;   // người đứng yên (Grix, lính...) — không giậm chân
             for (const [k, [ox, oy, ch]] of groupOf(o).entries()) list.push({ y: o.y + oy, draw: () =>
                 drawChar(ch ?? o.char, (o.x + ox) * S - cx, (o.y + oy) * S - cy, o.face ?? 'left', !idle && Math.floor(now / 400 + k) % 2 === 0, Math.floor(now / 400), 0, S) });
+            if (st.mark) list.push({ y: o.y + 0.02, draw: () => drawMark(st.mark, st.mk, o.x * S - cx, o.y * S - cy, S, now) });
             continue;
         }
         if (!o.sprite) continue;
@@ -671,12 +714,7 @@ function draw(now) {
         const x = (n.x + (n.moving ? (n.moving.tx - n.x) * p : 0)) * S - cx, y = (n.y + (n.moving ? (n.moving.ty - n.y) * p : 0)) * S - cy;
         list.push({ y: n.y + (n.moving ? (n.moving.ty - n.y) * p : 0), draw: () => {
             drawChar(n.def.art, x, y, n.face, !!n.moving && p > 0.25 && p < 0.75, n.step, 0, S);
-            if (n.mark) {
-                ctx.font = `900 ${Math.round(S * 0.6)}px Outfit, sans-serif`; ctx.textAlign = 'center';
-                ctx.lineWidth = Math.max(2, S * 0.08); ctx.strokeStyle = '#1e293b'; ctx.fillStyle = n.mark === '!' ? '#facc15' : '#4ade80';
-                const yy = y - S * 0.55 + Math.sin(now / 250) * S * 0.08;
-                ctx.strokeText(n.mark, x + S / 2, yy); ctx.fillText(n.mark, x + S / 2, yy);
-            }
+            if (n.mark) drawMark(n.mark, n.mk, x, y, S, now);
         } });
     }
     const p = me.moving ? ease(me.moving) : 0;
@@ -708,7 +746,7 @@ function draw3d(now) {
         if (n.hidden) continue;
         const s = sheet(n.def.art), q = npcPos(n);
         actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, x: q.x, z: q.z, face: n.face, col: (!!n.moving && q.p > 0.25 && q.p < 0.75) ? (n.step % 2 ? 0 : 2) : 1 });
-        if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: n.mark === '!' ? '#facc15' : '#4ade80' });
+        if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: markColor(n.mk) });
     }
     const items = [];
     for (const o of map.objects ?? []) {
@@ -718,6 +756,7 @@ function draw3d(now) {
             if (st.state !== 'ready') continue;
             groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
                 col: o.solo ? 1 : Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }); });
+            if (st.mark) marks.push({ key: 'm:' + o.id, x: o.x + 0.5, z: o.y + 0.5, txt: st.mark, color: markColor(st.mk) });
             continue;
         }
         const src = o.sprite && itemSrc(o.sprite, st.state === 'done');
@@ -749,11 +788,11 @@ function renderHud() {
     ${data.bag?.length ? `<div class="wd-bag">Đang mang: ${data.bag.map(b => `<b>${b.name}</b>`).join(', ')}</div>` : ''}
     ${toastMsg ? `<div class="wd-toast">${toastMsg}</div>` : ''}
     <div class="wd-help">Mũi tên / WASD: đi · bấm đất: tự đi · A (E): nói chuyện · B (Space): nhảy · C nhân vật · I túi · J nhiệm vụ · M bản đồ · Esc cài đặt</div>
-    ${data.quests ? trackerHTML(trackedQuest()) : ""}
+    ${data.quests ? trackerHTML(trackedQuest(), data.qlog?.daily ?? null) : ""}
     ${dialog ? dialogHTML() : ''}
     ${puzzle ? puzzleHTML() : ''}
     ${mapOpen ? mapHTML() : ''}
-    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null, evidence: data?.evidence ?? null }) : ''}`;
+    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null, evidence: data?.evidence ?? null, qlog: data?.qlog ?? null }) : ''}`;
     // khung theo dõi nhiệm vụ nằm ngay dưới bản đồ thu nhỏ
     const trk = hud.querySelector('.ql-tracker');
     if (trk && mini) trk.style.top = Math.round(mini.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
@@ -821,7 +860,7 @@ function doAction(k) {
     if (k === 'hero' || k === 'bag' || k === 'shop' || k === 'settings') return panel(k);
     if (k === 'forge') { save(true); return onGear?.(); }
     if (k === 'extras') { save(true); return onExtras?.(); }
-    if (k === 'quests') { qlOpen = !qlOpen; mapOpen = false; qlSel = trackedQuest()?.id ?? null; return renderHud(); }
+    if (k === 'quests') { if (qlOpen) { qlOpen = false; return renderHud(); } return openQuestLog(); }
     if (k === 'map') { mapOpen = !mapOpen; qlOpen = false; return renderHud(); }
 }
 const ACTION_KEYS = { c: 'hero', i: 'bag', m: 'map', o: 'settings' };
@@ -855,7 +894,8 @@ function onHudClick(e) {
     const wq = q('[data-wd-q]');
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
     // sổ nhiệm vụ
-    if (q('[data-ql-open]')) { qlOpen = true; mapOpen = false; qlSel = trackedQuest()?.id ?? null; renderHud(); return; }
+    if (q('[data-ql-daily]')) { openQuestLog('daily'); return; }
+    if (q('[data-ql-open]')) { const t = trackedQuest(); if (t && ['main', 'side', 'branch', 'hidden'].includes(t.type)) qlTab = t.type; openQuestLog(); return; }
     if (e.target.matches('[data-ql-close]') || q('button[data-ql-close]')) { qlOpen = false; renderHud(); return; }
     const qt = q('[data-ql-tab]'); if (qt) { qlTab = qt.dataset.qlTab; qlSel = null; renderHud(); return; }
     const qs = q('[data-ql-sel]'); if (qs) { qlSel = qs.dataset.qlSel; renderHud(); return; }
@@ -908,9 +948,10 @@ function loadScene(id, x, y, face) {
     me.x = x; me.y = y; me.h=tileHeight(map,x,y); runSteps=0; runFace=null; jumpQueued=false; me.face = face ?? me.face; me.moving = null; me.jump = null; queued = null;
     npcs = (map?.npcs ?? []).map(p => {
         const s = scene.npcs.find(n => n.id === p.id);
-        return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;
+        return s ? { id: p.id, x: p.x, y: p.y, home: [p.x, p.y], face: p.face ?? 'down', def: s, hidden: s.hidden, mark: s.mark, mk: s.mk, moving: null, step: 0, nextAt: performance.now() + Math.random() * 2000 } : null;
     }).filter(Boolean);
     if (auto) { auto.path = null; auto.exitDir = null; }
+    standSent = 0; arriveAt = performance.now();
     snapObjects(false);
     wildGrace = GRACE_STEPS;
     if (host3d && canvas) { host3d.style.display = flat() ? 'none' : 'block'; canvas.style.display = flat() ? 'block' : 'none'; }
@@ -984,11 +1025,12 @@ function applyState(d) {
     }
     const first = !data || !scene;
     const teleported = data && d.teleportVersion !== data.teleportVersion;
+    if (d.notes?.length) noteQueue.push(...d.notes);   // dòng báo nhiệm vụ (bay lên sau khi hội thoại đóng)
     data = d;
     if (first || teleported || scene.id !== d.scene) loadScene(d.scene, d.x, d.y, d.face);
     else {   // cập nhật trạng thái (dấu ! ?, đồ vật) mà không dịch vị trí
         scene = d.scenes[d.scene];
-        for (const n of npcs) { const s = scene.npcs.find(q => q.id === n.id); if (s) { n.def = s; n.hidden = s.hidden; n.mark = s.mark; } }
+        for (const n of npcs) { const s = scene.npcs.find(q => q.id === n.id); if (s) { n.def = s; n.hidden = s.hidden; n.mark = s.mark; n.mk = s.mk; } }
         snapObjects(true);
         renderHud();
     }
@@ -1003,9 +1045,15 @@ function onResult(r) {
         playCutscene(r.lines, r.cutscene, r.speakers, () => { busy = false; renderHud(); });
         return;
     }
+    if (r.openDaily) return openQuestLog('daily');
+    if (r.lines && r.story) {   // nhận / trả nhiệm vụ: khung truyện (playStory) rồi dòng thưởng bay lên
+        busy = true;
+        playStory(r.lines, r.speakers, () => { busy = false; renderHud(); });
+        return;
+    }
     if (r.lines) {
         const n = scene?.npcs.find(x => x.id === r.target);
-        dialog = { name: n?.name ?? '', speakers: r.speakers, lines: [...r.lines, ...(r.text ? [['sys', `✨ ${r.text}`]] : [])], i: 0,
+        dialog = { name: r.npcName ?? n?.name ?? '', speakers: r.speakers, lines: [...r.lines, ...(r.text && !r.quest ? [['sys', `✨ ${r.text}`]] : [])], i: 0,
             after: r.startStage ? () => { save(true); onStage?.(r.startStage); }
                 : r.present ? () => { puzzle = { kind: 'present', ...r.present }; renderHud(); } : null };   // Elise: lời mở đầu -> khung đối chất
         return renderHud();

@@ -9,6 +9,8 @@ const E = require('./evidence');   // 🔎 sổ chứng cứ + đối chất tr�
 const W = require('./wallet');
 const CHAPTER = require('./chapter1');
 const CHAPTER2 = require('./chapter2');
+const Q = require('./quests');          // 📜 bộ máy nhiệm vụ (phụ / nhánh / ẩn / hằng ngày / bước chính tuyến)
+const QD = require('./questData1');
 // Dùng cùng dữ liệu sinh với client, tránh giữ tọa độ của vùng cũ khi dịch chuyển.
 const mapText = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/world/maps.js'), 'utf8');
 const MAPS = JSON.parse(mapText.split('export const MAPS = ')[1].trim().replace(/;$/, ''));
@@ -154,6 +156,9 @@ Object.assign(SCENES, {
 // Song song với Bảng ải: mỗi ải chính có 1 điểm trên bản đồ (gặp NPC hoặc tới đúng chỗ) -> xem lời trước ải -> mở BẢNG ẢI đúng ải đó.
 //   npc: nói chuyện với NPC đó khi ải này là ải kế tiếp · obj: vật hiện ra trên bản đồ (vị trí ở src/world/mapsExtra.js)
 //   ải 2 dùng sự kiện phục kích 'ambush' có sẵn · ải 18: Elise mở phần ĐỐI CHẤT (trình chứng cứ — game/evidence.js) trước
+// 📜 vật / người của nhiệm vụ chương 1 (game/questData1.js QUEST_OBJECTS · vị trí ở src/world/mapsExtra.js)
+for (const [id, list] of Object.entries(QD.QUEST_OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
+const QUEST_TYPES = new Set(['pickup', 'spot', 'person', 'gather', 'dailyBoard']);
 // Rương nhảy dùng cơ chế mở một lần đã có.
 for (const [id,m] of Object.entries(MAPS)) for(const o of m.objects.filter(o=>o.id.startsWith('jump_')))
     SCENES[id].objects.push({id:o.id,type:'chest',reward:{gold:120}});
@@ -234,7 +239,21 @@ function syncReports(pr) {
     const w = ensureWorld(pr);
     w.reported = {};
     for (const n of Object.keys(REPORTS)) if (cleared(pr, +n)) w.reported[n] = true;
+    Q.resetMain(pr);   // bước chính tuyến tính lại theo ải đã qua, KHÔNG trả bù Kim Cương
 }
+
+// 📜 các bước chính tuyến (mỗi bước +20 Kim Cương) dựng từ điểm truyện + ải + về báo lại
+Q.setMain(QD.mainSteps(STORY_SPOTS, REPORTS, CHAPTER.stages));
+/** Chỗ của NPC / vật / vật nhặt ('item:<mã>') trên bản đồ -> mục tiêu "Tự đi tới" của sổ nhiệm vụ */
+Q.setLocator((id) => {
+    if (!id) return null;
+    for (const [scene, s] of Object.entries(SCENES)) {
+        if (s.npcs.includes(id)) return { scene, kind: 'npc', id };
+        const o = s.objects.find(x => (id.startsWith('item:') ? x.item === id.slice(5) : x.id === id));
+        if (o) return { scene, kind: 'obj', id: o.id };
+    }
+    return null;
+});
 
 const START = { scene: 'outskirts', x: 3, y: 12, face: 'right' };
 
@@ -285,6 +304,7 @@ function shown(pr,def,id) {
     if(Object.entries(REPORTS).some(([n,r])=>r.npc===id&&cleared(pr,+n)&&!pr.world?.reported?.[n])) return true;
     const c=def?.showWhen;
     if(!c) return true;
+    if(NPCS[id]===def && Q.needed(pr,id)) return true;   // nhiệm vụ đang cần người này (giao / trả / hỏi chuyện)
     return (!c.from||c.from==='c1-00'||clearedId(pr,c.from))&&(!c.until||!clearedId(pr,c.until))&&(!c.quest||pr.world?.quests?.[c.quest]!=='done');
 }
 
@@ -295,7 +315,7 @@ const QUESTS = {
     aeris: { needStage: 'c2-04', items: ['glowshroom'], flag: 'nam_phat_quang', reward: { gold: 2000, diamond: 20 } },
     oren: { needStage: 'c2-14', items: ['startome'], flag: 'lang_elf_co', reward: { gold: 3000, diamond: 30 } },
 };
-const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược', glowshroom: 'Nấm phát quang', startome: 'Sách sao cổ' };
+const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược', glowshroom: 'Nấm phát quang', startome: 'Sách sao cổ', ...QD.ITEM_NAMES };
 const questOpen = (pr, q) => (q.needStage ? clearedId(pr, q.needStage) : cleared(pr, q.needNo));
 const questNeedText = (q) => (q.needStage ? `ải ${c2no(q.needStage)} chương 2` : `ải ${q.needNo}`);
 
@@ -330,6 +350,9 @@ function ensureWorld(pr) {
     if (!w.reported) { w.reported = {}; for (const n of Object.keys(REPORTS)) if (cleared(pr, +n)) w.reported[n] = true; }   // save cũ: các ải đã qua coi như đã báo
     pr.flags ??= {};
     pr.items ??= {};
+    w.gather ??= {};
+    w.clueOrder ??= CLUES.filter(c => E.has(pr, E.clueEvidence(c.id)?.id)).map(c => c.id);   // save cũ đã có manh mối: coi như đọc đúng thứ tự
+    Q.ensure(pr);
     return w;
 }
 
@@ -484,7 +507,7 @@ function move(pr, sceneId, x, y, face) {
 }
 
 /** Tương tác NPC / đồ vật. data: { answer?: string[] }. Trả { ok, why?, text?, lines?, rewards?, flag?, startStage? } */
-function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rng = Math.random) {
+function interact0(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rng = Math.random) {
     const w = ensureWorld(pr);
     if (!sceneOpen(pr, sceneId)) return no('Khu này chưa mở');
     const s = SCENES[sceneId];
@@ -493,11 +516,15 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
         w.talked[targetId] = true;
         const q = QUESTS[targetId];
         const d = npcDialog(pr, targetId);
+        if (d.event || d.report) Q.dailyEvent(pr, wallet, { type: 'talk', who: targetId }, now);
         if (d.event === 'trial') return ok({ lines: d.lines, present: E.trialPayload(pr) });   // khung đối chất (client) -> presentTrial
         if (d.report) { w.reported[d.report] = true; return ok({ lines: d.lines, cutscene: d.cutscene }); }   // về báo lại -> mở ải kế tiếp
         if (d.event) return ok({ lines: d.lines, startStage: EVENT_STAGE[d.event] });
-        if (q && d.quest === 'offer') { w.quests[targetId] = 'active'; return ok({ text: 'Nhận việc', lines: d.lines }); }
-        if (q && d.quest === 'turnin') {
+        // 📜 bộ máy nhiệm vụ: trả / làm bước -> nhận nhiệm vụ mới (3 việc cũ borin / lena / sera cũng chạy ở đây, giữ nguyên cờ)
+        const qr = Q.talk(pr, wallet, targetId, now, rng);
+        if (qr) return ok({ ...qr, npcName: NPCS[targetId].name });
+        if (q && !Q.BY_ID[targetId] && d.quest === 'offer') { w.quests[targetId] = 'active'; return ok({ text: 'Nhận việc', lines: d.lines }); }
+        if (q && !Q.BY_ID[targetId] && d.quest === 'turnin') {
             w.quests[targetId] = 'done';
             for (const it of q.items) delete w.bag[it];
             pr.flags[q.flag] = true;
@@ -512,6 +539,27 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     if (!o || !shown(pr,o,targetId)) return no('Không có gì ở đây');
     if (o.needNo && !cleared(pr, o.needNo)) return no(`Chưa thể làm gì — qua ải ${o.needNo} trước`);
     if (o.needStage && !clearedId(pr, o.needStage)) return no(`Chưa thể làm gì — qua ải ${c2no(o.needStage)} chương 2 trước`);
+    // 📜 vật / người của nhiệm vụ
+    if (QUEST_TYPES.has(o.type)) {
+        if (Q.objState(pr, o, now) === 'hidden') return no('Không có gì ở đây');
+        if (o.type === 'pickup') { w.bag[o.item] = true; return ok({ text: `Nhặt được ${ITEM_NAMES[o.item]}` }); }
+        if (o.type === 'spot') {
+            if (o.feed) {   // máng gà: mỗi máng tính 1 lần / ngày cho việc hằng ngày
+                w.fed ??= {};
+                if (w.fed[o.id] !== Q.dayKey(now)) { w.fed[o.id] = Q.dayKey(now); Q.dailyEvent(pr, wallet, { type: 'feed' }, now); }
+            }
+            return ok({ lines: o.lines.map(t => ['sys', t]) });
+        }
+        if (o.type === 'person') {
+            const qr = Q.talk(pr, wallet, o.id, now, rng);
+            return ok(qr ? { ...qr, npcName: o.name } : { lines: o.lines.map(t => ['npc', t]), npcName: o.name });
+        }
+        if (o.type === 'gather') {   // vật nhặt hằng ngày: mọc lại lúc 05:00
+            w.gather[o.id] = Q.dayKey(now);
+            return ok({ text: `Hái ${o.label}: ${rewardText(giveReward(wallet, { gold: 20 }))}`, rewards: { gold: 20 } });
+        }
+        return ok({ openDaily: true });   // bảng "việc hôm nay"
+    }
     if (o.type === 'chest') {
         if (w.opened[o.id]) return no('Rương trống rỗng');
         w.opened[o.id] = true;
@@ -571,6 +619,28 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     if (o.type === 'tavern') return pr.flags.nguyen_lieu_lena ? ok({ open: 'tavern' }) : no('Quầy còn đóng — giúp cô Lena chuẩn bị Bữa Tiệc Làng trước đã');
     if (o.type === 'forge') return require('./campaign').features(pr).has('gear') ? ok({ open: 'gear' }) : no(`Đe rèn còn nguội — Trang bị ${A.unlockText('gear').toLowerCase()}`);
     return no('Không có gì ở đây');
+}
+
+/** Tương tác + móc sự kiện nhiệm vụ: ghi điểm truyện đã tới, rương / vật nhặt / manh mối / vật đã xem -> tiến độ nhiệm vụ, bước chính tuyến (+20 Kim Cương) */
+function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rng = Math.random) {
+    const r = interact0(pr, wallet, sceneId, targetId, data, now, rng);
+    if (!r.ok) return r;
+    const w = pr.world, o = findObj(sceneId, targetId);
+    const n = r.startStage ? require('./story').stageNo(r.startStage) : null;
+    if (n && r.startStage.startsWith('c1-')) w.spot[n] = true;   // đã tới điểm truyện của ải n
+    if (r.present) w.spot[18] = true;
+    if (o && !r.puzzle) {
+        if (o.type === 'chest') Q.fire(pr, wallet, { type: 'chest', id: o.id }, now, rng);
+        if (['mine', 'item', 'pickup', 'gather'].includes(o.type)) Q.fire(pr, wallet, { type: 'gather', id: o.id }, now, rng);
+        if (o.type === 'clue') Q.clueRead(pr, o.id);
+        if (o.type !== 'person') {
+            const res = Q.fire(pr, wallet, { type: 'interact', id: o.id }, now, rng);
+            const fin = res.done.map(d => Q.BY_ID[d.quest]).find(q => q?.outro);   // nhiệm vụ (ẩn) xong ngay tại vật: phát lời kết
+            if (fin) r.lines = [...(r.lines ?? []), ...fin.outro.map(l => [...l])];
+        }
+    }
+    Q.settle(pr, wallet, now, rng);
+    return r;
 }
 
 /** Nhật ký nhiệm vụ thuần: đọc cả save cũ mà không khởi tạo hay đổi tiến trình. */
@@ -678,10 +748,13 @@ function worldState(pr, now = Date.now()) {
             npcs: s.npcs.map(n => {
                 const d = npcDialog(pr, n);
                 const hidden = !shown(pr,NPCS[n],n);
-                return { id: n, ...NPCS[n], hidden, mark: d.event || d.report ? '!' : d.quest === 'offer' ? '!' : d.quest === 'turnin' ? '?' : null };
+                // dấu trên đầu: ! vàng chính tuyến · ! / ? xanh lá phụ · tím nhánh (mk = loại) — nhiệm vụ ẩn không có dấu
+                const m = d.event || d.report ? { txt: '!', kind: 'main' } : Q.BY_ID[n] || !QUESTS[n] ? Q.markOf(pr, n)
+                    : d.quest === 'offer' ? { txt: '!', kind: 'side' } : d.quest === 'turnin' ? { txt: '?', kind: 'side' } : Q.markOf(pr, n);
+                return { id: n, ...NPCS[n], hidden, mark: m?.txt ?? null, mk: m?.kind ?? null };
             }),
             objects: s.objects.map(o => {
-                const st = !shown(pr,o,o.id) ? 'hidden' : o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
+                const st = !shown(pr,o,o.id) ? 'hidden' : QUEST_TYPES.has(o.type) ? Q.objState(pr, o, now) : o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
                     : o.type === 'mine' ? (now < (w.mineAt[o.id] ?? 0) ? 'cooldown' : 'ready')
                     : o.type === 'item' ? (w.quests[o.quest] === 'active' && !w.bag[o.item] ? 'ready' : 'hidden')
                     : o.type === 'puzzle' ? (pr.flags[{ well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle]] ? 'done' : ((o.needNo && !cleared(pr, o.needNo)) || (o.needStage && !clearedId(pr, o.needStage)) ? 'locked' : 'ready'))
@@ -690,13 +763,20 @@ function worldState(pr, now = Date.now()) {
                     : o.type === 'clue' ? (cleared(pr, o.needNo) && !E.has(pr, E.clueEvidence(o.id)?.id) ? 'ready' : 'hidden')
                     : o.type === 'event' ? eventState(pr, o.event)
                     : 'ready';
+                const pm = o.type === 'person' && st === 'ready' ? Q.markOf(pr, o.id) : null;
                 return { id: o.id, type: o.type, label: o.label ?? (o.type === 'chest' ? 'Rương' : ''), state: st, puzzle: o.puzzle, item: o.item,
+                    ...(o.type === 'person' ? { name: o.name, mark: pm?.txt ?? null, mk: pm?.kind ?? null } : {}),
                     readyIn: o.type === 'mine' ? Math.max(0, (w.mineAt[o.id] ?? 0) - now) : 0 };
             }),
         };
     }
-    return { scene: w.scene, x: w.x, y: w.y, face: w.face, teleportVersion: w.teleportVersion ?? 0, scenes, bag: Object.keys(w.bag).map(it => ({ id: it, name: ITEM_NAMES[it] })),
-        wellSymbols: WELL_SYMBOLS, moonSymbols: MOON_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr), evidence: E.journal(pr) };
+    // túi vật nhiệm vụ: vật cùng tên gộp "×n"
+    const bagNames = new Map();
+    for (const it of Object.keys(w.bag)) { const name = ITEM_NAMES[it] ?? it, b = bagNames.get(name) ?? { id: it, n: 0 }; b.n++; bagNames.set(name, b); }
+    const personName = (id) => NPCS[id]?.name ?? Object.values(SCENES).flatMap(s => s.objects).find(o => o.id === id)?.name ?? id;
+    return { scene: w.scene, x: w.x, y: w.y, face: w.face, teleportVersion: w.teleportVersion ?? 0, scenes, bag: [...bagNames].map(([name, b]) => ({ id: b.id, name: b.n > 1 ? `${name} ×${b.n}` : name })),
+        wellSymbols: WELL_SYMBOLS, moonSymbols: MOON_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr), evidence: E.journal(pr),
+        qlog: Q.log(pr, now, personName) };   // 📜 sổ nhiệm vụ mới: phụ / nhánh / ẩn / hằng ngày + số bước chính tuyến
 }
 
 /** Đối chất trước nhà vua (trước ải 18): chấm chứng cứ, thưởng lần đầu, rồi vào ải 18 */
@@ -704,10 +784,11 @@ function presentTrial(pr, wallet, answers = {}) {
     if (nextStoryNo(pr) !== 18) return no('Chưa tới lúc đối chất');
     const r = E.present(pr, answers);
     const rewards = giveReward(wallet, r.rewards);
+    ensureWorld(pr).spot[18] = true; Q.settle(pr, wallet);   // bước chính tuyến "gặp Elise để đối chất" xong
     const tail = (require('./story').pre[18] ?? []).slice(4);   // phần sau cuộc tranh luận: nhà vua quyết, Valdric trở mặt
     return ok({ result: { correct: r.correct, total: r.total, lines: r.lines, first: r.first }, rewards, text: r.first ? `Thuyết phục ${r.correct}/${r.total} · ${rewardText(rewards)}` : `Thuyết phục ${r.correct}/${r.total}`,
         lines: [...r.lines, ...tail].map(l => [...l]), startStage: 'c1-18' });
 }
 
 module.exports = { shown, presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
-    sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };
+    QUEST_TYPES, sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };
