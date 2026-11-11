@@ -1,5 +1,5 @@
 // ============================================================
-// INPUT — nút bấm trên HUD, phím tắt, kéo thả bảng debug
+// INPUT — nút bấm trên HUD, phím tắt, kéo thả bảng chỉ số, công tắc test
 // ============================================================
 // Thay cho onclick="..." trong HTML: mọi nút khai báo data-action / data-skill
 // và được xử lý tập trung ở đây.
@@ -12,6 +12,7 @@ import { cameraRig } from '../core/cameraRig.js';
 import { GAME_SPEEDS, timeState } from '../config.js';
 import { toggleStatPanel, setAllStatPanels, toggleAllAuto } from './hud.js';
 import { setDisabledHeroes } from './progressTool.js';
+import { toggleEmit } from './testHubCore.mjs';
 
 // Tốc độ trận người chơi chọn (nhớ theo trình duyệt), gửi lên server mỗi khi vào trận
 const SPEED_KEY = 'loc.gameSpeed';
@@ -35,7 +36,17 @@ export function updateShakeButton() {
     const b = document.getElementById('btn-shake');
     if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
 }
-const debugState = { noMana: false, godMode: false, auto: false };
+// Công tắc test (🧪 Tool thử, src/ui/testHub.js): trạng thái THẬT theo server
+const debugState = { god: false, noMana: false, enemyGod: false };
+const notifyToggles = () => window.dispatchEvent(new CustomEvent('debug-toggles'));
+export const getDebugToggles = () => ({ ...debugState });
+/** Bật / tắt 1 công tắc (god | noMana | enemyGod): gửi server, hiện ngay; stateUpdate kế tiếp sẽ xác nhận lại */
+export function setDebugToggle(key, on) {
+    if (!(key in debugState)) return;
+    debugState[key] = !!on;
+    socket.emit(...toggleEmit(key, on));
+    notifyToggles();
+}
 
 function queueSkill(memberIndex, skillIndex) {
     net.queueSkill(memberIndex, skillIndex);
@@ -47,29 +58,21 @@ function requestReset() {
     net.requestReset();
 }
 
-/** Nút Bất tử / Skill miễn phí / Quái bất tử luôn KHỚP với server (server tự tắt tool khi vào ải, đấu, đổi trận,
- *  khởi động lại… -> trước đây nút vẫn hiện ON mà không còn tác dụng). Gọi mỗi lần nhận stateUpdate. */
+/** Công tắc Bất tử / Skill miễn phí / Quái bất tử luôn KHỚP với server (server tự tắt tool khi vào ải, đấu, đổi trận,
+ *  khởi động lại… -> không để bảng hiện "đang bật" mà không còn tác dụng). Gọi mỗi lần nhận stateUpdate. */
 function syncDebugToggles(players, enemyGodMode) {
     const me = players?.[myId()];
     if (!me) return;
-    const want = { noMana: !!me.debugNoMana, godMode: !!me.debugGodMode, enemyGod: !!enemyGodMode };
-    if (want.noMana !== debugState.noMana) { debugState.noMana = want.noMana; setToggleLabel('btn-debug-no-mana', want.noMana, '✨ Skill miễn phí'); }
-    if (want.godMode !== debugState.godMode) { debugState.godMode = want.godMode; setToggleLabel('btn-debug-god-mode', want.godMode, '🛡️ Bất tử'); }
-    if (want.enemyGod !== !!debugState.enemyGod) { debugState.enemyGod = want.enemyGod; setToggleLabel('btn-enemy-god', want.enemyGod, '🛡️ Quái bất tử'); }
+    const real = { god: !!me.debugGodMode, noMana: !!me.debugNoMana, enemyGod: !!enemyGodMode };
+    let changed = false;
+    for (const k of Object.keys(real)) if (real[k] !== debugState[k]) { debugState[k] = real[k]; changed = true; }
+    if (changed) notifyToggles();
 }
 
-/** Vào chế độ ĐẤU: server đã tắt mọi tool -> trả các nút bật/tắt test về OFF */
+/** Vào chế độ ĐẤU / ải: server đã tắt mọi tool -> trả các công tắc test về tắt */
 export function resetDebugToggles() {
-    debugState.noMana = false; debugState.godMode = false; debugState.enemyGod = false;
-    setToggleLabel('btn-debug-no-mana', false, '✨ Skill miễn phí');
-    setToggleLabel('btn-debug-god-mode', false, '🛡️ Bất tử');
-    setToggleLabel('btn-enemy-god', false, '🛡️ Quái bất tử');
-}
-function setToggleLabel(id, on, label) {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.classList.toggle('active', on);
-    btn.innerHTML = `${label} <b class="tp-state">${on ? 'ON' : 'OFF'}</b>`;
+    debugState.god = debugState.noMana = debugState.enemyGod = false;
+    notifyToggles();
 }
 
 const ACTIONS = {
@@ -83,30 +86,12 @@ const ACTIONS = {
         updateSpeedButton(preferredSpeed);
     },
     requestReset,
-    fillMana: () => net.debugAction('fillMana'),
-    toggleNoMana: () => {
-        debugState.noMana = !debugState.noMana;
-        setToggleLabel('btn-debug-no-mana', debugState.noMana, '✨ Skill miễn phí');
-        net.debugAction('noMana', debugState.noMana);
-    },
-    toggleGodMode: () => {
-        debugState.godMode = !debugState.godMode;
-        setToggleLabel('btn-debug-god-mode', debugState.godMode, '🛡️ Bất tử');
-        net.debugAction('godMode', debugState.godMode);
-    },
-    spawnEnemy: (arg) => net.debugEnemyAction(arg),
+    // Các lệnh test khác (mana, bất tử, gọi quái, phép Elarion…) nằm trong 🧪 Tool thử (src/ui/testHubCore.mjs).
+    // Hai lệnh dưới còn nút trong bảng "Chi tiết nhân vật" của Tool thử (progressTool.js).
     toggleMember: (classId) => net.debugAction('toggleMember', classId),
     debugKill: (classId) => net.debugAction('kill', classId),
-    elemSpell: (key) => net.debugAction('elemSpell', key),   // Elarion: đặt thẳng 1 phép vào nút KN2 (test)
-    golemSkill: (i) => net.debugAction('golemSkill', Number(i)),   // Golem: dùng ngay 1 kỹ năng (test)
-    monsterLevel: (arg) => net.debugEnemyAction('monsterLevel', undefined, arg),
     backToMenu: () => net.backToMenu(),
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
-    toggleEnemyGod: () => {
-        debugState.enemyGod = !debugState.enemyGod;
-        setToggleLabel('btn-enemy-god', debugState.enemyGod, '🛡️ Quái bất tử');
-        net.debugEnemyAction('godMode', debugState.enemyGod);
-    },
 };
 
 
@@ -188,7 +173,7 @@ export function applyStatsPreference() {
 
 export function renderMemberToggles(classDefs, disabled = []) {
     if (classDefs) memberDefs = classDefs;
-    setDisabledHeroes(disabled); // nút ON/OFF nằm trong thẻ nhân vật của Tool Phe Mình
+    setDisabledHeroes(disabled); // nút thêm / bớt nằm trong bảng "Chi tiết nhân vật" của 🧪 Tool thử
     const box = document.getElementById('member-toggles');
     if (!box || !memberDefs) return;
     const off = new Set(disabled);
@@ -244,32 +229,20 @@ export function setupInput() {
         });
     }
     // Phóng to / thu nhỏ từng bảng (nhớ theo trình duyệt)
-    for (const id of ['enemy-debug-controls', 'progress-tool', 'left-stats', 'right-stats']) applyPanelScale(id);
+    for (const id of ['left-stats', 'right-stats']) applyPanelScale(id);
     document.addEventListener('pointerdown', (e) => {
         const b = e.target.closest('[data-ui-scale]');
         if (!b) return;
         e.preventDefault(); e.stopPropagation();
         changePanelScale(b.dataset.uiScale, Number(b.dataset.step));
     }, true);
-    for (const id of ['enemy-debug-controls', 'progress-tool']) {
-        const h3 = document.getElementById(id)?.querySelector('h3');
-        if (h3) h3.insertAdjacentHTML('beforeend', scaleButtonsHTML(id));
-    }
-    // Bảng công cụ test: bấm tiêu đề để thu gọn / mở
-    for (const id of ['enemy-debug-controls', 'progress-tool']) {
-        const panel = document.getElementById(id);
-        const title = panel?.querySelector('h3');
-        if (!title) continue;
-        title.classList.add('panel-title-toggle');
-        title.addEventListener('click', (e) => { if (!e.target.closest('[data-ui-scale]')) panel.classList.toggle('panel-collapsed'); });
-    }
     // Phím I: ẩn / hiện toàn bộ bảng chỉ số (nhớ riêng cho chế độ Test và Đấu)
     window.addEventListener('keydown', (e) => {
         if (e.code !== 'KeyI' || e.target.closest?.('input, textarea')) return;
         const shown = document.getElementById('left-stats')?.style.visibility !== 'hidden';
         setStatsVisible(!shown, true);
     });
-    ['enemy-debug-controls', 'progress-tool', 'left-stats', 'right-stats'].forEach(id => {
+    ['left-stats', 'right-stats'].forEach(id => {
         const el = document.getElementById(id);
         if (el) makeDraggable(el);
     });

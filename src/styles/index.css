@@ -568,13 +568,11 @@ body.selecting-squad #top-bar, body.selecting-squad #top-left-controls { visibil
 .mm-card b { font-size: 22px; }
 .mm-card small { color: #94a3b8; font-size: 13px; line-height: 1.4; }
 /* 🧪 Thử nhanh (màn chọn chế độ) */
-.mm-test { margin: 26px auto 0; max-width: 760px; padding: 10px 14px; border: 1.5px dashed rgba(250,204,21,.35); border-radius: 12px; background: rgba(15,23,42,.6); font-size: 13px; color: #cbd5e1; }
-.mm-test-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin: 4px 0; }
-.mm-test-row > span { margin: 0 4px 0 8px; }
-.mm-t { background: rgba(51,65,85,.7); border: 1px solid rgba(148,163,184,.35); color: #e2e8f0; border-radius: 8px; padding: 5px 10px; font: inherit; cursor: pointer; }
+/* nút mở 🧪 Tool thử (dải "Thử nhanh" cũ đã gom vào src/ui/testHub.js) */
+.mm-test { margin: 22px auto 0; text-align: center; font-size: 13px; }
+.mm-t { background: rgba(51,65,85,.7); border: 1px dashed rgba(250,204,21,.45); color: #e2e8f0; border-radius: 999px; padding: 6px 14px; font: inherit; cursor: pointer; }
 .mm-t:hover { border-color: #facc15; }
-.mm-t.on { background: #ca8a04; border-color: #facc15; color: #fff; }
-.mm-test-msg { margin-top: 6px; text-align: center; color: #fde68a; }
+.mm-t small { color: #94a3b8; margin-left: 4px; }
 .mm-back { margin-top: 22px; background: transparent; border: 1.5px solid rgba(148,163,184,.4); color: #cbd5e1; border-radius: 10px; padding: 9px 18px; font-family: inherit; cursor: pointer; }
 
 /* Chọn đội 1P vs 2P */

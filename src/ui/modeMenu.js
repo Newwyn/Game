@@ -47,27 +47,10 @@ function card(mode, icon, title, desc, cls = '') {
     return `<button class="mm-card ${cls}" data-mode="${mode}"><span class="mm-icon">${icon}</span><b>${title}</b><small>${desc}</small></button>`;
 }
 
-// 🧪 Thử nhanh (cho người thử game): đặt cấp tài khoản · nhảy tới ải (kèm cấp đội hợp lý) · chơi lại từ đầu
-const JUMPS = [['Ải 1', 0, 1], ['Ải 5', 4, 6], ['Ải 7', 6, 9], ['Ải 11', 10, 12], ['Ải 12', 11, 13], ['Ải 18', 17, 17], ['Ải 20', 19, 19], ['Ch2 · Ải 1', 20, 21], ['Ch2 · Ải 20', 39, 39]];
-let resetArmed = false, resetTimer = null, testMsg = null;
-function testStrip() {
-    const seg = (pt, v, t, on = false) => `<button class="mm-t${on ? ' on' : ''}" data-mt="${pt}" data-v="${v}">${t}</button>`;
-    return `<div class="mm-test">
-        <div class="mm-test-row"><b>🧪 Thử nhanh</b><span>Cấp tài khoản <b>${account?.level ?? '?'}</b></span>
-            ${[1, 10, 20, 25, 60].map(l => seg('acc', l, l, account?.level === l)).join('')}</div>
-        <div class="mm-test-row"><span>Nhảy tới</span>${JUMPS.map(([t, up, lv], i) => seg('jump', i, t)).join('')}
-            ${resetArmed ? `${seg('resetGo', 1, '⚠️ Bấm lần nữa để XOÁ HẾT')}${seg('resetNo', 1, 'Huỷ')}` : seg('reset', 1, '🔄 Chơi lại từ đầu')}</div>
-        ${testMsg ? `<div class="mm-test-msg">${testMsg}</div>` : ''}
-    </div>`;
-}
-function onTest(b) {
-    const { mt, v } = b.dataset;
-    if (mt === 'acc') socket.emit('debugAccount', { level: Number(v) });
-    else if (mt === 'jump') { const [, upTo, level] = JUMPS[Number(v)]; socket.emit('debugCampaign', { upTo, level }); }
-    else if (mt === 'reset') { resetArmed = true; render(); clearTimeout(resetTimer); resetTimer = setTimeout(() => { resetArmed = false; render(); }, 8000); }
-    else if (mt === 'resetNo') { resetArmed = false; render(); }
-    else if (mt === 'resetGo') { resetArmed = false; clearTimeout(resetTimer); testMsg = '⏳ Đang xoá tiến trình…'; render(); socket.emit('debugReset'); }
-}
+// 🧪 Thử nhanh: dải nút cũ (cấp tài khoản · nhảy ải · chơi lại) nay gom vào 🧪 Tool thử (src/ui/testHub.js) — ở đây chỉ còn 1 nút mở.
+// (class mm-test: server chính ẩn nút này — src/styles/landing.css)
+const testStrip = () => '<div class="mm-test"><button class="mm-t" data-mt="hub">🧪 Mở Tool thử <small>phím `</small></button></div>';
+function onTest() { window.dispatchEvent(new CustomEvent('open-test-hub')); }
 
 function render() {
     const box = el();
@@ -114,8 +97,6 @@ function hide() {
 export function setupModeMenu() {
     for (const event of ['progressUpdate', 'campaignState', 'stageResult', 'heroPanel', 'gearState', 'extrasState']) socket.on(event, data => { if (data.account) { account = data.account; if (root?.style.display !== 'none') render(); } });
     socket.on('mainMenu', showModeMenu);
-    socket.on('progressMsg', (m) => { testMsg = `${m.ok ? '✅' : '⚠️'} ${m.text}`; if (root?.style.display !== 'none') render(); setTimeout(() => { testMsg = null; if (root?.style.display !== 'none') render(); }, 5000); });
-    socket.on('debugResetDone', () => location.reload());
     socket.on('squadSelect', hide);
     socket.on('campaignState', hide);
 }

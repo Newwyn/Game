@@ -53,66 +53,10 @@
     <!-- Stat Panels -->
     <div id="left-stats" class="stat-container left-side"></div>
 
-    <!-- 🛠️ Tool Phe Mình: chung (mana / skill miễn phí / bất tử) + từng nhân vật (bật tắt, level, bậc, thiên phú) -->
-    <div id="progress-tool" class="tool-panel ally">
-        <h3>🛠️ Tool Phe Mình</h3>
-        <div class="pt-section">Chung</div>
-        <div class="tp-grid3">
-            <button id="btn-debug-fill-mana" class="tp-chip" data-action="fillMana">💎 Đầy Mana</button>
-            <button id="btn-debug-no-mana" class="tp-chip toggle" data-action="toggleNoMana">✨ Skill miễn phí</button>
-            <button id="btn-debug-god-mode" class="tp-chip toggle" data-action="toggleGodMode">🛡️ Bất tử</button>
-        </div>
-        <div class="pt-section">Elarion — đặt thẳng phép vào nút KN2</div>
-        <div class="tp-grid3 tp-elem">
-            <button class="tp-chip" data-action="elemSpell" data-arg="meteor">🔥🔥🔥 Thiên Thạch</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="frost">❄️❄️❄️ Băng Phong</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="chain">⚡⚡⚡ Lôi Xích</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="golem">🔥❄️⚡ Golem</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="ward">❄️❄️⚡ Giáp Băng Sét</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="tornado">⚡⚡❄️ Lốc Xoáy</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="steam">🔥🔥❄️ Hơi Nước</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="firebolt">🔥🔥⚡ Hỏa Lôi Cầu</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="beams">❄️❄️🔥 Băng Hoại Hỏa Thiên</button>
-            <button class="tp-chip" data-action="elemSpell" data-arg="haste">⚡⚡🔥 Tốc Lôi</button>
-        </div>
-        <div class="pt-section">Golem — dùng kỹ năng ngay (cần gọi Golem trước)</div>
-        <div class="tp-grid3 tp-elem">
-            <button class="tp-chip" data-action="golemSkill" data-arg="0">🔥 Nộ Lửa</button>
-            <button class="tp-chip" data-action="golemSkill" data-arg="1">❄️ Bão Tuyết</button>
-            <button class="tp-chip" data-action="golemSkill" data-arg="2">⚡ Hào Quang Sét</button>
-        </div>
-        <div id="progress-tool-body"><div class="pt-msg">Đang tải…</div></div>
-    </div>
+    <!-- 🧪 Tool thử (mana, bất tử, gọi quái, phép Elarion, cấp nhân vật…): 1 bảng lệnh, phím ` — src/ui/testHub.js -->
 
     <div id="right-stats" class="stat-container right-side"></div>
     
-    <div id="enemy-debug-controls" class="tool-panel enemy">
-        <h3>👹 Tool Phe Quái</h3>
-        <div class="pt-section">Triệu hồi</div>
-        <div class="tp-grid2">
-            <button class="tp-chip" data-action="spawnEnemy" data-arg="spawnStandard">👹 3 Quái</button>
-            <button class="tp-chip" data-action="spawnEnemy" data-arg="spawnDummy">🪵 Cọc gỗ</button>
-            <button class="tp-chip" data-action="spawnEnemy" data-arg="removeDummy">➖ Bớt cọc</button>
-            <button class="tp-chip" data-action="spawnEnemy" data-arg="addDummy">➕ Thêm cọc</button>
-        </div>
-        <div class="pt-section">Cấp quái <span class="pt-cnt" id="monster-level-label">Lv1</span></div>
-        <div class="ml-row">
-            <button class="tp-chip" data-action="monsterLevel" data-arg="-10">−10</button>
-            <button class="tp-chip" data-action="monsterLevel" data-arg="-1">−1</button>
-            <b id="monster-level-big">1</b>
-            <button class="tp-chip" data-action="monsterLevel" data-arg="+1">+1</button>
-            <button class="tp-chip" data-action="monsterLevel" data-arg="+10">+10</button>
-        </div>
-        <div class="ml-presets">
-            <button class="pt-seg" style="--c:#94a3b8" data-action="monsterLevel" data-arg="=1">Lv1</button>
-            <button class="pt-seg" style="--c:#60a5fa" data-action="monsterLevel" data-arg="=20">Lv20</button>
-            <button class="pt-seg" style="--c:#c084fc" data-action="monsterLevel" data-arg="=40">Lv40</button>
-            <button class="pt-seg" style="--c:#fbbf24" data-action="monsterLevel" data-arg="=60">Lv60</button>
-        </div>
-        <div class="pt-section">Trạng thái</div>
-        <button id="btn-enemy-god" class="tp-chip toggle wide" data-action="toggleEnemyGod">🛡️ Quái bất tử</button>
-    </div>
-
     <!-- Hướng dẫn điều khiển -->
     <div id="controls-hint" style="position:absolute; left:50%; bottom:158px; transform:translateX(-50%); z-index:40; font-size:12px; color:#cbd5e1; background:rgba(15,23,42,0.6); padding:4px 12px; border-radius:999px; pointer-events:none; white-space:nowrap;">
         Click kỹ năng: ra lệnh · AUTO: tự dùng kỹ năng · Lăn chuột: zoom · V: góc camera · T: tốc độ · I: ẩn/hiện chỉ số · P: tạm dừng
