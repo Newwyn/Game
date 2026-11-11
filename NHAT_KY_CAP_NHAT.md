@@ -5,6 +5,44 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 11/11/2026 — ĐỢT LỚN: BẢN ĐỒ SỐNG ĐỘNG · NHẢY · NHIỆM VỤ KIỂU MMO · SÂN ĐẤU 3D · LỜI THOẠI VIẾT LẠI · TOOL THỬ MỘT BẢNG
+
+**Bản đồ thế giới**
+- Sửa lỗi di chuyển cả 7 vùng (dịch chuyển không còn kẹt trong rừng, ra vào vùng về đúng chỗ, ra khỏi nhà đứng trước cửa). Công cụ soát: `node tools/world_audit.mjs` (Ngoại ô còn 2 ô lệch do 1 hàng rào).
+- Thêm chi tiết cho 7 vùng (40–46 món mỗi vùng), chim bay, thú nhỏ, bóng cây, khói bếp, bóng mây. Vật che nhân vật được LÀM MỜ (không trong suốt). Xem bản cũ: `?mapDetail=old`, `?seeThrough=off`.
+- NHẢY: lên xuống bậc, qua khe, đá nhảy, chạy đà nhảy xa; thanh thể lực 5 nấc; mỗi vùng 4–5 chỗ nhảy có rương 120 vàng.
+- Nhân vật theo nhiệm vụ ẩn / hiện theo tiến độ (còn nhiệm vụ để giao thì ở lại).
+
+**Nhiệm vụ chương 1 (kiểu MMO)**
+- Chính tuyến 46 bước, mỗi bước +20 Kim Cương (save cũ không được trả bù). 15 nhiệm vụ phụ · 7 chuỗi nhánh (2 ải nhánh mới c1-n6 Rok, c1-n7 Jessica) · 10 nhiệm vụ ẩn (không dùng giờ thật) · việc hằng ngày 4 việc = đúng 100 Kim Cương, làm mới 05:00.
+- Sổ nhiệm vụ (J) 5 thẻ; dấu ! / ? vàng (chính) · xanh (phụ) · tím (nhánh).
+- Kim Cương mỗi ải lần đầu: 50 Cốt truyện · 100 Khó · 150 Địa ngục. Làm hết chương 1 khoảng 11.000 Kim Cương.
+- Lời thoại nhiệm vụ mới là bản TẠM, chưa viết lại theo giọng đã duyệt. Hình vật phẩm nhiệm vụ còn tạm (mèo = thùng gỗ…).
+
+**Trận đấu**
+- Sân đấu 3D cho 23 cảnh, dựng bằng chính nhà / tháp / tường / sạp của bản đồ (`src/core/battleScene3d.js`). Xem nền vẽ cũ: `?bg3d=0`.
+- Lớp chau chuốt động tác bằng code (thở, lấy đà, bật tới, khựng khi trúng, nhún khi chạy) cho 11 tướng + quái có bộ hình đầy đủ. So bản cũ: `?<tên>Anim=old`.
+- Dọn hiệu ứng chồng nhau cho Rok / Jessica / Sera / Lyra (`?fxClean=0` xem bản cũ). Rok chiêu 3 bỏ vòm lục giác. Sera nhỏ lại 7%, Sera dạng S hết bị to hơn 12%.
+- Nút AUTO 2 trạng thái: bật hết / tắt hết.
+- Quái đánh xa ném vật bay tới (Goblin Ném Bom: quả bom bay rồi nổ) — CHƯA nhìn tận mắt trong ải.
+
+**Truyện**
+- Lời thoại chương 1 + 2 viết lại tự nhiên (391 câu): bỏ câu chốt, bỏ gạch ngang, mỗi người một giọng.
+- 13 tranh minh hoạ truyện (Codex vẽ): tỉnh dậy ở miếu (bản tay nam + nữ), ải 1, 2, 5, 7, 8, 10, 12, 14, 15, 18, 20. Đặt ở `src/assets/story/`, tự hiện ở đoạn thoại trước ải. Tranh có nhân vật chính thì cần 2 bản `_m` / `_f`.
+
+**Tranh quái (Flow)**: Chiến Binh Lửa đủ 40 khung · trùm Skarn đủ 5 tấm cơ bản (khung attack5 thiếu rìu, chưa có tấm kỹ năng) · Morwen mới có tấm đứng (đã tải về Downloads, chưa đóng gói). Tiến độ: `art/enemies/TIEN_DO.md`.
+
+**Tool thử**: gom về MỘT bảng (phím `): ô gõ lệnh khoảng 270 lệnh, 5 kịch bản bấm một lần, nhớ công tắc, mục "Vừa dùng". Gỡ 3 bảng cũ. Test: màn đầu chỉ còn Cốt truyện + Test.
+
+**Đang làm dở (nhánh riêng `team/cook`, CHƯA ghép)**: nấu ăn + túi đồ ăn trong trận, hái quả / chặt cây / đào quặng / câu cá / leo núi, dụng cụ 3 bậc rèn ở lò, ghi chép, hình vật phẩm nhiệm vụ, dời mốc mở chức năng vào chương 1.
+
+**Chờ làm**: các quyết định ở `demo/Y_TUONG_TAI_NGUYEN_VA_TRANG_BI.md` mục 11 (hộp trang bị chọn cấp, tài nguyên tộc để chế đồ hầm ngục, vật phẩm chọn dòng chỉ số 4 lần / tháng, người gác cổng Arena cấp 10, Guild cấp 20: 2 hội đối đầu + guild người chơi).
+
+- Ai làm: Claude (trưởng nhóm, sân đấu 3D, động tác, ghép + thử) · Codex (lỗi di chuyển, nhảy, tranh truyện) · Antigravity (chi tiết bản đồ, chim thú, mờ vật che) · trợ lý Claude (lời thoại, nhiệm vụ, tool thử).
+- 155 bài kiểm tra tự động đạt. Nhiều phần mới CHƯA được bấm thử hết — danh sách ở `TIEP_TUC.md`.
+
+---
+
 ## 10/11/2026 (tối) — HIỆU ỨNG ĐIỂM ẢNH CHO CẢ 11 NHÂN VẬT + QUÁI · SỬA NỘ LỬA GOLEM · TEST CÓ ĐẤU PVP
 
 - **Đánh thường có hiệu ứng ra đòn** cho mọi nhân vật và quái (vệt chém / cú đấm / vết cào / loé ở tay), màu theo nhân vật; quái lấy theo màu của nó.

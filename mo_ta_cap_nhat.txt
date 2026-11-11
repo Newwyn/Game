@@ -1,3 +1,9 @@
+Ban do song dong + nhay + nhiem vu chuong 1 kieu MMO + san dau 3D + loi thoai viet lai + tool thu mot bang (11/11)
+
+- Chi tiet: NHAT_KY_CAP_NHAT.md (11/11) va TIEP_TUC.md
+- Dang do: nhanh team/cook (nau an, khai thac, dung cu) chua ghep
+- 155 bai kiem tra tu dong
+
 Hieu ung diem anh (pixelfx, MIT) cho ca 11 nhan vat + danh thuong cua nhan vat va quai + sua No Lua cua Golem lao nguoc + Test co Dau Tap / Dau PVP + nut Bat tu luon khop voi server
 
 - Elarion / Golem / Nerissa lam lai theo y ban (Thien Thach, Loc Xoay toi mep ban do + rong hon, Giap Bang Set kieu khien Sera, Frost breath dung mieng Golem, vong nuoc quanh Nerissa)
