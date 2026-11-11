@@ -16,6 +16,7 @@ const D = require('./game/dungeon.js');   // Hầm ngục đồ bộ / trang s�
 const TV = require('./game/tavern.js');   // Quán ăn: độ thân mật
 const SHOP = require('./game/shop.js');   // Cửa hàng anh hùng
 const STORY = require('./game/story.js');   // Lời thoại cốt truyện chương 1
+const QS = require('./game/quests.js');   // 📜 bộ máy nhiệm vụ: móc sự kiện trận đấu / vị trí / cường hoá
 const WD = require('./game/world.js');   // Bản đồ thế giới: màn ngang, NPC, rương, mỏ, nhiệm vụ mở nhánh
 
 const app = express();
@@ -983,6 +984,12 @@ function campaignPayload(pr, key) {
         spots: WD.spotHints(),   // ải chỉ bắt đầu từ bản đồ (Bảng ải ẩn ải chưa qua, ghi gợi ý đi đâu)
         story: { pre: Object.fromEntries(Object.entries(STORY.allPre()).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) } };
 }
+/** 📜 Số liệu trận cho nhiệm vụ: số tướng phe mình gục, số lần dùng kỹ năng (đếm ở executeSkill), số quái đã hạ */
+function questBattleMeta(room) {
+    const sid = room.stage?.socketId, mine = room.players?.[sid]?.squad ?? [];
+    const foes = Object.entries(room.players ?? {}).filter(([id]) => id !== sid).flatMap(([, p]) => p.squad ?? []);
+    return { deaths: mine.filter(m => !m.summon && !m.alive).length, skills: room.stage?.skills ?? 0, kills: foes.filter(m => !m.summon && !m.alive).length };
+}
 /** Kết thúc hầm ngục: thua hoàn chi phí; thắng -> đồ bộ / trang sức + đá + vàng + EXP */
 function finishDungeon(room, pr, win) {
     const { id, classes, socketId } = room.stage;
@@ -1015,6 +1022,7 @@ function finishDungeon(room, pr, win) {
     res.account = A.accountState(pr);
     res.accountLevelUp = r.accountLevelUp ?? null;
     res.newFeatures = [...C.features(pr)].filter(f => !beforeFeatures.has(f));
+    QS.battle(pr, pr.wallet, { id, win, squad: new Set(classes).size, ...questBattleMeta(room) }, now);   // 📜 nhiệm vụ / việc hằng ngày
     P.saveAll(PROGRESS);
     const t = D.findTier(id);
     io.to(socketId).emit('stageResult', { ...(room.stageTimeout ? { timeout: true } : {}), ...res, account: A.accountState(pr), features: [...C.features(pr)], stage: { id, name: t.name, diff: 'story', dungeon: kind }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
@@ -1026,6 +1034,7 @@ function finishWild(room, pr, win) {
     const rewards = W.applyResult(pr, scene, win);
     const leveled = {};
     if (win) for (const c of new Set(classes)) leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, rewards.exp);
+    QS.battle(pr, pr.wallet, { id, win, squad: new Set(classes).size, ...questBattleMeta(room) }, Date.now());   // 📜 nhiệm vụ / việc hằng ngày
     P.saveAll(PROGRESS);
     io.to(socketId).emit('stageResult', { ...(room.stageTimeout ? { timeout: true } : {}), account: A.accountState(pr), features: [...C.features(pr)], win, firstClear: false, rewards, leveled, newHeroes: [], drops: [], charms: 0, autoSalvaged: null, newFeatures: [],
         stage: { id, name: W.POOLS[scene].name, diff: 'story', wild: true }, wallet: pr.wallet, stamina: campaignPayload(pr).stamina });
@@ -1105,7 +1114,7 @@ function finishStage(room, win) {
     if (D.parseId(id)) return finishDungeon(room, pr, win);
     if (W.isId(id)) return finishWild(room, pr, win);
     const before = C.features(pr);
-    const res = C.applyResult(pr, { id, diff, classes, win }, P, Date.now());
+    const res = C.applyResult(pr, { id, diff, classes, win }, P, Date.now(), Math.random, questBattleMeta(room));   // kèm số liệu trận cho nhiệm vụ
     const st = C.findStage(id);
     res.newFeatures = [...C.features(pr)].filter(f => !before.has(f));
     if (win && res.firstClear && diff === 'story') {
@@ -2223,12 +2232,15 @@ io.on('connection', (socket) => {
     };
     const itemOf = (pr, id) => pr.gear.items[id];
     // ---------- BẢN ĐỒ THẾ GIỚI: đi lại giữa các màn, nói chuyện NPC, rương, mỏ đá, câu đố ----------
+    const QUEST_SPEAKER = { mira: 'mira', borin: 'borin', lena: 'lena', elise: 'elise', corvin: 'corvin', rok: 'warrior', jessica: 'assassin', sera: 'priest' };   // NPC -> chân dung trong khung truyện
     const worldPayload = (pr) => {
         const state = WD.worldState(pr, Date.now());
         return { ...state, quests: state.quests.map(q => ({ ...q,
             title: WD.fill(q.title, pr.player), desc: WD.fill(q.desc, pr.player),
             obj: WD.fill(q.obj, pr.player), reward: WD.fill(q.reward, pr.player) })), wallet: pr.wallet, story: pr.story,
             wild: Object.keys(W.POOLS).filter(sc => W.canStart(pr, sc).ok && WD.sceneOpen(pr, sc)),   // khu có quái hoang đang gặp được
+            qlog: { ...state.qlog, list: state.qlog.list.map(q => ({ ...q, desc: WD.fill(q.desc, pr.player), obj: WD.fill(q.obj, pr.player) })) },
+            notes: QS.takeNotes(pr).map(n => ({ ...n, t: WD.fill(n.t, pr.player) })),   // 📜 dòng báo nhiệm vụ đang chờ (+20 Kim Cương mỗi bước chính tuyến, xong nhiệm vụ, việc hằng ngày)
         storyText: { intro: Object.fromEntries(Object.entries(STORY.intro).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) },
         party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) };
     };
@@ -2285,8 +2297,26 @@ io.on('connection', (socket) => {
         const pr = progressOf(socket.progressKey);
         const r = WD.move(pr, String(d.scene ?? ''), Number(d.x), Number(d.y), String(d.face ?? ''));
         if (!r.ok) return socket.emit('worldError', { text: r.why });
+        QS.pos(pr, pr.wallet, pr.world.scene, pr.world.x, pr.world.y, Date.now());   // 📜 nhiệm vụ "tới chỗ" / "đứng yên"
         P.saveAll(PROGRESS);
-        if (d.full) socket.emit('worldState', worldPayload(pr));   // đổi màn: gửi lại trạng thái
+        if (d.full || pr.world.qnotes?.length) socket.emit('worldState', worldPayload(pr));   // đổi màn / nhiệm vụ vừa tiến: gửi lại trạng thái
+    });
+    // 📜 đứng yên tại chỗ (client báo lại vài giây một lần khi không di chuyển) — chỉ tính nếu đúng ô server đang lưu
+    socket.on('worldStand', (d = {}) => {
+        const pr = progressOf(socket.progressKey), w = pr.world;
+        if (!w || d.scene !== w.scene || Number(d.x) !== w.x || Number(d.y) !== w.y) return;
+        QS.pos(pr, pr.wallet, w.scene, w.x, w.y, Date.now());
+        if (w.qnotes?.length) { P.saveAll(PROGRESS); socket.emit('worldState', worldPayload(pr)); }
+    });
+    // 📜 nhảy trên bản đồ (việc hằng ngày "nhảy N lần") — client báo, server giới hạn 1 lần / 400ms
+    socket.on('worldJump', () => {
+        const now = Date.now();
+        if (now - (socket.lastWorldJump ?? 0) < 400) return;
+        socket.lastWorldJump = now;
+        const pr = progressOf(socket.progressKey);
+        if (!pr.world) return;
+        QS.fire(pr, pr.wallet, { type: 'jump' }, now);
+        if (pr.world.qnotes?.length) { P.saveAll(PROGRESS); socket.emit('worldState', worldPayload(pr)); }
     });
     // 🔎 Đối chất trước nhà vua (Elise, trước ải 18): answers = { q1: evidenceId, ... }
     socket.on('worldPresent', (d = {}) => {
@@ -2304,7 +2334,9 @@ io.on('connection', (socket) => {
         const r = WD.interact(pr, pr.wallet, String(d.scene ?? ''), String(d.target ?? ''), { answer }, Date.now());
         if (!r.ok) return socket.emit('worldResult', { ok: false, text: WD.fill(r.why, pr.player), target: d.target });
         P.saveAll(PROGRESS);
-        socket.emit('worldResult', { ...r, lines: fillLines(r.lines, pr), text: r.text && WD.fill(r.text, pr.player), speakers: speakersFor(pr), target: d.target });
+        const speakers = speakersFor(pr);
+        if (r.npcName) speakers.npc = { ...(STORY.SPEAKERS[QUEST_SPEAKER[d.target]] ?? { emoji: '💬' }), name: r.npcName };   // 📜 lời nhận / trả nhiệm vụ phát bằng khung truyện
+        socket.emit('worldResult', { ...r, account: undefined, lines: fillLines(r.lines, pr), text: r.text && WD.fill(r.text, pr.player), speakers, target: d.target });
         socket.emit('worldState', worldPayload(pr));
     });
     socket.on('gearOpen', () => {
@@ -2331,6 +2363,7 @@ io.on('connection', (socket) => {
         if (!it) return { ok: false, why: 'Không tìm thấy món đồ' };
         const r = G.enhance(pr, pr.wallet, it, Math.random, { charm: !!d.charm });
         if (!r.ok) return r;
+        QS.fire(pr, pr.wallet, { type: 'enhance' }, Date.now());   // 📜 nhiệm vụ / việc hằng ngày: cường hoá 1 món
         return { ...r, action: 'enhance', itemId: it.id, text: r.success ? `Thành công! +${r.from} → +${r.to}`
             : r.to < r.from ? `Thất bại — tụt về +${r.to}` : `Thất bại — giữ +${r.to} (tích may mắn +5%)` };
     }));
@@ -3224,6 +3257,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     const room = rooms[roomId];
     const member = room.players[casterId].squad[casterIdx];
     if (member.ult || (isSealed(member, room.clock) && member.state !== 'casting')) return;
+    if (room.mode === 'campaign' && room.stage && casterId === room.stage.socketId && !member.summon && !opts.free) room.stage.skills = (room.stage.skills ?? 0) + 1;   // 📜 đếm lần dùng kỹ năng cho nhiệm vụ
     const skillDef = skillsOf(member)[skillIdx];
     const playerIds = Object.keys(room.players);
     const actualOpponentId = playerIds.find(id => id !== casterId); 
