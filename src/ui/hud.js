@@ -23,6 +23,20 @@ let autoSent = new Set();
 /** Trận mới: gửi lại lựa chọn AUTO từng tướng đã nhớ */
 export function resetMemberAuto() { autoSent = new Set(); }
 function saveAutoPrefs() { try { localStorage.setItem(AUTO_KEY, JSON.stringify(autoPrefs)); } catch { /* bỏ qua */ } }
+let lastHeroes = [];   // tướng phe mình ở lần cập nhật gần nhất (không tính triệu hồi)
+const cardAutoOn = (i, m) => { const b = document.querySelector(`#member-${i} .card-auto`); return b ? b.dataset.on === '1' : !!m.autoOn; };
+/** Nút AUTO trên cùng: còn tướng nào chưa AUTO -> bật HẾT · tất cả đang AUTO -> tắt HẾT (chỉ 2 trạng thái) */
+export function toggleAllAuto() {
+    if (!lastHeroes.length) return;
+    const value = !lastHeroes.every(([m, i]) => cardAutoOn(i, m));
+    socket.emit('toggleAuto', { value });
+    for (const [m, i] of lastHeroes) {
+        autoPrefs[m.classId] = value;
+        const b = document.querySelector(`#member-${i} .card-auto`);
+        if (b) { b.dataset.on = value ? '1' : '0'; b.dataset.until = String(performance.now() + 700); b.classList.toggle('on', value); }
+    }
+    saveAutoPrefs();
+}
 function updateCardAuto(card, member, i, teamAuto) {
     let b = card.querySelector('.card-auto');
     if (!b) {
@@ -55,10 +69,8 @@ function updateCardAuto(card, member, i, teamAuto) {
     const on = performance.now() < +(b.dataset.until || 0) ? b.dataset.on === '1' : !!member.autoOn;
     b.dataset.on = on ? '1' : '0';
     b.classList.toggle('on', on);
-    b.classList.toggle('team', !!teamAuto && !on);
-    b.title = on ? 'AUTO riêng tướng này: BẬT — tự dùng kỹ năng (bấm để tắt)'
-        : teamAuto ? 'Đang bật AUTO MODE cả đội — tướng này tự dùng kỹ năng. Bấm để bật AUTO riêng (giữ khi tắt AUTO MODE)'
-        : 'AUTO riêng tướng này: TẮT — bấm để tướng này tự dùng kỹ năng';
+    b.classList.remove('team');
+    b.title = on ? 'AUTO tướng này: BẬT — tự dùng kỹ năng (bấm để tắt)' : 'AUTO tướng này: TẮT — bấm để tướng này tự dùng kỹ năng';
 }
 /** Có đối thủ còn sống trong TẦM ĐÁNH của `m` không (tầm đánh thường + tầm cộng thêm từ Thần Phong; như server attackRangeOf + 0,3) */
 function foeNear(m, oppSquad) {
@@ -600,8 +612,9 @@ export function updateHUD(players) {
     const squad = players[me].squad;
     const opp = Object.entries(players).find(([id]) => id !== me)?.[1];
 
+    lastHeroes = squad.map((m, i) => [m, i]).filter(([m]) => !m.summon);
     squad.forEach((member, i) => {
-        if (!member.summon) return updateMemberCard(member, i, now, { teamAuto: !!players[me].autoMode, oppSquad: opp?.squad });
+        if (!member.summon) return updateMemberCard(member, i, now, { teamAuto: false, oppSquad: opp?.squad });
         const card = $(`member-${i}`);   // Đơn vị triệu hồi (Golem, Sói, Ưng, Gấu): không có thẻ HUD
         if (card) card.style.display = 'none';
     });
@@ -632,8 +645,8 @@ export function updateHUD(players) {
 
     const autoBtn = $('btn-auto');
     if (autoBtn) {
-        const on = !!players[me].autoMode;
-        autoBtn.textContent = on ? 'AUTO MODE: ON' : 'AUTO MODE: OFF';
+        const on = lastHeroes.length > 0 && lastHeroes.every(([m, i]) => cardAutoOn(i, m));   // ON = tất cả tướng đang AUTO
+        autoBtn.textContent = on ? 'AUTO: ON' : 'AUTO: OFF';
         autoBtn.classList.toggle('active', on);
     }
 }

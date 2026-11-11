@@ -26,7 +26,7 @@ export function enterServer(token, server) {
 /** Các lệnh gửi lên server — gom về một chỗ để dễ tìm */
 export const net = {
     queueSkill: (memberIndex, skillIndex) => socket.emit('queueSkill', { memberIndex, skillIndex }),
-    toggleAuto: (autoMode) => socket.emit('toggleAuto', { autoMode }),
+    toggleAuto: (value) => socket.emit('toggleAuto', { value }),   // bật / tắt AUTO cho TẤT CẢ tướng
     togglePause: () => socket.emit('togglePause'),
     setSpeed: (speed) => socket.emit('setSpeed', { speed }),
     requestReset: () => socket.emit('requestReset'),

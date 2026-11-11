@@ -72,7 +72,18 @@ export async function buildScene(id, map, terrain, layout) {
     // ---------- công trình đặt tay ----------
     const oldMode = isOldDetail();
     const ctx = { B, group, anim, cover: coverRect, lam, rnd, pick, style, oldMode };
-    const itemsList = [...(layout.items ?? []), ...(oldMode ? [] : (layout.detailItems ?? []))];
+    // Chốt an toàn: vật trang trí thêm (detailItems) mà rơi vào ô ĐI ĐƯỢC thì bỏ — không để nhân vật đi xuyên vật.
+    //   (vật phẳng / bay trên cao thì không cần chặn)
+    const FLAT = new Set(['dirtPatch', 'steppingStones', 'butterflies', 'smoke', 'chickens', 'clothesline']);
+    const posOf = (it) => {
+        if (it[0] === 'model') return [it[2], it[3]];
+        if (Array.isArray(it[1])) return it[1];
+        if (it[1] && typeof it[1] === 'object') return [it[1].x ?? it[1].x0, it[1].z ?? it[1].z0];
+        return [it[1], it[2]];
+    };
+    const walkable = (it) => { const [x, z] = posOf(it); return map.grid?.[Math.floor(z)]?.[Math.floor(x)] === '.'; };
+    const details = oldMode ? [] : (layout.detailItems ?? []).filter(it => FLAT.has(it[0]) || !walkable(it));
+    const itemsList = [...(layout.items ?? []), ...details];
     for (const [kind, ...args] of itemsList) {
         const f = BUILD[kind];
         if (!f) { console.warn('[world3d] không có kiểu', kind); continue; }

@@ -8,6 +8,7 @@ import { cameraRig } from './cameraRig.js';
 import { softwareGL } from './gpu.js';
 import { BATTLE_THEMES } from './battleThemes.js';
 export { themeForBattle } from './battleThemes.js';
+import { BG3D, MODEL_SCENES, createModelScene } from './battleScene3d.js';   // demo: sân đấu dựng bằng mô hình 3D của bản đồ (?bg3d=1)
 // 🎨 Cảnh VẼ BẰNG CODE (tools/battle_bg.py): lớp xa + lớp gần (2 tấm tranh) + đất lặp — có tranh thì thay khối 3D
 import PAINTED from '../assets/battle/battle_bg.json';
 const BG_URL = import.meta.glob('../assets/battle/*.webp', { eager: true, import: 'default' });   // chỉ là đường dẫn, tải khi cần
@@ -121,6 +122,14 @@ function createPainted(key, profile, start) {
 export function createTheme(key, weak = false) {
     const start = performance.now();
     const profile = BATTLE_THEMES[key] ?? BATTLE_THEMES.meadow;
+    if (BG3D && MODEL_SCENES.has(key)) {
+        // demo ?bg3d=1: cây / bụi / đá / cỏ lấy từ bộ mô hình của bản đồ thế giới -> cùng phong cách với bản đồ
+        const { rear, foreground } = createModelScene(key), root = new THREE.Group();
+        root.add(rear, foreground); root.visible = false;
+        root.traverse(o => { o.userData.persistent = true; });   // không bị dọn khi vào trận mới
+        return { key, root, foreground, map: groundTexture(profile), profile, background: new THREE.Color(profile.sky),
+            fog: new THREE.Fog(profile.sky, Math.max(profile.near, 34), Math.max(profile.far, 96)), metrics: { buildMs: +(performance.now() - start).toFixed(2), model3d: true } };
+    }
     if (PAINTED[key] && typeof document !== 'undefined') return createPainted(key, profile, start);
     const back = new Map(), front = new Map();
     let bucket = back;

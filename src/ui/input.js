@@ -10,7 +10,7 @@ import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
 import { cameraRig } from '../core/cameraRig.js';
 import { GAME_SPEEDS, timeState } from '../config.js';
-import { toggleStatPanel, setAllStatPanels } from './hud.js';
+import { toggleStatPanel, setAllStatPanels, toggleAllAuto } from './hud.js';
 import { setDisabledHeroes } from './progressTool.js';
 
 // Tốc độ trận người chơi chọn (nhớ theo trình duyệt), gửi lên server mỗi khi vào trận
@@ -73,7 +73,7 @@ function setToggleLabel(id, on, label) {
 }
 
 const ACTIONS = {
-    toggleAuto: () => { debugState.auto = !debugState.auto; net.toggleAuto(debugState.auto); },
+    toggleAuto: () => toggleAllAuto(),   // còn tướng chưa AUTO -> bật hết · tất cả đang AUTO -> tắt hết
     togglePause: () => net.togglePause(),
     cycleSpeed: () => {
         const i = GAME_SPEEDS.indexOf(timeState.speed);

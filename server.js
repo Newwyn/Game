@@ -1880,9 +1880,14 @@ io.on('connection', (socket) => {
     socket.on('toggleAuto', (data) => {
         const roomId = socket.roomId;
         if (autoLocked(rooms[roomId])) return;
-        if (rooms[roomId] && rooms[roomId].players[socket.id]) {
-            rooms[roomId].players[socket.id].autoMode = data.autoMode;
-        }
+        const team = rooms[roomId]?.players[socket.id];
+        if (!team) return;
+        // 11/2026: nút AUTO chỉ còn 2 trạng thái — còn tướng nào chưa AUTO thì bật HẾT, tất cả đang AUTO thì tắt HẾT.
+        //   Không còn "AUTO cả đội" riêng (autoMode của người chơi luôn tắt; đội 2P do máy điều khiển vẫn dùng autoMode).
+        const heroes = team.squad.filter(m => !m.summon);
+        const value = typeof data?.value === 'boolean' ? data.value : !heroes.every(m => m.autoOn);
+        team.autoMode = false;
+        heroes.forEach(m => { m.autoOn = value; });
     });
     // Tự động riêng 1 tướng (nút AUTO trên thẻ): AUTO MODE cả đội đang tắt vẫn để tướng này tự dùng kỹ năng
     socket.on('toggleMemberAuto', (data = {}) => {
