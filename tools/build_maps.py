@@ -2,6 +2,376 @@
 # Dùng: python tools/build_maps.py   -> src/assets/maps/<khu>.webp + src/world/maps.js   (+ .team/art/maps/final_<khu>.png để soi)
 # Sửa bản đồ: đổi OPS (ô 'walk' / 'block' theo hình chữ nhật x1,y1,x2,y2 tính bằng ô 32px) hoặc LAYOUT rồi chạy lại.
 import json, os, shutil
+
+
+
+# Demo Ashford: lưới theo hình 3D, cửa trước nhà và lối nối từng ô.
+# AUDIT_CHANGES_BEGIN
+# (12,1): # → .
+# (11,2): # → .
+# (12,2): # → .
+# (10,3): # → .
+# (11,3): # → .
+# (12,3): # → .
+# (29,3): # → .
+# (11,4): # → .
+# (12,4): # → .
+# (18,4): # → .
+# (29,4): # → .
+# (30,4): # → .
+# (31,4): # → .
+# (12,5): # → .
+# (29,5): # → .
+# (30,5): # → .
+# (7,6): # → .
+# (12,6): # → .
+# (13,6): # → .
+# (16,6): # → .
+# (17,6): # → .
+# (29,6): # → .
+# (34,6): # → .
+# (7,7): # → .
+# (27,7): # → .
+# (34,7): # → .
+# (35,7): # → .
+# (6,8): # → .
+# (7,8): # → .
+# (29,8): # → .
+# (35,8): # → .
+# (36,8): # → .
+# (5,9): # → .
+# (6,9): # → .
+# (7,9): # → .
+# (26,9): . → #
+# (32,9): . → #
+# (37,9): # → .
+# (5,10): # → .
+# (6,10): # → .
+# (35,10): . → #
+# (7,11): # → .
+# (33,11): # → .
+# (36,11): # → .
+# (9,13): # → .
+# (10,13): # → .
+# (26,13): . → #
+# (8,14): # → .
+# (9,14): # → .
+# (11,14): # → .
+# (29,14): # → .
+# (30,14): # → .
+# (31,14): # → .
+# (32,14): # → .
+# (33,14): # → .
+# (35,15): # → .
+# (38,15): # → .
+# (39,15): # → .
+# (12,16): . → #
+# (25,16): # → .
+# (35,16): # → .
+# (35,17): # → .
+# (38,17): # → .
+# (39,17): # → .
+# (40,17): # → .
+# (31,18): . → #
+# (35,18): # → .
+# (38,18): # → .
+# (30,19): . → #
+# (35,19): # → .
+# (38,19): # → .
+# (38,20): # → .
+# (21,21): . → #
+# (30,21): # → .
+# (34,21): # → .
+# (21,22): . → #
+# (25,22): # → .
+# (31,22): # → .
+# (33,22): # → .
+# (21,23): . → #
+# (31,23): # → .
+# AUDIT_CHANGES_END
+DEMO_FIX = json.loads(r'''{
+  "ashford": {
+    "grid": [
+      "###########################################",
+      "############.##############################",
+      "###########..##############################",
+      "##########...################.#############",
+      "###########..#####.##########...###########",
+      "############.#####.#.########..############",
+      "#######.####..##........#####.####.########",
+      "#######.#####............##...####..#######",
+      "######..#####.................#####..######",
+      "#####...#####.............#..######...#####",
+      "#####.............###......##....#.########",
+      "#######...........###......##..............",
+      "########..........###......................",
+      "#########.................#................",
+      "########..#................##.....#.#......",
+      "############...............########.#...###",
+      "#############.............#########.#..####",
+      "############.###........###########.#....##",
+      "################........###########.##.####",
+      "#################......######.#.....##.####",
+      "##################..................##.####",
+      "##################...#.............########",
+      "##################...#.##.##.##.#.#########",
+      "##################...#.########.###########"
+    ],
+    "npcs": [
+      {
+        "id": "mira",
+        "x": 19,
+        "y": 9,
+        "face": "down"
+      },
+      {
+        "id": "borin",
+        "x": 31,
+        "y": 11,
+        "face": "down"
+      },
+      {
+        "id": "lena",
+        "x": 33,
+        "y": 19,
+        "face": "down"
+      },
+      {
+        "id": "sera",
+        "x": 8,
+        "y": 12,
+        "face": "left"
+      },
+      {
+        "id": "rok",
+        "x": 36,
+        "y": 12,
+        "face": "left"
+      },
+      {
+        "id": "villager_m",
+        "x": 14,
+        "y": 15,
+        "face": "down"
+      },
+      {
+        "id": "villager_f",
+        "x": 25,
+        "y": 13,
+        "face": "down"
+      },
+      {
+        "id": "kid",
+        "x": 23,
+        "y": 17,
+        "face": "down"
+      }
+    ],
+    "exits": [
+      {
+        "tiles": [
+          [
+            31,
+            19
+          ]
+        ],
+        "scene": "tavern_in",
+        "at": [
+          7,
+          8
+        ],
+        "face": "up",
+        "door": true
+      },
+      {
+        "tiles": [
+          [
+            32,
+            10
+          ]
+        ],
+        "scene": "forge_in",
+        "at": [
+          7,
+          8
+        ],
+        "face": "up",
+        "door": true
+      },
+      {
+        "tiles": [
+          [
+            20,
+            5
+          ]
+        ],
+        "scene": "mira_in",
+        "at": [
+          7,
+          8
+        ],
+        "face": "up",
+        "door": true
+      },
+      {
+        "edge": "right",
+        "a": 12,
+        "b": 12,
+        "scene": "outskirts",
+        "at": [
+          1,
+          10
+        ],
+        "face": "right"
+      },
+      {
+        "edge": "right",
+        "a": 13,
+        "b": 13,
+        "scene": "outskirts",
+        "at": [
+          1,
+          11
+        ],
+        "face": "right"
+      },
+      {
+        "edge": "down",
+        "a": 20,
+        "b": 20,
+        "scene": "road",
+        "at": [
+          10,
+          1
+        ],
+        "face": "down"
+      }
+    ]
+  },
+  "outskirts": {
+    "exits": [
+      {
+        "edge": "right",
+        "a": 0,
+        "b": 23,
+        "scene": "forest",
+        "at": [
+          1,
+          11
+        ],
+        "face": "right"
+      },
+      {
+        "edge": "left",
+        "a": 10,
+        "b": 10,
+        "scene": "ashford",
+        "at": [
+          41,
+          12
+        ],
+        "face": "left"
+      },
+      {
+        "edge": "left",
+        "a": 11,
+        "b": 11,
+        "scene": "ashford",
+        "at": [
+          41,
+          13
+        ],
+        "face": "left"
+      }
+    ]
+  },
+  "road": {
+    "exits": [
+      {
+        "edge": "right",
+        "a": 0,
+        "b": 23,
+        "scene": "capital",
+        "at": [
+          21,
+          18
+        ],
+        "face": "up"
+      },
+      {
+        "edge": "up",
+        "a": 10,
+        "b": 10,
+        "scene": "ashford",
+        "at": [
+          20,
+          22
+        ],
+        "face": "up"
+      }
+    ]
+  },
+  "tavern_in": {
+    "exits": [
+      {
+        "tiles": [
+          [
+            7,
+            9
+          ]
+        ],
+        "scene": "ashford",
+        "at": [
+          31,
+          20
+        ],
+        "face": "down",
+        "door": true
+      }
+    ]
+  },
+  "forge_in": {
+    "exits": [
+      {
+        "tiles": [
+          [
+            7,
+            9
+          ]
+        ],
+        "scene": "ashford",
+        "at": [
+          32,
+          11
+        ],
+        "face": "down",
+        "door": true
+      }
+    ]
+  }
+}''')
+
+def apply_demo(out):
+    for scene, patch in DEMO_FIX.items():
+        out[scene].update(patch)
+    # Hành lang phía bắc Vương Đạo nối Ashford.
+    for y in range(3):
+        row = list(out['road']['grid'][y])
+        row[10] = '.'
+        out['road']['grid'][y] = ''.join(row)
+
+def write_maps(out):
+    with open('src/world/maps.js', 'w', encoding='utf-8') as f:
+        f.write('// Tự sinh bởi tools/build_maps.py — sửa nguồn rồi sinh lại\nexport const MAPS = ' + json.dumps(out, ensure_ascii=False) + ';\n')
+
+# Thiếu tranh nguồn: chỉ cập nhật dữ liệu, không ghi lại ảnh.
+if '--data-only' in __import__('sys').argv:
+    text = open('src/world/maps.js', encoding='utf-8').read()
+    out = json.loads(text.split('export const MAPS = ', 1)[1].rstrip().rstrip(';'))
+    apply_demo(out)
+    write_maps(out)
+    raise SystemExit(0)
+
 from PIL import Image, ImageDraw
 
 ART = '.team/art/maps'
@@ -239,6 +609,7 @@ for scene, R in INTERIORS.items():
     out[scene] = {'image': scene, 'tile': 96, 'cols': 15, 'rows': 10, 'spawn': [sx, sy], 'interior': True, 'grid': [''.join(r) for r in grid],
                   'npcs': npcs, 'objects': objs, 'exits': R['exits']}
     Image.open(ROOM_RAW.format(R['src'])).convert('RGB').resize((1440, 960), Image.LANCZOS).save(f'src/assets/maps/{scene}.webp', quality=88)
+apply_demo(out)
 open('src/world/maps.js', 'w', encoding='utf-8').write(
     '// Tự sinh bởi tools/build_maps.py — đừng sửa tay (sửa OPS / LAYOUT trong file đó rồi chạy lại)\n'
     '// grid: "." đi được, "#" chặn · toạ độ tính theo ô 32px của ảnh nền 1376x768 (43 x 24 ô)\n'

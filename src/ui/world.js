@@ -847,6 +847,8 @@ function onHudClick(e) {
 function loadScene(id, x, y, face) {
     scene = data.scenes[id];
     map = MAPS[id];
+    // Save cũ / phản hồi mạng không được đặt người chơi vào ô chặn.
+    if (!Number.isInteger(x) || !Number.isInteger(y) || map.grid[y]?.[x] !== '.') [x, y] = map.spawn;
     me.x = x; me.y = y; me.face = face ?? me.face; me.moving = null; me.jump = null; queued = null;
     npcs = (map?.npcs ?? []).map(p => {
         const s = scene.npcs.find(n => n.id === p.id);
@@ -925,8 +927,9 @@ function applyState(d) {
         setTimeout(() => playStory(storyText.intro.wake, storyText.speakers, () => socket.emit('storyMark', { key: 'wake' })), 300);
     }
     const first = !data || !scene;
+    const teleported = data && d.teleportVersion !== data.teleportVersion;
     data = d;
-    if (first || scene.id !== d.scene) loadScene(d.scene, d.x, d.y, d.face);
+    if (first || teleported || scene.id !== d.scene) loadScene(d.scene, d.x, d.y, d.face);
     else {   // cập nhật trạng thái (dấu ! ?, đồ vật) mà không dịch vị trí
         scene = d.scenes[d.scene];
         for (const n of npcs) { const s = scene.npcs.find(q => q.id === n.id); if (s) { n.def = s; n.hidden = s.hidden; n.mark = s.mark; } }

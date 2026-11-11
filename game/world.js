@@ -9,6 +9,18 @@ const E = require('./evidence');   // 🔎 sổ chứng cứ + đối chất tr�
 const W = require('./wallet');
 const CHAPTER = require('./chapter1');
 const CHAPTER2 = require('./chapter2');
+// Dùng cùng dữ liệu sinh với client, tránh giữ tọa độ của vùng cũ khi dịch chuyển.
+const mapText = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/world/maps.js'), 'utf8');
+const MAPS = JSON.parse(mapText.split('export const MAPS = ')[1].trim().replace(/;$/, ''));
+function sceneSpawn(id) {
+    const [x, y] = MAPS[id].spawn;
+    return { x, y, face: 'down' };
+}
+function landing(id, x, y) {
+    const m = MAPS[id];
+    if (Number.isInteger(x) && Number.isInteger(y) && m.grid[y]?.[x] === '.') return { x, y };
+    return sceneSpawn(id);
+}
 
 const stage = (no) => `c1-${String(no).padStart(2, '0')}`;
 const cleared = (pr, no) => pr.campaign?.cleared?.story?.[stage(no)] === true;
@@ -291,7 +303,7 @@ function ensureWorld(pr) {
     pr.world ??= {};
     const w = pr.world;
     if (!SCENES[w.scene]) { w.scene = START.scene; w.x = START.x; w.y = START.y; w.face = START.face; }   // save bản cũ (màn ngang) -> điểm đầu
-    w.x ??= START.x; w.y ??= START.y; w.face ??= START.face;
+    Object.assign(w, landing(w.scene, w.x, w.y)); w.face ??= START.face;
     w.opened ??= {}; w.mineAt ??= {}; w.quests ??= {}; w.bag ??= {}; w.talked ??= {};
     if (!w.reported) { w.reported = {}; for (const n of Object.keys(REPORTS)) if (cleared(pr, +n)) w.reported[n] = true; }   // save cũ: các ải đã qua coi như đã báo
     pr.flags ??= {};
@@ -444,8 +456,7 @@ function move(pr, sceneId, x, y, face) {
     const w = ensureWorld(pr);
     if (!sceneOpen(pr, sceneId)) return no(`Khu này mở khi qua ${sceneNeedText(sceneId)}`);
     w.scene = sceneId;
-    w.x = Math.max(0, Math.min(200, Math.round(Number(x) || 0)));
-    w.y = Math.max(0, Math.min(200, Math.round(Number(y) || 0)));
+    Object.assign(w, landing(sceneId, Math.round(x), Math.round(y)));
     if (['up', 'down', 'left', 'right'].includes(face)) w.face = face;
     return ok();
 }
@@ -661,7 +672,7 @@ function worldState(pr, now = Date.now()) {
             }),
         };
     }
-    return { scene: w.scene, x: w.x, y: w.y, face: w.face, scenes, bag: Object.keys(w.bag).map(it => ({ id: it, name: ITEM_NAMES[it] })),
+    return { scene: w.scene, x: w.x, y: w.y, face: w.face, teleportVersion: w.teleportVersion ?? 0, scenes, bag: Object.keys(w.bag).map(it => ({ id: it, name: ITEM_NAMES[it] })),
         wellSymbols: WELL_SYMBOLS, moonSymbols: MOON_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr), evidence: E.journal(pr) };
 }
 
@@ -676,4 +687,4 @@ function presentTrial(pr, wallet, answers = {}) {
 }
 
 module.exports = { presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
-    ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };
+    sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };

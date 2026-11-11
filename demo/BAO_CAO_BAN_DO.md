@@ -1,0 +1,702 @@
+# Báo cáo bản đồ
+
+Tọa độ (x,y), tính từ 0. a: điểm đến/cửa/NPC; b: nối vùng; c: lệch hình 3D; d: túi/khe cần xem; e: NPC chắn lối.
+BFS dùng lưới tĩnh; NPC và vật truyện thay đổi theo tiến trình. Chân nhà xét tâm ô; rào xét các ô đoạn thẳng đi qua; vật nhỏ lấy một ô. Đây là phép soát dữ liệu, chưa thay kiểm tra hình trong game.
+
+## outskirts — 76 mục (a: 0, b: 3, c: 58, d: 15, e: 0)
+
+- (b) (42,10) → forest: quay lại xa ô vừa rời
+- (b) (42,11) → forest: quay lại xa ô vừa rời
+- (b) (42,13) → forest: quay lại xa ô vừa rời
+- (c) (2,0) tường vô hình trên cỏ/đường
+- (c) (11,0) tường vô hình trên cỏ/đường
+- (d) (12,0) khe rộng một ô — cần xem
+- (d) (16,0) khe rộng một ô — cần xem
+- (d) (20,0) khe rộng một ô — cần xem
+- (c) (21,0) tường vô hình trên cỏ/đường
+- (c) (2,1) tường vô hình trên cỏ/đường
+- (c) (7,1) tường vô hình trên cỏ/đường
+- (c) (8,1) tường vô hình trên cỏ/đường
+- (c) (9,1) tường vô hình trên cỏ/đường
+- (c) (10,1) tường vô hình trên cỏ/đường
+- (c) (13,1) tường vô hình trên cỏ/đường
+- (c) (14,1) tường vô hình trên cỏ/đường
+- (c) (15,1) tường vô hình trên cỏ/đường
+- (d) (16,1) khe rộng một ô — cần xem
+- (c) (17,1) tường vô hình trên cỏ/đường
+- (c) (18,1) tường vô hình trên cỏ/đường
+- (c) (19,1) tường vô hình trên cỏ/đường
+- (d) (21,1) khe rộng một ô — cần xem
+- (c) (2,2) tường vô hình trên cỏ/đường
+- (c) (18,2) đi xuyên vật 3D (công trình)
+- (c) (20,2) đi xuyên vật 3D (công trình)
+- (d) (27,6) khe rộng một ô — cần xem
+- (d) (30,6) khe rộng một ô — cần xem
+- (d) (28,7) khe rộng một ô — cần xem
+- (d) (32,7) khe rộng một ô — cần xem
+- (c) (35,7) đi xuyên vật 3D (công trình)
+- (d) (35,7) khe rộng một ô — cần xem
+- (c) (27,8) tường vô hình trên cỏ/đường
+- (c) (35,8) tường vô hình trên cỏ/đường
+- (c) (14,9) tường vô hình trên cỏ/đường
+- (c) (15,9) tường vô hình trên cỏ/đường
+- (c) (16,9) tường vô hình trên cỏ/đường
+- (c) (17,9) tường vô hình trên cỏ/đường
+- (c) (41,9) tường vô hình trên cỏ/đường
+- (c) (14,10) tường vô hình trên cỏ/đường
+- (c) (16,10) tường vô hình trên cỏ/đường
+- (c) (6,11) đi xuyên vật 3D (công trình)
+- (c) (14,11) tường vô hình trên cỏ/đường
+- (c) (16,11) tường vô hình trên cỏ/đường
+- (c) (25,11) đi xuyên vật 3D (công trình)
+- (c) (6,12) đi xuyên vật 3D (công trình)
+- (c) (14,12) tường vô hình trên cỏ/đường
+- (c) (19,12) đi xuyên vật 3D (công trình)
+- (c) (2,13) tường vô hình trên cỏ/đường
+- (c) (16,13) tường vô hình trên cỏ/đường
+- (d) (17,13) khe rộng một ô — cần xem
+- (c) (29,13) đi xuyên vật 3D (công trình)
+- (c) (2,14) tường vô hình trên cỏ/đường
+- (c) (20,14) tường vô hình trên cỏ/đường
+- (c) (37,14) tường vô hình trên cỏ/đường
+- (c) (2,15) tường vô hình trên cỏ/đường
+- (c) (14,15) tường vô hình trên cỏ/đường
+- (c) (17,15) tường vô hình trên cỏ/đường
+- (c) (18,15) tường vô hình trên cỏ/đường
+- (c) (20,15) đi xuyên vật 3D (công trình)
+- (c) (36,16) tường vô hình trên cỏ/đường
+- (d) (34,17) khe rộng một ô — cần xem
+- (c) (2,18) tường vô hình trên cỏ/đường
+- (c) (24,18) tường vô hình trên cỏ/đường
+- (c) (32,18) đi xuyên vật 3D (công trình)
+- (c) (34,18) tường vô hình trên cỏ/đường
+- (c) (2,19) tường vô hình trên cỏ/đường
+- (c) (31,20) tường vô hình trên cỏ/đường
+- (d) (27,21) khe rộng một ô — cần xem
+- (c) (28,21) tường vô hình trên cỏ/đường
+- (c) (20,22) đi xuyên vật 3D (công trình)
+- (c) (29,22) tường vô hình trên cỏ/đường
+- (d) (30,22) khe rộng một ô — cần xem
+- (c) (3,23) tường vô hình trên cỏ/đường
+- (c) (4,23) tường vô hình trên cỏ/đường
+- (c) (11,23) đi xuyên vật 3D (công trình)
+- (d) (11,23) khe rộng một ô — cần xem
+
+## forest — 26 mục (a: 0, b: 1, c: 15, d: 10, e: 0)
+
+- (b) (0,12) → outskirts: quay lại xa ô vừa rời
+- (d) (12,3) khe rộng một ô — cần xem
+- (d) (14,4) khe rộng một ô — cần xem
+- (c) (6,5) đi xuyên vật 3D (công trình)
+- (c) (14,7) đi xuyên vật 3D (công trình)
+- (c) (31,7) đi xuyên vật 3D (công trình)
+- (c) (8,8) đi xuyên vật 3D (công trình)
+- (c) (30,8) đi xuyên vật 3D (công trình)
+- (c) (6,9) đi xuyên vật 3D (công trình)
+- (d) (16,10) khe rộng một ô — cần xem
+- (d) (17,10) khe rộng một ô — cần xem
+- (d) (18,10) khe rộng một ô — cần xem
+- (d) (19,10) khe rộng một ô — cần xem
+- (d) (20,10) khe rộng một ô — cần xem
+- (c) (11,11) tường vô hình trên cỏ/đường
+- (c) (17,11) tường vô hình trên cỏ/đường
+- (c) (18,11) tường vô hình trên cỏ/đường
+- (c) (10,14) đi xuyên vật 3D (công trình)
+- (d) (13,16) khe rộng một ô — cần xem
+- (c) (17,17) đi xuyên vật 3D (công trình)
+- (d) (18,17) khe rộng một ô — cần xem
+- (c) (31,17) đi xuyên vật 3D (công trình)
+- (c) (8,18) đi xuyên vật 3D (công trình)
+- (c) (11,18) đi xuyên vật 3D (công trình)
+- (c) (27,18) đi xuyên vật 3D (công trình)
+- (d) (14,21) khe rộng một ô — cần xem
+
+## ashford — 44 mục (a: 0, b: 0, c: 0, d: 44, e: 0)
+
+- (d) (12,1) khe rộng một ô — cần xem
+- (d) (10,3) khe rộng một ô — cần xem
+- (d) (29,3) khe rộng một ô — cần xem
+- (d) (18,4) khe rộng một ô — cần xem
+- (d) (31,4) khe rộng một ô — cần xem
+- (d) (12,5) khe rộng một ô — cần xem
+- (d) (18,5) khe rộng một ô — cần xem
+- (d) (20,5) khe rộng một ô — cần xem
+- (d) (7,6) khe rộng một ô — cần xem
+- (d) (29,6) khe rộng một ô — cần xem
+- (d) (34,6) túi ô không tới được từ spawn
+- (d) (34,6) khe rộng một ô — cần xem
+- (d) (7,7) khe rộng một ô — cần xem
+- (d) (34,7) túi ô không tới được từ spawn
+- (d) (35,7) túi ô không tới được từ spawn
+- (d) (26,8) khe rộng một ô — cần xem
+- (d) (35,8) túi ô không tới được từ spawn
+- (d) (36,8) túi ô không tới được từ spawn
+- (d) (35,9) túi ô không tới được từ spawn
+- (d) (36,9) túi ô không tới được từ spawn
+- (d) (37,9) túi ô không tới được từ spawn
+- (d) (37,9) khe rộng một ô — cần xem
+- (d) (34,10) khe rộng một ô — cần xem
+- (d) (8,14) khe rộng một ô — cần xem
+- (d) (35,14) khe rộng một ô — cần xem
+- (d) (35,15) khe rộng một ô — cần xem
+- (d) (35,16) khe rộng một ô — cần xem
+- (d) (12,17) túi ô không tới được từ spawn
+- (d) (12,17) khe rộng một ô — cần xem
+- (d) (35,17) khe rộng một ô — cần xem
+- (d) (39,17) khe rộng một ô — cần xem
+- (d) (40,17) khe rộng một ô — cần xem
+- (d) (35,18) khe rộng một ô — cần xem
+- (d) (38,18) khe rộng một ô — cần xem
+- (d) (29,19) khe rộng một ô — cần xem
+- (d) (38,19) khe rộng một ô — cần xem
+- (d) (38,20) khe rộng một ô — cần xem
+- (d) (22,22) khe rộng một ô — cần xem
+- (d) (25,22) khe rộng một ô — cần xem
+- (d) (28,22) khe rộng một ô — cần xem
+- (d) (31,22) khe rộng một ô — cần xem
+- (d) (33,22) khe rộng một ô — cần xem
+- (d) (22,23) khe rộng một ô — cần xem
+- (d) (31,23) khe rộng một ô — cần xem
+
+## road — 118 mục (a: 0, b: 2, c: 97, d: 19, e: 0)
+
+- (b) (21,18) → capital: điểm đáp xa lối ngược
+- (b) (42,7) → capital: hướng nối mép / mặt không khớp
+- (c) (9,0) tường vô hình trên cỏ/đường
+- (d) (10,0) khe rộng một ô — cần xem
+- (c) (9,1) tường vô hình trên cỏ/đường
+- (d) (10,1) khe rộng một ô — cần xem
+- (c) (8,2) tường vô hình trên cỏ/đường
+- (d) (10,2) khe rộng một ô — cần xem
+- (c) (23,2) tường vô hình trên cỏ/đường
+- (c) (34,2) tường vô hình trên cỏ/đường
+- (c) (6,3) tường vô hình trên cỏ/đường
+- (c) (21,3) tường vô hình trên cỏ/đường
+- (d) (25,3) khe rộng một ô — cần xem
+- (d) (26,3) khe rộng một ô — cần xem
+- (c) (27,3) tường vô hình trên cỏ/đường
+- (c) (36,3) tường vô hình trên cỏ/đường
+- (c) (6,4) tường vô hình trên cỏ/đường
+- (c) (21,4) tường vô hình trên cỏ/đường
+- (c) (25,4) tường vô hình trên cỏ/đường
+- (c) (26,4) tường vô hình trên cỏ/đường
+- (c) (27,4) tường vô hình trên cỏ/đường
+- (c) (36,4) tường vô hình trên cỏ/đường
+- (c) (6,5) tường vô hình trên cỏ/đường
+- (c) (21,5) tường vô hình trên cỏ/đường
+- (c) (36,5) tường vô hình trên cỏ/đường
+- (c) (2,6) tường vô hình trên cỏ/đường
+- (c) (3,6) tường vô hình trên cỏ/đường
+- (c) (4,6) tường vô hình trên cỏ/đường
+- (c) (5,6) tường vô hình trên cỏ/đường
+- (c) (6,6) tường vô hình trên cỏ/đường
+- (c) (21,6) tường vô hình trên cỏ/đường
+- (c) (36,6) tường vô hình trên cỏ/đường
+- (c) (1,7) tường vô hình trên cỏ/đường
+- (c) (21,7) tường vô hình trên cỏ/đường
+- (c) (28,7) đi xuyên vật 3D (công trình)
+- (d) (28,7) khe rộng một ô — cần xem
+- (c) (29,7) tường vô hình trên cỏ/đường
+- (d) (33,7) khe rộng một ô — cần xem
+- (c) (1,8) tường vô hình trên cỏ/đường
+- (c) (21,8) tường vô hình trên cỏ/đường
+- (c) (25,8) tường vô hình trên cỏ/đường
+- (d) (26,8) khe rộng một ô — cần xem
+- (c) (33,8) tường vô hình trên cỏ/đường
+- (c) (34,8) tường vô hình trên cỏ/đường
+- (c) (0,9) tường vô hình trên cỏ/đường
+- (c) (1,9) tường vô hình trên cỏ/đường
+- (c) (21,9) tường vô hình trên cỏ/đường
+- (c) (11,10) đi xuyên vật 3D (w)
+- (c) (21,10) tường vô hình trên cỏ/đường
+- (c) (11,11) đi xuyên vật 3D (w)
+- (c) (12,11) đi xuyên vật 3D (w)
+- (c) (13,11) đi xuyên vật 3D (w)
+- (c) (14,11) đi xuyên vật 3D (w)
+- (c) (15,11) đi xuyên vật 3D (w)
+- (c) (16,11) đi xuyên vật 3D (w)
+- (c) (17,11) đi xuyên vật 3D (w)
+- (c) (18,11) đi xuyên vật 3D (w)
+- (c) (19,11) đi xuyên vật 3D (w)
+- (c) (20,11) đi xuyên vật 3D (w)
+- (c) (11,12) đi xuyên vật 3D (w)
+- (c) (12,12) đi xuyên vật 3D (w)
+- (c) (13,12) đi xuyên vật 3D (w)
+- (c) (14,12) đi xuyên vật 3D (w)
+- (c) (15,12) đi xuyên vật 3D (w)
+- (c) (16,12) đi xuyên vật 3D (w)
+- (c) (17,12) đi xuyên vật 3D (w)
+- (c) (18,12) đi xuyên vật 3D (w)
+- (c) (19,12) đi xuyên vật 3D (w)
+- (c) (20,12) đi xuyên vật 3D (w)
+- (c) (34,12) tường vô hình trên cỏ/đường
+- (c) (11,13) đi xuyên vật 3D (w)
+- (c) (21,13) tường vô hình trên cỏ/đường
+- (c) (35,13) tường vô hình trên cỏ/đường
+- (c) (0,14) tường vô hình trên cỏ/đường
+- (c) (1,14) tường vô hình trên cỏ/đường
+- (c) (21,14) tường vô hình trên cỏ/đường
+- (c) (26,14) tường vô hình trên cỏ/đường
+- (c) (31,14) tường vô hình trên cỏ/đường
+- (c) (1,15) tường vô hình trên cỏ/đường
+- (c) (21,15) tường vô hình trên cỏ/đường
+- (c) (30,15) tường vô hình trên cỏ/đường
+- (c) (2,16) tường vô hình trên cỏ/đường
+- (c) (3,16) tường vô hình trên cỏ/đường
+- (c) (4,16) tường vô hình trên cỏ/đường
+- (c) (5,16) tường vô hình trên cỏ/đường
+- (c) (6,16) tường vô hình trên cỏ/đường
+- (c) (7,16) tường vô hình trên cỏ/đường
+- (c) (8,16) tường vô hình trên cỏ/đường
+- (c) (9,16) tường vô hình trên cỏ/đường
+- (c) (10,16) tường vô hình trên cỏ/đường
+- (c) (21,16) tường vô hình trên cỏ/đường
+- (c) (28,16) tường vô hình trên cỏ/đường
+- (c) (29,16) tường vô hình trên cỏ/đường
+- (c) (21,17) tường vô hình trên cỏ/đường
+- (c) (41,17) tường vô hình trên cỏ/đường
+- (c) (21,18) tường vô hình trên cỏ/đường
+- (c) (38,18) tường vô hình trên cỏ/đường
+- (c) (21,19) tường vô hình trên cỏ/đường
+- (d) (24,19) khe rộng một ô — cần xem
+- (d) (25,19) khe rộng một ô — cần xem
+- (d) (26,19) khe rộng một ô — cần xem
+- (d) (27,19) khe rộng một ô — cần xem
+- (d) (28,19) khe rộng một ô — cần xem
+- (d) (29,19) khe rộng một ô — cần xem
+- (d) (30,19) khe rộng một ô — cần xem
+- (d) (31,19) khe rộng một ô — cần xem
+- (d) (32,19) khe rộng một ô — cần xem
+- (d) (33,19) khe rộng một ô — cần xem
+- (d) (38,19) khe rộng một ô — cần xem
+- (c) (39,19) tường vô hình trên cỏ/đường
+- (c) (22,20) tường vô hình trên cỏ/đường
+- (c) (24,20) tường vô hình trên cỏ/đường
+- (c) (26,20) tường vô hình trên cỏ/đường
+- (c) (28,20) tường vô hình trên cỏ/đường
+- (c) (31,20) tường vô hình trên cỏ/đường
+- (c) (33,20) tường vô hình trên cỏ/đường
+- (c) (35,20) tường vô hình trên cỏ/đường
+- (c) (37,20) tường vô hình trên cỏ/đường
+
+## capital — 90 mục (a: 0, b: 4, c: 34, d: 44, e: 8)
+
+- (b) (20,20) → road: quay lại xa ô vừa rời
+- (b) (21,20) → road: quay lại xa ô vừa rời
+- (b) (22,20) → road: quay lại xa ô vừa rời
+- (b) (23,20) → road: quay lại xa ô vừa rời
+- (c) (8,0) tường vô hình trên cỏ/đường
+- (c) (18,0) tường vô hình trên cỏ/đường
+- (d) (10,1) khe rộng một ô — cần xem
+- (c) (18,1) tường vô hình trên cỏ/đường
+- (c) (10,2) tường vô hình trên cỏ/đường
+- (c) (18,2) tường vô hình trên cỏ/đường
+- (d) (7,3) khe rộng một ô — cần xem
+- (c) (18,3) tường vô hình trên cỏ/đường
+- (c) (10,4) đi xuyên vật 3D (công trình)
+- (d) (17,4) khe rộng một ô — cần xem
+- (c) (10,5) đi xuyên vật 3D (công trình)
+- (d) (17,5) khe rộng một ô — cần xem
+- (c) (10,6) đi xuyên vật 3D (công trình)
+- (d) (17,6) khe rộng một ô — cần xem
+- (c) (7,7) tường vô hình trên cỏ/đường
+- (d) (8,7) khe rộng một ô — cần xem
+- (c) (21,7) tường vô hình trên cỏ/đường
+- (c) (22,7) tường vô hình trên cỏ/đường
+- (c) (23,7) tường vô hình trên cỏ/đường
+- (c) (24,7) tường vô hình trên cỏ/đường
+- (d) (11,8) khe rộng một ô — cần xem
+- (d) (12,8) khe rộng một ô — cần xem
+- (d) (18,8) khe rộng một ô — cần xem
+- (d) (19,8) khe rộng một ô — cần xem
+- (d) (22,8) khe rộng một ô — cần xem
+- (d) (23,8) khe rộng một ô — cần xem
+- (d) (31,8) khe rộng một ô — cần xem
+- (c) (14,9) đi xuyên vật 3D (công trình)
+- (c) (28,9) đi xuyên vật 3D (công trình)
+- (d) (37,9) khe rộng một ô — cần xem
+- (d) (21,10) khe rộng một ô — cần xem
+- (c) (26,10) đi xuyên vật 3D (công trình)
+- (d) (37,10) khe rộng một ô — cần xem
+- (d) (21,11) khe rộng một ô — cần xem
+- (d) (37,11) khe rộng một ô — cần xem
+- (d) (20,12) khe rộng một ô — cần xem
+- (d) (37,12) khe rộng một ô — cần xem
+- (c) (41,12) đi xuyên vật 3D (công trình)
+- (d) (41,12) khe rộng một ô — cần xem
+- (d) (18,13) khe rộng một ô — cần xem
+- (c) (20,13) tường vô hình trên cỏ/đường
+- (d) (31,13) khe rộng một ô — cần xem
+- (d) (32,13) khe rộng một ô — cần xem
+- (d) (36,13) khe rộng một ô — cần xem
+- (d) (38,13) khe rộng một ô — cần xem
+- (d) (39,13) khe rộng một ô — cần xem
+- (d) (40,13) khe rộng một ô — cần xem
+- (d) (42,13) khe rộng một ô — cần xem
+- (d) (16,14) khe rộng một ô — cần xem
+- (d) (26,14) khe rộng một ô — cần xem
+- (c) (35,14) đi xuyên vật 3D (công trình)
+- (d) (11,15) khe rộng một ô — cần xem
+- (c) (33,15) tường vô hình trên cỏ/đường
+- (d) (6,16) khe rộng một ô — cần xem
+- (d) (9,16) khe rộng một ô — cần xem
+- (d) (10,16) khe rộng một ô — cần xem
+- (d) (12,16) khe rộng một ô — cần xem
+- (c) (17,16) tường vô hình trên cỏ/đường
+- (d) (21,16) khe rộng một ô — cần xem
+- (c) (6,17) đi xuyên vật 3D (công trình)
+- (d) (6,17) khe rộng một ô — cần xem
+- (d) (8,17) khe rộng một ô — cần xem
+- (c) (14,17) đi xuyên vật 3D (công trình)
+- (c) (28,17) đi xuyên vật 3D (công trình)
+- (c) (6,18) đi xuyên vật 3D (công trình)
+- (c) (7,18) đi xuyên vật 3D (công trình)
+- (d) (7,18) khe rộng một ô — cần xem
+- (d) (19,18) khe rộng một ô — cần xem
+- (d) (24,18) khe rộng một ô — cần xem
+- (d) (25,18) khe rộng một ô — cần xem
+- (d) (26,18) khe rộng một ô — cần xem
+- (c) (20,19) đi xuyên vật 3D (công trình)
+- (c) (21,19) đi xuyên vật 3D (công trình)
+- (c) (22,19) đi xuyên vật 3D (công trình)
+- (c) (23,19) đi xuyên vật 3D (công trình)
+- (c) (20,20) đi xuyên vật 3D (công trình)
+- (c) (21,20) đi xuyên vật 3D (công trình)
+- (c) (22,20) đi xuyên vật 3D (công trình)
+- (e) (21,16) NPC villager_m2 có thể chắn lối duy nhất
+- (e) (21,17) NPC villager_m2 có thể chắn lối duy nhất
+- (e) (19,13) NPC merchant2 có thể chắn lối duy nhất
+- (e) (19,14) NPC merchant2 có thể chắn lối duy nhất
+- (e) (20,15) NPC merchant2 có thể chắn lối duy nhất
+- (e) (21,15) NPC merchant2 có thể chắn lối duy nhất
+- (e) (21,16) NPC merchant2 có thể chắn lối duy nhất
+- (e) (21,17) NPC merchant2 có thể chắn lối duy nhất
+
+## sylvaren — 97 mục (a: 0, b: 5, c: 80, d: 12, e: 0)
+
+- (b) (0,12) → capital: quay lại xa ô vừa rời
+- (b) (0,14) → capital: quay lại xa ô vừa rời
+- (b) (42,12) → lunaria: quay lại xa ô vừa rời
+- (b) (42,13) → lunaria: quay lại xa ô vừa rời
+- (b) (42,15) → lunaria: quay lại xa ô vừa rời
+- (d) (27,4) khe rộng một ô — cần xem
+- (c) (28,4) tường vô hình trên cỏ/đường
+- (c) (18,5) tường vô hình trên cỏ/đường
+- (c) (21,5) tường vô hình trên cỏ/đường
+- (c) (28,5) tường vô hình trên cỏ/đường
+- (c) (30,5) tường vô hình trên cỏ/đường
+- (c) (6,6) tường vô hình trên cỏ/đường
+- (c) (7,6) tường vô hình trên cỏ/đường
+- (c) (17,6) tường vô hình trên cỏ/đường
+- (d) (28,6) khe rộng một ô — cần xem
+- (d) (32,6) khe rộng một ô — cần xem
+- (d) (33,6) khe rộng một ô — cần xem
+- (c) (34,6) tường vô hình trên cỏ/đường
+- (c) (1,7) đi xuyên vật 3D (w)
+- (d) (1,7) khe rộng một ô — cần xem
+- (c) (2,7) đi xuyên vật 3D (w)
+- (d) (2,7) khe rộng một ô — cần xem
+- (c) (11,7) đi xuyên vật 3D (công trình)
+- (d) (16,7) khe rộng một ô — cần xem
+- (c) (29,7) đi xuyên vật 3D (công trình)
+- (c) (16,8) tường vô hình trên cỏ/đường
+- (c) (17,8) đi xuyên vật 3D (công trình)
+- (c) (23,8) đi xuyên vật 3D (w)
+- (c) (24,8) đi xuyên vật 3D (w)
+- (c) (25,8) đi xuyên vật 3D (w)
+- (c) (27,8) tường vô hình trên cỏ/đường
+- (c) (36,8) tường vô hình trên cỏ/đường
+- (c) (13,9) tường vô hình trên cỏ/đường
+- (c) (14,9) tường vô hình trên cỏ/đường
+- (c) (15,9) tường vô hình trên cỏ/đường
+- (c) (20,9) tường vô hình trên cỏ/đường
+- (c) (22,9) tường vô hình trên cỏ/đường
+- (c) (23,9) tường vô hình trên cỏ/đường
+- (c) (24,9) tường vô hình trên cỏ/đường
+- (c) (26,9) tường vô hình trên cỏ/đường
+- (c) (13,11) tường vô hình trên cỏ/đường
+- (c) (27,11) tường vô hình trên cỏ/đường
+- (c) (28,11) tường vô hình trên cỏ/đường
+- (c) (42,11) tường vô hình trên cỏ/đường
+- (c) (13,12) tường vô hình trên cỏ/đường
+- (c) (20,12) tường vô hình trên cỏ/đường
+- (c) (21,12) tường vô hình trên cỏ/đường
+- (d) (42,12) khe rộng một ô — cần xem
+- (c) (22,13) tường vô hình trên cỏ/đường
+- (c) (37,13) đi xuyên vật 3D (công trình)
+- (c) (26,14) tường vô hình trên cỏ/đường
+- (c) (1,15) tường vô hình trên cỏ/đường
+- (c) (2,15) tường vô hình trên cỏ/đường
+- (c) (13,15) tường vô hình trên cỏ/đường
+- (c) (41,15) đi xuyên vật 3D (w)
+- (c) (42,15) đi xuyên vật 3D (w)
+- (c) (22,16) tường vô hình trên cỏ/đường
+- (c) (40,16) đi xuyên vật 3D (w)
+- (c) (41,16) đi xuyên vật 3D (w)
+- (c) (13,17) tường vô hình trên cỏ/đường
+- (c) (16,17) tường vô hình trên cỏ/đường
+- (c) (18,17) tường vô hình trên cỏ/đường
+- (c) (23,17) đi xuyên vật 3D (công trình)
+- (c) (38,17) tường vô hình trên cỏ/đường
+- (c) (39,17) đi xuyên vật 3D (w)
+- (d) (39,17) khe rộng một ô — cần xem
+- (d) (15,18) khe rộng một ô — cần xem
+- (c) (4,19) đi xuyên vật 3D (w)
+- (c) (37,19) đi xuyên vật 3D (w)
+- (c) (4,20) đi xuyên vật 3D (w)
+- (c) (5,20) đi xuyên vật 3D (w)
+- (c) (6,20) đi xuyên vật 3D (w)
+- (c) (14,20) tường vô hình trên cỏ/đường
+- (c) (36,20) đi xuyên vật 3D (w)
+- (c) (37,20) đi xuyên vật 3D (w)
+- (c) (8,21) tường vô hình trên cỏ/đường
+- (c) (9,21) tường vô hình trên cỏ/đường
+- (c) (10,21) tường vô hình trên cỏ/đường
+- (c) (19,21) đi xuyên vật 3D (w)
+- (c) (23,21) tường vô hình trên cỏ/đường
+- (c) (24,21) tường vô hình trên cỏ/đường
+- (c) (25,21) tường vô hình trên cỏ/đường
+- (c) (27,21) đi xuyên vật 3D (w)
+- (c) (28,21) đi xuyên vật 3D (w)
+- (c) (29,21) đi xuyên vật 3D (w)
+- (c) (30,21) đi xuyên vật 3D (w)
+- (c) (31,21) đi xuyên vật 3D (w)
+- (c) (19,22) đi xuyên vật 3D (w)
+- (d) (22,22) khe rộng một ô — cần xem
+- (c) (26,22) đi xuyên vật 3D (w)
+- (c) (29,22) đi xuyên vật 3D (w)
+- (c) (30,22) đi xuyên vật 3D (w)
+- (c) (24,23) đi xuyên vật 3D (w)
+- (c) (25,23) đi xuyên vật 3D (w)
+- (c) (26,23) đi xuyên vật 3D (w)
+- (c) (27,23) đi xuyên vật 3D (w)
+- (d) (27,23) khe rộng một ô — cần xem
+
+## lunaria — 119 mục (a: 0, b: 1, c: 102, d: 16, e: 0)
+
+- (b) (0,12) → sylvaren: quay lại xa ô vừa rời
+- (c) (20,4) tường vô hình trên cỏ/đường
+- (c) (21,4) tường vô hình trên cỏ/đường
+- (c) (22,4) tường vô hình trên cỏ/đường
+- (c) (19,5) tường vô hình trên cỏ/đường
+- (c) (30,6) tường vô hình trên cỏ/đường
+- (c) (17,7) tường vô hình trên cỏ/đường
+- (c) (18,7) tường vô hình trên cỏ/đường
+- (c) (19,7) tường vô hình trên cỏ/đường
+- (c) (23,7) tường vô hình trên cỏ/đường
+- (c) (17,8) đi xuyên vật 3D (công trình)
+- (d) (18,8) khe rộng một ô — cần xem
+- (d) (19,8) khe rộng một ô — cần xem
+- (d) (23,8) khe rộng một ô — cần xem
+- (d) (24,8) khe rộng một ô — cần xem
+- (c) (25,8) đi xuyên vật 3D (công trình)
+- (d) (25,8) khe rộng một ô — cần xem
+- (c) (15,9) tường vô hình trên cỏ/đường
+- (c) (18,9) tường vô hình trên cỏ/đường
+- (c) (21,9) tường vô hình trên cỏ/đường
+- (c) (24,9) tường vô hình trên cỏ/đường
+- (c) (4,10) tường vô hình trên cỏ/đường
+- (c) (7,10) tường vô hình trên cỏ/đường
+- (c) (10,10) tường vô hình trên cỏ/đường
+- (c) (12,10) tường vô hình trên cỏ/đường
+- (c) (15,10) tường vô hình trên cỏ/đường
+- (c) (29,10) tường vô hình trên cỏ/đường
+- (c) (30,10) tường vô hình trên cỏ/đường
+- (c) (33,10) tường vô hình trên cỏ/đường
+- (c) (6,11) đi xuyên vật 3D (công trình)
+- (c) (25,11) tường vô hình trên cỏ/đường
+- (c) (28,11) tường vô hình trên cỏ/đường
+- (c) (29,11) tường vô hình trên cỏ/đường
+- (c) (30,11) tường vô hình trên cỏ/đường
+- (c) (31,11) tường vô hình trên cỏ/đường
+- (c) (32,11) tường vô hình trên cỏ/đường
+- (c) (18,12) tường vô hình trên cỏ/đường
+- (c) (25,12) tường vô hình trên cỏ/đường
+- (c) (30,12) đi xuyên vật 3D (công trình)
+- (c) (35,12) tường vô hình trên cỏ/đường
+- (c) (2,13) tường vô hình trên cỏ/đường
+- (c) (3,13) tường vô hình trên cỏ/đường
+- (c) (4,13) tường vô hình trên cỏ/đường
+- (c) (5,13) tường vô hình trên cỏ/đường
+- (c) (6,13) tường vô hình trên cỏ/đường
+- (c) (7,13) tường vô hình trên cỏ/đường
+- (c) (8,13) tường vô hình trên cỏ/đường
+- (c) (9,13) tường vô hình trên cỏ/đường
+- (c) (10,13) tường vô hình trên cỏ/đường
+- (c) (13,13) tường vô hình trên cỏ/đường
+- (c) (14,13) tường vô hình trên cỏ/đường
+- (c) (35,13) tường vô hình trên cỏ/đường
+- (c) (17,14) đi xuyên vật 3D (công trình)
+- (c) (18,14) tường vô hình trên cỏ/đường
+- (c) (19,14) tường vô hình trên cỏ/đường
+- (c) (20,14) tường vô hình trên cỏ/đường
+- (c) (21,14) tường vô hình trên cỏ/đường
+- (c) (22,14) tường vô hình trên cỏ/đường
+- (c) (23,14) tường vô hình trên cỏ/đường
+- (c) (31,14) đi xuyên vật 3D (công trình)
+- (d) (18,15) khe rộng một ô — cần xem
+- (d) (19,15) khe rộng một ô — cần xem
+- (d) (23,15) khe rộng một ô — cần xem
+- (d) (24,15) khe rộng một ô — cần xem
+- (d) (25,15) khe rộng một ô — cần xem
+- (c) (29,15) tường vô hình trên cỏ/đường
+- (c) (31,15) đi xuyên vật 3D (công trình)
+- (c) (1,16) tường vô hình trên cỏ/đường
+- (c) (17,16) tường vô hình trên cỏ/đường
+- (c) (19,16) tường vô hình trên cỏ/đường
+- (c) (24,16) tường vô hình trên cỏ/đường
+- (c) (25,16) tường vô hình trên cỏ/đường
+- (c) (26,16) tường vô hình trên cỏ/đường
+- (c) (27,16) tường vô hình trên cỏ/đường
+- (c) (32,16) tường vô hình trên cỏ/đường
+- (c) (4,17) đi xuyên vật 3D (công trình)
+- (c) (8,17) tường vô hình trên cỏ/đường
+- (c) (9,17) tường vô hình trên cỏ/đường
+- (c) (10,17) tường vô hình trên cỏ/đường
+- (c) (11,17) tường vô hình trên cỏ/đường
+- (c) (13,17) tường vô hình trên cỏ/đường
+- (c) (19,17) tường vô hình trên cỏ/đường
+- (c) (23,17) tường vô hình trên cỏ/đường
+- (c) (29,17) tường vô hình trên cỏ/đường
+- (d) (30,17) khe rộng một ô — cần xem
+- (c) (35,17) tường vô hình trên cỏ/đường
+- (d) (36,17) khe rộng một ô — cần xem
+- (c) (1,18) tường vô hình trên cỏ/đường
+- (c) (4,18) đi xuyên vật 3D (công trình)
+- (c) (15,18) tường vô hình trên cỏ/đường
+- (c) (17,18) tường vô hình trên cỏ/đường
+- (c) (18,18) tường vô hình trên cỏ/đường
+- (d) (30,18) khe rộng một ô — cần xem
+- (d) (36,18) khe rộng một ô — cần xem
+- (c) (4,19) đi xuyên vật 3D (công trình)
+- (d) (30,19) khe rộng một ô — cần xem
+- (d) (36,19) khe rộng một ô — cần xem
+- (c) (41,19) tường vô hình trên cỏ/đường
+- (c) (6,20) tường vô hình trên cỏ/đường
+- (c) (7,20) tường vô hình trên cỏ/đường
+- (c) (8,20) tường vô hình trên cỏ/đường
+- (c) (9,20) tường vô hình trên cỏ/đường
+- (c) (10,20) tường vô hình trên cỏ/đường
+- (c) (11,20) tường vô hình trên cỏ/đường
+- (c) (12,20) tường vô hình trên cỏ/đường
+- (c) (14,20) tường vô hình trên cỏ/đường
+- (c) (5,22) tường vô hình trên cỏ/đường
+- (c) (30,22) tường vô hình trên cỏ/đường
+- (c) (33,22) tường vô hình trên cỏ/đường
+- (c) (34,22) tường vô hình trên cỏ/đường
+- (c) (36,22) tường vô hình trên cỏ/đường
+- (c) (6,23) tường vô hình trên cỏ/đường
+- (c) (8,23) tường vô hình trên cỏ/đường
+- (c) (12,23) tường vô hình trên cỏ/đường
+- (c) (13,23) tường vô hình trên cỏ/đường
+- (c) (14,23) tường vô hình trên cỏ/đường
+- (c) (15,23) tường vô hình trên cỏ/đường
+- (c) (18,23) tường vô hình trên cỏ/đường
+- (c) (19,23) tường vô hình trên cỏ/đường
+
+## tavern_in — 1 mục (a: 0, b: 0, c: 0, d: 1, e: 0)
+
+- (d) (7,9) khe rộng một ô — cần xem
+
+## forge_in — 6 mục (a: 0, b: 0, c: 0, d: 6, e: 0)
+
+- (d) (3,2) khe rộng một ô — cần xem
+- (d) (9,3) khe rộng một ô — cần xem
+- (d) (1,8) khe rộng một ô — cần xem
+- (d) (2,8) khe rộng một ô — cần xem
+- (d) (13,8) khe rộng một ô — cần xem
+- (d) (7,9) khe rộng một ô — cần xem
+
+## mira_in — 3 mục (a: 0, b: 0, c: 0, d: 3, e: 0)
+
+- (d) (1,5) khe rộng một ô — cần xem
+- (d) (2,5) khe rộng một ô — cần xem
+- (d) (7,9) khe rộng một ô — cần xem
+
+## Các ô đã sửa ở Ashford
+
+- (12,1): # → .
+- (11,2): # → .
+- (12,2): # → .
+- (10,3): # → .
+- (11,3): # → .
+- (12,3): # → .
+- (29,3): # → .
+- (11,4): # → .
+- (12,4): # → .
+- (18,4): # → .
+- (29,4): # → .
+- (30,4): # → .
+- (31,4): # → .
+- (12,5): # → .
+- (29,5): # → .
+- (30,5): # → .
+- (7,6): # → .
+- (12,6): # → .
+- (13,6): # → .
+- (16,6): # → .
+- (17,6): # → .
+- (29,6): # → .
+- (34,6): # → .
+- (7,7): # → .
+- (27,7): # → .
+- (34,7): # → .
+- (35,7): # → .
+- (6,8): # → .
+- (7,8): # → .
+- (29,8): # → .
+- (35,8): # → .
+- (36,8): # → .
+- (5,9): # → .
+- (6,9): # → .
+- (7,9): # → .
+- (26,9): . → #
+- (32,9): . → #
+- (37,9): # → .
+- (5,10): # → .
+- (6,10): # → .
+- (35,10): . → #
+- (7,11): # → .
+- (33,11): # → .
+- (36,11): # → .
+- (9,13): # → .
+- (10,13): # → .
+- (26,13): . → #
+- (8,14): # → .
+- (9,14): # → .
+- (11,14): # → .
+- (29,14): # → .
+- (30,14): # → .
+- (31,14): # → .
+- (32,14): # → .
+- (33,14): # → .
+- (35,15): # → .
+- (38,15): # → .
+- (39,15): # → .
+- (12,16): . → #
+- (25,16): # → .
+- (35,16): # → .
+- (35,17): # → .
+- (38,17): # → .
+- (39,17): # → .
+- (40,17): # → .
+- (31,18): . → #
+- (35,18): # → .
+- (38,18): # → .
+- (30,19): . → #
+- (35,19): # → .
+- (38,19): # → .
+- (38,20): # → .
+- (21,21): . → #
+- (30,21): # → .
+- (34,21): # → .
+- (21,22): . → #
+- (25,22): # → .
+- (31,22): # → .
+- (33,22): # → .
+- (21,23): . → #
+- (31,23): # → .
+
+## Phạm vi demo
+
+Đã sửa Ashford và lối nối trực tiếp. Các mục d/e chỉ liệt kê, chưa tự sửa. Các vùng khác giữ nguyên trừ hành lang phía bắc Vương Đạo nối Ashford. Thiếu ảnh nguồn .team/art nên sinh bằng chế độ --data-only từ dữ liệu hiện có.
