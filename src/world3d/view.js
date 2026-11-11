@@ -18,7 +18,7 @@ import { MAPS } from '../world/maps.js';
 import { TERRAIN } from '../world/terrain3d.js';
 import { LAYOUTS } from './layouts.js';
 import { buildScene } from './build.js';
-import { uTime } from './assets.js';
+import { uTime, uHeroPos, uCamPos, uSeeThrough } from './assets.js';
 
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const CHAR_H = 1.55;
@@ -29,7 +29,7 @@ const GradeShader = {
     fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
       void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb;
         float l = dot(c, vec3(0.299,0.587,0.114));
-        c = mix(vec3(l), c, 1.1); c *= vec3(1.03, 1.0, 0.93); c = (c - 0.5) * 1.05 + 0.5;
+        c = mix(vec3(l), c, 1.12); c *= vec3(1.045, 1.005, 0.925); c = (c - 0.5) * 1.06 + 0.5;
         vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * 0.85;
         gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`,
 };
@@ -45,18 +45,19 @@ export function createView(host) {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.autoUpdate = false;   // bóng đổ vẽ lại thưa (mỗi vài khung / khi máy quay đi), đỡ nặng
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.08;
     renderer.domElement.className = 'wd-3d-canvas';
     host.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, 1, 0.5, 220);
-    const hemi = new THREE.HemisphereLight(0xdfeaff, 0x5a6a35, 1.0);
-    const sun = new THREE.DirectionalLight(0xffd29a, 2.4);
+    const hemi = new THREE.HemisphereLight(0xffe8cc, 0x5c6d38, 1.05);
+    const sun = new THREE.DirectionalLight(0xffcb88, 2.55);
     sun.castShadow = true;
     Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 80 });
-    sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
-    scene.add(hemi, sun, sun.target);
+    sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.032;
+    const rim = new THREE.DirectionalLight(0xffdfaa, 0.55);   // viền sáng ấm buổi chiều từ phía ngược nắng
+    scene.add(hemi, sun, sun.target, rim, rim.target);
     const sprites = new THREE.Group(); scene.add(sprites);   // nhân vật / đồ vật tranh 2D — ẩn khi tính tối góc
 
     // ---------- hậu kỳ ----------
@@ -89,7 +90,7 @@ export function createView(host) {
         applyRes();
         const s = q === 'high' ? 2048 : 1024;
         sun.shadow.mapSize.set(s, s); sun.shadow.map?.dispose(); sun.shadow.map = null;
-        sun.shadow.radius = q === 'high' ? 3 : 1;
+        sun.shadow.radius = q === 'high' ? 4 : 1.5;
         buildComposer(q);
     }
     function resize() {
@@ -193,7 +194,7 @@ export function createView(host) {
 
     // ---------- mỗi khung hình ----------
     const camWant = new THREE.Vector3(), camLook = new THREE.Vector3();
-    let last = performance.now(), t = 0;
+    let last = performance.now(), t = 0, seeAlpha = 1;
     /**
      * state: { focus:{x,z}, actors:[{key, url, meta, x, z, lift, face, col, hidden}], items:[{key, url, meta, cell, x, z, size, bob}],
      *          marks:[{key, x, z, txt, color}], beacon:{x,z}|null, route:[{x,z}] }
@@ -202,9 +203,11 @@ export function createView(host) {
         const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt; uTime.value = t;
         frameNo++;
         if (!cur) return;
+        let meX = state.focus.x, meZ = state.focus.z, meLift = 0;
         // nhân vật
         for (const s of state.actors) {
             if (!s.url || !s.meta) continue;
+            if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = s.lift ?? 0; }
             const a = actor(s.key, s.url);
             a.seen = frameNo;
             a.g.visible = !s.hidden;
@@ -251,7 +254,7 @@ export function createView(host) {
         while (dots.length < route.length) { const d = new THREE.Mesh(dotGeo, dotMat); d.rotation.x = -Math.PI / 2; sprites.add(d); dots.push(d); }
         dots.forEach((d, i) => { d.visible = i < route.length; if (d.visible) d.position.set(route[i].x, 0.05, route[i].z); });
         dotMat.opacity = 0.55 + Math.sin(t * 6) * 0.3;
-        // hoạt cảnh của cảnh (nước, cối xay, nấm sáng, sương)
+        // hoạt cảnh của cảnh (nước, cối xay, nấm sáng, sương, khói, bướm, chim...)
         for (const f of cur.anim) f(t);
         // máy quay chéo bám nhân vật (giữ trong khoảng bản đồ để không lộ quá nhiều phần ngoài)
         const m = MAPS[mapId];
@@ -260,7 +263,15 @@ export function createView(host) {
         if (snapCam) { camera.position.copy(camWant); snapCam = false; } else camera.position.lerp(camWant, 1 - Math.exp(-dt * 5));
         camLook.set(camera.position.x, 0.6, camera.position.z - 14.2);
         camera.lookAt(camLook);
-        sun.position.set(fx - 14, 20, fz - 9); sun.target.position.set(fx, 0, fz);
+        // cập nhật vị trí nhân vật & camera cho shader nhìn xuyên vật che (occlusion fade ~0,2 giây)
+        const seeOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('seeThrough') === 'off';
+        const wantSee = seeOff ? 0 : 1;
+        seeAlpha += (wantSee - seeAlpha) * Math.min(1, dt * 8);
+        uSeeThrough.value = seeAlpha;
+        uHeroPos.value.lerp(camLook.set(meX, 0.8 + meLift, meZ), Math.min(1, dt * 14));
+        uCamPos.value.copy(camera.position);
+        sun.position.set(fx - 15, 19, fz - 8); sun.target.position.set(fx, 0, fz);
+        rim.position.set(fx + 14, 11, fz - 14); rim.target.position.set(fx, 0, fz);
         if (++shadowTick >= 3 || camera.position.distanceToSquared(lastShadowAt) > 0.04) { renderer.shadowMap.needsUpdate = true; shadowTick = 0; lastShadowAt.copy(camera.position); }
         if (host.clientWidth && host.clientHeight) composer.render();
         perf.sample(now);
