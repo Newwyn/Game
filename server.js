@@ -17,6 +17,8 @@ const TV = require('./game/tavern.js');   // Quán ăn: độ thân mật
 const SHOP = require('./game/shop.js');   // Cửa hàng anh hùng
 const STORY = require('./game/story.js');   // Lời thoại cốt truyện chương 1
 const QS = require('./game/quests.js');   // 📜 bộ máy nhiệm vụ: móc sự kiện trận đấu / vị trí / cường hoá
+const GA = require('./game/gather.js');   // 🧺 hái lượm, dụng cụ, câu cá
+const CK = require('./game/cooking.js');   // 🍲 nấu ăn + túi đồ ăn trong trận
 const WD = require('./game/world.js');   // Bản đồ thế giới: màn ngang, NPC, rương, mỏ, nhiệm vụ mở nhánh
 
 const app = express();
@@ -967,6 +969,7 @@ function heroPanelPayload(pr) {
         items: { ...pr.items }, itemDefs: P.ITEMS, shop: ITEM_SHOP.map(it => ({ ...it, limit: SHOP.itemLimit(pr, it.id, Date.now()) })), setInfo: gp.setInfo, slots: gp.slots,
         account: A.accountState(pr), features: [...C.features(pr)], player: pr.player ?? null,
         quest: Object.keys(pr.world?.bag ?? {}).map(id => ({ id, name: WD.ITEM_NAMES[id] ?? id })),   // vật phẩm nhiệm vụ đang mang
+        pack: { ...GA.bagState(pr), dishes: CK.state(pr).dishes },   // 🧺 nguyên liệu, dụng cụ, món ăn
         stamina: campaignPayload(pr).stamina,
     };
 }
@@ -981,8 +984,22 @@ function campaignPayload(pr, key) {
     const nextInSec = st.value >= ST.MAX ? 0 : Math.max(1, Math.ceil((ST.REGEN_SEC * 1000 - (now - st.lastAt)) / 1000));
     return { chapter: C.chapterState(pr, pr.campaignChapter ?? 'c1'), wallet: pr.wallet, stamina: { value: st.value, max: ST.MAX, nextInSec }, owned: pr.owned, account: A.accountState(pr), features: [...C.features(pr)],
         squad: key ? squadSelectPayload(key, 'campaign') : undefined,   // dữ liệu bảng chọn đội (chỉ anh hùng sở hữu)
+        meals: mealsPayload(pr),   // 🍲 túi đồ ăn (xếp ở bảng chọn đội)
         spots: WD.spotHints(),   // ải chỉ bắt đầu từ bản đồ (Bảng ải ẩn ải chưa qua, ghi gợi ý đi đâu)
         story: { pre: Object.fromEntries(Object.entries(STORY.allPre()).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) } };
+}
+/** 🍲 Món đang có + túi đồ ăn (tối đa 3 món mang vào trận) */
+function mealsPayload(pr) {
+    const s = CK.state(pr);
+    return { open: s.open && C.features(pr).has('cooking'), dishes: s.dishes, pouch: s.pouch, max: s.pouchMax, cooldown: s.cooldown };
+}
+/** Túi đồ ăn của trận đang đánh gửi client: [{ id, name, used, fav }] */
+const pouchPayload = (room) => ({ slots: (room.pouch?.slots ?? []).map(s => ({ id: s.id, name: CK.BY_ID[s.id].name, used: s.used, fav: CK.BY_ID[s.id].fav ?? null, effect: CK.effectText(CK.BY_ID[s.id].effect) })), cdUntil: room.pouch?.cdUntil ?? 0, cooldown: CK.COOLDOWN });
+/** Bảng Nấu ăn / bàn dụng cụ */
+function cookPayload(pr) {
+    const sc = WD.SCENES[pr.world?.scene];
+    return { ...CK.state(pr), ...GA.bagState(pr), wallet: pr.wallet, account: A.accountState(pr), unlocked: C.features(pr).has('cooking'),
+        atCook: !!sc?.objects.some(o => o.type === 'cook'), kitchen: !!sc?.objects.some(o => o.type === 'cook' && o.kitchen), atBench: !!sc?.objects.some(o => o.type === 'craft') };
 }
 /** 📜 Số liệu trận cho nhiệm vụ: số tướng phe mình gục, số lần dùng kỹ năng (đếm ở executeSkill), số quái đã hạ */
 function questBattleMeta(room) {
@@ -1032,6 +1049,7 @@ function finishWild(room, pr, win) {
     const { id, classes, socketId } = room.stage;
     const scene = W.sceneOf(id);
     const rewards = W.applyResult(pr, scene, win);
+    if (win) { const meat = CK.wildDrop(pr); if (meat) QS.note(pr, `🥩 Quái hoang rơi +${meat} Thịt tươi`, 'info'); }   // nguyên liệu nấu ăn
     const leveled = {};
     if (win) for (const c of new Set(classes)) leveled[c] = P.addExp(pr.heroes[c] ??= { level: 1, rank: 0, exp: 0 }, rewards.exp);
     QS.battle(pr, pr.wallet, { id, win, squad: new Set(classes).size, ...questBattleMeta(room) }, Date.now());   // 📜 nhiệm vụ / việc hằng ngày
@@ -1341,6 +1359,13 @@ function getEffectiveStats(member, now) {
     const tenOn = member.statusEffects.find(ef => ef.type === 'tenacity_on' && ef.endTime > now && ef.value != null);
     if (tenOn) stats.tenacity = tenOn.value;
     stats.tenacityCap = Math.max(P.STAT_CAPS.tenacity.cap, tenOn?.cap ?? 0);
+
+    // 🍲 món ăn (game/cooking.js): tăng tấn công / phòng thủ ngắn hạn
+    const meal = member.statusEffects.find(ef => ef.type === 'meal_buff' && ef.endTime > now);
+    if (meal) {
+        stats.pAtk = Math.floor(stats.pAtk * (1 + (meal.atk ?? 0))); stats.mAtk = Math.floor(stats.mAtk * (1 + (meal.atk ?? 0)));
+        stats.pDef = Math.floor(stats.pDef * (1 + (meal.def ?? 0))); stats.mDef = Math.floor(stats.mDef * (1 + (meal.def ?? 0)));
+    }
 
     // GIỚI HẠN TRÊN: phần vượt chuyển sang chỉ số khác (chí mạng dư -> sát thương chí mạng, né dư -> chính xác, chặn dư -> Kiên Cường)
     for (const [k, c] of Object.entries(P.STAT_CAPS)) {
@@ -2131,6 +2156,7 @@ io.on('connection', (socket) => {
             if (npc) npc.debugGodMode = false;
         }
         room.pending = [];
+        room.pouch = null;   // 🍲 Đấu / Test: không dùng món ăn
         room.status = 'starting';
         room.countdown = 3;
         room.lastTick = Date.now();
@@ -2240,7 +2266,8 @@ io.on('connection', (socket) => {
             obj: WD.fill(q.obj, pr.player), reward: WD.fill(q.reward, pr.player) })), wallet: pr.wallet, story: pr.story,
             wild: Object.keys(W.POOLS).filter(sc => W.canStart(pr, sc).ok && WD.sceneOpen(pr, sc)),   // khu có quái hoang đang gặp được
             qlog: { ...state.qlog, list: state.qlog.list.map(q => ({ ...q, desc: WD.fill(q.desc, pr.player), obj: WD.fill(q.obj, pr.player) })) },
-            notes: QS.takeNotes(pr).map(n => ({ ...n, t: WD.fill(n.t, pr.player) })),   // 📜 dòng báo nhiệm vụ đang chờ (+20 Kim Cương mỗi bước chính tuyến, xong nhiệm vụ, việc hằng ngày)
+            notes: QS.takeNotes(pr).map(n => ({ ...n, t: WD.fill(n.t, pr.player) })),
+            notebook: { ...state.notebook, list: state.notebook.list.map(n => ({ ...n, lines: n.lines.map(t => WD.fill(t, pr.player)) })) },   // 📓 ghi chép đã đọc (điền {cau} theo nhân vật chính)   // 📜 dòng báo nhiệm vụ đang chờ (+20 Kim Cương mỗi bước chính tuyến, xong nhiệm vụ, việc hằng ngày)
         storyText: { intro: Object.fromEntries(Object.entries(STORY.intro).map(([k, l]) => [k, fillLines(l, pr)])), speakers: speakersFor(pr) },
         party: pr.owned.filter(id => ['warrior', 'assassin', 'priest', 'archer'].includes(id)) };
     };
@@ -2339,6 +2366,45 @@ io.on('connection', (socket) => {
         socket.emit('worldResult', { ...r, account: undefined, lines: fillLines(r.lines, pr), text: r.text && WD.fill(r.text, pr.player), speakers, target: d.target });
         socket.emit('worldState', worldPayload(pr));
     });
+    // 🎣 câu cá: client chơi thanh thời điểm rồi báo trúng / trượt; server quyết định cá + giới hạn mỗi ngày
+    socket.on('worldFish', (d = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const r = WD.fish(pr, pr.wallet, String(d.scene ?? ''), String(d.target ?? ''), String(d.quality ?? 'miss'), Date.now());
+        if (r.ok) P.saveAll(PROGRESS);
+        socket.emit('worldFishResult', r.ok ? r : { ok: false, text: r.why });
+        socket.emit('worldState', worldPayload(pr));
+    });
+    // 🍲 NẤU ĂN (bếp cô Lena / lửa trại) · 🧰 bàn dụng cụ · túi đồ ăn
+    const cookDo = (fn) => (d = {}) => {
+        const pr = progressOf(socket.progressKey);
+        const r = fn ? fn(pr, d && typeof d === 'object' ? d : {}, cookPayload(pr)) : null;
+        if (r) { if (r.ok) P.saveAll(PROGRESS); socket.emit('cookResult', { ok: r.ok, text: r.ok ? r.text : r.why, cooked: r.ok && r.id ? { id: r.id, n: r.n } : null, tool: r.tool ?? null }); }
+        socket.emit('cookState', cookPayload(pr));
+    };
+    socket.on('cookOpen', cookDo(null));
+    socket.on('cookDo', cookDo((pr, d, at) => !at.unlocked ? { ok: false, why: A.unlockText('cooking') } : !at.atCook ? { ok: false, why: 'Phải đứng ở bếp hoặc lửa trại mới nấu được' } : CK.cook(pr, String(d.id), Number(d.n) || 1)));
+    socket.on('cookBuy', cookDo((pr, d, at) => !at.kitchen ? { ok: false, why: 'Chỉ mua được ở bếp cô Lena' } : CK.buy(pr, pr.wallet, String(d.id), Number(d.n) || 1)));
+    socket.on('pouchSet', cookDo((pr, d) => { const r = !C.features(pr).has('cooking') ? { ok: false, why: A.unlockText('cooking') } : CK.setPouch(pr, Array.isArray(d.list) ? d.list.map(String) : []); return r.ok ? { ok: true, text: 'Đã xếp túi đồ ăn' } : r; }));
+    socket.on('toolCraft', cookDo((pr, d, at) => !at.atBench ? { ok: false, why: 'Phải tới bàn dụng cụ trong lò rèn bác Borin' } : GA.craft(pr, pr.wallet, String(d.tool))));
+    // 🍲 dùng 1 món trong trận: mỗi món 1 lần / trận, cách nhau 8 giây, chỉ ải cốt truyện / nhánh / quái hoang
+    socket.on('useDish', (d = {}) => {
+        const room = rooms[socket.roomId], player = room?.players[socket.id];
+        if (!room || !player || room.winner) return;
+        const fail = (text) => socket.emit('dishResult', { ok: false, text });
+        if (room.mode !== 'campaign' || !room.pouch?.slots.length || room.stage?.socketId !== socket.id) return fail('Trận này không dùng được món ăn');
+        if (room.status !== 'active') return fail('Chờ trận bắt đầu đã');
+        const pr = progressOf(room.stage.key), now = room.clock ?? Date.now(), slot = Number(d?.slot) | 0;
+        const idx = Number.isInteger(d?.memberIndex) ? d.memberIndex : CK.pickTarget(player.squad, room.pouch.slots[slot]?.id);
+        const m = player.squad[idx];
+        const r = CK.useSlot(pr, room.pouch, slot, m, now);   // trừ món đúng 1 lần ở đây
+        if (!r.ok) return fail(r.why);
+        curRoom = room;
+        const res = CK.applyEffect(m, r.effect, now, { heal: (t, amount) => healUnit(t, amount, now), cleanse: (t) => cleanse(t, 'all'), orbCost: ORB_COST });
+        P.saveAll(PROGRESS);
+        if (res.revived) io.to(socket.roomId).emit('revived', { casterId: socket.id, casterIdx: idx, targetIdx: idx, hp: m.hp });
+        io.to(socket.roomId).emit('dishUsed', { playerId: socket.id, slot, memberIndex: idx, id: r.effect.id, name: r.effect.name, ...res, effect: r.effect, pouch: pouchPayload(room) });
+        broadcastState(socket.roomId);
+    });
     socket.on('gearOpen', () => {
         const pr = progressOf(socket.progressKey);
         socket.emit('gearState', gearPayload(pr));
@@ -2432,6 +2498,7 @@ io.on('connection', (socket) => {
         const guests = (C.findStage(data.id)?.guests ?? []).filter(g => !classes.includes(g)).slice(0, Math.max(0, MAX_SQUAD - classes.length));
         room.stage = { id: data.id, diff: data.diff, classes: [...classes, ...guests], guests, key: socket.progressKey, socketId: socket.id };
         room.stageApplied = false;
+        room.pouch = C.features(pr).has('cooking') ? CK.battlePouch(pr, 'campaign', data.id) : null;   // 🍲 túi đồ ăn: chỉ ải cốt truyện / nhánh / quái hoang
         player.disabledClasses = pickToDisabled([...classes, ...guests]);
         const npc = Object.values(room.players).find(p => p !== player);
         player.squad = mySquadFor(room, player);
@@ -2448,7 +2515,7 @@ io.on('connection', (socket) => {
             player.squad.forEach(m => { m.autoOn = false; });
         }
         io.to(socket.roomId).emit('battleStart', { roomId: socket.roomId, players: room.players, classDefs: CLASS_DEFS, mode: 'campaign',
-            stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff }, account: A.accountState(pr), features: [...C.features(pr)] });
+            stage: { id: st.id, no: st.no ?? st.baseNo, name: st.name, diff: data.diff }, account: A.accountState(pr), features: [...C.features(pr)], pouch: pouchPayload(room) });
         socket.emit('memberToggles', { disabled: player.disabledClasses });
         startBattleLoop(socket.roomId);
     });

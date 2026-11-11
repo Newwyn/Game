@@ -11,6 +11,8 @@ const CHAPTER = require('./chapter1');
 const CHAPTER2 = require('./chapter2');
 const Q = require('./quests');          // 📜 bộ máy nhiệm vụ (phụ / nhánh / ẩn / hằng ngày / bước chính tuyến)
 const QD = require('./questData1');
+const GA = require('./gather');         // 🧺 hái lượm, dụng cụ, câu cá, ghi chép, chỗ leo
+const CK = require('./cooking');        // 🍲 nấu ăn
 // Dùng cùng dữ liệu sinh với client, tránh giữ tọa độ của vùng cũ khi dịch chuyển.
 const mapText = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/world/maps.js'), 'utf8');
 const MAPS = JSON.parse(mapText.split('export const MAPS = ')[1].trim().replace(/;$/, ''));
@@ -159,6 +161,8 @@ Object.assign(SCENES, {
 // 📜 vật / người của nhiệm vụ chương 1 (game/questData1.js QUEST_OBJECTS · vị trí ở src/world/mapsExtra.js)
 for (const [id, list] of Object.entries(QD.QUEST_OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
 const QUEST_TYPES = new Set(['pickup', 'spot', 'person', 'gather', 'dailyBoard']);
+// 🧺 điểm hái / chặt / đập / câu, ghi chép, bếp, bàn dụng cụ, chỗ leo, rương ẩn (game/gather.js OBJECTS · vị trí ở src/world/mapsExtra.js)
+for (const [id, list] of Object.entries(GA.OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
 // Rương nhảy dùng cơ chế mở một lần đã có.
 for (const [id,m] of Object.entries(MAPS)) for(const o of m.objects.filter(o=>o.id.startsWith('jump_')))
     SCENES[id].objects.push({id:o.id,type:'chest',reward:{gold:120}});
@@ -351,6 +355,7 @@ function ensureWorld(pr) {
     pr.flags ??= {};
     pr.items ??= {};
     w.gather ??= {};
+    CK.ensure(pr);   // túi nguyên liệu, dụng cụ, món ăn, ghi chép
     w.clueOrder ??= CLUES.filter(c => E.has(pr, E.clueEvidence(c.id)?.id)).map(c => c.id);   // save cũ đã có manh mối: coi như đọc đúng thứ tự
     Q.ensure(pr);
     return w;
@@ -539,6 +544,13 @@ function interact0(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), r
     if (!o || !shown(pr,o,targetId)) return no('Không có gì ở đây');
     if (o.needNo && !cleared(pr, o.needNo)) return no(`Chưa thể làm gì — qua ải ${o.needNo} trước`);
     if (o.needStage && !clearedId(pr, o.needStage)) return no(`Chưa thể làm gì — qua ải ${c2no(o.needStage)} chương 2 trước`);
+    // 🧺 điểm hái / chặt / đập / câu cá: mỗi lần bấm = 1 lần gõ; xong thì cộng nguyên liệu (mọc lại 05:00)
+    if (o.type === 'node') { const r = GA.hitNode(pr, wallet, o, now, rng); return r.ok ? ok(r) : no(r.why); }
+    if (o.type === 'cook') return CK.unlocked(pr) && require('./campaign').features(pr).has('cooking') ? ok({ open: 'cook', kitchen: !!o.kitchen })
+        : no(CK.unlocked(pr) ? `Chưa nấu được. Nấu ăn ${A.unlockText('cooking').toLowerCase()}` : 'Chưa biết nấu gì cả. Giúp cô Lena mở lại quán trước đã');
+    if (o.type === 'craft') return ok({ open: 'tools' });
+    if (o.type === 'climb') return ok({ text: 'Đứng sát chân dây rồi bấm A để leo lên' });
+    if (o.type === 'chest' && o.needNote && !GA.noteRead(pr, o.needNote)) return no('Không có gì ở đây');
     // 📜 vật / người của nhiệm vụ
     if (QUEST_TYPES.has(o.type)) {
         if (Q.objState(pr, o, now) === 'hidden') return no('Không có gì ở đây');
@@ -615,7 +627,13 @@ function interact0(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), r
         return ok({ lines: EVENT_LINES[o.event].map(l => [...l]), startStage: EVENT_STAGE[o.event] });
     }
     if (o.type === 'stageBoard') return ok({ openStages: true });
-    if (o.type === 'note') return ok({ lines: o.lines.map(t => ['sys', t]) });
+    if (o.type === 'note') {
+        if (!o.lore) return ok({ lines: o.lines.map(t => ['sys', t]) });
+        const first = GA.readNote(pr, o).first;   // 📓 ghi vào sổ Ghi chép (lần đầu)
+        const lines = o.lines.map(t => ['sys', t]);
+        if (first && o.reveal) lines.push(['sys', 'Có thứ gì đó vừa lộ ra ở gần đây…']);
+        return ok({ lines, ...(first ? { text: `📓 Ghi chép mới: ${o.title}` } : {}) });
+    }
     if (o.type === 'tavern') return pr.flags.nguyen_lieu_lena ? ok({ open: 'tavern' }) : no('Quầy còn đóng — giúp cô Lena chuẩn bị Bữa Tiệc Làng trước đã');
     if (o.type === 'forge') return require('./campaign').features(pr).has('gear') ? ok({ open: 'gear' }) : no(`Đe rèn còn nguội — Trang bị ${A.unlockText('gear').toLowerCase()}`);
     return no('Không có gì ở đây');
@@ -631,7 +649,7 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     if (r.present) w.spot[18] = true;
     if (o && !r.puzzle) {
         if (o.type === 'chest') Q.fire(pr, wallet, { type: 'chest', id: o.id }, now, rng);
-        if (['mine', 'item', 'pickup', 'gather'].includes(o.type)) Q.fire(pr, wallet, { type: 'gather', id: o.id }, now, rng);
+        if (['mine', 'item', 'pickup', 'gather'].includes(o.type) || (o.type === 'node' && r.done)) Q.fire(pr, wallet, { type: 'gather', id: o.id }, now, rng);
         if (o.type === 'clue') Q.clueRead(pr, o.id);
         if (o.type !== 'person') {
             const res = Q.fire(pr, wallet, { type: 'interact', id: o.id }, now, rng);
@@ -751,10 +769,10 @@ function worldState(pr, now = Date.now()) {
                 // dấu trên đầu: ! vàng chính tuyến · ! / ? xanh lá phụ · tím nhánh (mk = loại) — nhiệm vụ ẩn không có dấu
                 const m = d.event || d.report ? { txt: '!', kind: 'main' } : Q.BY_ID[n] || !QUESTS[n] ? Q.markOf(pr, n)
                     : d.quest === 'offer' ? { txt: '!', kind: 'side' } : d.quest === 'turnin' ? { txt: '?', kind: 'side' } : Q.markOf(pr, n);
-                return { id: n, ...NPCS[n], hidden, mark: m?.txt ?? null, mk: m?.kind ?? null };
+                return { id: n, ...NPCS[n], hidden, mark: m?.txt ?? null, mk: m?.kind ?? null, say: GA.ambient(pr, n) };
             }),
             objects: s.objects.map(o => {
-                const st = !shown(pr,o,o.id) ? 'hidden' : QUEST_TYPES.has(o.type) ? Q.objState(pr, o, now) : o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
+                const st = !shown(pr,o,o.id) ? 'hidden' : o.type === 'node' ? GA.nodeState(pr, o, now) : o.needNote && !GA.noteRead(pr, o.needNote) ? 'hidden' : QUEST_TYPES.has(o.type) ? Q.objState(pr, o, now) : o.type === 'chest' ? (w.opened[o.id] ? 'done' : 'ready')
                     : o.type === 'mine' ? (now < (w.mineAt[o.id] ?? 0) ? 'cooldown' : 'ready')
                     : o.type === 'item' ? (w.quests[o.quest] === 'active' && !w.bag[o.item] ? 'ready' : 'hidden')
                     : o.type === 'puzzle' ? (pr.flags[{ well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle]] ? 'done' : ((o.needNo && !cleared(pr, o.needNo)) || (o.needStage && !clearedId(pr, o.needStage)) ? 'locked' : 'ready'))
@@ -766,6 +784,7 @@ function worldState(pr, now = Date.now()) {
                 const pm = o.type === 'person' && st === 'ready' ? Q.markOf(pr, o.id) : null;
                 return { id: o.id, type: o.type, label: o.label ?? (o.type === 'chest' ? 'Rương' : ''), state: st, puzzle: o.puzzle, item: o.item,
                     ...(o.type === 'person' ? { name: o.name, mark: pm?.txt ?? null, mk: pm?.kind ?? null } : {}),
+                    ...(o.type === 'node' ? { kind: o.kind, lack: GA.toolLack(pr, GA.NODES[o.kind]) } : {}), ...(o.lore ? { unread: !GA.noteRead(pr, o.id) } : {}),
                     readyIn: o.type === 'mine' ? Math.max(0, (w.mineAt[o.id] ?? 0) - now) : 0 };
             }),
         };
@@ -776,7 +795,21 @@ function worldState(pr, now = Date.now()) {
     const personName = (id) => NPCS[id]?.name ?? Object.values(SCENES).flatMap(s => s.objects).find(o => o.id === id)?.name ?? id;
     return { scene: w.scene, x: w.x, y: w.y, face: w.face, teleportVersion: w.teleportVersion ?? 0, scenes, bag: [...bagNames].map(([name, b]) => ({ id: b.id, name: b.n > 1 ? `${name} ×${b.n}` : name })),
         wellSymbols: WELL_SYMBOLS, moonSymbols: MOON_SYMBOLS, pages: PAGES, player: pr.player ?? null, quests: questLog(pr), evidence: E.journal(pr),
-        qlog: Q.log(pr, now, personName) };   // 📜 sổ nhiệm vụ mới: phụ / nhánh / ẩn / hằng ngày + số bước chính tuyến
+        qlog: Q.log(pr, now, personName),
+        notebook: GA.notesState(pr, (id) => SCENES[id]?.name ?? id),   // 📓 sổ Ghi chép
+        pack: { ...GA.bagState(pr), dishes: CK.state(pr).dishes, cooking: CK.unlocked(pr) && require('./campaign').features(pr).has('cooking') } };   // 🧺 nguyên liệu, dụng cụ, món ăn   // 📜 sổ nhiệm vụ mới: phụ / nhánh / ẩn / hằng ngày + số bước chính tuyến
+}
+
+/** 🎣 Kết quả 1 lần quăng câu ở chỗ câu cá (client báo trúng / trượt; server quyết định cá + giới hạn theo ngày) */
+function fish(pr, wallet, sceneId, objId, quality, now = Date.now(), rng = Math.random) {
+    ensureWorld(pr);
+    const o = findObj(sceneId, objId);
+    if (!sceneOpen(pr, sceneId) || o?.type !== 'node') return no('Ở đây không câu được');
+    const r = GA.fishCast(pr, o, quality, now, rng);
+    if (!r.ok) return no(r.why);
+    if (Object.keys(r.got).length) Q.fire(pr, wallet, { type: 'gather', id: o.id }, now, rng);
+    Q.settle(pr, wallet, now, rng);
+    return ok(r);
 }
 
 /** Đối chất trước nhà vua (trước ải 18): chấm chứng cứ, thưởng lần đầu, rồi vào ải 18 */
@@ -790,5 +823,5 @@ function presentTrial(pr, wallet, answers = {}) {
         lines: [...r.lines, ...tail].map(l => [...l]), startStage: 'c1-18' });
 }
 
-module.exports = { shown, presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
+module.exports = { fish, shown, presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
     QUEST_TYPES, sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };

@@ -9,6 +9,7 @@
 import { net, socket } from '../net/socket.js';
 import { warmTextures } from '../core/textures.js';
 import { tierUrls, setHeroRanks, tierPortrait } from '../characters/sprite/tiers.js';
+import { pouchEditorHTML, onPouchClick } from './mealPouch.js';   // 🎒 túi đồ ăn (tối đa 3 món mang vào ải)
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 const portrait = (id, rank) => tierPortrait(id, rank ?? undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình theo bậc S / SS
@@ -134,6 +135,7 @@ function render() {
             <div class="ss-side p2"><div class="ss-side-h">🔴 2P <span>(AI) · ${n2}/${max}</span></div>${grid('p2', true)}</div>
         </div>` : grid('p1', false)}
         </div>
+        ${mode === 'campaign' ? pouchEditorHTML(state.stageId, () => { if (state && root && root.style.display !== 'none') render(); }) : ''}
         <div class="ss-foot">
             <button class="ss-quick" data-ss-back>← ${mode === 'campaign' ? 'Chọn ải' : 'Chọn chế độ'}</button>
             <span class="ss-count">${dual ? `🔵 1P: <b>${n1}</b>/${max} · 🔴 2P: <b>${n2}</b>/${max}` : `Đã chọn <b>${n1}</b> / ${max}`}</span>
@@ -170,6 +172,7 @@ function confirm() {
 }
 
 function onClick(e) {
+    if (onPouchClick(e)) return;
     const card = e.target.closest('[data-ss]');
     if (card) return toggle(card.dataset.side ?? 'p1', card.dataset.ss);
     if (e.target.closest('[data-ss-clear]')) {

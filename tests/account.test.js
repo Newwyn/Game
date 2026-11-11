@@ -36,7 +36,7 @@ test('old saves receive retrospective EXP once and retain every prior gated feat
 });
 
 test('unlock table, story gates, and tavern dual requirement', () => {
-    assert.deepEqual(A.UNLOCKS, { 1: ['command', 'orb'], 3: ['auto'], 6: ['gear'], 10: ['forge', 'hard'], 12: ['tavern'], 15: ['setDungeon'], 18: ['jewelDungeon'], 20: ['hell'], 25: ['pvp'] });
+    assert.deepEqual(A.UNLOCKS, { 1: ['command', 'orb'], 3: ['auto'], 5: ['gear'], 7: ['forge'], 8: ['cooking'], 9: ['tavern'], 10: ['hard'], 12: ['setDungeon'], 15: ['jewelDungeon'], 18: ['hell'], 25: ['pvp'] });   // 11/2026: mở gần hết tính năng trong chương 1
     const pr = C.ensureCampaign({}, 0);
     for (const { level, feature, name } of A.accountState(pr).unlocks) {
         assert.ok(name);
@@ -64,7 +64,7 @@ test('hard and hell require account threshold and this stage previous difficulty
     assert.ok(!C.isUnlocked(pr, 'c1-01', 'hell').ok);
     pr.campaign.cleared.hard['c1-01'] = true;
     assert.ok(C.isUnlocked(pr, 'c1-01', 'hell').ok);
-    pr.account.level = 19;
+    pr.account.level = 17;   // Địa ngục mở ở cấp 18
     assert.ok(!C.isUnlocked(pr, 'c1-01', 'hell').ok);
 });
 

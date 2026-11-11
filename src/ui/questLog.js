@@ -136,10 +136,10 @@ function dailyHTML(daily) {
  * @param {{ tab?: string, sel?: string|null, tracked?: string|null, evidence?: object|null, qlog?: object|null }} [opts]
  * @returns {string} HTML string
  */
-export function questLogHTML(quests = [], { tab = 'main', sel = null, tracked = null, evidence = null, qlog = null } = {}) {
+export function questLogHTML(quests = [], { tab = 'main', sel = null, tracked = null, evidence = null, qlog = null, notebook = null } = {}) {
     const safeQuests = Array.isArray(quests) ? quests : [];
     const daily = qlog?.daily ?? null, hidden = qlog?.hidden ?? null;
-    const curTab = QUEST_TABS.includes(tab) || (tab === 'daily' && daily) || (tab === 'evidence' && evidence) ? tab : 'main';
+    const curTab = QUEST_TABS.includes(tab) || (tab === 'daily' && daily) || (tab === 'evidence' && evidence) || (tab === 'notes' && notebook) ? tab : 'main';
     const open = (t) => safeQuests.filter(q => q && q.type === t && q.state !== 'done' && q.state !== 'locked').length;
 
     const filtered = QUEST_TABS.includes(curTab) ? filterQuests(safeQuests, curTab) : [];
@@ -151,7 +151,8 @@ export function questLogHTML(quests = [], { tab = 'main', sel = null, tracked = 
         ['branch', 'Nhánh', open('branch')],
         ['hidden', 'Ẩn', hidden ? `${hidden.found}/${hidden.total}` : open('hidden')],
         ...(daily ? [['daily', 'Hằng ngày', `${daily.tasks.filter(t => t.done).length}/${daily.tasks.length}`]] : []),
-        ...(evidence ? [['evidence', '🔎 Chứng cứ', `${evidence.count}/${evidence.total}`]] : [])
+        ...(evidence ? [['evidence', '🔎 Chứng cứ', `${evidence.count}/${evidence.total}`]] : []),
+        ...(notebook ? [['notes', '📓 Ghi chép', `${notebook.have}/${notebook.total}`]] : [])
     ];
 
     let listHTML = filtered.length
@@ -195,6 +196,21 @@ export function questLogHTML(quests = [], { tab = 'main', sel = null, tracked = 
             ${cur.got ? `<p class="ql-desc">${esc(cur.desc)}</p>` : `<p class="ql-desc"><i>${esc(cur.hint ?? '')}</i></p>`}
             ${cur.comment ? `<div class="ql-obj-box"><div class="ql-obj-head"><span class="ql-obj-label">${esc(cur.comment.who === 'me' ? 'Bạn' : ({ warrior: 'Rok', assassin: 'Jessica', priest: 'Sera', archer: 'Lyra', corvin: 'Lão Corvin' })[cur.comment.who] ?? cur.comment.who)}</span></div><div class="ql-obj-text">“${esc(cur.comment.text)}”</div></div>` : ''}
             <div class="ql-reward">⚖️ Chứng cứ sẽ dùng khi đối chất trước nhà vua (trước ải 18). Đã có <b>${evidence.count}/${evidence.total}</b>.</div>
+        </div>` : detailHTML;
+    }
+    // 📓 Ghi chép (game/gather.js -> worldState.notebook): biển chỉ đường, bia mộ, phiến đá… đã đọc trên bản đồ; chưa đọc hiện ???
+    if (curTab === 'notes') {
+        const items = notebook.list ?? [];
+        const cur = items.find(n => n.id === sel) ?? items.find(n => n.read) ?? items[0] ?? null;
+        evList = `<div class="ql-hidden-count">📓 Đã đọc <b>${notebook.have} / ${notebook.total}</b> ghi chép</div>` + items.map(n => `<button type="button" class="ql-row ql-ev-row${n.read ? '' : ' is-missing'}${cur && n.id === cur.id ? ' is-selected' : ''}" data-ql-sel="${esc(n.id)}">
+            <span class="ql-row-icon" aria-hidden="true">${n.read ? '📜' : '❔'}</span>
+            <span class="ql-row-main"><span class="ql-row-title-line"><b class="ql-row-title">${esc(n.title)}</b></span>
+            <small class="ql-row-sub">${esc(n.where)}</small></span></button>`).join('');
+        detailHTML = cur ? `<div class="ql-detail-content">
+            <div class="ql-detail-meta"><span class="ql-status-pill">${cur.read ? '✓ Đã đọc' : '🔒 Chưa tìm thấy'}</span><span class="ql-tracked-pill">${esc(cur.where)}</span></div>
+            <h3 class="ql-detail-title">${esc(cur.title)}</h3>
+            ${cur.read ? cur.lines.map(t => `<p class="ql-desc">${esc(t)}</p>`).join('') : `<p class="ql-desc"><i>Có một thứ đọc được ở ${esc(cur.where)}. Tìm biển gỗ, bia đá, tờ giấy dán… rồi bấm A để đọc.</i></p>`}
+            <div class="ql-reward">📓 Ghi chép kể chuyện về vùng đất này. Vài tờ còn chỉ chỗ rương ẩn hoặc dạy công thức nấu ăn.</div>
         </div>` : detailHTML;
     }
     // 📅 việc hằng ngày

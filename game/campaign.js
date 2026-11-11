@@ -102,7 +102,7 @@ function canStart(pr, { id, diff, classes }, now) {
 function features(pr) {
     const level = A.ensureAccount(pr).level;
     const out = new Set(Object.entries(A.UNLOCKS).filter(([lv]) => level >= Number(lv)).flatMap(([, keys]) => keys));
-    if (!pr.flags?.nguyen_lieu_lena) out.delete('tavern');
+    if (!pr.flags?.nguyen_lieu_lena) { out.delete('tavern'); out.delete('cooking'); }   // quán ăn + nấu ăn: còn cần xong việc Mở lại quán của cô Lena
     if (cleared(pr, 'c1-20', 'story')) { out.add('heroShop'); out.add('chapter2'); }
     return out;
 }

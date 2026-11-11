@@ -89,10 +89,15 @@ function progress(pr, g, p) {
             if (g.ordered && got === g.clues.length && order.filter(c => g.clues.includes(c)).some((c, i) => c !== g.clues[i])) return { have: got - 1, need: g.clues.length, broken: true };
             return { have: got, need: g.clues.length };
         }
+        case 'mats': {   // đang có đủ nguyên liệu / vật liệu trong túi (game/gather.js): mats { mã: số } hoặc any [mã…] + n
+            const have = (id) => w.mats?.[id] ?? 0;
+            if (g.any) return { have: Math.min(g.n, g.any.reduce((s, id) => s + have(id), 0)), need: g.n };
+            return { have: Object.entries(g.mats).reduce((s, [id, n]) => s + Math.min(n, have(id)), 0), need: Object.values(g.mats).reduce((s, n) => s + n, 0) };
+        }
         default: return { have: 0, need: 1 };
     }
 }
-const DERIVED = new Set(['collect', 'clearStage', 'flag', 'openChests', 'jumpChests', 'readClues']);   // tính thẳng từ save, không cần đếm
+const DERIVED = new Set(['collect', 'clearStage', 'flag', 'openChests', 'jumpChests', 'readClues', 'mats']);   // tính thẳng từ save, không cần đếm
 
 /** Sự kiện có làm bước này tiến lên không (ghi vào p) */
 function match(pr, g, ev, p) {
@@ -144,6 +149,7 @@ function start(pr, q) {
     w.quests[q.id] = 'active';
     w.qp[q.id] = { i: 0, n: 0, d: {} };
     for (const it of q.give ?? []) w.bag[it] = true;
+    for (const [tool, tier] of Object.entries(q.tools ?? {})) require('./gather').giveTool(pr, tool, tier);   // dụng cụ bậc 1 trao khi nhận việc
     return true;
 }
 
@@ -176,16 +182,18 @@ function grant(pr, wallet, r = {}, rng = Math.random) {
 function complete(pr, wallet, q, rng) {
     const w = ensure(pr);
     if (w.quests[q.id] === 'done') return null;
+    const C = require('./campaign'), feats = C.features(pr);
     w.quests[q.id] = 'done';
     delete w.qp[q.id];
     for (const st of q.steps) for (const it of st.goal.items ?? []) delete w.bag[it];
     for (const it of q.give ?? []) delete w.bag[it];
     if (q.flag) pr.flags[q.flag] = true;
     const gearName = grant(pr, wallet, q.reward, rng);
-    const xp = A.questAccountExp(q.id), acc = A.addAccountExp(pr, xp);   // nhiệm vụ cũng cho EXP tài khoản
+    const xp = A.questAccountExp(q.id, q.type), acc = A.addAccountExp(pr, xp);   // nhiệm vụ cũng cho EXP tài khoản (theo loại: phụ / nhánh / ẩn)
     const up = acc.levelUps.length ? ` · ⬆️ Lên cấp tài khoản ${acc.after.level}!` : '';
     const text = `Hoàn thành “${q.name}”: ${rewardText(q.reward)}${gearName ? ` (${gearName})` : ''} · +${xp} EXP tài khoản${up}${q.extra ? ` · ${q.extra}` : ''}`;
     note(pr, `${q.type === 'hidden' ? '🔮 Nhiệm vụ ẩn' : '✅'} ${text}`, 'done');
+    for (const f of C.features(pr)) if (!feats.has(f)) note(pr, `🔓 Mở tính năng mới: ${A.NAMES[f] ?? f}`, 'main');   // lên cấp tài khoản / xong việc mở khoá -> báo ngay trên bản đồ
     return { quest: q.id, rewards: { ...q.reward }, text, flag: q.flag ?? null, account: acc };
 }
 
@@ -434,6 +442,7 @@ function targetOf(pr, q, p) {
     if (g.type === 'collect') return locate(`item:${g.items.find(it => !w.bag?.[it])}`);
     if (g.type === 'interact') return locate(g.objs ? g.objs.find(id => !p.d?.[id]) : g.obj);
     if (g.type === 'reach') return { scene: g.scene, kind: 'tile', x: g.x, y: g.y };
+    if (g.type === 'mats' && g.at) return locate(g.at);
     return null;
 }
 /** Sổ nhiệm vụ gửi client: phụ + nhánh (cả chưa mở) · ẩn (chỉ cái đã tìm ra) · chính tuyến (số bước) · hằng ngày */

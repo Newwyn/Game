@@ -22,9 +22,9 @@ const entry = (pr, id, now = NOW) => W.worldState(pr, now).qlog.list.find(q => q
 const obj = (pr, scene, id, now = NOW) => W.worldState(pr, now).scenes[scene].objects.find(o => o.id === id);
 const npc = (pr, scene, id) => W.worldState(pr, NOW).scenes[scene].npcs.find(n => n.id === id);
 
-test('dữ liệu: 15 phụ · 7 nhánh · 10 ẩn; thưởng đúng khung; mọi mục tiêu trỏ tới NPC / vật có thật; không dùng gạch dài trong lời', () => {
+test('dữ liệu: 18 phụ · 7 nhánh · 10 ẩn; thưởng đúng khung; mọi mục tiêu trỏ tới NPC / vật có thật; không dùng gạch dài trong lời', () => {
     const by = (t) => Q.QUESTS.filter(q => q.type === t);
-    assert.equal(by('side').length, 15);
+    assert.equal(by('side').length, 18);   // 15 việc + 2 việc trao dụng cụ + củi cho bếp quán
     assert.equal(by('branch').length, 7);
     assert.equal(by('hidden').length, 10);
     assert.equal(new Set(Q.QUESTS.map(q => q.id)).size, Q.QUESTS.length);

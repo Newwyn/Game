@@ -8,6 +8,7 @@ import { socket } from '../net/socket.js';
 import { softwareGL } from '../core/gpu.js';
 import '../styles/heropanel.css';
 import { icon } from './icons.js';
+import { itemIcon } from './itemIcons.js';
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 import { tierPortrait } from '../characters/sprite/tiers.js';
@@ -185,8 +186,12 @@ let bagTab = 'res';
 function cell(key, fb, name, count, desc) {
     return `<div class="hp-cell" title="${desc ?? name}">${icon(key, fb, 'hp-cell-ic')}<b>${count != null ? fmt(count) : ''}</b><small>${name}</small>${desc ? `<i>${desc}</i>` : ''}</div>`;
 }
+/** ô túi dùng ảnh vẽ bằng code (src/ui/itemIcons.js): nguyên liệu, món ăn, dụng cụ, vật nhiệm vụ */
+function pcell(key, name, count, desc, dim = false) {
+    return `<div class="hp-cell${dim ? ' hp-cell-dim' : ''}" title="${desc ?? name}">${itemIcon(key, 'hp-cell-ic')}<b>${count != null ? count : ''}</b><small>${name}</small>${desc ? `<i>${desc}</i>` : ''}</div>`;
+}
 function bagHTML() {
-    const tabs = [['res', 'gold', '💰', 'Tài nguyên'], ['mat', 'refine_stone', '🧪', 'Nguyên liệu'], ['quest', 'quest_pages', '📜', 'Vật phẩm nhiệm vụ'], ['gear', 'weapon', '🛡️', `Trang bị (${data.bag.length}/${data.invMax})`]];
+    const tabs = [['res', 'gold', '💰', 'Tài nguyên'], ['mat', 'refine_stone', '🧪', 'Vật liệu rèn'], ['ing', 'ing_tab', '🧺', 'Nguyên liệu'], ['food', 'food_tab', '🍲', 'Món ăn'], ['tool', 'tool_tab', '⛏️', 'Dụng cụ'], ['quest', 'quest_pages', '📜', 'Vật phẩm nhiệm vụ'], ['gear', 'weapon', '🛡️', `Trang bị (${data.bag.length}/${data.invMax})`]];
     let body = '';
     if (bagTab === 'res') {
         const st = data.stamina ?? {};
@@ -195,8 +200,19 @@ function bagHTML() {
     } else if (bagTab === 'mat') {
         const list = MATS.filter(([k]) => (data.items[k] ?? 0) > 0);
         body = list.length ? `<div class="hp-cells">${list.map(([k, e, n, d]) => cell(k, e, n, data.items[k], d)).join('')}</div>` : '<p class="hp-empty">Chưa có nguyên liệu — mua ở 🏪 Cửa hàng hoặc nhận khi qua ải / Hầm ngục.</p>';
+    } else if (bagTab === 'ing') {   // 🧺 nguyên liệu nấu ăn + vật liệu chế dụng cụ (hái / chặt / đập / câu trên bản đồ)
+        const list = data.pack?.mats ?? [];
+        body = list.length ? `<div class="hp-cells">${list.map(m => pcell(m.id, m.name, m.n, m.kind === 'mat' ? 'Vật liệu rèn dụng cụ ở bàn dụng cụ' : 'Nguyên liệu nấu ăn')).join('')}</div>`
+            : '<p class="hp-empty">Chưa có nguyên liệu. Hái lúa, nấm, quả mọng, trứng… ở những chỗ lấp lánh trên bản đồ. Mỗi sáng 05:00 chúng mọc lại.</p>';
+    } else if (bagTab === 'food') {
+        const list = data.pack?.dishes ?? [];
+        body = list.length ? `<div class="hp-cells">${list.map(d => pcell(`dish_${d.id}`, d.name, d.n, d.effect)).join('')}</div><p class="hp-empty">Xếp tối đa 3 món vào túi đồ ăn ở bảng chọn đội trước khi vào ải.</p>`
+            : '<p class="hp-empty">Chưa có món ăn nào. Nấu ở bếp cô Lena hoặc lửa trại sau khi giúp cô Lena mở lại quán.</p>';
+    } else if (bagTab === 'tool') {
+        body = `<div class="hp-cells">${(data.pack?.tools ?? []).map(t => pcell(`tool_${t.id}${t.tier || 1}`, t.tier ? t.tierName : t.name, t.tier ? `Bậc ${t.tier}` : null, t.tier ? `Dùng để ${t.use}${t.next ? ` · Bậc kế: ${t.next.name} (cấp tài khoản ${t.next.account})` : ''}` : `Chưa có. Nhận ${t.first} từ nhiệm vụ`, !t.tier)).join('')}</div>
+            <p class="hp-empty">Rèn bậc cao hơn ở bàn dụng cụ trong lò rèn bác Borin.</p>`;
     } else if (bagTab === 'quest') {
-        body = data.quest?.length ? `<div class="hp-cells">${data.quest.map(q => cell(`quest_${q.id}`, '📦', q.name, null, QUEST_DESC[q.id] ?? 'Vật phẩm nhiệm vụ')).join('')}</div>`
+        body = data.quest?.length ? `<div class="hp-cells">${data.quest.map(q => pcell(q.id, q.name, null, QUEST_DESC[q.id] ?? 'Vật phẩm nhiệm vụ')).join('')}</div>`
             : '<p class="hp-empty">Không mang vật phẩm nhiệm vụ nào. Nhận việc từ NPC có dấu ❗ rồi tìm đồ trên bản đồ.</p>';
     } else {
         body = data.bag.length ? `<div class="hp-bag">${data.bag.slice(0, 80).map(it => `<div class="hp-item" style="--rc:${it.color}" title="${it.name}">${icon(it.slot, it.icon, 'hp-item-ic')}<b>${it.name}${it.enhance ? ` +${it.enhance}` : ''}</b><small>Cấp ${it.level} · ${it.rarityName}${it.setName ? ` · Bộ ${it.setName}` : ''}</small></div>`).join('')}</div>`

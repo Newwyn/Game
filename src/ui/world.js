@@ -8,10 +8,14 @@
 import { net, socket } from '../net/socket.js';
 import { playStory, playCutscene, storyArt, setStoryGender, storyPlaying } from './story.js';
 import { MAPS } from '../world/maps.js';
-import { EXTRA } from '../world/mapsExtra.js';
+import { EXTRA, PATCH } from '../world/mapsExtra.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
 for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const objs = MAPS[id]?.objects; if (!objs) continue; const i = objs.findIndex(x => x.id === o.id); if (i >= 0) objs[i] = o; else objs.push(o); }   // điểm truyện + vật điều tra (chương 1)
+// 🧺 độ cao thêm (Đồi Gió, gờ đá mỏ) — maps.js không sinh lại được nên vá lúc nạp; bản đồ 3D đọc cùng MAPS này
+for (const [id, p] of Object.entries(PATCH)) { const m = MAPS[id]; if (!m?.heights) continue; const rows = m.heights.map(r => [...r]); for (const [x, y, h] of p.heights ?? []) if (rows[y]?.[x] != null) rows[y][x] = String(h); m.heights = rows.map(r => r.join('')); }
 import { softwareGL } from '../core/gpu.js';
+import { mapAtlas, mapCell } from './itemIcons.js';
+import { openCooking, openTools, cookingOpen } from './cooking.js';
 import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
 import { icon } from './icons.js';
 import { isWildTile, RATE as WILD_RATE, GRACE_STEPS } from '../world/wild.js';
@@ -72,8 +76,14 @@ const ITEM_CELL = { chest: 0, chest_open: 1, mine: 2, wheat: 3, mushroom: 4, ham
 // bộ vật thứ 2 (điểm truyện chương 1) — items2.webp 4x3 ô
 const ITEM2_CELL = { bandage: 0, wolf_tracks: 1, smoke: 2, reeds: 3, wheel_tracks: 4, ash_arrows: 5, ledger: 6, archive_door: 7, stairs: 8, poster: 9, crate: 10, torch: 11 };
 const NO_BOB = new Set(['chest', 'mine', 'smoke', 'wolf_tracks', 'wheel_tracks', 'ash_arrows', 'archive_door', 'stairs', 'reeds', 'crate', 'torch']);
+const noBob = (sprite) => NO_BOB.has(sprite) || !!sprite?.startsWith('i_');   // vật vẽ bằng code đứng yên (cây, đá, biển gỗ…); chỗ hái được có tia lấp lánh riêng
+// ✨ vật đang hái / đọc được: điểm hái còn đồ (đủ dụng cụ), ghi chép chưa đọc
+const sparkles = (st) => (st.type === 'node' && st.state === 'ready' && !st.lack) || (st.type === 'note' && st.unread);
+let shakeObj = null;   // { id, at }: vật vừa bị gõ / rung (chặt cây, đập đá, rung táo)
+const shakeOf = (id, now) => (shakeObj?.id === id && now - shakeObj.at < 260 ? Math.sin((now - shakeObj.at) / 22) * 0.07 : 0);
 /** ảnh + ô của 1 vật: { url, meta, cell } (null nếu chưa có ảnh) */
 function itemSrc(sprite, done) {
+    if (sprite?.startsWith('i_')) { const a = mapAtlas(), cell = mapCell(sprite, done); return a && cell != null ? { url: a.url, meta: a.meta, cell } : null; }   // ảnh vẽ bằng code (src/ui/itemIcons.js)
     if (ITEM2_CELL[sprite] != null) {
         const url = Object.values(ITEMS2_IMG)[0], meta = SHEET_META['../assets/overworld/items2.json'];
         if (url && meta) return { url, meta, cell: ITEM2_CELL[sprite] };
@@ -339,6 +349,7 @@ function el() {
     root = document.createElement('div');
     root.id = 'world-screen';
     root.innerHTML = `<div class="wd-3d"></div><canvas class="wd-canvas"></canvas><div class="wd-fade"></div><div class="wd-hud"></div>
+        <div class="wd-say" style="display:none"></div>
         <div class="wd-mini" title="Bản đồ thu nhỏ — bấm để mở bản đồ lớn (M)"><canvas></canvas><span class="wd-mini-name"></span></div>
         <div class="wd-pad" aria-label="Phím điều hướng">
             <button class="wd-dp up" data-dir="up" aria-label="Lên">▲</button>
@@ -352,6 +363,7 @@ function el() {
     ctx = canvas.getContext('2d');
     hud = root.querySelector('.wd-hud');
     mini = root.querySelector('.wd-mini');
+    sayEl = root.querySelector('.wd-say');
     miniCtx = mini.querySelector('canvas').getContext('2d');
     mini.addEventListener('click', () => doAction('map'));
     padEl = root.querySelector('.wd-pad');
@@ -418,6 +430,8 @@ function frame(t) {
     if (toastMsg && t - toastAt > 3500) { toastMsg = null; renderHud(); }
     if (t - miniAt > 120) { miniAt = t; drawMini(t); }
     pumpNotes(t);
+    pumpBubbles(t);
+    if (fishing && fishing.state !== 'done') { const bob = hud?.querySelector('.wd-fish-bob'); if (bob) bob.style.left = `${(fishing.state === 'run' ? fishPos(t) : fishing.stop ?? 0.5) * 100}%`; }
     // đứng yên: báo lại ô đang đứng vài giây một lần (server đo thời gian đứng yên cho nhiệm vụ) — tối đa 3 lần mỗi lần dừng
     if (scene && !me.moving && standSent < 3 && performance.now() - arriveAt > 4000 * (standSent + 1)) { standSent++; socket.emit('worldStand', { scene: scene.id, x: me.x, y: me.y }); }
 }
@@ -473,7 +487,7 @@ function update(dt, now) {
         me.h=tileHeight(map,me.x,me.y)+(tileHeight(map,me.moving.tx,me.moving.ty)-tileHeight(map,me.x,me.y))*ease(me.moving);
         if (me.moving.t >= me.moving.dur) {
             if (!me.jump) { runSteps=runFace===me.face && now-runAt<=STEP_MS+250 ? runSteps+1 : 1; runFace=me.face; runAt=now; }
-            me.x = me.moving.tx; me.y = me.moving.ty; me.moving = null; me.jump = null;
+            me.x = me.moving.tx; me.y = me.moving.ty; me.moving = null; me.jump = null; me.climb = false;
             me.step++; arriveAt = performance.now(); standSent = 0;
             me.h=tileHeight(map,me.x,me.y);
             onArrive();
@@ -503,7 +517,7 @@ function update(dt, now) {
         n.moving = { tx, ty, t: 0 };
     }
 }
-const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !mapOpen && !qlOpen && !busy && fade <= 0 && !heroPanelOpen();
+const canWalk = () => open && map && !me.moving && !dialog && !puzzle && !fishing && !mapOpen && !qlOpen && !busy && fade <= 0 && !heroPanelOpen() && !cookingOpen();
 // bấm nhanh 1 cái: quay mặt (nếu đang nhìn hướng khác) hoặc đi 1 ô — không bị lỡ giữa 2 khung hình
 let queued = null;   // bấm trong lúc đang bước: nhớ lại, bước xong đi tiếp
 function tap(d) { cancelAuto(); if (canWalk()) { turnAt = 0; tryStep(d); } else if (me.moving && !me.jump) queued = d; }
@@ -568,8 +582,10 @@ function front() { const [dx, dy] = DIRS[me.face]; return [me.x + dx, me.y + dy]
 function pressA() {
     if (!open) return;
     if (dialog) return nextLine();
-    if (puzzle || mapOpen || qlOpen || busy || me.moving) return;
+    if (fishing) return fishPull();
+    if (puzzle || mapOpen || qlOpen || busy || me.moving || cookingOpen()) return;
     const [fx, fy] = front();
+    if (tryClimb(fx, fy)) return;
     const n = npcs.find(q => !q.hidden && (q.moving ? q.moving.tx : q.x) === fx && (q.moving ? q.moving.ty : q.y) === fy);
     if (n) {
         n.face = { up: 'down', down: 'up', left: 'right', right: 'left' }[me.face];
@@ -577,6 +593,24 @@ function pressA() {
     }
     const o = (map.objects ?? []).find(q => (q.x === fx && q.y === fy || (q.area && q.area.some(([x, y]) => x === fx && y === fy))) && visibleObj(q));
     if (o && tileHeight(map,o.x,o.y)===tileHeight(map,me.x,me.y)) return interactWith({ kind: 'obj', id: o.id });
+}
+// ---------- 🧗 chỗ leo (vật kiểu 'climb' trong mapsExtra: "from" = ô đứng dưới chân) ----------
+//   Đứng ở ô chân, quay mặt vào dây rồi bấm A: leo lên ô của dây (tốn 2 nấc thể lực nhảy). Đứng trên dây quay ra ô chân bấm A: tụt xuống (không tốn).
+const CLIMB_MS = 900, CLIMB_COST = 2;
+function tryClimb(fx, fy) {
+    for (const o of map.objects ?? []) {
+        if (!o.from || !visibleObj(o)) continue;
+        const atFoot = o.from.some(([x, y]) => x === me.x && y === me.y), up = atFoot && o.x === fx && o.y === fy;
+        const down = me.x === o.x && me.y === o.y && o.from.some(([x, y]) => x === fx && y === fy);
+        if (!up && !down) continue;
+        const [tx, ty] = up ? [o.x, o.y] : [fx, fy], now = performance.now();
+        if (blocked(tx, ty)) { bump(); return true; }
+        if (up && !spendStamina(stamina, CLIMB_COST, now)) { bump(); staminaFlash = now + 450; drawStamina(now); toast('Hết sức rồi, nghỉ một chút rồi leo'); return true; }
+        cancelAuto();
+        me.moving = { tx, ty, t: 0, dur: CLIMB_MS }; me.jump = true; me.climb = true; runSteps = 0; runFace = null; drawStamina(now);
+        return true;
+    }
+    return false;
 }
 function pressB() {
     if(me.moving && !me.jump) { jumpQueued=true; return; }
@@ -659,6 +693,14 @@ function drawDissolve(d, now, S, cx, cy) {
     }
     ctx.globalAlpha = 1;
 }
+/** 💬 bong bóng lời nói 1 dòng trên đầu NPC (bản đồ phẳng) */
+function drawBubble(text, x, y, S) {
+    ctx.font = `700 ${Math.max(11, Math.round(S * 0.26))}px Outfit, sans-serif`; ctx.textAlign = 'center';
+    const w = ctx.measureText(text).width + S * 0.4, h = S * 0.5, x0 = Math.max(4, Math.min(canvas.width - w - 4, x - w / 2));
+    ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = Math.max(1.5, S * 0.04);
+    ctx.beginPath(); ctx.roundRect?.(x0, y - h, w, h, h * 0.35); if (!ctx.roundRect) ctx.rect(x0, y - h, w, h); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1e293b'; ctx.fillText(text, x0 + w / 2, y - h * 0.3);
+}
 /** dấu ! / ? nhấp nhô trên đầu (màu theo loại nhiệm vụ) */
 function drawMark(txt, mk, x, y, S, now) {
     ctx.font = `900 ${Math.round(S * 0.6)}px Outfit, sans-serif`; ctx.textAlign = 'center';
@@ -676,7 +718,7 @@ function draw(now) {
     for(let y=0;y<map.rows;y++) for(let x=0;x<map.cols;x++) {
         const h=tileHeight(map,x,y), gap=isGap(map,x,y);
         if(!h&&!gap) continue;
-        ctx.fillStyle=gap?'#153d55':h===1?'rgba(240,210,140,.65)':'rgba(255,232,170,.8)';
+        ctx.fillStyle=gap?'#153d55':h===1?'rgba(240,210,140,.65)':h===2?'rgba(255,232,170,.8)':'rgba(214,198,170,.92)';
         ctx.fillRect(x*S-cx,y*S-cy,S,S);
         ctx.strokeStyle=gap?'#4388a8':'#8b663b'; ctx.strokeRect(x*S-cx,y*S-cy,S,S);
     }
@@ -701,8 +743,14 @@ function draw(now) {
                 const sx = (cell % meta.cols) * meta.cw, sy = Math.floor(cell / meta.cols) * meta.ch;
                 const k = (o.big ? 1.3 : 0.9) * S / meta.ch;
                 const w = meta.cw * k, h = meta.ch * k;
-                const bob = st.state === 'ready' && !NO_BOB.has(o.sprite) ? Math.sin(now / 300) * S * 0.05 : 0;
-                ctx.drawImage(items, sx, sy, meta.cw, meta.ch, o.x * S - cx + S / 2 - w / 2, o.y * S - cy + S - h + bob - tileHeight(map,o.x,o.y)*S*.35, w, h);
+                const bob = st.state === 'ready' && !noBob(o.sprite) ? Math.sin(now / 300) * S * 0.05 : 0;
+                const ox = o.x * S - cx + S / 2 - w / 2 + shakeOf(o.id, now) * S, oy = o.y * S - cy + S - h + bob - tileHeight(map,o.x,o.y)*S*.35;
+                ctx.drawImage(items, sx, sy, meta.cw, meta.ch, ox, oy, w, h);
+                if (sparkles(st)) {   // ✨ tia lấp lánh: chỗ này hái / đọc được
+                    const tw = (Math.sin(now / 180 + o.x * 1.7) + 1) / 2, r = S * (0.08 + tw * 0.1), px = o.x * S - cx + S * (0.72 + Math.sin(now / 700 + o.y) * 0.08), py = oy + h * 0.18;
+                    ctx.fillStyle = `rgba(255,251,210,${0.45 + tw * 0.55})`;
+                    ctx.fillRect(px - r, py - r * 0.25, r * 2, r * 0.5); ctx.fillRect(px - r * 0.25, py - r, r * 0.5, r * 2);
+                }
             }
         } });
     }
@@ -719,11 +767,15 @@ function draw(now) {
     }
     const p = me.moving ? ease(me.moving) : 0;
     const mx = (me.x + (me.moving ? (me.moving.tx - me.x) * p : 0)) * S - cx, my = (me.y + (me.moving ? (me.moving.ty - me.y) * p : 0)) * S - cy;
-    const lift = me.jump ? Math.sin(p * Math.PI) * S * 0.75 : 0;
+    const lift = me.jump && !me.climb ? Math.sin(p * Math.PI) * S * 0.75 : 0;
     const shake = performance.now() - bumpAt < 150 ? Math.sin(performance.now() / 15) * S * 0.04 : 0;
     list.push({ y: me.y + (me.moving ? (me.moving.ty - me.y) * p : 0) + 0.01, draw: () =>
-        drawChar(data.player?.gender === 'f' ? 'hero_f' : 'hero_m', mx + shake, my-me.h*S*.35, me.face, !!me.moving && !me.jump && p > 0.2 && p < 0.8, me.step, lift, S) });
+        drawChar(data.player?.gender === 'f' ? 'hero_f' : 'hero_m', mx + shake + (me.climb ? Math.sin(now / 60) * S * 0.03 : 0), my-me.h*S*.35, me.climb ? 'up' : me.face, me.climb ? true : !!me.moving && !me.jump && p > 0.2 && p < 0.8, me.climb ? Math.floor(now / 130) : me.step, lift, S) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.draw());
+    if (bubble && now < bubble.until) {   // 💬 lời bâng quơ của dân làng
+        const n = npcs.find(q => q.id === bubble.id && !q.hidden);
+        if (n) { const q = npcPos(n); drawBubble(bubble.text, (q.x - 0.5) * S - cx + S / 2, (q.z - 0.5) * S - cy - S * 0.55, S); }
+    }
     // lớp phủ trên đầu (tán cây / mái nhà) nếu bản đồ có
     if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 }
@@ -739,8 +791,8 @@ function draw3d(now) {
     const mx = me.x + (me.moving ? (me.moving.tx - me.x) * p : 0) + 0.5, mz = me.y + (me.moving ? (me.moving.ty - me.y) * p : 0) + 0.5;
     const shake = performance.now() - bumpAt < 150 ? Math.sin(performance.now() / 15) * 0.05 : 0;
     const hero = sheet(data.player?.gender === 'f' ? 'hero_f' : 'hero_m');
-    const actors = [{ key: 'me', url: hero.url, meta: hero.meta, x: mx + shake, z: mz, face: me.face,
-        col: (!!me.moving && !me.jump && p > 0.2 && p < 0.8) ? (me.step % 2 ? 0 : 2) : 1, h: me.h, lift: me.h*.35+(me.jump ? Math.sin(p * Math.PI) * 0.8 : 0) }];
+    const actors = [{ key: 'me', url: hero.url, meta: hero.meta, x: mx + shake, z: mz, face: me.climb ? 'up' : me.face,
+        col: me.climb ? (Math.floor(now / 130) % 2 ? 0 : 2) : (!!me.moving && !me.jump && p > 0.2 && p < 0.8) ? (me.step % 2 ? 0 : 2) : 1, h: me.h, lift: me.h*.35+(me.jump && !me.climb ? Math.sin(p * Math.PI) * 0.8 : 0) }];
     const marks = [];
     for (const n of npcs) {
         if (n.hidden) continue;
@@ -761,8 +813,9 @@ function draw3d(now) {
         }
         const src = o.sprite && itemSrc(o.sprite, st.state === 'done');
         if (!src) continue;
-        items.push({ key: o.id, url: src.url, meta: src.meta, cell: src.cell, x: o.x + 0.5, z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
-            bob: st.state === 'ready' && !NO_BOB.has(o.sprite) });
+        items.push({ key: o.id, url: src.url, meta: src.meta, cell: src.cell, x: o.x + 0.5 + shakeOf(o.id, now), z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
+            bob: st.state === 'ready' && !noBob(o.sprite) });
+        if (sparkles(st)) { const sp = itemSrc('i_spark'); if (sp) items.push({ key: o.id + ':sp', url: sp.url, meta: sp.meta, cell: sp.cell, x: o.x + 0.78, z: o.y + 0.8, size: 0.42 + Math.sin(now / 180 + o.x) * 0.12, bob: true }); }
     }
     for (let i = dissolves.length - 1; i >= 0; i--) { const d = dissolves[i]; d.t0 ??= now + d.delay; if (now - d.t0 > DISSOLVE_MS) dissolves.splice(i, 1); }
     dissolves.forEach((d, i) => { const g = sheet(d.char);
@@ -792,7 +845,8 @@ function renderHud() {
     ${dialog ? dialogHTML() : ''}
     ${puzzle ? puzzleHTML() : ''}
     ${mapOpen ? mapHTML() : ''}
-    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null, evidence: data?.evidence ?? null, qlog: data?.qlog ?? null }) : ''}`;
+    ${qlOpen ? questLogHTML(quests(), { tab: qlTab, sel: qlSel, tracked: trackedQuest()?.id ?? null, evidence: data?.evidence ?? null, qlog: data?.qlog ?? null, notebook: data?.notebook ?? null }) : ''}
+    ${fishing ? fishHTML() : ''}`;
     // khung theo dõi nhiệm vụ nằm ngay dưới bản đồ thu nhỏ
     const trk = hud.querySelector('.ql-tracker');
     if (trk && mini) trk.style.top = Math.round(mini.getBoundingClientRect().bottom - root.getBoundingClientRect().top + 8) + 'px';
@@ -833,6 +887,48 @@ function mapHTML() {
             <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
 }
+// ---------- 🎣 câu cá: phao chạy qua lại trên thanh, bấm A / nút Giật đúng lúc phao ở vạch xanh ----------
+//   fishing = { id, left, speed, zone, t0, state: 'run' | 'wait' | 'done', msg }
+let fishing = null;
+const fishPos = (now) => { const p = ((now - fishing.t0) / 1000 * 0.85 * fishing.speed) % 2; return p <= 1 ? p : 2 - p; };   // 0..1 chạy qua lại
+function fishHTML() {
+    const z = fishing.zone * 100;
+    return `<div class="cp-confirm-backdrop"><div class="wd-puzzle wd-fish" role="dialog">
+        <h3>🎣 Câu cá</h3><p>Bấm <b>Giật!</b> (phím A / E) khi phao đỏ nằm trong vạch xanh. Còn <b>${fishing.left}</b> lượt hôm nay.</p>
+        <div class="wd-fish-bar"><span class="wd-fish-zone" style="left:${50 - z / 2}%;width:${z}%"></span><span class="wd-fish-best" style="left:${50 - z / 6}%;width:${z / 3}%"></span><i class="wd-fish-bob"></i></div>
+        ${fishing.msg ? `<p class="wd-pz-msg">${fishing.msg}</p>` : ''}
+        <div class="cp-confirm-actions"><button class="cp-btn-cancel" data-wd-fish-close>Thu cần</button>
+            ${fishing.state === 'done' ? '' : `<button class="cp-btn-confirm" data-wd-fish-pull ${fishing.state === 'wait' ? 'disabled' : ''}>${fishing.state === 'again' ? 'Quăng tiếp' : 'Giật!'}</button>`}</div></div></div>`;
+}
+function fishPull() {
+    if (!fishing || fishing.state === 'wait' || fishing.state === 'done') return;
+    if (fishing.state === 'again') { fishing.state = 'run'; fishing.t0 = performance.now(); fishing.msg = null; return renderHud(); }
+    const d = Math.abs(fishPos(performance.now()) - 0.5);
+    fishing.state = 'wait'; fishing.stop = fishPos(performance.now());
+    socket.emit('worldFish', { scene: scene.id, target: fishing.id, quality: d <= fishing.zone / 6 ? 'perfect' : d <= fishing.zone / 2 ? 'good' : 'miss' });
+    renderHud();
+}
+function onFishResult(r) {
+    if (!fishing) return;
+    if (!r.ok) { fishing.state = 'done'; fishing.msg = `⚠️ ${r.text}`; return renderHud(); }
+    fishing.left = r.left; fishing.msg = `${r.rare ? '🌟 ' : Object.keys(r.got ?? {}).length ? '🐟 ' : '💦 '}${r.text}`;
+    fishing.state = r.left > 0 ? 'again' : 'done';
+    if (fishing.state === 'done') fishing.msg += ' Hết lượt câu ở đây hôm nay.';
+    renderHud();
+}
+// ---------- 💬 lời bâng quơ của dân làng: đi ngang (cách ≤ 2 ô) thì thỉnh thoảng nói 1 câu ----------
+let bubble = null, bubbleCheck = 0, sayEl = null;
+function pumpBubbles(now) {
+    if (bubble && now >= bubble.until) { bubble = null; if (sayEl) sayEl.style.display = 'none'; }
+    if (now - bubbleCheck < 900 || bubble || dialog || puzzle || fishing || busy) return;
+    bubbleCheck = now;
+    const near = npcs.filter(n => !n.hidden && n.def.say?.length && Math.max(Math.abs(n.x - me.x), Math.abs(n.y - me.y)) <= 2 && now - (n.saidAt ?? -1e9) > 25000);
+    if (!near.length) return;
+    const n = near[Math.floor(Math.random() * near.length)];
+    n.saidAt = now; n.sayIdx = ((n.sayIdx ?? Math.floor(Math.random() * n.def.say.length)) + 1) % n.def.say.length;
+    bubble = { id: n.id, text: n.def.say[n.sayIdx], until: now + 3600 };
+    if (sayEl) { sayEl.textContent = `💬 ${n.def.name}: ${bubble.text}`; sayEl.style.display = 'block'; }
+}
 function toast(t) { toastMsg = t; toastAt = performance.now(); renderHud(); }
 function nextLine() {
     if (dialog.i < dialog.lines.length - 1) { dialog.i++; renderHud(); return; }
@@ -866,7 +962,8 @@ function doAction(k) {
 const ACTION_KEYS = { c: 'hero', i: 'bag', m: 'map', o: 'settings' };
 function onKey(e) {
     if (!open || e.target?.closest?.('input, textarea')) return;
-    if (heroPanelOpen()) return;   // đang mở bảng Nhân vật / Túi / Cửa hàng / Cài đặt
+    if (heroPanelOpen() || cookingOpen()) return;   // đang mở bảng Nhân vật / Túi / Cửa hàng / Cài đặt / Nấu ăn
+    if (fishing) { if (['e', 'E', 'Enter', 'z', 'Z', ' '].includes(e.key)) { e.preventDefault(); fishPull(); } else if (e.key === 'Escape') { fishing = null; renderHud(); } return; }
     if (document.getElementById('story-screen')?.style.display === 'flex') return;   // đang xem hội thoại cốt truyện
     const d = KEY_DIR[e.key];
     if (d) { e.preventDefault(); if (!held.has(d)) { held.add(d); lastDir = d; tap(d); } return; }
@@ -911,6 +1008,8 @@ function onHudClick(e) {
     if (e.target.matches('[data-wd-map-close]') || q('button[data-wd-map-close]')) { mapOpen = false; renderHud(); return; }
     if (q('[data-wd-next]')) { nextLine(); return; }
     if (q('[data-wd-pz-close]')) { puzzle = null; renderHud(); return; }
+    if (q('[data-wd-fish-close]')) { fishing = null; renderHud(); return; }
+    if (q('[data-wd-fish-pull]')) { fishPull(); return; }
     // 🔎 đối chất trước nhà vua
     if (puzzle?.kind === 'present') {
         const qb = q('[data-ev-q]'), pk = q('[data-ev-pick]');
@@ -1047,6 +1146,12 @@ function onResult(r) {
         return;
     }
     if (r.openDaily) return openQuestLog('daily');
+    // 🧺 điểm hái / chặt / đập: rung vật; chưa xong thì chỉ báo còn mấy lần · chỗ câu cá: mở thanh câu · bếp / bàn dụng cụ: mở bảng
+    if (r.ok && (r.hit || r.done)) shakeObj = { id: r.target, at: performance.now() };
+    if (r.ok && r.hit) return toast(`🪓 ${r.text}`);
+    if (r.ok && r.fishing) { fishing = { ...r.fishing, t0: performance.now(), state: 'run', msg: null }; held.clear(); return renderHud(); }
+    if (r.open === 'cook') { held.clear(); cancelAuto(); return openCooking({ kitchen: !!r.kitchen, onClose: () => { net.worldOpen(); renderHud(); } }); }
+    if (r.open === 'tools') { held.clear(); cancelAuto(); return openTools({ onClose: () => { net.worldOpen(); renderHud(); } }); }
     if (r.lines && r.story) {   // nhận / trả nhiệm vụ: khung truyện (playStory) rồi dòng thưởng bay lên
         busy = true;
         playStory(r.lines, r.speakers, () => { busy = false; renderHud(); });
@@ -1089,7 +1194,7 @@ export function hideWorld() {
 }
 export const worldOpen = () => open;
 // chỉ khi chạy thử (npm run dev): xem trạng thái bản đồ trong console — window.__wd
-if (import.meta.env?.DEV) window.__wd = { get view() { return view; }, get auto() { return auto; }, get quests() { return quests(); }, me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; }, get dissolves() { return dissolves; } };
+if (import.meta.env?.DEV) window.__wd = { get view() { return view; }, get auto() { return auto; }, get quests() { return quests(); }, me, get npcs() { return npcs; }, get busy() { return busy; }, get dialog() { return dialog; }, get scene() { return scene?.id; }, get dissolves() { return dissolves; }, get fishing() { return fishing; }, get data() { return data; }, get map() { return map; } };
 export function setupWorld() {
     el();
     socket.on('worldState', applyState);
@@ -1103,6 +1208,7 @@ export function setupWorld() {
         renderHud();
     });
     socket.on('worldError', (d) => { busy = false; toast(`⚠️ ${d.text}`); });
+    socket.on('worldFishResult', onFishResult);
     socket.on('prologueEnd', onPrologueEnd);
     socket.on('battleStart', hideWorld);
     socket.on('mainMenu', hideWorld);

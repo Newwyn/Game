@@ -215,6 +215,34 @@ const QUESTS = [
         reward: { gold: 800, stone: 5, items: { exp_small: 1 } },
         intro: npc('Hồi nhỏ, mỗi lần tôi ốm, phụ vương đều đặt một bông hoa chuông trắng bên gối.', 'Giờ tới lượt người ốm, mà tôi không rời kho lương được. Bạn hái giúp tôi một bông ở vườn sau cung điện nhé.'),
         outro: npc('Đúng loài hoa này rồi.', 'Tôi sẽ đặt bên giường người đêm nay. Cảm ơn bạn.') },
+    // ---- dụng cụ hái lượm bậc 1 (game/gather.js TOOLS) + củi cho bếp ----
+    { id: 't_dungcu', type: 'side', name: 'Cuốc và rìu của thợ rèn', giver: 'borin', scene: 'ashford', open: { stage: 'c1-02' }, tools: { pick: 1, axe: 1 },
+        desc: 'Bác Borin cho mượn hẳn một cây cuốc gỗ và một cây rìu gỗ. Đổi lại, bác cần ít gỗ và quặng đồng để nhóm lại lò.',
+        steps: [
+            { id: 'gom', text: 'Chặt 2 Gỗ ở đống củi khô và đập 2 Quặng đồng ở Ngoại ô', goal: { type: 'mats', mats: { go: 2, dong: 2 }, at: 'g_go1' } },
+            { id: 've', text: 'Về báo cho Bác Borin', goal: { type: 'talk', who: ['borin'] } },
+        ],
+        reward: { gold: 300, stone: 2, items: { exp_small: 1 } },
+        intro: npc('Tay không thì làm được gì ngoài đồng. Cầm lấy cây cuốc gỗ với cây rìu gỗ này.', 'Đống củi khô thì chặt bằng rìu, tảng quặng thì đập bằng cuốc. Kiếm cho ta 2 khúc gỗ và 2 cục quặng đồng nhé.'),
+        outro: npc('Được đấy. Đồ {cau} cứ giữ mà dùng.', 'Lên cấp cao hơn thì ghé bàn dụng cụ trong xưởng, ta chỉ cách rèn cuốc sắt, rìu sắt.') },
+    { id: 't_cau', type: 'side', name: 'Cần câu của lão Gus', giver: 'farmer', scene: 'outskirts', open: { stage: 'c1-03' }, tools: { rod: 1 },
+        desc: 'Lão Gus tặng {cau} cây cần câu tre. Lão muốn xem {cau} có câu nổi một con cá không.',
+        steps: [
+            { id: 'cau', text: 'Câu 1 con cá ở chỗ câu cá trong Rừng Sương', goal: { type: 'mats', any: ['ca_chep', 'ca_bac', 'ca_vang'], n: 1, at: 'f_rung' } },
+            { id: 've', text: 'Về khoe với Lão Gus', goal: { type: 'talk', who: ['farmer'] } },
+        ],
+        reward: { gold: 300, stone: 2, items: { exp_small: 1 } },
+        intro: npc('Chân lão đau, không ra bờ nước được nữa. Cây cần câu tre này để không cũng phí.', 'Cầm lấy. Trong Rừng Sương có chỗ câu. Thấy phao vào vạch xanh thì giật.'),
+        outro: npc('Ha! Câu được thật à. Con đầu tiên bao giờ cũng nhớ nhất.', 'Vũng sâu phía đông rừng có cá quý, nhưng cần câu tre không kéo nổi đâu.') },
+    { id: 's_cui', type: 'side', name: 'Củi cho bếp quán', giver: 'hank', scene: 'tavern_in', open: { quest: 'lena' },
+        desc: 'Bếp quán cô Lena đỏ lửa lại rồi nhưng đống củi sau quán đã hết. Lão Hank nhờ kiếm 3 khúc gỗ.',
+        steps: [
+            { id: 'gom', text: 'Chặt 3 Gỗ ở các đống củi khô', goal: { type: 'mats', mats: { go: 3 }, at: 'g_go1' } },
+            { id: 've', text: 'Về báo cho Lão Hank trong quán', goal: { type: 'talk', who: ['hank'] } },
+        ],
+        reward: { gold: 400, stone: 2, items: { exp_small: 1 } },
+        intro: npc('Hức… bếp có lửa mà củi thì hết. Cô Lena bận quá không đi chặt được.', '{Ban} kiếm giúp 3 khúc gỗ nhé. Đống củi khô ngoài Ngoại ô ấy.'),
+        outro: npc('Đủ củi rồi! Tối nay có canh nóng.', 'Hức… lửa trại ngoài đồng cũng nấu được đấy, nhớ mang nguyên liệu theo.') },
 
     // ---------------- NHÁNH (7 chuỗi, mỗi chuỗi kết bằng 1 ải nhánh) ----------------
     { id: 'b_gieng', type: 'branch', name: 'Dưới Giếng Cổ', giver: 'mira', scene: 'ashford', open: { stage: 'c1-07' },
