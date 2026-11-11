@@ -97,8 +97,15 @@ export function playCutscene(list, segs, sp, onDone) {
     const next = (k) => (k >= parts.length ? onDone?.() : playStory(parts[k].lines, sp, () => (skipped ? onDone?.() : next(k + 1)), { bg: parts[k].bg }));
     next(0);
 }
-/** Ải -> ảnh nền (c1-05 -> rừng, c2-15 -> Lunaria…) */
-export function stageBackdrop(id) {
+// 🎨 Tranh minh hoạ theo ĐOẠN TRUYỆN (có nhân vật, kiểu tranh Elise bên giường vua): src/assets/story/<khoá>.webp
+//   khoá: c1_wake (tỉnh dậy ở miếu) · c1_07_pre / c1_07_post (trước / sau ải 7)… Có tranh thì dùng thay tranh phong cảnh.
+const STORY_ART = import.meta.glob('../assets/story/*.webp', { eager: true, import: 'default' });
+export const storyArt = (key) => STORY_ART[`../assets/story/${key}.webp`] ?? null;
+const artKey = (id, phase) => `${String(id ?? '').replace('-', '_')}_${phase}`;
+/** Ải -> ảnh nền (c1-05 -> rừng, c2-15 -> Lunaria…); phase 'pre' | 'post': có tranh minh hoạ riêng thì ưu tiên */
+export function stageBackdrop(id, phase = 'pre') {
+    const own = storyArt(artKey(id, phase));
+    if (own) return own;
     const m = /^c(\d)-(\d+)/.exec(id ?? '');
     if (m?.[1] === '1') return ART[`../assets/world/${C1_BG[+m[2]] ?? 'village_square'}.webp`];
     if (m?.[1] === '2') return MAPS[`../assets/maps/${+m[2] <= 12 ? 'sylvaren' : 'lunaria'}.webp`];

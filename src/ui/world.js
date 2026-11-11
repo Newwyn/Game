@@ -6,7 +6,7 @@
 //   · Bản đồ + vị trí NPC / đồ vật / lối ra: src/world/maps.js · Luật (rương, việc, sự kiện…): server (game/world.js)
 // ============================================================
 import { net, socket } from '../net/socket.js';
-import { playStory, playCutscene } from './story.js';
+import { playStory, playCutscene, storyArt } from './story.js';
 import { MAPS } from '../world/maps.js';
 import { EXTRA } from '../world/mapsExtra.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
@@ -980,7 +980,7 @@ function applyState(d) {
     if (d.story && !d.story.prologue) { if (!prologueOn) { open = true; startPrologue(); } return; }
     if (d.story && !d.story.wake && !wakeShown && open) {
         wakeShown = true;
-        setTimeout(() => playStory(storyText.intro.wake, storyText.speakers, () => socket.emit('storyMark', { key: 'wake' })), 300);
+        setTimeout(() => playStory(storyText.intro.wake, storyText.speakers, () => socket.emit('storyMark', { key: 'wake' }), storyArt('c1_wake') ? { bg: storyArt('c1_wake') } : {}), 300);
     }
     const first = !data || !scene;
     const teleported = data && d.teleportVersion !== data.teleportVersion;

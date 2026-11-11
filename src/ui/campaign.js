@@ -871,7 +871,7 @@ export function setupCampaign() {
         // thắng ải lần đầu: lời thoại sau ải (kết chương sau ải 20) rồi mới hiện bảng kết quả
         hideBattleResult();   // bảng chung không hiện nữa — dùng bảng kết quả ải
         afterBattleEnd(() => {
-            if (data?.story?.length) playStory(data.story, data.speakers, () => renderStageResult(data));
+            if (data?.story?.length) playStory(data.story, data.speakers, () => renderStageResult(data), { bg: stageBackdrop(data.stage?.id, 'post') });   // lời thoại sau ải: có tranh nền (minh hoạ riêng nếu có)
             else renderStageResult(data);
         });
     });
