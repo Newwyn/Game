@@ -154,7 +154,7 @@ export async function buildScene(id, map, terrain, layout) {
         const bump = !oldMode && !isGap && !isStone && (t === 'g' || t === 'd' || t === 't' || t === 'b') ? (Math.sin(x * 0.7 + z * 0.5) * 0.015) : 0;
         m4.compose(v1.set(x + 0.5, y - 0.07 + bump * 0.5, z + 0.5), q0, v2.set(1, 0.14 + bump, 1)); top.setMatrixAt(k, m4);
         let [h, s, l] = tint[t] ?? GROUND[t] ?? GROUND.g;
-        if (PAINT && (t === 'g' || t === 't' || t === 'b')) {   // tranh vẽ: đất cỏ cùng bảng màu với ngọn cỏ (mảng đậm / sáng lớn)
+        if (PAINT && (t === 'g' || t === 't' || t === 'b') && !(id === 'capital' && t === 't' && ins)) {   // Valoria: gốc cây đứng giữa nền lát đá, không tô ô đất xanh sẫm vuông vức   // tranh vẽ: đất cỏ cùng bảng màu với ngọn cỏ (mảng đậm / sáng lớn)
             const tn = 0.5 + 0.5 * Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08);
             h = 0.275 - tn * 0.05; s = 0.5; l = 0.25 + tn * 0.1;
         }
@@ -239,7 +239,7 @@ export async function buildScene(id, map, terrain, layout) {
         let t = tileType[k];
         const ins = inside(x, z), cx = x + 0.5, cz = z + 0.5;
         if (t === 't' && (style.noTrees ?? []).some(([a0, b0, a1, b1]) => x >= a0 && x < a1 && z >= b0 && z < b1)) t = 'b';   // trong phố: bụi thay cây
-        if (PAINT && (t === 'g' || t === 't' || t === 'b') && x >= -4 && x < cols + 4 && z >= -4 && z < rows + 4 && !isSpecialTile(x, z))
+        if (PAINT && (t === 'g' || t === 't' || t === 'b') && x >= -4 && x < cols + 4 && z >= -4 && z < rows + 4 && !isSpecialTile(x, z) && !(id === 'capital' && t === 't' && ins))   // Valoria: cây đứng trên nền đá, không mọc mảng cỏ sẫm vuông dưới gốc
             paintTiles.push([x, z, 0, 0.5 + 0.5 * Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08)]);
         if (ins && cover[x + z * cols]) continue;
         if (t === 't') {
@@ -513,15 +513,22 @@ export const BUILD = {
     /** Bảng tên nổi trên công trình chính (Cung điện, Nhà thờ lớn…): tấm chữ luôn quay về máy quay, để người chơi biết đâu là đâu */
     label(ctx, x, z, text, { y = 4.6, color = '#fde68a' } = {}) {
         if (typeof document === 'undefined') return;
+        // (12/11) phông Be Vietnam Pro: có ĐỦ dấu tiếng Việt (Outfit thiếu -> chữ có dấu bị lệch kiểu). Vẽ lại khi phông tải xong.
+        const FONT = '800 44px "Be Vietnam Pro", "Segoe UI", Arial, sans-serif';
         const cv = document.createElement('canvas'), g = cv.getContext('2d');
-        g.font = '800 44px Outfit, sans-serif'; const w = Math.ceil(g.measureText(text).width) + 56;
-        cv.width = w; cv.height = 76;
-        g.fillStyle = 'rgba(15,23,42,0.86)'; g.beginPath(); g.roundRect(2, 2, w - 4, 72, 20); g.fill();
-        g.strokeStyle = 'rgba(251,191,36,0.85)'; g.lineWidth = 3; g.stroke();
-        g.font = '800 44px Outfit, sans-serif'; g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, 40);
         const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, fog: false, transparent: true }));
-        sp.position.set(x, y, z); sp.scale.set(w / 76 * 0.6, 0.6, 1); sp.material.opacity = 0.9; sp.renderOrder = 4; sp.frustumCulled = false;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, fog: false, transparent: true, opacity: 0.9 }));
+        const draw = () => {
+            g.font = FONT; const w = Math.ceil(g.measureText(text).width) + 56;
+            cv.width = w; cv.height = 76;
+            g.fillStyle = 'rgba(15,23,42,0.86)'; g.beginPath(); g.roundRect(2, 2, w - 4, 72, 20); g.fill();
+            g.strokeStyle = 'rgba(251,191,36,0.85)'; g.lineWidth = 3; g.stroke();
+            g.font = FONT; g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, 40);
+            sp.scale.set(w / 76 * 0.6, 0.6, 1); tex.needsUpdate = true;
+        };
+        draw();
+        document.fonts?.load?.(FONT, text).then(draw).catch(() => {});
+        sp.position.set(x, y, z); sp.renderOrder = 4; sp.frustumCulled = false;
         ctx.group.add(sp);
     },
     /** Dọn vùng: không tự rải cây / bụi / cỏ trong khung này */

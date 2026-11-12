@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Be+Vietnam+Pro:wght@700;800&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1480,6 +1480,20 @@ body.no-auto #btn-auto, body.no-auto .card-auto { display: none !important; }
 .wd-mini canvas { display: block; border-radius: 8px; }
 .wd-mini-name { display: block; text-align: center; font: 700 12px 'Outfit', sans-serif; color: #fde68a; padding-top: 3px; }
 .wd-hud .ql-tracker { right: 10px; }
+/* 📍 bảng Địa điểm (bấm tên -> tự đi tới) */
+.wd-places-btn { position: absolute; top: 58px; left: 10px; z-index: 5; padding: 7px 12px; border-radius: 10px; background: rgba(15, 23, 42, .88); border: 1.5px solid rgba(251, 191, 36, .55);
+    color: #fde68a; font: 700 13px 'Be Vietnam Pro', 'Outfit', sans-serif; cursor: pointer; box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
+.wd-places-btn:hover { background: rgba(30, 41, 59, .95); }
+.wd-places { position: absolute; top: 98px; left: 10px; z-index: 6; width: min(260px, 72vw); max-height: min(62vh, 460px); display: flex; flex-direction: column; border-radius: 14px;
+    background: rgba(15, 23, 42, .95); border: 1.5px solid rgba(251, 191, 36, .6); box-shadow: 0 14px 34px rgba(0, 0, 0, .6); color: #e2e8f0; font-family: 'Be Vietnam Pro', 'Outfit', sans-serif; overflow: hidden; }
+.wd-places-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-weight: 800; font-size: 14px; color: #fde68a; border-bottom: 1px solid rgba(148, 163, 184, .25); }
+.wd-places-x { background: transparent; border: 0; color: #cbd5e1; font-size: 15px; cursor: pointer; padding: 2px 6px; }
+.wd-places-list { overflow-y: auto; max-height: min(48vh, 360px); padding: 6px 8px 8px; }
+.wd-places-sec { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; padding: 8px 4px 4px; }
+.wd-place { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 2px 0; border-radius: 9px; background: rgba(30, 41, 59, .8);
+    border: 1px solid rgba(148, 163, 184, .25); color: #f1f5f9; font: 700 13px 'Be Vietnam Pro', 'Outfit', sans-serif; cursor: pointer; }
+.wd-place:hover { border-color: rgba(251, 191, 36, .8); background: rgba(51, 65, 85, .9); }
+.wd-places-tip { padding: 7px 12px 9px; font-size: 11px; color: #94a3b8; border-top: 1px solid rgba(148, 163, 184, .2); }
 .wd-bar { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; border-radius: 16px;
     background: rgba(15, 23, 42, .82); border: 1px solid rgba(251, 191, 36, .4); box-shadow: 0 10px 26px rgba(0, 0, 0, .5); z-index: 3; }
 .wd-act-btn { position: relative; width: 62px; min-height: 58px; padding: 4px 2px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, .25); background: rgba(30, 41, 59, .85);
@@ -1516,7 +1530,12 @@ span.wd-act-ic { font-size: 22px; width: auto; height: auto; }
 .cp-spot-card .cp-stage-hint { color: #fde68a; }
 
 /* Năm nấc thể lực cạnh nút nhảy. */
-.wd-stamina { display:flex; gap:3px; align-self:center; padding:5px; border-radius:6px; background:#172437; }
+/* (12/11) thanh thể lực: nổi ngay cạnh nhân vật (nhân vật luôn ở giữa màn hình), chỉ hiện khi nhảy, 3 giây sau tự ẩn */
+.wd-stamina { position:absolute; left:calc(50% + 30px); top:calc(45% - 34px); z-index:3; display:flex; gap:3px; padding:4px; border-radius:6px; background:rgba(23,36,55,.85);
+    opacity:0; transition:opacity .35s; pointer-events:none; }
+.wd-stamina.show { opacity:1; }
+/* (12/11) máy có chuột + bàn phím: ẩn phím điều hướng và nút A / B cho đỡ rối (điện thoại / màn cảm ứng vẫn giữ vì không có bàn phím) */
+@media (hover: hover) and (pointer: fine) { .wd-pad, .wd-ab { display: none !important; } }
 .wd-stamina i { width:7px; height:15px; border:1px solid #8ba0aa; border-radius:2px; background:#344151; }
 .wd-stamina i.filled { background:#75df99; }
 .wd-stamina.empty { animation:wd-stamina-flash .15s alternate 3; }

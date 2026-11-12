@@ -124,6 +124,12 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
               }
             }
           }` : ''}
+          ${occlude && fadeTo < 0.45 ? `// (12/11) MÁI NHÀ: cắt mở cả vùng tròn quanh nhân vật (tính theo mặt đất), không chỉ phần che đúng người -> đi trong hẻm vẫn thấy lối, thấy vật cản hai bên
+          if (uSeeThrough > 0.01 && vWorldPos.y > 1.2) {
+            vec2 rd = vWorldPos.xz - uHeroPos.xz;
+            float cut = (1.0 - smoothstep(2.4, 4.2, length(rd))) * smoothstep(-1.8, -0.5, rd.y);
+            gl_FragColor.a = min(gl_FragColor.a, mix(1.0, ${fadeTo.toFixed(2)}, cut * uSeeThrough));
+          }` : ''}
           ${cloud ? `vec2 cUv = vWorldPos.xz * 0.075 + vec2(uTime * 0.018, uTime * 0.009);
           float cN = sin(cUv.x * 2.3 + cos(cUv.y * 1.9)) * cos(cUv.y * 2.1 - sin(cUv.x * 1.7));
           gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
@@ -144,8 +150,8 @@ const variants = new Map();    // 'bộ/tên@biến thể' -> parts
 const mats = new Map();        // 'bộ:tên vật liệu' -> material đã chỉnh
 const loading = new Map();
 
-function fixMaterial(kit, mat) {
-    const key = kit + ':' + mat.name;
+function fixMaterial(kit, mat, roofPart = false) {
+    const key = kit + ':' + mat.name + (roofPart ? ':roof' : '');
     if (mats.has(key)) return mats.get(key);
     const m = mat.clone();
     m.metalness = 0; m.roughness = 0.9;
@@ -155,8 +161,8 @@ function fixMaterial(kit, mat) {
         if (kit === 'village') m.side = THREE.DoubleSide;
         if (m.transparent || m.alphaTest > 0) { m.transparent = false; m.alphaTest = 0.5; m.side = THREE.DoubleSide; }
         // (12/11) người chơi: đi trong góc hẹp bị mái che, không thấy đường và vật cản -> MÁI NGÓI quanh nhân vật mờ gần hết (15%), vòng rộng hơn; tường vẫn mờ 50%
-        const roof = kit === 'village' && /RoundTiles/i.test(m.name);
-        patchMaterial(m, { sway: kit === 'qnature' && /leav|leaf|grass|flower/i.test(m.name) ? 0.05 : 0, occlude: true, cloud: true, detail: false, ...(roof ? { fadeTo: 0.15, fadeR: 3.4 } : {}) });
+        const roof = kit === 'village' && (roofPart || /RoundTiles/i.test(m.name));
+        patchMaterial(m, { sway: kit === 'qnature' && /leav|leaf|grass|flower/i.test(m.name) ? 0.05 : 0, occlude: true, cloud: true, detail: false, ...(roof ? { fadeTo: 0.1, fadeR: 3.4 } : {}) });
         mats.set(key, m);
         return m;
     }
@@ -181,7 +187,7 @@ async function loadOne(key) {
             g.scene.traverse(o => {
                 if (!o.isMesh) return;
                 const geo = o.geometry.clone(); geo.applyMatrix4(o.matrixWorld);
-                parts.push({ geo, mat: fixMaterial(kit, o.material) });
+                parts.push({ geo, mat: fixMaterial(kit, o.material, /\/(Roof_|Prop_Chimney)/.test(key)) });   // mọi mảnh của mô hình MÁI (ngói, xà gỗ, đầu hồi) + ống khói: cùng cắt mở quanh nhân vật
             });
             protos.set(key, parts);
         })().catch(e => { console.warn('[world3d] lỗi nạp', key, e); protos.set(key, []); }));

@@ -8,6 +8,7 @@
 import { net, socket } from '../net/socket.js';
 import { playStory, playCutscene, storyArt, setStoryGender, storyPlaying } from './story.js';
 import { MAPS } from '../world/maps.js';
+import { PLACES } from '../world/places.js';
 import { EXTRA, PATCH } from '../world/mapsExtra.js';
 import { PAINT as PAINT3D } from '../world3d/assets.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
@@ -61,6 +62,7 @@ export function spendStamina(s,cost,now) {
 }
 // MOVEMENT_RULES_END
 const stamina={value:5,at:0};
+let staminaSeen=5, staminaShowUntil=0;
 let runSteps=0, runFace=null, runAt=-Infinity, jumpQueued=false, staminaFlash=0;
 function drawStamina(now) {
     const bar=root?.querySelector('.wd-stamina');
@@ -68,6 +70,10 @@ function drawStamina(now) {
     bar.setAttribute('aria-valuenow',String(stamina.value));
     bar.setAttribute('aria-label',`Thể lực nhảy: ${stamina.value}/5`);
     bar.classList.toggle('empty',now<staminaFlash);
+    // (12/11) chỉ hiện cạnh nhân vật lúc nhảy / leo (hoặc lúc báo hết sức); thôi nhảy 3 giây thì tự ẩn
+    if (stamina.value < staminaSeen || now < staminaFlash) staminaShowUntil = now + 3000;
+    staminaSeen = stamina.value;
+    bar.classList.toggle('show', now < staminaShowUntil);
     [...bar.children].forEach((el,i)=>el.classList.toggle('filled',i<stamina.value));
 }
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
@@ -359,13 +365,16 @@ function el() {
     root.innerHTML = `<div class="wd-3d"></div><canvas class="wd-canvas"></canvas><div class="wd-fade"></div><div class="wd-hud"></div>
         <div class="wd-say" style="display:none"></div>
         <div class="wd-mini" title="Bản đồ thu nhỏ — bấm để mở bản đồ lớn (M)"><canvas></canvas><span class="wd-mini-name"></span></div>
+        <button class="wd-places-btn" type="button" title="Danh sách địa điểm trong khu này — bấm để tự đi tới">📍 Địa điểm</button>
+        <div class="wd-places" style="display:none"></div>
         <div class="wd-pad" aria-label="Phím điều hướng">
             <button class="wd-dp up" data-dir="up" aria-label="Lên">▲</button>
             <button class="wd-dp left" data-dir="left" aria-label="Trái">◀</button>
             <button class="wd-dp right" data-dir="right" aria-label="Phải">▶</button>
             <button class="wd-dp down" data-dir="down" aria-label="Xuống">▼</button>
         </div>
-        <div class="wd-ab"><span class="wd-stamina" role="meter" aria-valuemin="0" aria-valuemax="5"><i></i><i></i><i></i><i></i><i></i></span><button class="wd-btn-b" data-key="b" aria-label="Nhảy">B</button><button class="wd-btn-a" data-key="a" aria-label="Nói chuyện / xem">A</button></div>`;
+        <span class="wd-stamina" role="meter" aria-valuemin="0" aria-valuemax="5"><i></i><i></i><i></i><i></i><i></i></span>
+        <div class="wd-ab"><button class="wd-btn-b" data-key="b" aria-label="Nhảy">B</button><button class="wd-btn-a" data-key="a" aria-label="Nói chuyện / xem">A</button></div>`;
     document.body.appendChild(root);
     canvas = root.querySelector('canvas');
     ctx = canvas.getContext('2d');
@@ -374,6 +383,9 @@ function el() {
     sayEl = root.querySelector('.wd-say');
     miniCtx = mini.querySelector('canvas').getContext('2d');
     mini.addEventListener('click', () => doAction('map'));
+    placesEl = root.querySelector('.wd-places');
+    root.querySelector('.wd-places-btn').addEventListener('click', () => togglePlaces());
+    placesEl.addEventListener('click', onPlaceClick);
     padEl = root.querySelector('.wd-pad');
     host3d = root.querySelector('.wd-3d');
     fadeEl = root.querySelector('.wd-fade');
@@ -446,6 +458,44 @@ function frame(t) {
 let standSent = 0;
 // ---------- 🗺️ bản đồ thu nhỏ (góc phải trên) ----------
 let mini = null, miniCtx = null, miniAt = 0;
+// ---------- 📍 bảng Địa điểm: bấm tên -> tự đi tới (trong bản đồ đang đứng) ----------
+let placesEl = null, placeGoals = [];
+/** Ô đi được gần (x, y) nhất (tìm theo vòng rộng dần) */
+function nearWalk(x, y) {
+    for (let r = 0; r <= 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < map.cols && ny < map.rows && map.grid[ny][nx] === '.') return [nx, ny];
+    }
+    return null;
+}
+function togglePlaces(show = placesEl.style.display === 'none') {
+    if (!placesEl) return;
+    if (!show || !scene || !map) { placesEl.style.display = 'none'; return; }
+    placeGoals = [];
+    const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const row = (icon, name, goal) => { placeGoals.push(goal); return `<button type="button" class="wd-place" data-place="${placeGoals.length - 1}"><span>${icon}</span>${esc(name)}</button>`; };
+    const sec = (title, rows) => rows.length ? `<div class="wd-places-sec">${title}</div>${rows.join('')}` : '';
+    const spots = (PLACES[scene.id] ?? []).map(([icon, name, x, y]) => { const t = nearWalk(x, y); return t ? row(icon, name, { scene: scene.id, kind: 'tile', x: t[0], y: t[1] }) : ''; }).filter(Boolean);
+    const people = npcs.filter(n => !n.hidden && n.def?.name).map(n => row('💬', n.def.name, { scene: scene.id, kind: 'npc', id: n.id }));
+    const seen = new Set(), ways = [];
+    for (const e of map.exits ?? []) {
+        if (seen.has(e.scene) || !data.scenes[e.scene]) continue; seen.add(e.scene);
+        ways.push(row(data.scenes[e.scene].open ? '🚶' : '🔒', 'Sang ' + data.scenes[e.scene].name, { scene: e.scene }));
+    }
+    placesEl.innerHTML = `<div class="wd-places-head">📍 ${esc(scene.name ?? 'Địa điểm')}<button type="button" class="wd-places-x" data-place-close aria-label="Đóng">✕</button></div>
+        <div class="wd-places-list">${sec('Nơi nổi bật', spots)}${sec('Người ở đây', people)}${sec('Lối sang khu khác', ways)}</div>
+        <div class="wd-places-tip">Bấm tên — nhân vật tự đi tới. Bấm phím đi bất kỳ để dừng.</div>`;
+    placesEl.style.display = 'block';
+}
+function onPlaceClick(e) {
+    if (e.target.closest('[data-place-close]')) { togglePlaces(false); return; }
+    const b = e.target.closest('[data-place]');
+    if (!b) return;
+    const goal = placeGoals[+b.dataset.place];
+    togglePlaces(false);
+    if (goal) startAuto(goal);
+}
 function drawMini(t) {
     if (!miniCtx || !map) return;
     const c = miniCtx.canvas, W = 176, H = Math.round(W * map.rows / map.cols);

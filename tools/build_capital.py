@@ -213,7 +213,7 @@ def city():
 
 STYLE = dict(trees=['nature/tree_oak','nature/tree_default'], sky=0xc8d4df,
              fog=[0xd5dce1,65,135],sun=0xffe0b2,
-             ground=dict(s=[.09,.10,.62],p=[.10,.28,.57],g=[.28,.30,.43],t=[.28,.26,.37]))
+             ground=dict(s=[.09,.10,.62],p=[.10,.28,.57],g=[.28,.30,.43],t=[.09,.10,.55]))
 
 def layout():
     items=[];detail=[]
