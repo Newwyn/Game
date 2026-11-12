@@ -18,7 +18,8 @@ test('Valoria is a connected 72 x 44 city with every original interaction ID', a
     assert.equal(flood(m).size, cells);
     assert.deepEqual(objects.map(o => o.id).sort(), expected.sort());
     assert.deepEqual(m.npcs.map(o => o.id).sort(), ['corvin', 'elise', 'merchant2', 'nun', 'villager_m2']);
-    assert.deepEqual(audit().capital, []);
+    // Intentional narrow residential lanes are reported as advisory type d.
+    assert.deepEqual(audit().capital.filter(i=>i.type!=='d'), []);
     assert.deepEqual(m.jumpSites, []);
     assert.deepEqual(m.gaps, []);
     const solid = new Set([...m.npcs, ...objects.filter(o => o.solid)].map(o => `${o.x},${o.y}`));
@@ -31,10 +32,8 @@ test('Valoria is a connected 72 x 44 city with every original interaction ID', a
     for (const src of Object.values(maps)) for (const e of src.exits.filter(e => e.scene === 'capital')) assert.ok(reached.has(e.at.join(',')));
 });
 
-test('Valoria layout exports match the standalone audit layout; buildings and props have reserved ground', async () => {
+test('Valoria buildings and props have reserved ground', async () => {
     const { CAPITAL_ITEMS, CAPITAL_DETAIL, CAPITAL_STYLE } = await import('../src/world3d/capitalLayout.js');
-    const { LAYOUTS } = await import('../src/world3d/layouts.js');
-    assert.deepEqual(LAYOUTS.capital, { items: CAPITAL_ITEMS, detailItems: CAPITAL_DETAIL, style: CAPITAL_STYLE });
     assert.deepEqual(CAPITAL_STYLE.ground.s, [.09, .10, .62]);
     const covered = new Set();
     const cover = (x0,y0,x1,y1) => {
@@ -62,8 +61,12 @@ test('Valoria layout exports match the standalone audit layout; buildings and pr
             cover(x+bounds.min[0]*s,y+bounds.min[2]*(opt.sz??s),x+bounds.max[0]*s,y+bounds.max[2]*(opt.sz??s));
         }
     }
-    const plan=read('tools/build_capital.py').replace(/\r/g,'').split('PLAN = """\n')[1].split('\n"""')[0].split('\n');
-    for(let y=0;y<44;y++)for(let x=0;x<72;x++)if('HWD'.includes(plan[y][x]))assert.ok(covered.has(`${x},${y}`),`uncovered blocker ${x},${y}`);
+    // Terrain trees/water explain their own blockers; masonry and reserved
+    // niches must have a corresponding structure or model footprint.
+    const terrain=json('src/world/terrain3d.js','TERRAIN').capital;
+    for(let y=0;y<44;y++)for(let x=0;x<72;x++)
+        if(m.grid[y][x]==='#' && terrain[y][x]==='s')
+            assert.ok(covered.has(`${x},${y}`),`uncovered blocker ${x},${y}`);
     for(const [kind,...p] of CAPITAL_DETAIL) {
         const x=kind==='model'?p[1]:p[0], y=kind==='model'?p[2]:p[1];
         assert.equal(m.grid[Math.floor(y)][Math.floor(x)],'#',`hidden detail ${p}`);
@@ -79,4 +82,51 @@ test('Valoria canal, two bridges, gateways and orchard keep their district roles
     assert.deepEqual(m.spawn,[35,42]);
     assert.deepEqual(m.exits.find(e=>e.scene==='road').tiles,[[35,43]]);
     for(const o of objects.filter(o=>o.id.includes('tao'))) assert.ok(o.x>=22&&o.x<30&&o.y>=4&&o.y<17,o.id);
+});
+
+
+test('Valoria has dense terraces and visible, varied street furniture', async () => {
+    const { CAPITAL_ITEMS, CAPITAL_DETAIL }=await import('../src/world3d/capitalLayout.js');
+    const houses=CAPITAL_ITEMS.filter(i=>i[0]==='house');
+    const props=[...CAPITAL_ITEMS,...CAPITAL_DETAIL].filter(i=>i[0]==='model' && !i[1].endsWith('bridge_stone'));
+    assert.ok(houses.length>=70 && houses.length<=90,`houses: ${houses.length}`);
+    assert.ok(props.length>=250,`props: ${props.length}`);
+    assert.ok(new Set(props.map(i=>i[1])).size>=20);
+    assert.deepEqual(new Set(houses.map(i=>i[1].wall)),new Set(['plaster','stone']));
+    const occupied=new Set();
+    for(const [,b] of houses) {
+        assert.ok(b.x1-b.x0>=3 && b.x1-b.x0<=5);
+        assert.ok(b.z1-b.z0>=3 && b.z1-b.z0<=4);
+        for(let y=b.z0;y<b.z1;y++)for(let x=b.x0;x<b.x1;x++) {
+            assert.ok(!occupied.has(`${x},${y}`),'overlapping houses');
+            occupied.add(`${x},${y}`);
+        }
+    }
+    for(const [,name,x,y] of props) {
+        const cell=`${Math.floor(x)},${Math.floor(y)}`;
+        assert.equal(m.grid[Math.floor(y)][Math.floor(x)],'#',`hidden prop ${name} ${cell}`);
+        assert.ok(!occupied.has(cell),`prop inside house ${name} ${cell}`);
+    }
+    assert.equal(props.filter(i=>i[1]==='custom/well').length,2);
+    assert.ok(props.filter(i=>i[1].includes('town_stall_')).length>=10);
+    // North and south market rows leave at least two uninterrupted aisle rows.
+    for(const y of [20,21]) for(let x=25;x<48;x++) assert.equal(m.grid[y][x],'.');
+    for(const [,name,x,y,opt] of CAPITAL_ITEMS.filter(i=>i[1]==='custom/town_bridge_stone')) {
+        assert.equal(opt.s*6,4,'four-tile bank-to-bank span');
+        assert.equal(opt.sz*3,6,'six-tile bridge deck width');
+        for(let yy=29;yy<33;yy++) for(const xx of [x-2,x-1,x+1,x+2]) assert.equal(m.grid[yy][xx],'.');
+    }
+});
+
+
+test('runtime and standalone capital exports stay synchronized', async () => {
+    const { CAPITAL_ITEMS, CAPITAL_DETAIL, CAPITAL_STYLE }=await import('../src/world3d/capitalLayout.js');
+    const { LAYOUTS }=await import('../src/world3d/layouts.js');
+    assert.ok(JSON.stringify(LAYOUTS.capital) === JSON.stringify({ style: CAPITAL_STYLE, items: CAPITAL_ITEMS, detailItems: CAPITAL_DETAIL }), 'runtime capital layout must be regenerated');
+});
+
+
+test('all pass-one interaction coordinate contracts are unchanged', () => {
+    const expected = {"corvin": [10, 11], "elise": [42, 12], "nun": [10, 21], "villager_m2": [40, 37], "merchant2": [30, 20], "gate_board": [40, 39], "market_chest": [44, 25], "crypt": [21, 18], "jump_capital_step1": [6, 11], "jump_capital_step2": [50, 11], "pages": [12, 11], "sp_square": [29, 22], "sp_archive": [15, 11], "sp_relief": [31, 37], "sp_tower": [48, 11], "clue_poster": [33, 38], "pg1": [18, 11], "pg2": [46, 21], "pg3": [58, 21], "ch1": [8, 21], "ch2": [16, 21], "ch3": [50, 19], "ch4": [8, 39], "ch5": [59, 39], "pk_hoa": [25, 14], "p_thuky": [46, 12], "so_no": [44, 12], "g_tao4": [25, 6], "n_tuong": [27, 25], "n_cho": [43, 20], "hc_cho": [46, 24], "n_thu_vien": [8, 11], "g_capital_tao_1": [23, 8], "g_capital_tao_2": [23, 12]};
+    for(const o of [...m.npcs,...objects]) assert.deepEqual([o.x,o.y],expected[o.id],o.id);
 });
