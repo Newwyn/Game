@@ -10,6 +10,7 @@ const URLS = import.meta.glob('../assets/world3d/**/*.glb', { query: '?url', imp
 export const uTime = { value: 0 };   // thời gian chung cho cỏ cây lay gió
 export const uHeroPos = { value: new THREE.Vector3(0, -999, 0) };     // tâm nhân vật chính (thế giới)
 export const uCamPos = { value: new THREE.Vector3(0, 20, 20) };       // vị trí camera
+const SEE_SMOOTH = typeof location === 'undefined' || new URLSearchParams(location.search).get('seeThrough') !== 'off';
 export const uSeeThrough = { value: 1.0 };                            // 0..1: bật nhìn xuyên vật che (?seeThrough=off để tắt)
 export const uQuality = { value: 1.0 };                               // 1 = high, 0 = low (giảm bớt hiệu ứng phụ khi máy yếu)
 
@@ -60,16 +61,13 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = 
               vec3 closest = uCamPos + ch * tProj;
               vec3 diff = (vWorldPos - closest) * vec3(0.95, 0.68, 0.95);
               float dist = length(diff);
-              float rOuter = 2.55;
+              float rOuter = 3.1;
               if (dist < rOuter) {
-                float edge = smoothstep(0.35, rOuter, dist);
-                float fade = edge * edge * (3.0 - 2.0 * edge);
+                // (12/11/2026) người chơi: "mờ chưa tới, thích mờ kiểu trong mờ 50%, không phải chấm lưới"
+                //   -> mờ MỊN bằng độ trong thật (vật liệu transparent), giữa vòng còn 50% vật che, mép vòng tan dần
+                float edge = smoothstep(0.9, rOuter, dist);
                 float depthFade = smoothstep(0.985, 0.88, tProj);
-                float alpha = mix(1.0, mix(0.40, 1.0, fade), uSeeThrough * depthFade);   // giữ ~40% vật che, mép vòng mềm + nhiễu mịn IGN
-                float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-                float fine = fract(dot(gl_FragCoord.xy, vec2(0.75487766, 0.56984029)));
-                float noise = mix(ign, fine, 0.28);
-                if (alpha < noise * 0.94 + 0.04) discard;
+                gl_FragColor.a *= mix(1.0, mix(0.5, 1.0, edge), uSeeThrough * depthFade);
               }
             }
           }` : ''}
@@ -77,6 +75,7 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = 
           float cN = sin(cUv.x * 2.3 + cos(cUv.y * 1.9)) * cos(cUv.y * 2.1 - sin(cUv.x * 1.7));
           gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
     };
+    if (occlude && SEE_SMOOTH) mat.transparent = true;   // cần cho độ trong thật quanh nhân vật (vẫn ghi độ sâu như vật đặc)
     mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}`;
     return mat;
 }
