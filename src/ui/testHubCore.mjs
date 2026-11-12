@@ -63,6 +63,8 @@ export const GEAR_LEVELS = [10, 30, 60];
 const PRESETS = [[1, 0], [20, 1], [40, 2], [60, 3]];   // debugProgress.preset 0..3
 const TEAM_PRESETS = [[1, 0], [20, 1], [40, 1], [40, 2], [60, 2], [60, 3]];
 
+/** Hàng BẤM NHANH ở đầu bảng (id lệnh · chữ trên nút) — những việc hay làm nhất khi thử game, bấm 1 lần là xong */
+export const QUICK = [['quick:max', '⚡ Cả đội Lv60 SSS'], ['gear::60', '🎒 Nhận đồ cam Lv60'], ['quick:rich', '💰 Vàng + Kim Cương'], ['win', '🏆 Thắng ngay'], ['ownAll', '🦸 Đủ mọi tướng'], ['reset', '🔄 Chơi lại từ đầu']];
 export const GROUPS = { scenario: '🎬 Kịch bản', battle: '⚔️ Trong trận', enemy: '👹 Phe quái', elem: '🔮 Elarion & Golem', hero: '🦸 Nhân vật',
     story: '📖 Ải', map: '🗺️ Bản đồ', items: '🎒 Đồ & tiền', nav: '🧭 Đi tới' };
 const ORDER = {
@@ -128,12 +130,16 @@ export function buildCommands(cat = {}, nums = []) {
 
     // 🦸 nhân vật — trong trận dùng debugProgress (áp ngay lên nhân vật đang đánh), ngoài trận cũng vậy (không làm nhảy màn hình)
     const P = (classId, patch) => [E('debugProgress', { classId, ...patch })];
+    add('quick:max', '⚡', 'Cả đội cấp 60 bậc SSS (đủ mọi tướng)', 'hero', [T('maxTeam')], { kw: 'max 60 sss tat ca nhanh full manh nhat len het' });
+    add('quick:rich', '💰', '+100.000 vàng · +5.000 kim cương · +500 đá', 'items', [T('wallet', { gold: 100000, diamond: 5000, stone: 500 })], { kw: 'giau tien vang kim cuong nhanh' });
     for (const [lv, rk] of TEAM_PRESETS) add(`team:${lv}:${rk}`, '🦸', `Cả đội Lv${lv} ${RANKS[rk]}`, 'hero', P('all', { level: lv, rank: rk }), { kw: 'tat ca anh hung cap bac preset' });
     RANKS.forEach((r, i) => add(`teamRank:${i}`, '🎖️', `Cả đội bậc ${r}`, 'hero', P('all', { rank: i }), { kw: 'tat ca anh hung rank' }));
     for (const lv of extra) add(`teamLv:${lv}`, '🦸', `Cả đội cấp ${lv}`, 'hero', P('all', { level: lv }), { kw: `lv${lv} level tat ca` });
     add('ownAll', '🦸', 'Có đủ mọi anh hùng', 'hero', [T('heroes', { ownAll: true })], { kw: 'so huu mo khoa tuong', guard: true });
     add('detail:heroes', '📋', 'Bảng chi tiết nhân vật (cấp, bậc, thiên phú, đột phá)', 'hero', [{ ui: 'detail', arg: 'heroes' }], { kw: 'chi so level slider talent rank up tung nguoi' });
     for (const h of heroes) {
+        add(`own:${h.id}`, '🔓', `Mở tướng ${h.name}`, 'hero', [T('hero', { id: h.id, own: true })], { kw: 'so huu mo khoa tuong anh hung co them' });
+        add(`unown:${h.id}`, '🔒', `Cất tướng ${h.name} (coi như chưa có)`, 'hero', [T('hero', { id: h.id, own: false })], { kw: 'bo so huu khoa tuong anh hung cat', low: true });
         PRESETS.forEach(([lv, rk], i) => add(`hero:${h.id}:p${i}`, '🦸', `${h.name} Lv${lv} ${RANKS[rk]}`, 'hero', P(h.id, { preset: i }), { kw: 'cap bac anh hung' }));
         for (const lv of extra) add(`heroLv:${h.id}:${lv}`, '🦸', `${h.name} cấp ${lv}`, 'hero', P(h.id, { level: lv }), { kw: `lv${lv} level` });
         add(`rankUp:${h.id}`, '⬆️', `${h.name}: Đột phá (luồng thật, có kiểm tra điều kiện)`, 'hero', [E('rankUp', { classId: h.id })], { kw: 'len bac rank up' });

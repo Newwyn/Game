@@ -789,8 +789,22 @@ function makeCritterMesh(ctx, kind, isElf) {
 }
 
 function buildCritters(ctx, id, map, terrain) {
-    const list = REGION_CRITTERS[id] ?? [];
-    if (!list.length) return;
+    const base = REGION_CRITTERS[id] ?? [];
+    if (!base.length) return;
+    // (12/11/2026) thêm thú nhỏ rải ở các ô cỏ đi được, cùng loài với vùng đó — cho bản đồ sinh động hơn
+    const kinds = [...new Set(base.map(c => c[0]).filter(k => !/Fish|glow|duck/.test(k)))];
+    const list = [...base];
+    if (kinds.length) {
+        let sd = 9001 + id.length * 97;
+        const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+        const want = Math.max(4, Math.round(base.length * 0.8));
+        for (let tries = 0, n = 0; n < want && tries < 400; tries++) {
+            const x = 2 + Math.floor(R() * (map.cols - 4)), z = 2 + Math.floor(R() * (map.rows - 4));
+            if (map.grid?.[z]?.[x] !== '.' || terrain[z]?.[x] !== 'g') continue;
+            if (list.some(c => Math.hypot(c[1] - x, c[2] - z) < 4)) continue;
+            list.push([kinds[Math.floor(R() * kinds.length)], x + 0.5, z + 0.5]); n++;
+        }
+    }
     const isElf = id === 'sylvaren' || id === 'lunaria';
     const isBlocked = (x, z) => map.grid?.[Math.floor(z)]?.[Math.floor(x)] === '#';
 

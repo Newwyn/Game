@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { proto, loadModels, addSway, patchMaterial, uHeroPos } from './assets.js';
+import { PAINT, paintTrees, paintGrass, paintMapClouds, paintWater, paintSeeds, treeStyleOf } from './paint.js';
 import { EXTRA_BUILD, buildJumpFeatures, buildRegionLife } from './life.js';
 
 export const isOldDetail = () => typeof location !== 'undefined' && new URLSearchParams(location.search).get('mapDetail') === 'old';
@@ -21,16 +22,37 @@ export const GROUND = {   // màu mặt đất theo loại ô
     t: [0.25, 0.45, 0.27], b: [0.24, 0.48, 0.33],
 };
 
+// ---------- ĐÈN ĐÊM: quầng sáng ấm quanh đèn lồng, chỉ hiện khi trời tối (view.js gọi setNight mỗi khung hình) ----------
+let nightMat = null;
+function nightGlowMat() {
+    if (nightMat) return nightMat;
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const g = cv.getContext('2d'), rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.3, 'rgba(255,255,255,0.5)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+    nightMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), color: 0xffb060, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    nightMat.color.setRGB(2.4, 1.1, 0.25);   // sang manh (HDR) de van am sau khi ca canh bi nhuom lam ban dem
+    return nightMat;
+}
+/** k: 0 (ban ngày) .. 1 (đêm) */
+export function setNight(k) { if (nightMat) { nightMat.opacity = Math.min(1, k * 1.5); nightMat.visible = k > 0.02; } }
+
 /** Gom đặt mô hình -> InstancedMesh */
 class Batch {
-    constructor() { this.list = new Map(); }
-    put(key, x, y, z, rot = 0, sx = 1, sy = sx, sz = sx) {
+    constructor() { this.list = new Map(); this.trees = []; this.lights = []; }
+    put(key, x, y, z, rot = 0, sx = 1, sy = sx, sz = sx, near = true) {
+        if (PAINT && (key === 'town/lantern' || key === 'graveyard/lightpost-single')) this.lights.push([x, y + 1.25 * sy, z, sx]);
+        if (PAINT && key === 'custom/town_lamp_post') this.lights.push([x, y + 2.6 * sy, z, sx * 1.6]);
+        if (PAINT && key === 'custom/town_lamp_wall') this.lights.push([x, y + 0.4 * sy, z, sx * 1.2]);
+        if (PAINT && /^nature\/tree_/.test(key)) { this.trees.push([x, z, sx * 0.95, near, ...treeStyleOf(key)]); return; }   // tranh vẽ: chỉ MỘT kiểu cây
         const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(Y, rot), new THREE.Vector3(sx, sy, sz));
         if (!this.list.has(key)) this.list.set(key, []);
         this.list.get(key).push(m);
     }
     keys() { return [...this.list.keys()]; }
     flush(group) {
+        if (this.trees.length) paintTrees(group, this.trees);
+        for (const [x, y, z, sc] of this.lights) { const sp = new THREE.Sprite(nightGlowMat()); sp.position.set(x, y, z); sp.scale.setScalar(2.6 * sc); sp.renderOrder = 7; group.add(sp); }
         for (const [key, mats] of this.list) for (const p of proto(key)) {
             const im = new THREE.InstancedMesh(p.geo, p.mat, mats.length);
             mats.forEach((m, k) => im.setMatrixAt(k, m));
@@ -47,7 +69,7 @@ const lam = (hex, opts = {}) => {
     const k = hex + JSON.stringify(opts);
     if (!MAT.has(k)) {
         const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0, flatShading: true, ...opts });
-        patchMaterial(m, { sway: 0, occlude: opts.occlude !== false, cloud: opts.cloud !== false });
+        patchMaterial(m, { sway: 0, occlude: opts.occlude !== false, cloud: opts.cloud !== false, detail: !!PAINT && opts.detail !== false });
         MAT.set(k, m);
     }
     return MAT.get(k);
@@ -105,7 +127,7 @@ export async function buildScene(id, map, terrain, layout) {
     const W = cols + 2 * M, H = rows + 2 * M;
     const box = new THREE.BoxGeometry(1, 1, 1);
     const bodyMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: true });
-    const topMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: true });
+    const topMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: true, detail: !!PAINT });
     const body = new THREE.InstancedMesh(box, bodyMat, W * H);
     const top = new THREE.InstancedMesh(box, topMat, W * H);
     body.receiveShadow = top.receiveShadow = true; body.castShadow = true;
@@ -131,7 +153,11 @@ export async function buildScene(id, map, terrain, layout) {
         body.setColorAt(k, col.setHSL(0.07, 0.36, 0.28 + rnd() * 0.05));
         const bump = !oldMode && !isGap && !isStone && (t === 'g' || t === 'd' || t === 't' || t === 'b') ? (Math.sin(x * 0.7 + z * 0.5) * 0.015) : 0;
         m4.compose(v1.set(x + 0.5, y - 0.07 + bump * 0.5, z + 0.5), q0, v2.set(1, 0.14 + bump, 1)); top.setMatrixAt(k, m4);
-        const [h, s, l] = tint[t] ?? GROUND[t] ?? GROUND.g;
+        let [h, s, l] = tint[t] ?? GROUND[t] ?? GROUND.g;
+        if (PAINT && (t === 'g' || t === 't' || t === 'b')) {   // tranh vẽ: đất cỏ cùng bảng màu với ngọn cỏ (mảng đậm / sáng lớn)
+            const tn = 0.5 + 0.5 * Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08);
+            h = 0.275 - tn * 0.05; s = 0.5; l = 0.25 + tn * 0.1;
+        }
         const n = (Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08) + Math.sin(x * 0.9) * Math.sin(z * 0.8) * 0.4) * 0.035;
         top.setColorAt(k, col.setHSL(h + n * 0.5, s, l + n + rnd() * 0.025));
         k++;
@@ -193,9 +219,13 @@ export async function buildScene(id, map, terrain, layout) {
     let water = null;
     if (tileType.includes('w')) {
         water = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ color: style.water ?? 0x4f9ab0, transparent: true, opacity: 0.84, roughness: 0.1, metalness: 0.05, normalMap: waterNormals(), normalScale: new THREE.Vector2(0.55, 0.55) }));
+        if (PAINT) {   // nước kiểu tranh vẽ: mặt nạ ô nước (làm mượt) -> biết chỗ nào sát bờ để vẽ bọt, chỗ nào sâu
+            const mk = new Uint8Array(W * H); tileType.forEach((tt, i) => { mk[i] = tt === 'w' ? 255 : 0; });
+            water.material = paintWater(W, H, mk, -M, -M, style.water ?? 0x4f9ab0);
+        }
         water.rotation.x = -Math.PI / 2; water.position.set(cols / 2, -0.32, rows / 2); water.receiveShadow = true;
         group.add(water);
-        anim.push((t) => water.material.normalMap.offset.set(t * 0.012, t * 0.02));
+        if (!PAINT) anim.push((t) => water.material.normalMap.offset.set(t * 0.012, t * 0.02));
     }
 
     // ---------- cây, cỏ, hoa tự rải ----------
@@ -203,18 +233,22 @@ export async function buildScene(id, map, terrain, layout) {
     const edgeTrees = style.edgeTrees ?? trees;
     const treeScale = style.treeScale ?? [2.1, 2.9];
     const flowers = ['nature/flower_redA', 'nature/flower_yellowA', 'nature/flower_purpleA', 'nature/flower_redB', 'nature/flower_yellowB'];
-    const wheatAt = [];
+    const wheatAt = [], paintTiles = [];
     k = 0;
     for (let z = -M; z < rows + M; z++) for (let x = -M; x < cols + M; x++, k++) {
         let t = tileType[k];
         const ins = inside(x, z), cx = x + 0.5, cz = z + 0.5;
         if (t === 't' && (style.noTrees ?? []).some(([a0, b0, a1, b1]) => x >= a0 && x < a1 && z >= b0 && z < b1)) t = 'b';   // trong phố: bụi thay cây
+        if (PAINT && (t === 'g' || t === 't' || t === 'b') && x >= -4 && x < cols + 4 && z >= -4 && z < rows + 4 && !isSpecialTile(x, z))
+            paintTiles.push([x, z, 0, 0.5 + 0.5 * Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08)]);
         if (ins && cover[x + z * cols]) continue;
         if (t === 't') {
             const far = !ins;
             if (far && rnd() < 0.35) continue;
             const tx = cx + (rnd() - 0.5) * 0.5, tz = cz + (rnd() - 0.5) * 0.5, tsc = treeScale[0] + rnd() * (treeScale[1] - treeScale[0]);
-            B.put(pick(far ? edgeTrees : trees), tx, 0, tz, rnd() * 6, tsc);
+            B.put(pick(far ? edgeTrees : trees), tx, 0, tz, rnd() * 6, tsc, tsc, tsc, x >= -3 && x < cols + 3 && z >= -3 && z < rows + 3);
+            // tranh vẽ: lác đác vài cây TÁO mọc lẫn giữa rừng (trang trí)
+            if (PAINT && ins && B.trees.length && B.trees[B.trees.length - 1][4] === 'round' && B.trees[B.trees.length - 1][5] === 'green' && (x * 7 + z * 13) % 9 === 0) { const tr = B.trees[B.trees.length - 1]; tr[4] = 'apple'; tr[5] = 'apple'; }
             if (x >= -2 && x < cols + 2 && z >= -2 && z < rows + 2) treeSpots.push([tx, tz, tsc]);
             if (rnd() < 0.3) B.put(rnd() < 0.5 ? 'nature/plant_bushLarge' : 'nature/grass_leafsLarge', cx + (rnd() - 0.5), 0, cz + (rnd() - 0.5), rnd() * 6, 1.8);
         } else if (t === 'b') {
@@ -230,10 +264,12 @@ export async function buildScene(id, map, terrain, layout) {
                 const name = t === 'd' ? (r < 0.4 ? 'nature/grass_leafs' : r < 0.6 ? 'nature/grass_large' : 'nature/plant_flatTall')
                     : r < 0.42 ? (rnd() < 0.5 ? 'nature/grass' : 'nature/grass_large') : r < 0.58 ? 'nature/grass_leafs' : r < (cluster > 0.15 ? 0.78 : 0.68) ? pick(flowers) : 'nature/plant_bushSmall';
                 const sc = !oldMode ? 1.0 + rnd() * 1.25 : 1.3 + rnd() * 0.8;
+                if (!oldMode && map.grid?.[z]?.[x] === '.' && /plant_bushSmall|plant_flatTall/.test(name)) continue;   // ô đi được: không đặt thứ trông như vật cản
                 B.put(name, cx + (rnd() - 0.5) * 0.9, 0, cz + (rnd() - 0.5) * 0.9, rnd() * 6, sc, sc * (0.85 + rnd() * 0.35), sc);
             }
         } else if (t === 'p' && rnd() < (!oldMode ? 0.14 : 0.08)) {
-            B.put('nature/stone_smallA', cx + (rnd() - 0.5) * 0.8, -0.03, cz + (rnd() - 0.5) * 0.8, rnd() * 6, 1 + rnd());
+            const stSc = 1 + rnd(), stX = cx + (rnd() - 0.5) * 0.8, stZ = cz + (rnd() - 0.5) * 0.8, stR = rnd() * 6;
+            if (oldMode || (x * 5 + z * 3) % 4 === 0) B.put('nature/stone_smallA', stX, -0.05, stZ, stR, oldMode ? stSc : stSc * 0.55);   // (12/11) đường đi: ít đá hơn, nhỏ hơn để không tưởng là vật cản
         } else if (t === 'w' && rnd() < (style.lilies ?? 0.04)) {
             B.put(rnd() < 0.5 ? 'nature/lily_large' : 'nature/lily_small', cx, -0.31, cz, rnd() * 6, 1.8);
         }
@@ -243,6 +279,29 @@ export async function buildScene(id, map, terrain, layout) {
     }
 
     if (wheatAt.length) group.add(wheatField(wheatAt));
+    if (PAINT) {
+        // cây hái được (cây táo, cây sồi già) cũng là cây vẽ tay, đứng đúng ô của vật trên bản đồ (hình 2D của chúng được ẩn ở src/ui/world.js)
+        for (const o of map.objects ?? []) if (o.sprite === 'i_appletree' || o.sprite === 'i_oak') B.trees.push([o.x + 0.5, o.y + 0.5, 2.3, true, o.sprite === 'i_appletree' ? 'apple' : 'round', o.sprite === 'i_appletree' ? 'apple' : 'dark']);
+        paintGrass(group, paintTiles, 12); anim.push(paintMapClouds(group, cols, rows));
+        anim.push(paintSeeds(group, [0, 0, cols, rows], { count: 46, y0: 0.5, y1: 2.6, size: 0.06, follow: true }));   // hạt bồ công anh bay quanh nhân vật
+        // ĐỒ ĐẠC PHỐ CỔ: ô bị chặn nằm sát đường lát đá / đường đất mà còn trống -> thùng gỗ, thùng rượu, đèn lồng, bồn cây, xe kéo (vật thời xưa, không chắn lối vì ô vốn đã không đi được)
+        const street = (x, z) => inside(x, z) && map.grid?.[z]?.[x] === '.' && (T(x, z) === 's' || T(x, z) === 'p');
+        for (let z = 1; z < rows - 1; z++) for (let x = 1; x < cols - 1; x++) {
+            if (map.grid?.[z]?.[x] === '.' || cover[x + z * cols] || isSpecialTile(x, z)) continue;
+            const tt = T(x, z); if (tt !== 's' && tt !== 'g' && tt !== 'p') continue;
+            if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => street(x + dx, z + dz))) continue;
+            const h = ((x * 73856093) ^ (z * 19349663)) >>> 0, r = (h % 1000) / 1000;
+            if (r > 0.78) continue;
+            const cx = x + 0.5, cz = z + 0.5, rot = ((h >> 8) % 628) / 100, q = (h >> 4) % 16, T2 = 'custom/town_';
+            // quay mặt đồ vật về phía đường
+            const side = [[0, 1], [1, 0], [0, -1], [-1, 0]].find(([dx, dz]) => street(x + dx, z + dz)) ?? [0, 1], face = Math.atan2(side[0], side[1]);
+            const pool = ['barrels', 'crates', 'sacks', 'planter_a', 'planter_b', 'flowerpots', 'bench', 'lamp_post', 'woodpile', 'haybale', 'trough', 'cart_hay', 'cart_goods', 'noticeboard', 'table_set', 'laundry'];
+            const name = pool[q];
+            const sc = { cart_hay: 0.62, cart_goods: 0.6, laundry: 0.5, table_set: 0.6, lamp_post: 0.7, noticeboard: 0.62 }[name] ?? 0.62;
+            B.put(T2 + name, cx, 0, cz, /cart|sacks|barrels|woodpile|haybale/.test(name) ? rot : face, sc);
+            coverRect(x, z, x + 1, z + 1);
+        }
+    }
     if (!oldMode) buildRegionLife(ctx, id, map, terrain, treeSpots, roofPerches);
     await loadModels(B.keys());
     B.flush(group);
@@ -298,9 +357,16 @@ const along = (a, b, step, f) => {   // rải đều dọc đoạn a->b
     for (let i = 0; i <= n; i++) f(a[0] + dx * i / n, a[1] + dz * i / n, Math.atan2(-dz, dx), L / n);
 };
 
+const VH_FRONT = 0;   // mặt ngoài của mảng tường bộ Village quay về -z (phần bệ / bậu cửa nhô ra phía đó)
 export const BUILD = {
     /** Nhà lắp từ mảnh bộ thị trấn: khung x0..x1 × z0..z1, cửa ở mặt trước (phía z1) tại cột doorX */
     house(ctx, { x0, z0, x1, z1, door, wall = 'wood', roof = 'red', h = 2.0, chimney = true, sign = null }) {
+        if (PAINT) {   // (12/11/2026) nhà bộ Làng Trung Cổ thay cho nhà khối
+            BUILD.vhouseFit(ctx, { x0, z0, x1, z1, wall: wall === 'stone' ? 'brick' : 'plaster', h, door: door != null });
+            if (door != null && !ctx.oldMode) BUILD.dirtPatch(ctx, door, z1 + 0.55, 1.35, 0.85);
+            if (sign) BUILD.model(ctx, 'survival/signpost-single', sign[0], sign[1], { s: 3 });
+            return;
+        }
         const { B } = ctx;
         const w = x1 - x0, d = z1 - z0, n = Math.max(1, Math.round(w / 1.6)), sw = w / n, cz = (z0 + z1) / 2;
         const W = wall === 'stone' ? 'town/wall' : wall === 'plaster' ? 'town/wall' : 'town/wall-wood';
@@ -332,6 +398,116 @@ export const BUILD = {
         if (sign) BUILD.model(ctx, 'survival/signpost-single', sign[0], sign[1], { s: 3 });
         ctx.roofPerches?.push([(x0 + x1) / 2, h + rh * 0.48, (z0 + z1) / 2]);
         ctx.cover(x0, z0, x1, z1);
+    },
+    /**
+     * NHÀ LÀNG TRUNG CỔ (bộ Quaternius Medieval Village, CC0): tường trát vôi khung gỗ hoặc tường đá, mái ngói ống, đầu hồi gạch, ống khói.
+     *   x, z: tâm nhà (ô) · w: số mảng tường ngang (2 | 3) · d: số mảng sâu (w=2: 2 | 3 · w=3: 4) · turn: 1 = xoay mái dốc ra phía trước
+     *   s: tỉ lệ (1 mảng tường của bộ = 2 m; s = 0,62 -> tường cao ~1,9 ô như nhà cũ)
+     */
+    vhouse(ctx, { x, z, w = 2, d = 3, wall = 'plaster', turn = 0, door = true, s = 0.62, sx = s, sy = s, sz = s, chimney = true }) {
+        const { B } = ctx, P = 'village/', Wn = wall === 'brick' ? 'Wall_UnevenBrick_' : 'Wall_Plaster_';
+        if (w === 3) d = 4; else if (d > 3) d = 3;
+        const rot = turn ? Math.PI / 2 : 0, c = Math.cos(rot), sn = Math.sin(rot), F = VH_FRONT;
+        // lx, lz: toạ độ trong nhà (mét của bộ) · ry: hướng của mảnh trong nhà · along: mảnh nằm dọc trục nào của nhà ('x' | 'z') -> co giãn đúng chiều
+        const put = (name, lx, ly, lz, ry, along = 'x', k = 1) => B.put(P + name, x + (lx * sx * c + lz * sz * sn), ly * sy, z + (-lx * sx * sn + lz * sz * c), ry + rot,
+            (along === 'x' ? sx : sz) * k, sy * k, (along === 'x' ? sz : sx) * k);
+        const putC = (name, lx, ly, lz, ry, along = 'x', k = 1) => B.put('custom/' + name, x + (lx * sx * c + lz * sz * sn), ly * sy, z + (-lx * sx * sn + lz * sz * c), ry + rot,
+            (along === 'x' ? sx : sz) * k, sy * k, (along === 'x' ? sz : sx) * k);
+        const plain = wall === 'brick' ? 'Straight' : 'WoodGrid';   // mảng tường trơn: tường vôi dùng loại có khung gỗ chéo cho đỡ trống
+        const frame = wall === 'brick' ? 'DoorFrame_Round_Brick' : 'DoorFrame_Round_WoodDark';
+        /** một mảng tường: kind = 'door' | 'win' | 'plain' — cửa có khung + cánh gỗ, cửa sổ có khung kính + cánh chớp mở (nhà có người ở, không còn lỗ trống) */
+        const seg = (kind, lx, lz, ry, along) => {
+            if (kind === 'door') {
+                put(Wn + 'Door_Round', lx, 0, lz, ry, along); put(frame, lx, 0, lz, ry, along); const dx = Math.cos(ry) * -0.53, dz = -Math.sin(ry) * -0.53; put('Door_2_Round', lx + dx, 0, lz + dz, ry, along);
+                // đồ đạc phố cổ quanh cửa (bộ Codex): đèn gắn tường, biển hiệu treo, chậu hoa -> nhà có người ở, phố có hồn
+                const tx = Math.cos(ry), tz = -Math.sin(ry), ox = Math.sin(ry), oz = Math.cos(ry), hk = Math.abs(Math.round(x * 5 + z * 11));
+                putC('town_lamp_wall', lx + tx * 0.86, 1.75, lz + tz * 0.86, ry, along);
+                if (hk % 3 !== 1) putC(['town_sign_inn', 'town_sign_smith', 'town_sign_shop'][hk % 3 === 0 ? (hk >> 2) % 3 : 2], lx - tx * 0.86, 1.9, lz - tz * 0.86, ry, along);
+                putC(hk % 2 ? 'town_flowerpots' : 'town_planter_a', lx - tx * 1.25 + ox * 0.5, 0, lz - tz * 1.25 + oz * 0.5, ry, along, 0.9);
+                if (hk % 4 === 0) putC('town_bench', lx + tx * 1.9 + ox * 0.45, 0, lz + tz * 1.9 + oz * 0.45, ry, along, 0.9);
+            }
+            else if (kind === 'win') { put(Wn + 'Window_Wide_Round', lx, 0, lz, ry, along); put('Window_Wide_Round1', lx, 0, lz, ry, along); put('WindowShutters_Wide_Round_Open', lx, 0, lz, ry, along); }
+            else put(Wn + plain, lx, 0, lz, ry, along);
+        };
+        const mid = Math.floor(w / 2), dj = Math.floor(d / 2);
+        // mặt nhìn về máy quay (+z thế giới): không xoay = mặt +z của nhà · xoay = mặt -x của nhà -> cửa ở giữa, hai bên là cửa sổ
+        for (let i = 0; i < w; i++) {
+            const lx = -w + 1 + i * 2;
+            seg(!turn ? (door && i === mid ? 'door' : 'win') : 'plain', lx, d, F, 'x');
+            seg(i % 2 ? 'win' : 'plain', lx, -d, F + Math.PI, 'x');
+        }
+        for (let j = 0; j < d; j++) {
+            const lz = -d + 1 + j * 2;
+            seg(j % 2 ? 'win' : 'plain', w, lz, F + Math.PI / 2, 'z');
+            seg(turn ? (door && j === dj ? 'door' : 'win') : (j % 2 ? 'plain' : 'win'), -w, lz, F - Math.PI / 2, 'z');
+        }
+        for (const [cx, cz] of [[w, d], [-w, d], [w, -d], [-w, -d]]) put(wall === 'brick' ? 'Corner_Exterior_Brick' : 'Corner_Exterior_Wood', cx, 0, cz, 0);
+        put(`Roof_RoundTiles_${w * 2}x${d * 2}`, 0, 3.0, 0, 0);
+        put(`Roof_Front_Brick${w * 2}`, 0, 3.0, d, F); put(`Roof_Front_Brick${w * 2}`, 0, 3.0, -d, F + Math.PI);
+        // dây leo bò trên một mảng tường bên
+        put('Prop_Vine1', w + 0.02, 0, -d + 1, F + Math.PI / 2, 'z');
+        // lòng nhà: khối tối ấm bên trong để nhìn qua cửa sổ thấy "trong nhà" chứ không xuyên ra trời
+        const inner = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ctx.lam(0x2b2018, { occlude: false, detail: false }));
+        inner.scale.set((turn ? d : w) * 2 * (turn ? sz : sx) - 0.18, 2.9 * sy, (turn ? w : d) * 2 * (turn ? sx : sz) - 0.18); inner.position.set(x, 1.45 * sy, z);
+        ctx.group.add(inner);
+        if (chimney) {
+            const lx = w * 0.45, lz = -d * 0.35; put('Prop_Chimney', lx, 3.4, lz, 0);
+            if (!ctx.oldMode && BUILD.smoke) BUILD.smoke(ctx, x + (lx * sx * c + lz * sz * sn), 6.6 * sy, z + (-lx * sx * sn + lz * sz * c));
+        }
+        const ex = (turn ? d * sz : w * sx) + 0.3, ez = (turn ? w * sx : d * sz) + 0.3;
+        ctx.cover(x - ex, z - ez, x + ex, z + ez);
+        ctx.roofPerches?.push([x, 3.0 * sy + 1.4, z]);
+    },
+    /** Nhà Làng Trung Cổ vừa khít một khung x0..x1 × z0..z1 (thay cho nhà khối cũ ở cả bản đồ lẫn cảnh chiến đấu): tự chọn dáng mái gần nhất rồi co giãn cho khít */
+    vhouseFit(ctx, { x0, z0, x1, z1, wall = 'plaster', h = 2.0, door = true }) {
+        const W = x1 - x0, D = z1 - z0, want = Math.log(W / D);
+        let best = null;
+        for (const [w, d, turn] of [[2, 2, 0], [2, 3, 0], [3, 4, 0], [2, 3, 1], [3, 4, 1]]) {
+            const mx = (turn ? d : w) * 2, mz = (turn ? w : d) * 2, err = Math.abs(Math.log(mx / mz) - want) + (turn ? 0 : 0.05);
+            if (!best || err < best.err) best = { w, d, turn, mx, mz, err };
+        }
+        const kx = W / best.mx, kz = D / best.mz;   // co giãn theo trục THẾ GIỚI -> đổi về trục của nhà nếu nhà xoay
+        BUILD.vhouse(ctx, { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: best.w, d: best.d, turn: best.turn, wall, door,
+            sx: best.turn ? kz : kx, sz: best.turn ? kx : kz, sy: Math.max(0.5, Math.min(0.8, h / 3.1)) });
+    },
+    /** THÁP đá mái ngói nhọn (bộ Village): mỗi tầng là một vòng tường đá 2×2 mảng, trên cùng là mái tháp */
+    vtower(ctx, x, z, { r = 1.1, h = 3.4, roof = true } = {}) {
+        const { B } = ctx, P = 'village/', s = r / 2, levels = Math.max(1, Math.round(h / (3.0 * s)));
+        const put = (name, lx, ly, lz, ry) => B.put(P + name, x + lx * s, ly * s, z + lz * s, ry, s);
+        for (let l = 0; l < levels; l++) {
+            const y = l * 3.0, win = l > 0 ? 'Wall_UnevenBrick_Window_Thin_Round' : 'Wall_UnevenBrick_Straight';
+            for (const lx of [-1, 1]) { put(lx < 0 ? win : 'Wall_UnevenBrick_Straight', lx, y, 2, VH_FRONT); put('Wall_UnevenBrick_Straight', lx, y, -2, VH_FRONT + Math.PI); }
+            for (const lz of [-1, 1]) { put('Wall_UnevenBrick_Straight', 2, y, lz, VH_FRONT + Math.PI / 2); put('Wall_UnevenBrick_Straight', -2, y, lz, VH_FRONT - Math.PI / 2); }
+            for (const [cx, cz] of [[2, 2], [-2, 2], [2, -2], [-2, -2]]) put('Corner_Exterior_Brick', cx, y, cz, 0);
+        }
+        if (roof) put('Roof_Tower_RoundTiles', 0, levels * 3.0, 0, 0);
+        const inner = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ctx.lam(0x2b2018, { occlude: false, detail: false }));
+        inner.scale.set(4 * s - 0.15, levels * 3.0 * s, 4 * s - 0.15); inner.position.set(x, levels * 1.5 * s, z); ctx.group.add(inner);
+        ctx.cover(x - r - 0.2, z - r - 0.2, x + r + 0.2, z + r + 0.2);
+    },
+    /**
+     * TƯỜNG HẦM NGỤC (bộ KayKit Dungeon Remastered, CC0): dãy tường đá a -> b (cùng z), xen cửa vòm / song sắt / tường nứt, trụ đá giữa các mảng,
+     *   đuốc và cờ treo trên tường. s: tỉ lệ (1 mảng = 4 m rộng, 4 m cao).
+     */
+    dwall(ctx, a, b, { s = 0.75, door = true, deco = true, half = false, shelves = false, banners = ['banner_patternA_red', 'banner_shield_blue', 'banner_triple_green'] } = {}) {
+        const { B } = ctx, P = 'dungeon/', dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, rot = Math.atan2(-dz, dx);
+        const step = 4 * s, n = Math.max(1, Math.round(L / step)), t0 = L / 2 - (n - 1) * step / 2, midI = Math.floor(n / 2);
+        const nx = -uz, nz = ux;   // phía mặt trước của tường (+z khi tường chạy theo trục x)
+        const at = (t, off = 0) => [a[0] + ux * t + nx * off, a[1] + uz * t + nz * off];
+        if (half) {   // lan can / tường lũy thấp: chỉ nửa tường, không trụ, không cờ
+            for (let i = 0; i < n; i++) { const [x, z] = at(t0 + i * step); B.put(P + 'wall_half', x, 0, z, rot, s); }
+            return;
+        }
+        const cycle = shelves ? ['wall_shelves', 'wall', 'wall_shelves', 'wall_arched', 'wall_shelves', 'wall_window_closed']
+            : ['wall', 'wall_arched', 'wall', 'wall_window_closed', 'wall', 'wall_arched', 'wall_gated', 'wall'];
+        for (let i = 0; i < n; i++) {
+            const t = t0 + i * step, [x, z] = at(t), name = door && i === midI ? 'wall_doorway' : deco ? cycle[(i * 3 + n) % cycle.length] : (i % 3 === 1 ? 'wall_arched' : 'wall');
+            B.put(P + name, x, 0, z, rot, s);
+            const [px, pz] = at(t - step / 2, 0.25 * s); B.put(P + 'pillar', px, 0, pz, rot, s);
+            if (deco && i % 2 === 0 && i !== midI) { const [tx, tz] = at(t - step * 0.28, 0.5 * s); B.put(P + 'torch_mounted', tx, 2.3 * s, tz, rot, s * 1.2); }
+            if (i % 2 === 1 && i !== midI && name !== 'wall_shelves') { const [bx, bz] = at(t, 0.12 * s); B.put(P + banners[(i >> 1) % banners.length], bx, 0.1 * s, bz, rot, s); }
+        }
+        const [ex, ez] = at(t0 + (n - 0.5) * step, 0.25 * s); B.put(P + 'pillar', ex, 0, ez, rot, s);
     },
     /** Dọn vùng: không tự rải cây / bụi / cỏ trong khung này */
     clear(ctx, x0, z0, x1, z1) { ctx.cover(x0, z0, x1, z1); },
@@ -365,6 +541,9 @@ export const BUILD = {
     },
     /** Giếng đá có mái gỗ + mặt nước lấp lánh */
     well(ctx, x, z) {
+        if (PAINT) {   // (12/11/2026) giếng làng trung cổ do Codex dựng bằng code (tools/models/make_well.py): thành đá xếp, cột gỗ, trục quay, xô, mái ngói
+            ctx.B.put('custom/well', x, 0, z, 0, 0.82); ctx.cover(x - 1.2, z - 1.2, x + 1.2, z + 1.2); return;
+        }
         mesh(ctx, new THREE.CylinderGeometry(0.95, 1.05, 0.8, 12), lam(0x9a958a), x, 0.4, z);
         const wMat = new THREE.MeshStandardMaterial({ color: 0x3f8fc4, emissive: 0x1c5c88, emissiveIntensity: 0.35, flatShading: false, roughness: 0.12, metalness: 0.15 });
         patchMaterial(wMat, { sway: 0, occlude: true, cloud: false });
@@ -520,6 +699,7 @@ export const BUILD = {
     },
     /** Đoạn tường thành trắng (lâu đài / kinh thành) */
     castleWall(ctx, a, b, h = 1.7) {
+        if (PAINT && ctx.props) return BUILD.dwall(ctx, a, b, { s: Math.max(0.6, h / 4), door: false, deco: false });   // cảnh chiến đấu: tường đá bộ hầm ngục
         const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz), rot = Math.atan2(-dz, dx);
         const w = mesh(ctx, new THREE.BoxGeometry(L + 1.1, h, 1.1), lam(0xe9e5dc), (a[0] + b[0]) / 2, h / 2, (a[1] + b[1]) / 2, rot);
         w.receiveShadow = true;
@@ -533,6 +713,7 @@ export const BUILD = {
     },
     /** Tháp tròn mái xanh nhọn */
     tower(ctx, x, z, { r = 1.1, h = 3.4, roof = 0x3f6fc6, wall = 0xe8e4dc } = {}) {
+        if (PAINT && ctx.props) return BUILD.vtower(ctx, x, z, { r: r * 1.15, h, roof: roof !== null });   // cảnh chiến đấu: tháp đá mái ngói bộ Village
         mesh(ctx, new THREE.CylinderGeometry(r, r * 1.05, h, 14), lam(wall, { flatShading: false }), x, h / 2, z);
         mesh(ctx, new THREE.CylinderGeometry(r * 1.12, r * 1.12, 0.3, 14), lam(0xd8d2c6), x, h + 0.15, z);
         if (roof != null) mesh(ctx, new THREE.ConeGeometry(r * 1.2, r * 2.2, 14), lam(roof), x, h + 0.3 + r * 1.1, z);
@@ -572,6 +753,10 @@ export const BUILD = {
     },
     /** Sạp chợ có mái vải màu */
     stall(ctx, x, z, color = 0xc0392b, r = 0) {
+        if (PAINT) {   // (12/11/2026) sạp chợ bộ đồ đạc phố cổ (Codex): mái bạt sọc, quầy đầy hàng — 4 kiểu, chọn theo vị trí
+            const kinds = ['town_stall_fruit', 'town_stall_bread', 'town_stall_cloth', 'town_stall_fish'];
+            ctx.B.put('custom/' + kinds[Math.abs(Math.round(x * 3 + z * 7)) % 4], x, 0, z, r, 0.7); ctx.cover(x - 0.9, z - 0.7, x + 0.9, z + 0.7); return;
+        }
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
         add(new THREE.BoxGeometry(1.6, 0.7, 0.9), lam(0x8a5a2e), 0, 0.35, 0.1);
@@ -584,13 +769,14 @@ export const BUILD = {
     },
     /** Đài phun nước (bộ thị trấn) */
     fountain(ctx, x, z, s = 1.3) {
+        if (PAINT) { ctx.B.put('custom/town_fountain', x, 0, z, 0, s * 0.62); ctx.cover(x - s, z - s, x + s, z + s); return; }   // đài phun nước đá xếp, có tia nước
         ctx.B.put('town/fountain-round', x, 0, z, 0, s);
         ctx.B.put('town/fountain-round-detail', x, 0, z, 0, s);
         ctx.B.put('town/fountain-center', x, 0, z, 0, s);
         ctx.cover(x - s, z - s, x + s, z + s);
     },
     /** Đèn đường */
-    lamp(ctx, x, z) { ctx.B.put('town/lantern', x, 0, z, 0, 1.25); },
+    lamp(ctx, x, z) { ctx.B.put(PAINT ? 'custom/town_lamp_post' : 'town/lantern', x, 0, z, 0, PAINT ? 0.7 : 1.25); },
     /** Hầm mộ / phiến đá */
     crypt(ctx, x, z, s = 2.4) { ctx.B.put('graveyard/crypt', x, 0, z, 0, s); },
 
@@ -902,7 +1088,7 @@ function mistTexture() {
 export async function buildProps(items, style = {}, seedNo = 7) {
     seed = seedNo;
     const group = new THREE.Group(), anim = [], B = new Batch();
-    const ctx = { B, group, anim, cover() {}, lam, rnd, pick, style, oldMode: false };
+    const ctx = { B, group, anim, cover() {}, lam, rnd, pick, style, oldMode: false, props: true };
     for (const [kind, ...args] of items) {
         const f = BUILD[kind];
         if (!f) { console.warn('[world3d] không có kiểu', kind); continue; }

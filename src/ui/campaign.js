@@ -810,7 +810,7 @@ export function renderStageResult(data = {}) {
     document.body.classList.add('selecting-squad');
 }
 
-const ITEM_NAMES = { exp_small: 'Bình Kinh Nghiệm Nhỏ', exp_big: 'Bình Kinh Nghiệm Lớn', refine_stone: 'Đá Tinh Luyện' };
+const ITEM_NAMES = { exp_small: 'Bình Kinh Nghiệm Nhỏ', exp_big: 'Bình Kinh Nghiệm Lớn', exp_huge: 'Bình Kinh Nghiệm Siêu Lớn', refine_stone: 'Đá Tinh Luyện' };
 function accountHTML(account) {
     if (!account) return '';
     return `<div class="cp-account"><b>⭐ Cấp tài khoản ${account.level}</b><progress max="${account.need || 1}" value="${account.need ? account.exp : 1}" aria-label="EXP tài khoản"></progress><small>${account.need ? `${account.exp}/${account.need} EXP` : 'Tối đa'}</small></div>`;
@@ -859,6 +859,8 @@ export function setupCampaign() {
     ensureResultEl();
 
     socket.on('campaignState', (data) => {
+        // quiet (tool thu vua doi du lieu): bang ai dang dong thi chi cap nhat so lieu, khong tu bat len che man hinh dang dung
+        if (data?.quiet && ensureScreenEl().style.display !== 'flex' && !pendingWorldStage) { state = normalizeState(data); return; }
         renderCampaignState(data);
     });
 

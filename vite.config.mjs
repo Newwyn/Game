@@ -20,5 +20,7 @@ export default defineConfig({
         // Atlas nhân vật lớn: không nhúng base64 vào JS
         assetsInlineLimit: 0,
         chunkSizeWarningLimit: 1000,
+        // 2 trang: game (index.html) + app tool thử đứng riêng (tool.html)
+        rollupOptions: { input: { main: 'index.html', tool: 'tool.html' } },
     },
 });

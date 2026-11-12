@@ -8,7 +8,8 @@ import { cameraRig } from './cameraRig.js';
 import { softwareGL } from './gpu.js';
 import { BATTLE_THEMES } from './battleThemes.js';
 export { themeForBattle } from './battleThemes.js';
-import { BG3D, MODEL_SCENES, createModelScene } from './battleScene3d.js';   // demo: sân đấu dựng bằng mô hình 3D của bản đồ (?bg3d=1)
+import { BG3D, MODEL_SCENES, createModelScene } from './battleScene3d.js';
+import { PAINT } from '../world3d/assets.js';   // demo: sân đấu dựng bằng mô hình 3D của bản đồ (?bg3d=1)
 // 🎨 Cảnh VẼ BẰNG CODE (tools/battle_bg.py): lớp xa + lớp gần (2 tấm tranh) + đất lặp — có tranh thì thay khối 3D
 import PAINTED from '../assets/battle/battle_bg.json';
 const BG_URL = import.meta.glob('../assets/battle/*.webp', { eager: true, import: 'default' });   // chỉ là đường dẫn, tải khi cần
@@ -35,11 +36,68 @@ function material(color, glow = false) {
 const C = { wood: 0x71513a, leaf: 0x56894c, pine: 0x376b55, rock: 0x85858a,
     wall: 0xc7b79b, roof: 0x955c50, gold: 0xcda353, cloth: 0x883e51,
     glow: 0x6de5da, water: 0x396d86, white: 0xdce5eb, dark: 0x343442 };
-let active, ground, originalGround, originalSky, hemi, started = false;
+let active, ground, originalGround, originalSky, hemi, ambient, started = false;
 const weakDevice = () => softwareGL() || (globalThis.navigator?.deviceMemory ?? 8) <= 4;
+
+const FORCE_SCENE = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('scene') : null;
+// (12/11/2026) cảnh trong nhà / lâu đài: trước đây nền và trời xanh đen lạnh, nhìn "oải" -> nền đá ấm, trời tối ấm, ánh đèn vàng
+const PAINT_PROFILE = {
+    tower: { ground: 0x8d8478, sky: 0x2b2a3a, sun: 0xffd9a8, intensity: 1.35, near: 40, far: 110 },
+    hall: { ground: 0x9a8f80, sky: 0x33293a, sun: 0xffd9a8, intensity: 1.4 },
+    library: { ground: 0x8e7f6c, sky: 0x3a2f2e, sun: 0xffd9a0, intensity: 1.3 },
+    crypt: { ground: 0x6f7480, sky: 0x232636, sun: 0xc6cff0, intensity: 1.0, near: 32, far: 80 },
+    // (12/11, người chơi) hang phải TỐI NHƯ ĐÊM, chỉ sáng nhờ đèn dầu: ánh sáng chung rất thấp, ngả lam; đèn thật do paintMineLife đặt
+    mine: { ground: 0x6a6258, sky: 0x06070b, sun: 0x7f93c4, intensity: 0.16, hemi: 0.22, ambient: 0.05, near: 55, far: 150 },
+    deepMine: { ground: 0x565a68, sky: 0x04050a, sun: 0x6f86c8, intensity: 0.12, hemi: 0.18, ambient: 0.04, near: 50, far: 140 },
+    gate: { ground: 0xa8a294, sky: 0xbfd6ea }, castle: { ground: 0xb4ab9b, sky: 0xc3dbee }, battlement: { ground: 0xa39d92, sky: 0xb5cde6 }, bridge: { sky: 0xbdd6ea },
+};
+
+/** Nền sân kiểu TRANH VẼ TAY (12/11/2026): cỏ / đất = các vệt cọ đậm nhạt chồng nhau; đá = viên đá lát so le; ván = tấm ván có vân */
+function paintedGround(profile) {
+    const S = 512, cv = document.createElement('canvas'); cv.width = cv.height = S;
+    const g = cv.getContext('2d');
+    let seed = 4711; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const base = new THREE.Color(profile.ground), hsl = {}; base.getHSL(hsl);
+    const s = profile.surface, soft = !(s === 'stone' || s === 'cobble' || s === 'planks');
+    if (soft && (s === 'grass' || s === 'moss')) { hsl.s = Math.min(1, hsl.s * 1.15 + 0.05); hsl.l = Math.min(0.5, hsl.l * 1.08); }
+    hsl.l = Math.max(hsl.l, 0.26);   // nền hang / hầm ngục không được đen kịt: phải còn thấy viên đá, vệt cọ
+    const css = (dh, ds, dl) => `hsl(${((hsl.h + dh + 1) % 1) * 360}, ${Math.max(0, Math.min(1, hsl.s + ds)) * 100}%, ${Math.max(0, Math.min(1, hsl.l + dl)) * 100}%)`;
+    g.fillStyle = css(0, 0, 0); g.fillRect(0, 0, S, S);
+    const wrap = (draw) => { for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.save(); g.translate(ox, oy); draw(); g.restore(); } };
+    if (soft) {
+        for (let i = 0; i < 520; i++) {   // vệt cọ: dài theo chiều ngang sân, đậm nhạt xen kẽ
+            const x = R() * S, y = R() * S, w = 18 + R() * 46, h = 5 + R() * 11, a = (R() - 0.5) * 0.5, dl = (R() - 0.5) * 0.14, dh = (R() - 0.5) * 0.035;
+            g.fillStyle = css(dh, (R() - 0.5) * 0.1, dl); g.globalAlpha = 0.55;
+            wrap(() => { g.translate(x, y); g.rotate(a); g.beginPath(); g.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); g.fill(); });
+        }
+        g.globalAlpha = 1;
+    } else if (s === 'planks') {
+        for (let y = 0; y < S; y += 64) {
+            let x = -R() * 120;
+            while (x < S) { const w = 150 + R() * 140; g.fillStyle = css((R() - 0.5) * 0.02, 0, (R() - 0.5) * 0.09); g.fillRect(x + 2, y + 2, w - 4, 60);
+                g.strokeStyle = css(0, 0, -0.1); g.globalAlpha = 0.35; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(x + 6, y + 12 + k * 18 + R() * 6); g.lineTo(x + w - 6, y + 12 + k * 18 + R() * 6); g.stroke(); } g.globalAlpha = 1; x += w; }
+        }
+        g.fillStyle = css(0, 0, -0.16); for (let y = 0; y < S; y += 64) g.fillRect(0, y, S, 3);
+    } else {
+        g.fillStyle = css(0, -0.02, -0.09); g.fillRect(0, 0, S, S);   // mạch vữa
+        const rowH = s === 'cobble' ? 40 : 64, colW = s === 'cobble' ? 58 : 128;
+        for (let r = 0, y = 0; y < S; y += rowH, r++) for (let x = -(r % 2) * colW / 2; x < S; x += colW) {
+            g.fillStyle = css((R() - 0.5) * 0.03, (R() - 0.5) * 0.05, (R() - 0.5) * 0.13);
+            const rad = s === 'cobble' ? 12 : 6; g.beginPath(); g.roundRect(x + 3, y + 3, colW - 6, rowH - 6, rad); g.fill();
+            g.fillStyle = 'rgba(255,255,255,0.07)'; g.beginPath(); g.roundRect(x + 5, y + 5, colW - 10, (rowH - 6) * 0.4, rad); g.fill();
+        }
+    }
+    const texture = new THREE.CanvasTexture(cv);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(7, 4.5);
+    texture.anisotropy = 4;
+    return texture;
+}
 
 // DataTexture avoids canvas / external assets. A 64x64 tile is enough at this scale.
 function groundTexture(profile) {
+    if (PAINT && typeof document !== 'undefined') return paintedGround(profile);
     const size = 64, pixels = new Uint8Array(size * size * 4);
     let seed = 701;
     const rgb = [(profile.ground >> 16) & 255, (profile.ground >> 8) & 255, profile.ground & 255];
@@ -121,7 +179,7 @@ function createPainted(key, profile, start) {
 /** CPU-only builder is also used by the offline performance audit. */
 export function createTheme(key, weak = false) {
     const start = performance.now();
-    const profile = BATTLE_THEMES[key] ?? BATTLE_THEMES.meadow;
+    const profile = PAINT ? { ...(BATTLE_THEMES[key] ?? BATTLE_THEMES.meadow), ...(PAINT_PROFILE[key] ?? {}) } : (BATTLE_THEMES[key] ?? BATTLE_THEMES.meadow);
     if (BG3D && MODEL_SCENES.has(key)) {
         // demo ?bg3d=1: cây / bụi / đá / cỏ lấy từ bộ mô hình của bản đồ thế giới -> cùng phong cách với bản đồ
         const { rear, foreground } = createModelScene(key), root = new THREE.Group();
@@ -306,6 +364,7 @@ function getTheme(key) {
 }
 
 export function setBattleTheme(key = 'meadow') {
+    if (FORCE_SCENE) key = FORCE_SCENE;   // ?scene=tower -> mọi trận dùng cảnh đó (để xem thử từng cảnh)
     if (!started) buildEnvironment();
     if (!Object.hasOwn(BATTLE_THEMES, key)) key = 'meadow';
     if (active?.key === key) return;
@@ -332,8 +391,9 @@ export function setBattleTheme(key = 'meadow') {
     if (hemi) {
         hemi.color.set(next.profile.sun);
         hemi.groundColor.set(next.profile.ground);
-        hemi.intensity = Math.max(0.65, next.profile.intensity * 0.75);
+        hemi.intensity = next.profile.hemi ?? Math.max(0.65, next.profile.intensity * 0.75);   // hemi: cảnh tối (hang) tự đặt ánh sáng nền thấp
     }
+    if (ambient) ambient.intensity = next.profile.ambient ?? 0.25;
     dirLight.color.set(next.profile.sun);
     dirLight.intensity = next.profile.intensity;
 }
@@ -346,6 +406,7 @@ export function buildEnvironment() {
     originalGround = ground.material.map;
     originalSky = scene.background;
     hemi = scene.children.find(o => o.isHemisphereLight);
+    ambient = scene.children.find(o => o.isAmbientLight);
     started = true;
     setBattleTheme('meadow');
     cameraRig.onModeChange(mode => { if (active) active.foreground.visible = mode !== 'combat'; });

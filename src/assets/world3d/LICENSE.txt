@@ -1,3 +1,11 @@
 Mô hình 3D trong thư mục này: bộ Nature Kit, Fantasy Town Kit, Castle Kit, Survival Kit, Graveyard Kit
 của Kenney (www.kenney.nl) — giấy phép Creative Commons Zero (CC0): dùng tự do cho dự án cá nhân, giáo dục và thương mại,
 không bắt buộc ghi công. Nguồn tải: opengameart.org. Đóng gói bằng tools/pack_world3d.mjs (nhúng ảnh màu, đặt kim loại = 0).
+
+----------------------------------------------------------------------
+Added 12/11/2026 (packed by tools/pack_kits.py, colour textures only, resized to 512 px):
+
+village/   Medieval Village MegaKit (Standard) by Quaternius — https://quaternius.com — CC0 1.0
+qnature/   Stylized Nature MegaKit (Standard) by Quaternius — https://quaternius.com — CC0 1.0
+dungeon/   KayKit: Dungeon Remastered 1.0 by Kay Lousberg — https://www.kaylousberg.com — CC0 1.0
+           https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0

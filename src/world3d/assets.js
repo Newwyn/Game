@@ -12,6 +12,8 @@ export const uHeroPos = { value: new THREE.Vector3(0, -999, 0) };     // tâm nh
 export const uCamPos = { value: new THREE.Vector3(0, 20, 20) };       // vị trí camera
 const SEE_SMOOTH = typeof location === 'undefined' || new URLSearchParams(location.search).get('seeThrough') !== 'off';
 export const uSeeThrough = { value: 1.0 };                            // 0..1: bật nhìn xuyên vật che (?seeThrough=off để tắt)
+// kiểu TRANH VẼ TAY (src/world3d/paint.js)
+export const PAINT = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('paint') ?? 1) : 0;   // người chơi duyệt 12/11: BẬT sẵn, ?paint=0 để xem kiểu cũ
 export const uQuality = { value: 1.0 };                               // 1 = high, 0 = low (giảm bớt hiệu ứng phụ khi máy yếu)
 
 // bộ Nature (xanh ngọc) -> tông ấm như tranh nền của game
@@ -23,13 +25,59 @@ const SWAY = { grass: 0.5, leafsGreen: 0.05, leafsDark: 0.05, leafsFall: 0.05 };
 // đổi màu ô đỏ (mái) trong bảng màu bộ thị trấn
 const ROOF = { brown: [150, 92, 58], straw: [196, 152, 84], blue: [64, 112, 196], red: null, slate: [92, 98, 112] };
 
+// Chi tiết nhà kiểu tranh vẽ (12/11/2026, học cách Painted Valley vẽ nhà): hàng ngói trên mái dốc, ván gỗ dọc, hàng đá so le, vệt ố vôi cũ —
+// vẽ thẳng trong shader từ toạ độ thế giới của mặt tường / mái, không cần hình dán.
+const DETAIL_GLSL = `
+  { vec3 fn = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
+    vec3 tg = normalize(cross(fn, vec3(0.0, 1.0, 0.0)) + vec3(0.0001, 0.0, 0.0));
+    float du = dot(vWorldPos, tg);
+    vec3 dc = diffuseColor.rgb; float dmx = max(dc.r, max(dc.g, dc.b)), dmn = min(dc.r, min(dc.g, dc.b)); float dsat = (dmx - dmn) / max(dmx, 0.001);
+    float ay = abs(fn.y);
+    if (ay > 0.25 && ay < 0.93) {                       // mái dốc: hàng ngói so le, mỗi viên một tông, hàng trên đổ bóng xuống hàng dưới
+      float rowf = vWorldPos.y * 5.5; float row = floor(rowf); float fy = fract(rowf);
+      float cu = du * 3.4 + mod(row, 2.0) * 0.5; float fu = fract(cu);
+      float hh = fract(sin(floor(cu) * 12.9898 + row * 78.233) * 43758.5453);
+      float sh = 1.0 + (hh - 0.5) * 0.24;
+      sh *= mix(0.78, 1.06, smoothstep(0.0, 0.35, fy));
+      sh *= 1.0 - 0.18 * (1.0 - smoothstep(0.0, 0.08, fu));
+      diffuseColor.rgb *= sh;
+    } else if (ay <= 0.25) {
+      if (dsat > 0.28 && dc.r > dc.b) {                 // gỗ: ván dọc
+        float cu = du * 4.2; float fu = fract(cu);
+        float hh = fract(sin(floor(cu) * 91.7) * 43758.5453);
+        diffuseColor.rgb *= (1.0 + (hh - 0.5) * 0.16) * (1.0 - 0.22 * (1.0 - smoothstep(0.0, 0.07, fu)));
+      } else if (dsat < 0.2) {                          // đá: hàng đá so le
+        float rowf = vWorldPos.y * 2.8; float row = floor(rowf); float fy = fract(rowf);
+        float cu = du * 1.7 + mod(row, 2.0) * 0.5; float fu = fract(cu);
+        float hh = fract(sin(floor(cu) * 12.9898 + row * 78.233) * 43758.5453);
+        diffuseColor.rgb *= (1.0 + (hh - 0.5) * 0.18) * (1.0 - 0.2 * (1.0 - smoothstep(0.0, 0.06, fu))) * (1.0 - 0.2 * (1.0 - smoothstep(0.0, 0.1, fy)));
+      }
+      float stn = sin(du * 1.3 + vWorldPos.y * 0.7) * sin(du * 0.37 - vWorldPos.y * 2.1);   // vệt ố loang
+      diffuseColor.rgb *= 1.0 - 0.08 * smoothstep(0.2, 0.9, stn);
+    } else if (dsat < 0.17 && dmx > 0.2) {              // mặt phẳng màu đá: ĐÁ LÁT kiểu phố cổ châu Âu — viên so le, mạch vữa sẫm, mỗi viên một tông
+      vec2 cq = vWorldPos.xz * vec2(2.5, 3.3); float crow = floor(cq.y);
+      cq.x += mod(crow, 2.0) * 0.5 + fract(sin(crow * 17.3) * 43.7) * 0.3;
+      vec2 cf = fract(cq) - 0.5; float ch2 = fract(sin(floor(cq.x) * 12.9898 + crow * 78.233) * 43758.5453);
+      float cd = length(max(abs(cf) - vec2(0.27, 0.25), 0.0));
+      float mortar = smoothstep(0.11, 0.2, cd);
+      float tone = 1.0 + (ch2 - 0.5) * 0.34 + (fract(ch2 * 7.13) - 0.5) * 0.10;
+      diffuseColor.rgb *= mix(tone * vec3(1.0, 0.985, 0.95 + fract(ch2 * 3.7) * 0.08), vec3(0.58, 0.56, 0.55), mortar);
+      diffuseColor.rgb *= 1.0 - cf.y * 0.12;            // viên đá hơi vồng: nửa trên sáng hơn
+    } else if (dc.r > dc.g && dc.g > dc.b && dsat > 0.25 && dsat < 0.62) {   // đường đất: sỏi nhỏ + vệt bánh xe mờ
+      vec2 pq = vWorldPos.xz * 6.0; vec2 pi2 = floor(pq); vec2 pf = fract(pq) - 0.5;
+      float ph = fract(sin(dot(pi2, vec2(12.9898, 78.233))) * 43758.5453);
+      float peb = (1.0 - smoothstep(0.10, 0.2, length(pf - (vec2(fract(ph * 5.3), fract(ph * 9.1)) - 0.5) * 0.5))) * step(0.72, ph);
+      diffuseColor.rgb *= 1.0 + peb * 0.22 - 0.06 * smoothstep(0.3, 0.9, sin(vWorldPos.x * 0.8 + vWorldPos.z * 0.5) * sin(vWorldPos.z * 1.9));
+    }
+  }`;
+
 /**
  * Gắn hiệu ứng cho vật liệu:
  *  - amp > 0: đung đưa theo gió (cỏ, hoa, tán cây, lúa)
  *  - occlude = true: khoét vòng tròn dither mềm mép quanh nhân vật khi vật che khuất camera
  *  - cloud = true: bóng mây nhẹ trôi chậm trên bề mặt
  */
-export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = {}) {
+export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, detail = false } = {}) {
     if (mat.userData?._patched) return mat;
     mat.userData = { ...(mat.userData ?? {}), _patched: true };
     mat.onBeforeCompile = (sh) => {
@@ -51,23 +99,28 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = 
           swp.x += swx; swp.z += swz;` : ''}
           vWorldPos = swp.xyz;`);
         sh.fragmentShader = 'uniform float uTime;\nuniform vec3 uHeroPos;\nuniform vec3 uCamPos;\nuniform float uSeeThrough;\nvarying vec3 vWorldPos;\n'
-            + sh.fragmentShader.replace('#include <dithering_fragment>', `#include <dithering_fragment>
+            + (detail ? sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + DETAIL_GLSL) : sh.fragmentShader).replace('#include <dithering_fragment>', `#include <dithering_fragment>
+          ${PAINT ? `{ // tranh vẽ: ít tông, chuyển tông gọn (sáng / vừa / khuất), chỗ khuất ngả lam
+            float pl = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+            float st = pl * 6.0; float pb = (floor(st) + smoothstep(0.3, 0.7, fract(st)) + 0.5) / 6.5;
+            gl_FragColor.rgb *= pb / max(pl, 0.0001);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb * vec3(0.80, 0.93, 1.20), gl_FragColor.rgb, smoothstep(0.06, 0.30, pl)); }` : ''}
           ${occlude ? `if (uSeeThrough > 0.01 && vWorldPos.y > 0.32) {
             vec3 ch = uHeroPos - uCamPos;
             float chLen2 = dot(ch, ch);
             vec3 cp = vWorldPos - uCamPos;
             float tProj = dot(cp, ch) / max(chLen2, 0.001);
             if (tProj > 0.12 && tProj < 0.985) {
-              vec3 closest = uCamPos + ch * tProj;
-              vec3 diff = (vWorldPos - closest) * vec3(0.95, 0.68, 0.95);
-              float dist = length(diff);
-              float rOuter = 3.1;
+              // (12/11/2026, lần 2) người chơi: "mờ 50% thì đúng rồi, nhưng muốn nó là cái VÒNG TRÒN quanh người"
+              //   -> đo khoảng lệch so với tia camera->nhân vật rồi quy về độ sâu của nhân vật (chia tProj): trên màn hình ra đúng
+              //      MỘT hình tròn cố định quanh người, mép gọn; trong vòng vật che còn 50%, có viền sáng mảnh cho rõ hình vòng
+              // (12/11, lần 3) người chơi: KHÔNG có viền vòng, chỉ là vùng tròn mờ dịu kiểu blur: giữa còn 50%, ra mép tan dần
+              float dist = length(cp - ch * tProj) / tProj;
+              float rOuter = 2.3;
               if (dist < rOuter) {
-                // (12/11/2026) người chơi: "mờ chưa tới, thích mờ kiểu trong mờ 50%, không phải chấm lưới"
-                //   -> mờ MỊN bằng độ trong thật (vật liệu transparent), giữa vòng còn 50% vật che, mép vòng tan dần
-                float edge = smoothstep(0.9, rOuter, dist);
-                float depthFade = smoothstep(0.985, 0.88, tProj);
-                gl_FragColor.a *= mix(1.0, mix(0.5, 1.0, edge), uSeeThrough * depthFade);
+                float k = uSeeThrough * smoothstep(0.985, 0.9, tProj);
+                float inside = 1.0 - smoothstep(rOuter * 0.45, rOuter, dist);
+                gl_FragColor.a *= mix(1.0, 0.5, inside * k);
               }
             }
           }` : ''}
@@ -76,7 +129,7 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true } = 
           gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
     };
     if (occlude && SEE_SMOOTH) mat.transparent = true;   // cần cho độ trong thật quanh nhân vật (vẫn ghi độ sâu như vật đặc)
-    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}`;
+    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}_${PAINT}_${detail ? 1 : 0}`;
     return mat;
 }
 
@@ -84,6 +137,7 @@ export function addSway(mat, amp) {
     return patchMaterial(mat, { sway: amp, occlude: true, cloud: true });
 }
 
+const RICH_KITS = new Set(['village', 'qnature', 'dungeon']);
 const loader = new GLTFLoader();
 const protos = new Map();      // khoá 'bộ/tên' -> parts gốc
 const variants = new Map();    // 'bộ/tên@biến thể' -> parts
@@ -95,10 +149,19 @@ function fixMaterial(kit, mat) {
     if (mats.has(key)) return mats.get(key);
     const m = mat.clone();
     m.metalness = 0; m.roughness = 0.9;
+    if (RICH_KITS.has(kit)) {   // bộ có hình dán thật (Quaternius, KayKit — CC0): giữ hình dán mịn, không tô lại màu, không vẽ thêm ngói / gạch bằng code
+        m.vertexColors = false;   // màu đỉnh của bộ này là mặt nạ cho shader riêng của tác giả, không phải màu
+        if (m.map) { m.map.colorSpace = THREE.SRGBColorSpace; m.map.anisotropy = 4; }
+        if (kit === 'village') m.side = THREE.DoubleSide;
+        if (m.transparent || m.alphaTest > 0) { m.transparent = false; m.alphaTest = 0.5; m.side = THREE.DoubleSide; }
+        patchMaterial(m, { sway: kit === 'qnature' && /leav|leaf|grass|flower/i.test(m.name) ? 0.05 : 0, occlude: true, cloud: true, detail: false });
+        mats.set(key, m);
+        return m;
+    }
     if (RECOLOR[m.name] != null) m.color.setHex(RECOLOR[m.name]);
     const sway = SWAY[m.name] ?? (m.name.startsWith('flower') ? 0.22 : 0);
     if (sway > 0 || m.name === 'grass') m.side = THREE.DoubleSide;
-    patchMaterial(m, { sway, occlude: true, cloud: true });
+    patchMaterial(m, { sway, occlude: true, cloud: true, detail: !!PAINT && (kit === 'town' || kit === 'castle' || kit === 'graveyard') });
     if (m.map) { m.map.magFilter = THREE.NearestFilter; m.map.colorSpace = THREE.SRGBColorSpace; }
     mats.set(key, m);
     return m;
@@ -161,7 +224,7 @@ export function proto(key) {
             const m = p.mat.clone();
             m.map = recolorTexture(p.mat.map, rgb);
             m.userData = {};
-            patchMaterial(m, { sway: 0, occlude: true, cloud: true });
+            patchMaterial(m, { sway: 0, occlude: true, cloud: true, detail: !!PAINT });
             mats.set(mk, m);
         }
         return { geo: p.geo, mat: mats.get(mk) };

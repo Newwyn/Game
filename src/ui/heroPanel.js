@@ -111,6 +111,7 @@ function heroHTML() {
                     <div class="hp-quick">
                         <button class="cp-back-btn hp-ibtn" data-hp-exp="exp_small" ${(data.items.exp_small ?? 0) ? '' : 'disabled'}>${icon('exp_small', '🧪')} Bình EXP nhỏ (${data.items.exp_small ?? 0})</button>
                         <button class="cp-back-btn hp-ibtn" data-hp-exp="exp_big" ${(data.items.exp_big ?? 0) ? '' : 'disabled'}>${icon('exp_big', '⚗️')} Bình EXP lớn (${data.items.exp_big ?? 0})</button>
+                        <button class="cp-back-btn hp-ibtn" data-hp-exp="exp_huge" ${(data.items.exp_huge ?? 0) ? '' : 'disabled'}>${icon('exp_huge', '🏺')} Bình EXP siêu lớn (${data.items.exp_huge ?? 0})</button>
                         ${h.affinity ? `<span class="hp-aff">💗 Thân mật Lv${h.affinity}</span>` : ''}
                     </div></div>
             </div>
@@ -179,7 +180,7 @@ function skinHTML(h) {
 }
 // túi đồ: 4 phần — 💰 Tài nguyên · 🧪 Nguyên liệu · 📜 Vật phẩm nhiệm vụ · 🛡️ Trang bị
 const MATS = [['refine_stone', '💎', 'Đá Tinh Luyện', 'Tinh luyện lại 1 dòng phụ của trang bị'], ['luck_charm', '🍀', 'Bùa May Mắn', 'Cường hoá hỏng không bị tụt cấp'],
-    ['exp_small', '🧪', 'Bình Kinh Nghiệm Nhỏ', '+500 EXP cho 1 anh hùng'], ['exp_big', '⚗️', 'Bình Kinh Nghiệm Lớn', '+5.000 EXP cho 1 anh hùng'],
+    ['exp_small', '🧪', 'Bình Kinh Nghiệm Nhỏ', '+500 EXP cho 1 anh hùng'], ['exp_big', '⚗️', 'Bình Kinh Nghiệm Lớn', '+5.000 EXP cho 1 anh hùng'], ['exp_huge', '🏺', 'Bình Kinh Nghiệm Siêu Lớn', '+25.000 EXP cho 1 anh hùng'],
     ['stone_s', '🔷', 'Đá Đột Phá S', 'Đột phá lên bậc S'], ['stone_ss', '🔶', 'Đá Đột Phá SS', 'Đột phá lên bậc SS'], ['stone_sss', '💠', 'Đá Đột Phá SSS', 'Đột phá lên bậc SSS']];
 const QUEST_DESC = { wheat: 'Mang cho cô Lena ở làng Ashford', mushroom: 'Mang cho cô Lena ở làng Ashford', herb: 'Mang cho Seraphine ở giếng làng', hammer: 'Trả cho bác Borin ở lò rèn' };
 let bagTab = 'res';

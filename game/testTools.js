@@ -52,6 +52,11 @@ function apply(pr, d, heroIds) {
             WD.syncReports(pr);
             break;
         }
+        case 'maxTeam': {   // (12/11/2026) một lần bấm: có đủ mọi tướng, tất cả cấp 60 bậc SSS — dùng được ở mọi nơi (bản đồ, bảng ải, giữa trận)
+            pr.owned = [...new Set([...(pr.owned ?? []), ...heroIds])];
+            for (const id of heroIds) { pr.heroes[id] ??= { level: 1, rank: 0, exp: 0 }; Object.assign(pr.heroes[id], { level: 60, rank: 3, exp: 0 }); }
+            return { ok: true, text: 'Cả đội đã lên cấp 60 bậc SSS (đủ mọi tướng)' };
+        }
         case 'heroes': case 'hero': {
             if (d.op === 'hero' && !heroIds.includes(d.id)) return bad('Anh hùng không tồn tại');
             for (const id of d.op === 'hero' ? [d.id] : heroIds) {
@@ -61,6 +66,8 @@ function apply(pr, d, heroIds) {
                 h.exp = 0;
             }
             if (d.op === 'heroes' && d.ownAll === true) pr.owned = [...heroIds];
+            if (d.op === 'hero' && d.own === true && !pr.owned.includes(d.id)) pr.owned.push(d.id);                      // mở 1 tướng (đã có thì thôi)
+            if (d.op === 'hero' && d.own === false && pr.owned.length > 1) pr.owned = pr.owned.filter(x => x !== d.id);   // cất 1 tướng để thử lại nhiệm vụ tặng tướng
             break;
         }
         case 'account': pr.account.level = clamp(d.level, 1, A.TABLE.maxLevel); pr.account.exp = 0; break;

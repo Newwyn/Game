@@ -194,28 +194,34 @@ test('mục tiêu đếm trong trận / lò rèn: useSkills, enhanceGear, standO
     assert.equal(Q.match(pr, g, { type: 'pos', scene: 'road', x: 18, y: 7, dwell: 10000 }, s), true);
 });
 
-test('chính tuyến: mỗi bước +20 Kim Cương đúng 1 lần; bảng góc luôn có bước hiện tại', () => {
-    const pr = fresh(), d0 = pr.wallet.diamond;
-    assert.deepEqual(W.worldState(pr, NOW).qlog.main, { i: 0, total: 46, reward: 20, text: 'Gặp Rok ở cổng đông làng', last: null });
-    assert.equal(act(pr, 'ashford', 'rok').startStage, 'c1-01');          // bước 1: tới điểm truyện
-    assert.equal(pr.wallet.diamond, d0 + 20);
+test('chính tuyến: thưởng 3 mức (nhỏ / trung bình / quan trọng), mỗi bước trả đúng 1 lần; bảng góc luôn có bước hiện tại', () => {
+    const pr = fresh(), d0 = pr.wallet.diamond, g0 = pr.wallet.gold, e0 = pr.items?.exp_small ?? 0;
+    assert.deepEqual(W.worldState(pr, NOW).qlog.main, { i: 0, total: 46, reward: '+150 Vàng · +1 Bình EXP nhỏ', tier: 'small', text: 'Gặp Rok ở cổng đông làng', last: null });
+    assert.equal(act(pr, 'ashford', 'rok').startStage, 'c1-01');          // bước 1 (nhỏ): bình EXP nhỏ + vàng, KHÔNG có Kim Cương
+    assert.deepEqual([pr.wallet.diamond, pr.wallet.gold, pr.items.exp_small], [d0, g0 + 150, e0 + 1]);
     act(pr, 'ashford', 'rok'); act(pr, 'ashford', 'rok');                 // bấm lại không được thêm
-    assert.equal(pr.wallet.diamond, d0 + 20);
-    assert.ok(Q.takeNotes(pr).some(n => n.k === 'main' && /\+20 Kim Cương/.test(n.t)));
+    assert.deepEqual([pr.wallet.diamond, pr.wallet.gold, pr.items.exp_small], [d0, g0 + 150, e0 + 1]);
+    assert.ok(Q.takeNotes(pr).some(n => n.k === 'main' && /\+150 Vàng/.test(n.t) && !/Kim Cương/.test(n.t)));
     win(pr, 'c1-01', {}, ['warrior']);                                    // bước 2: qua ải (+50 lần đầu của ải)
-    assert.equal(pr.wallet.diamond, d0 + 20 + 50 + 20);
+    assert.equal(pr.wallet.diamond, d0 + 50);
     win(pr, 'c1-01', {}, ['warrior']);                                    // đánh lại: không thêm
-    assert.equal(pr.wallet.diamond, d0 + 90);
+    assert.equal(pr.wallet.diamond, d0 + 50);
     assert.equal(W.worldState(pr, NOW).qlog.main.text, W.REPORTS[1].go);
     assert.equal(W.questLog(pr)[0].obj, W.REPORTS[1].go);                 // bảng CHÍNH TUYẾN ở góc
-    act(pr, 'ashford', 'mira');                                           // bước 3: về báo lại
-    assert.equal(pr.wallet.diamond, d0 + 110);
+    act(pr, 'ashford', 'mira');                                           // bước 3: về báo lại (ải 1 là mức nhỏ)
+    assert.equal(pr.wallet.diamond, d0 + 50);
     assert.equal(pr.world.main, 3);
     const again = JSON.parse(JSON.stringify(pr));
     W.worldState(again, NOW); Q.settle(again, again.wallet, NOW);
-    assert.equal(again.wallet.diamond, d0 + 110);
-    // đủ 46 bước = 920 Kim Cương
-    assert.equal(Q.mainList().length * Q.MAIN_REWARD, 920);
+    assert.equal(again.wallet.diamond, d0 + 50);
+    // cả chương: 3 bước quan trọng (bình siêu lớn) + 8 bước trung bình + 35 bước nhỏ = 540 Kim Cương
+    const tiers = Q.mainList().map(st => st.tier ?? 'small'), count = (t) => tiers.filter(x => x === t).length;
+    assert.deepEqual([count('big'), count('mid'), count('small')], [3, 8, 35]);
+    assert.equal(count('big') * Q.MAIN_TIERS.big.diamond + count('mid') * Q.MAIN_TIERS.mid.diamond, 540);
+    assert.ok(Q.MAIN_TIERS.big.items.exp_huge && Q.MAIN_TIERS.mid.items.exp_big && !Q.MAIN_TIERS.small.diamond);
+    // ải 2 là mức trung bình: bước cuối của ải trả Kim Cương + bình lớn
+    const last2 = Q.mainList().filter(st => st.no === 2).at(-1);
+    assert.equal(last2.tier, 'mid');
 });
 
 test('chính tuyến: save cũ ở giữa chương tính đúng bước, không kẹt, KHÔNG trả bù', () => {
@@ -229,7 +235,7 @@ test('chính tuyến: save cũ ở giữa chương tính đúng bước, không 
     W.worldState(old, NOW); Q.settle(old, old.wallet, NOW);
     assert.equal(old.wallet.diamond, d0);                                  // 8 ải đã qua: không trả bù
     assert.equal(act(old, 'ashford', 'mira').startStage, 'c1-09');         // đi tiếp bình thường
-    assert.equal(old.wallet.diamond, d0 + 20);
+    assert.equal(old.wallet.diamond, d0);                                  // "tới điểm truyện" là bước nhỏ: không có Kim Cương
     // save cũ vừa thắng ải 1, chưa về báo (đã có world.reported nhưng chưa có world.main)
     const mid = C.ensureCampaign({}, 0);
     W.ensureWorld(mid); delete mid.world.main; delete mid.world.spot;
@@ -239,7 +245,7 @@ test('chính tuyến: save cũ ở giữa chương tính đúng bước, không 
     assert.equal(steps[mid.world.main].id, 'report1');
     assert.equal(mid.wallet.diamond, d1);
     act(mid, 'ashford', 'mira');
-    assert.equal(mid.wallet.diamond, d1 + 20);
+    assert.equal(mid.wallet.diamond, d1);                                   // ải 1: mức nhỏ, không có Kim Cương
     assert.equal(steps[mid.world.main].id, 'go2');
     // trận đánh khi save chưa có world (móc ở campaign.applyResult) cũng không trả bù
     const raw = C.ensureCampaign({}, 0);

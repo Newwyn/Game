@@ -988,3 +988,7 @@
 @media (prefers-reduced-motion: reduce) {
     .wd-float { animation-duration: 3.2s; animation-timing-function: step-end; }
 }
+
+/* số Kim Cương nảy lên lúc dòng báo thưởng vừa hiện (báo xong mới cộng) */
+.wd-gem-pop { animation: wd-gem-pop 0.7s ease-out; }
+@keyframes wd-gem-pop { 0% { transform: scale(1); } 35% { transform: scale(1.35); color: #fde047; } 100% { transform: scale(1); } }

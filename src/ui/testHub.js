@@ -16,7 +16,7 @@ import { showModeMenu } from './modeMenu.js';
 import { isSquadSelectOpen } from './squadSelect.js';
 import { getDebugToggles, setDebugToggle } from './input.js';
 import { renderProgressTool } from './progressTool.js';
-import { TOGGLES, GROUPS, SCENARIOS, buildCommands, findCommand, searchCommands, scenarioSteps, stepsFor, runSteps, unavailable, pushRecent, matchScore, autoApplyMode } from './testHubCore.mjs';
+import { TOGGLES, GROUPS, SCENARIOS, buildCommands, findCommand, searchCommands, scenarioSteps, stepsFor, runSteps, unavailable, pushRecent, matchScore, autoApplyMode, QUICK } from './testHubCore.mjs';
 import '../styles/testHub.css';
 
 const LS = {
@@ -54,8 +54,39 @@ function contextLabel(c) {
     return { world: '🗺️ Đang ở bản đồ', board: '📖 Đang ở Bảng ải', menu: '🏠 Đang ở Menu' }[c.place] ?? '';
 }
 
+// ---------- CẦU NỐI với APP TOOL (tool.html — cửa sổ riêng, 12/11/2026) ----------
+//   Người chơi muốn game là ứng dụng chính, tool là ứng dụng hỗ trợ đứng riêng. App tool gửi lệnh qua BroadcastChannel 'loc-tool';
+//   game chạy bằng đúng bộ máy của bảng này (runCommand / runScenario / setToggle) nên hai nơi luôn cho cùng kết quả.
+let bridge = null;
+function bridgeState() {
+    const c = context();
+    return { type: 'state', allowed: allowed(), ctx: c, label: contextLabel(c), cat, busy, recent,
+        toggles: Object.fromEntries(Object.keys(TOGGLES).map(k => [k, toggleOn(k)])) };
+}
+function setupBridge() {
+    if (typeof BroadcastChannel === 'undefined') return;
+    bridge = new BroadcastChannel('loc-tool');
+    bridge.onmessage = (e) => {
+        const m = e.data ?? {};
+        if (m.type === 'state' || m.type === 'msg') return;   // lời của chính game (cửa sổ game khác) — bỏ qua
+        if (m.type === 'hello') { if (!cat && allowed()) socket.emit('testCatalog', {}); return bridge.postMessage(bridgeState()); }
+        if (!allowed()) return bridge.postMessage({ type: 'msg', ok: false, text: 'Game chưa vào Server test nên tool chưa ra lệnh được' });
+        if (m.type === 'run') { const cmd = findCommand(m.id, cat ?? {}); if (!cmd) return flash('Lệnh này chưa sẵn sàng (đang tải danh sách)', false); runCommand(cmd); }
+        else if (m.type === 'scenario') runScenario(m.id, m.arg, m.label);
+        else if (m.type === 'toggle') setToggle(m.key, m.on);
+        else if (m.type === 'reset') { flash('⏳ Đang xoá tiến trình…'); socket.emit('debugReset'); }
+        setTimeout(() => bridge.postMessage(bridgeState()), 60);
+    };
+}
+/** Mở app tool ở cửa sổ riêng (bấm nút 🧪). Trình duyệt chặn cửa sổ mới thì mở bảng trong game như cũ. */
+function openToolApp() {
+    const w = window.open('tool.html', 'loc-tool', 'width=540,height=860,resizable=yes,scrollbars=yes');
+    if (!w) toggle(true);
+}
+
 // ---------- lời báo ----------
 function flash(text, ok = true, ms = 6000) {
+    bridge?.postMessage({ type: 'msg', text, ok });   // app tool (cửa sổ riêng) cũng thấy lời báo
     msg = { text, ok }; clearTimeout(msgTimer);
     msgTimer = setTimeout(() => { msg = null; renderMsg(); }, ms);
     renderMsg();
@@ -164,6 +195,7 @@ async function runSequence(label, steps, guard) {
     if (!res.ok) flash(`⚠️ ${label}: ${res.text ?? 'không xong'}`, false, 9000);
     else if (lastServerMsg < t0 || !open) flash(`✅ ${label}`);   // bảng đã tự đóng (kịch bản): báo xong bằng dòng nổi
     if (open && view === 'main') render();   // mục con (đồ tuỳ chọn, chi tiết nhân vật): giữ nguyên ô đang chọn
+    bridge?.postMessage(bridgeState());
 }
 function runCommand(cmd) {
     if (!cmd) return;
@@ -249,7 +281,7 @@ function rowHTML(r, i) {
 }
 function mainHTML(ctx) {
     const nums = (query.match(/\d+/g) ?? []).map(Number).filter(n => n >= 1 && n <= 60);
-    rows = searchCommands(buildCommands(cat ?? {}, nums), query, ctx);
+    rows = query ? searchCommands(buildCommands(cat ?? {}, nums), query, ctx) : [];   // (12/11) không gõ gì thì KHÔNG đổ cả ~270 lệnh ra (người chơi chê rối): chỉ có hàng bấm nhanh + kịch bản
     sel = Math.max(0, Math.min(sel, rows.length - 1));
     let list = '', lastGroup = null;
     rows.forEach((r, i) => {
@@ -257,12 +289,16 @@ function mainHTML(ctx) {
         list += rowHTML(r, i);
     });
     const top = query ? '' : `
+        <div class="th-sec">⚡ Bấm nhanh <small>1 lần bấm là xong, dùng được ở bản đồ, bảng ải và giữa trận</small></div>
+        <div class="th-quick">${QUICK.map(([id, label]) => `<button class="th-qk" data-th="quick" data-v="${id}">${label}</button>`).join('')}</div>`
+        + `
         ${resetArmed ? `<div class="th-reset"><span>Xoá hết tiến trình của hồ sơ này và chơi lại từ đầu?</span>
             <button class="th-btn danger" data-th="resetGo">⚠️ Bấm lần nữa để XOÁ HẾT</button><button class="th-btn" data-th="resetNo">Huỷ</button></div>` : ''}
         ${recent.length ? `<div class="th-sec">Vừa dùng</div><div class="th-chips">${recent.map(r => `<button class="th-chip" data-th="recent" data-v="${esc(r.id)}">${r.icon ?? ''} ${esc(r.label)}</button>`).join('')}</div>` : ''}
         <div class="th-sec">🎬 Kịch bản <small>1 lần bấm làm hết</small></div>
         <div class="th-scs">${SCENARIOS.map(s => `<button class="th-sc" data-th="sc" data-v="${s.id}"><span>${s.icon}</span><b>${esc(s.label)}</b><small>${esc(s.hint)}</small></button>`).join('')}</div>`;
-    const empty = query ? '<p class="th-empty">Không có lệnh nào khớp — thử gõ ít chữ hơn (không cần dấu)</p>' : '';
+    const empty = query ? '<p class="th-empty">Không có lệnh nào khớp — thử gõ ít chữ hơn (không cần dấu)</p>'
+        : '<p class="th-empty">Cần việc khác? Gõ vài chữ vào ô trên (không cần dấu): <b>ai 12</b> · <b>mo tuong</b> · <b>nhan do</b> · <b>quai cap 40</b> · <b>bat tu</b></p>';
     return `${top}${cat ? '' : '<p class="th-empty">Đang tải danh sách ải / nhân vật từ máy chủ…</p>'}
         <div class="th-list" role="listbox">${list || empty}</div>`;
 }
@@ -297,6 +333,7 @@ function onClick(e) {
         case 'sc': { const sc = SCENARIOS.find(s => s.id === v); return sc.ask ? openPick(v) : runScenario(v); }
         case 'pick': return runScenario(pick.scenario, v);
         case 'recent': return runRecent(v);
+        case 'quick': { const cmd = findCommand(v, cat ?? {}); return cmd ? runCommand(cmd) : flash('Đang tải danh sách từ máy chủ — bấm lại sau 1 giây', false); }
         case 'back': view = 'main'; pick = null; render(); return $('.th-in')?.focus();
         case 'resetNo': return armReset(false);
         case 'resetGo': armReset(false); flash('⏳ Đang xoá tiến trình…'); return socket.emit('debugReset');   // server trả debugResetDone -> tải lại trang (progressTool.js)
@@ -341,7 +378,7 @@ const syncAllowed = () => { const ok = allowed(); document.body.classList.toggle
 
 export function setupTestHub() {
     fab = document.createElement('button');
-    fab.id = 'th-fab'; fab.type = 'button'; fab.title = 'Tool thử (phím `)'; fab.setAttribute('aria-label', 'Mở tool thử');
+    fab.id = 'th-fab'; fab.type = 'button'; fab.title = 'Mở app Tool thử ở cửa sổ riêng (phím ` = bảng nhanh trong game)'; fab.setAttribute('aria-label', 'Mở tool thử');
     fab.textContent = '🧪';
     panel = document.createElement('aside');
     panel.id = 'th-panel'; panel.setAttribute('aria-label', 'Tool thử');
@@ -355,7 +392,8 @@ export function setupTestHub() {
     toastEl = document.createElement('div');
     toastEl.id = 'th-toast';
     document.body.append(fab, panel, toastEl);
-    fab.addEventListener('click', () => toggle());
+    fab.addEventListener('click', (e) => (e.shiftKey ? toggle() : openToolApp()));   // bấm = mở APP TOOL ở cửa sổ riêng · Shift + bấm hoặc phím ` = bảng trong game như cũ
+    setupBridge();
     panel.addEventListener('click', onClick);
     panel.querySelector('.th-in').addEventListener('input', onInput);
     // Bắt phím ở window (pha capture) và đăng ký SỚM (main.js gọi setupTestHub trước bảng chọn đội): đang gõ trong bảng thì

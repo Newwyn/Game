@@ -102,3 +102,10 @@ body.th-ok #th-toast { display: block; }
 @media (max-width: 480px) { #th-fab { top: auto; bottom: 150px; transform: none; } #th-fab:hover { transform: scale(1.08); }
     #th-panel { left: 8px; top: 6px; width: calc(100vw - 16px); max-height: calc(100vh - 12px); transform: translateY(-12px); }
     #th-panel.open { transform: none; } #th-toast { left: 8px; max-width: calc(100vw - 16px); } }
+
+/* hàng bấm nhanh (12/11/2026) */
+.th-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-bottom: 4px; }
+.th-qk { padding: 10px 8px; border-radius: 11px; cursor: pointer; font: 800 13px 'Outfit', sans-serif; color: #fef3c7; text-align: center;
+    background: linear-gradient(180deg, rgba(180, 83, 9, .55), rgba(120, 53, 15, .55)); border: 1.5px solid rgba(251, 191, 36, .6); }
+.th-qk:hover { border-color: #fde68a; filter: brightness(1.15); }
+.th-qk:active { transform: translateY(1px); }

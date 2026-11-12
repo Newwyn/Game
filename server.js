@@ -29,7 +29,14 @@ const PORT = process.env.npm_lifecycle_event === 'dev' ? 3000 : (process.env.POR
 // Client được Vite build vào dist/ (chạy `npm run build` hoặc `npm start`).
 // Khi phát triển, dùng `npm run dev` và mở http://localhost:5173 (Vite tự reload khi sửa code).
 const DIST_DIR = path.join(__dirname, 'dist');
-app.use(express.static(DIST_DIR));
+// (12/11/2026) file trong dist/assets có mã băm trong tên -> cho trình duyệt GIỮ 30 ngày, lần sau mở game không phải tải lại tranh.
+//   index.html thì luôn hỏi lại máy chủ để nhận bản mới.
+app.use(express.static(DIST_DIR, {
+    setHeaders(res, file) {
+        if (/[\\/]assets[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+        else res.setHeader('Cache-Control', 'no-cache');
+    },
+}));
 app.get('/', (req, res) => {
     res.status(503).send('Chưa có bản build client. Hãy chạy <code>npm start</code> (build + chạy) hoặc <code>npm run dev</code> rồi mở http://localhost:5173');
 });
@@ -1686,6 +1693,14 @@ io.on('connection', (socket) => {
             } catch { socket.emit('authResult', { ok: false, error: 'Không thể lưu tài khoản, hãy thử lại' }); }
         });
     }
+    /** Gửi lại mọi bảng (bảng ải, bản đồ, túi trang bị, bảng nhân vật) sau khi tool thử đổi dữ liệu -> người chơi thấy ngay, không cần tải lại trang */
+    const pushAllState = (pr) => {
+        socket.emit('campaignState', { ...campaignPayload(pr, socket.progressKey), quiet: true });   // quiet: chi cap nhat so lieu, KHONG tu mo bang ai
+        socket.emit('worldState', worldPayload(pr));
+        socket.emit('gearState', gearPayload(pr));
+        socket.emit('heroPanel', heroPanelPayload(pr));
+        socket.emit('progressUpdate', progressPayload(socket.progressKey));
+    };
     const debugEvents = new Set(['debugProgress', 'debugAccount', 'debugReset', 'debugCampaign', 'debugAction', 'debugEnemyAction', 'gearDebugGive', 'testTool', 'testCatalog']);
     socket.use(([event, data], next) => {
         if ((!TestTools.allowed(socket.lcServer) && debugEvents.has(event)) ||
@@ -1774,12 +1789,11 @@ io.on('connection', (socket) => {
     });
     // ---------- BẢNG TOOL TEST: chỉnh thẳng, không cần điều kiện ----------
     socket.on('debugProgress', (data = {}) => {
-        if (socket.lcServer !== 'test' && rooms[socket.roomId]?.mode && rooms[socket.roomId].mode !== 'test') return;   // ĐẤU: không có tool
+        if (!TestTools.allowed(socket.lcServer)) return;   // (12/11) Server test: dùng được ở mọi nơi kể cả giữa trận Cốt truyện (trước đây bị bỏ qua lặng lẽ)
         const pr = progressOf(socket.progressKey);
         const ids = data.classId === 'all' ? HERO_IDS() : [data.classId];
         for (const id of ids) {
-            const h = pr.heroes[id];
-            if (!h) continue;
+            const h = (pr.heroes[id] ??= { level: 1, rank: 0, exp: 0 });
             if (data.level != null) h.level = Math.max(1, Math.min(P.MAX_LEVEL, data.level | 0));
             if (data.addLevel) h.level = Math.max(1, Math.min(P.MAX_LEVEL, h.level + (data.addLevel | 0)));
             if (data.rank != null) h.rank = Math.max(0, Math.min(P.MAX_RANK, data.rank | 0));
@@ -1789,9 +1803,12 @@ io.on('connection', (socket) => {
             }
             h.exp = 0;
         }
-        if (data.giveItems) for (const [id, n] of Object.entries({ exp_small: 20, exp_big: 5, stone_s: 3, stone_ss: 3, stone_sss: 3 })) pr.items[id] = (pr.items[id] ?? 0) + n;
+        if (data.giveItems) for (const [id, n] of Object.entries({ exp_small: 20, exp_big: 5, exp_huge: 2, stone_s: 3, stone_ss: 3, stone_sss: 3 })) pr.items[id] = (pr.items[id] ?? 0) + n;
         if (data.clearItems) pr.items = {};
         afterProgress(data.classId === 'all' ? null : data.classId);
+        socket.emit('testToolResult', { ok: true, text: 'Đã cập nhật cấp / bậc' });
+        const rm = rooms[socket.roomId];
+        if (!(rm && rm.players?.[socket.id] && ['active', 'paused'].includes(rm.status))) pushAllState(pr);   // ngoài trận: các bảng thấy ngay
     });
     // Tool Test: mở khoá Cốt truyện tới ải N (đánh dấu đã qua mức Cốt truyện) + đặt cấp cả đội — để thử ải sau / giả lập cân bằng
     const debugAllowed = () => { const r = rooms[socket.roomId]; return socket.lcServer === 'test' || (socket.lcServer === 'guest' && (!r || r.mode === 'test' || r.status === 'menu')); };   // màn Test, hoặc đang ở màn chọn chế độ (không trong trận)
@@ -2302,11 +2319,11 @@ io.on('connection', (socket) => {
         socket.emit('testToolResult', result);
         // đang trong trận (bất tử, thắng / thua ngay...): không gửi lại bảng ải — bảng ải sẽ hiện đè lên trận / bảng kết quả
         const fighting = room && room.players[socket.id] && ['active', 'paused'].includes(room.status) || d.op === 'battleWin' || d.op === 'battleLose';
+        if (result.ok && fighting && ['maxTeam', 'heroes', 'hero'].includes(d.op)) afterProgress(null);   // đang đánh: áp ngay cấp / bậc mới lên nhân vật trong trận
         if (result.ok && !fighting) {
             const pr = progressOf(socket.progressKey);
             afterProgress(null);
-            socket.emit('campaignState', campaignPayload(pr, socket.progressKey));
-            socket.emit('worldState', worldPayload(pr));
+            pushAllState(pr);
             P.saveAll(PROGRESS);
         }
     });
@@ -2444,7 +2461,7 @@ io.on('connection', (socket) => {
     // Tool Test: nhận đồ thử (đủ bộ 4 món + nhẫn, dây chuyền) — chỉ ở chế độ Test
     socket.on('gearDebugGive', (data = {}) => {
         const room = rooms[socket.roomId];
-        if (socket.lcServer !== 'test' && room?.mode !== 'test') return;
+        if (!TestTools.allowed(socket.lcServer) && room?.mode !== 'test') return;   // (12/11) trước đây chỉ nhận 'test' -> vào bằng nút Server test (guest) ngoài trận thì bấm Nhận đồ không ra gì
         const pr = progressOf(socket.progressKey);
         const set = G.SETS[data.set] ? data.set : null;
         const level = G.LEVELS.includes(Number(data.level)) ? Number(data.level) : 10;
@@ -2463,6 +2480,8 @@ io.on('connection', (socket) => {
         P.saveAll(PROGRESS);
         socket.emit('progressMsg', { ok: n > 0, text: n ? `🎒 Nhận ${n} món${set ? ` bộ ${G.SETS[set].name}` : ''} cấp ${level} · +5 Đá Tinh Luyện · +3 Bùa · +200 Đá · +5000 Vàng · đã mở Trang bị + Lò rèn (Menu → Cốt truyện → 🎒)`
             : 'Túi đồ đã đầy (100 món)' });
+        socket.emit('testToolResult', { ok: n > 0, text: n ? `Đã nhận ${n} món đồ` : 'Túi đồ đã đầy (100 món)' });
+        pushAllState(pr);
     });
     socket.on('startStage', (data = {}) => {
         const room = rooms[socket.roomId];

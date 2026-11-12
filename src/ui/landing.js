@@ -7,6 +7,7 @@
 // ============================================================
 import { socket, enterServer } from '../net/socket.js';
 import { loadState } from './loading.js';
+const WAIT_ALL = new URLSearchParams(location.search).get('waitLoad') === '1';
 import '../styles/landing.css';
 
 const MAP = import.meta.glob('../assets/maps/capital.webp', { eager: true, import: 'default' });
@@ -190,12 +191,13 @@ socket.on('authExpired', () => { token = null; LS.set('loc.token', null); user =
 
 function finish(srv, who) {
     entering = null;
-    if (!loadState.done) {   // tranh chưa tải xong: đợi rồi vào
+    if (WAIT_ALL && !loadState.done) {   // (12/11/2026) mặc định KHÔNG chờ nữa: vào game ngay, tranh nhân vật tải tiếp ở nền. ?waitLoad=1 = chờ như cũ
         setBusy('Đang tải tranh, sắp xong…');
         const iv = setInterval(() => { render(); if (loadState.done) { clearInterval(iv); finish(srv, who); } }, 250);
         return;
     }
     server = srv;
+    document.getElementById('loading-screen')?.classList.add('mini');   // tranh còn tải dở: thu màn chờ thành dòng nhỏ ở góc, không chặn người chơi
     document.body.classList.toggle('srv-test', srv === 'test');
     document.body.classList.toggle('srv-main', srv !== 'test');
     busy = null;

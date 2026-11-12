@@ -5,6 +5,170 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 12/11/2026 (toi 2) — HANG MO toi nhu dem, sang nho den dau, co doi bay va da roi
+
+- Canh `mine` / `deepMine`: anh sang chung rat thap (`PAINT_PROFILE` + `hemi` / `ambient` theo canh trong `environment.js`); 5 ngon den dau la den diem that + quang sang + vung sang tren nen, lua chap chon; 7-16 giay mot dan doi 2-5 con bay ngang; 9-20 giay vai vien da roi tu tran, nay, boc bui (`paintMineLife` trong `src/world3d/paint.js`). Nhan vat va quai van sang ro (hinh khong an den).
+- Da xem tan mat: canh toi, vach am quanh den, cua ham + den treo + duong ray. CHUA bat duoc luc doi bay / da roi trong anh chup.
+- Dang cho: Codex dung bo do dac cho thanh (sap cho, dai phun nuoc, den duong, ghe, bon hoa, bien hieu, xe, thung, tuong, cau da / cau go...) de thanh Ashford chi tiet hon.
+- Y nguoi choi (ghi lai): tuong + quai + NPC giu hinh 2D; MOI thu khac (sinh vat, do vat, song suoi, duong di, cau, thanh) deu phai la 3D dep.
+
+---
+
+## 12/11/2026 (toi) — NEN CHIEN DAU HANG MO dung tu bo mo hinh Codex tu dung
+
+- Codex dung 10 mo hinh bang code (`tools/models/make_mine_kit.py`, ham dung chung `tools/models/meshkit.py`): 3 doan vach da (1 co mach quang, 1 co khung go), cua ham khung go (ben trong toi), xe goong, duong ray, khung chong treo den, cum pha le, hang nhu da, dong quang. 19.616 tam giac, 2,4 MB. Anh ghep canh: `Claude outputs/xem_truoc_hang_mo_codex.png`.
+- Canh `mine` / `deepMine` dung lai tu bo nay (`PAINTED.mine` trong `src/core/battleScene3d.js`), bo vach nui khoi cu. Hang sau co them pha le + nam sang + suong.
+- Da xem tan mat trong tran (`?scene=mine` -> Dau Tap): vach da, cua ham co den, xe goong cho pha le, thung go, duong ray — ra dang hang mo that. CHUA xem `deepMine`.
+- Muon bien the moi (mau da khac, vach khac): chay lai script voi so khac, khong ton luot Codex.
+- Commit ed9967b (da ghep). Ai lam: Codex (mo hinh) · Claude (xep canh, ghep, xem).
+
+---
+
+## 12/11/2026 (chieu muon) — THU CODEX DUNG MO HINH 3D: gieng lang trung co
+
+- Codex (chay tren may nay, khong co Blender) dung mo hinh bang code Python: `tools/models/make_well.py` -> `src/assets/world3d/custom/well.glb` (5.328 tam giac, 640 KB, mau to theo dinh, khong can hinh dan). Co anh xem truoc: `Claude outputs/xem_truoc_gieng_codex.png`. Co san cac ham dung hinh (hop, tru, vong da, mai) de lam tiep mon khac.
+- `BUILD.well` gio dung mo hinh nay (thay gieng khoi cu) o ban do va canh chien dau.
+- Da xem: anh xem truoc (thanh da xep, cot go, truc quay, xo, mai ngoi — on). CHUA nhin thay cai gieng trong game (luc chup bi che); canh lang trong tran thi da xem, nha moi dep.
+- Commit 502a6fc (da ghep vao main). Ai lam: Codex (mo hinh) · Claude (giao viec, ghep).
+
+---
+
+## 12/11/2026 (khuya 7) — TOOL THU thanh APP RIENG (tool.html), chia the theo chuc nang
+
+- Nguoi choi muon: game la ung dung chinh, tool la ung dung ho tro dung rieng, chia theo chuc nang. Lam trang `tool.html` (`src/tool/main.js`, `src/tool/tool.css`): 6 the — Nhanh · Nhan vat (chon Ca doi / tung tuong) · Ban do & Ai (dich chuyen, nhay ai theo so, cap tai khoan) · Trong tran · Do & tien · Kich ban; co o tim lenh; dong trang thai "da noi voi game / dang o dau".
+- Cach noi: app tool KHONG tu noi voi may chu, no gui lenh sang cua so GAME dang mo (cung trinh duyet) qua BroadcastChannel `loc-tool`; game chay bang dung bo may cua bang tool cu (`setupBridge` trong `src/ui/testHub.js`) -> hai noi luon cho cung ket qua, khong phai sua may chu.
+- Nut but chi trong game: bam = mo app tool o cua so rieng; Shift + bam hoac phim ` = bang nhanh trong game nhu cu.
+- Ban dong goi co ca 2 trang (`vite.config.mjs`: index.html + tool.html).
+- Da bam thu that: mo game o 1 the, mo tool.html o the khac -> hien "Da noi voi game · Dang o ban do"; bam "Ca doi Lv60 SSS" trong app tool -> bao thanh cong; xem the Nhan vat, Ban do & Ai. CHUA thu: nut but chi mo cua so moi, cac the Trong tran / Do & tien / Kich ban, va dung khi game dang trong tran.
+- Gioi han: game va tool phai mo trong CUNG mot trinh duyet tren cung may.
+
+---
+
+## 12/11/2026 (khuya 6) — TOOL THU gon lai: hang BAM NHANH, "Ca doi Lv60 SSS" bam 1 lan o bat cu dau
+
+- Dau bang tool co hang 6 nut to: Ca doi Lv60 SSS · Nhan do cam Lv60 · Vang + Kim Cuong · Thang ngay · Du moi tuong · Choi lai tu dau (`QUICK` trong `src/ui/testHubCore.mjs`).
+- "Ca doi Lv60 SSS" (lenh `maxTeam` trong `game/testTools.js`): du moi tuong + tat ca cap 60 bac SSS, dung o ban do, bang ai va giua tran (giua tran ap ngay len nhan vat dang danh), khong nhay man hinh.
+- Chua go gi thi bang KHONG do ca ~270 lenh ra nua, chi con hang bam nhanh + vua dung + kich ban; muon lenh khac thi go vai chu.
+- Sua 2 loi cu cua lenh "Ca doi cap N": vao bang Server test ma dang trong tran Cot truyen thi lenh bi bo qua; tuong chua tung dung thi khong duoc len cap.
+- Da bam thu that: dung o ban do, bam "Ca doi Lv60 SSS" -> bao thanh cong, mo bang Nhan vat thay du 11 tuong Lv60 SSS, van o ban do. CHUA bam thu giua tran.
+- 186 bai kiem tra dat.
+
+---
+
+## 12/11/2026 (khuya 5) — VAO GAME NHANH (khong cho tai het tranh) + nhe may ma khong giam hinh
+
+- Truoc: mo game phai cho tai + day len card do hoa toan bo tranh nhan vat / hieu ung (~150 MB) roi moi vao duoc (30-40 giay o che do phat trien). Gio bam vao la vao ngay; tranh tai tiep o nen, co dong nho "dang tai" o goc duoi phai. `?waitLoad=1` = cho nhu cu. (`src/ui/landing.js`, `src/styles/index.css`)
+- May chu (ban build, `npm start`): file trong `dist/assets` duoc trinh duyet giu 30 ngay -> lan sau mo khong phai tai lai tranh. (`server.js`)
+- Nhe may, hinh khong doi: co / hoa / tan cay chia theo khoanh, khoanh ngoai man hinh khong phai ve; lop net co giam so lan lay mau (25 -> 9 moi goc). (`src/world3d/paint.js`)
+- Da bam thu: mo trang, 3 giay sau bam Server test -> Cot truyen, khoang 9 giay la dung trong ban do (truoc ~35-40 giay). Chua do so khung hinh / giay truoc - sau.
+- Luu y: neu vao tran trong vai giay dau, hinh nhan vat co the hien cham mot nhip vi tranh chua tai xong.
+- 186 bai kiem tra dat. Ai lam: Claude.
+
+---
+
+## 12/11/2026 (khuya 4) — DUNG LAI canh lau dai / trong nha · quai chuong 2 het di nguoc · xem nhanh mot canh
+
+- Nguoi choi gui anh ai 20 (dinh thap) che xau: toi xanh, tuong thap, cot den + co kieu khoi lan vao, khoi trang to o goc. Dung lai HAN 8 canh bang bo KayKit Dungeon + thap bo Village (`PAINTED` trong `src/core/battleScene3d.js`): dinh thap, sanh, thu vien (ai "So luong thuc"), ham mo, cong thanh, san lau dai, cau, tuong luy. Khong con mon nao cua bo khoi cu trong 8 canh nay.
+- Mau nen / troi / den cua canh trong nha doi sang am (`PAINT_PROFILE` trong `environment.js`); nhu da + pha le chi con o hang mo.
+- Loi tat xem nhanh: them `?scene=<ten>` vao dia chi (tower, hall, library, crypt, gate, castle, bridge, battlement, mine, village...) roi vao Dau Tap -> moi tran dung canh do.
+- Quai chuong 2 di nguoc: tranh 10 con (c2cultist, c2guard, c2scout, c2shroom, c2spiritwolf, c2treant, c2wisp, malkor, thalor, hollow) ve quay trai, game quy uoc tranh quay phai. Da lat tranh bang `tools/flip_enemy_art.py` (co danh dau `flipped` de khong lat 2 lan).
+- Da xem tan mat: dinh thap (tuong da cao, cua go lon, khien kiem, duoc — am han), cong thanh (tuong da + cong go lon, nen da lat). CHUA xem: sanh, thu vien, ham mo, san lau dai, cau, tuong luy, va quai chuong 2 trong tran sau khi lat.
+- 186 bai kiem tra dat. Ai lam: Claude.
+
+---
+
+## 12/11/2026 (khuya 3) — NHA "CO NGUOI O" + ap bo mo hinh moi cho cac canh con lai va ban do
+
+- Nha bo Lang Trung Co het ve hoang tan: canh cua go + khung cua, khung cua so co kinh + canh chop mo, day leo tren tuong, khoi bep, long nha toi am (khong con nhin xuyen qua cua so ra troi).
+- `BUILD.house` (nha khoi cu) gio tu doi sang nha bo moi va co gian cho khit khung cu (`vhouseFit`) -> ap cho MOI nha dat tay: ban do (lang Ashford, kinh thanh...) va canh chien dau.
+- Canh chien dau: tuong thanh -> tuong da bo ham nguc (`dwall`, moi huong); thap -> thap da mai ngoi (`vtower`).
+- Da xem tan mat: lang Ashford tren ban do (nha khung go, mai ngoi that), tran ai 1 (nha co cua so, cua). CHUA xem: canh co tuong thanh / thap (cong thanh, lau dai, cau, tuong luy), ham mo, sanh, cac vung ban do khac.
+- Biet con chua on: mai nha tren ban do kha to (che bot loi di, da co vung mo quanh nguoi); gieng cu o ai 1 dung sat nha giua.
+- 186 bai kiem tra dat. Ai lam: Claude.
+
+---
+
+## 12/11/2026 (khuya 2) — BO MO HINH MOI cho canh chien dau: nha lang trung co + ham nguc (CC0)
+
+- Tai 3 bo mien phi giay phep CC0 (dung thuong mai duoc, khong can ghi ten): Quaternius Medieval Village MegaKit, Quaternius Stylized Nature MegaKit, KayKit Dungeon Remastered. Dong goi 82 mo hinh (~8 MB) bang `tools/pack_kits.py` vao `src/assets/world3d/{village,qnature,dungeon}`; ghi nguon trong `src/assets/world3d/LICENSE.txt`.
+- `BUILD.vhouse` (build.js): nha ghep tu mang tuong trat voi khung go / tuong da, cua vom, cua so vom, mai ngoi ong, dau hoi, ong khoi. Moi canh chien dau co day nha (lang, gieng lang, quang truong, cho) gio dung nha nay.
+- `BUILD.dwall` + `dprops` (ham mo, sanh lau dai, mo): tuong da ham nguc co cua vom, song sat, tru da, duoc, co; thung ruou, ruong, da vun doc chan tuong.
+- Da xem tan mat: tran ai 1 (nha moi: tuong voi, da op goc, cua so vom, mai ngoi). CHUA xem: tuong ham nguc o ham mo / sanh, do dac ham nguc trong mo, cac canh quang truong / cho.
+- Chua lam: dung bo nay cho nha tren BAN DO (thanh Ashford) — moi ap cho canh chien dau.
+- 186 bai kiem tra dat.
+
+---
+
+## 12/11/2026 (khuya) — TOOL THU: "Nhan do thu" nhan duoc ngay, khong can tai lai
+
+- Loi: vao bang nut Server test roi bam "Nhan do thu" o ngoai tran thi may chu lang le bo qua (chi nhan khi dang nhap admin hoac dang trong Dau Tap). Da sua cong chan trong `server.js` (`gearDebugGive`).
+- Nhan do / doi du lieu bang tool thu xong, may chu gui lai moi bang (tui trang bi, bang nhan vat, bang ai, ban do) qua `pushAllState` -> thay ngay. Bang ai khong tu bat len che man hinh dang dung (`quiet` trong `campaignState`).
+- Da bam thu that: dung o ban do, mo tui do, bam "Nhan do thu" -> do hien ngay, van o ban do. 186 bai kiem tra dat.
+
+---
+
+## 12/11/2026 (đêm) — NGÀY / ĐÊM · HẦM NGỤC, HANG · NỀN + TRỜI CẢNH CHIẾN ĐẤU · HOA DẠI, HẠT BAY · ĐỒ ĐẠC PHỐ CỔ · THÊM THÚ NHỎ
+
+- **Ngày / đêm trên bản đồ**: một ngày trong game = 24 phút thật (sáng, trưa, chiều vàng, hoàng hôn, đêm, rạng sáng). Ban đêm cảnh ngả xanh tối, đèn lồng có quầng sáng. Xem thử từng giờ: `?hour=noon | gold | sunset | night | dawn`, tắt: `?hour=off`. Code: `dayAt()` trong `src/world3d/view.js`, `setNight()` trong `build.js`.
+- **Hầm ngục / hang trong trận** (mỏ, mỏ sâu, sảnh, thư viện, hầm mộ, tháp, phế tích, suối trăng): luồng sáng rọi chéo, bụi sáng lơ lửng, quầng lửa đuốc, nhũ đá, cụm pha lê phát sáng; nền không còn đen kịt (`paintDungeon` trong `paint.js`).
+- **Cảnh chiến đấu ngoài trời**: nền sân vẽ bằng vệt cọ / đá lát / ván (`paintedGround` trong `environment.js`), nền trời chuyển màu + mây, hạt bay.
+- **Hoa dại** mọc thành đám trong cỏ (trắng, vàng, hồng, tím); **hạt bồ công anh** bay quanh nhân vật.
+- **Đồ đạc phố cổ**: thùng gỗ, thùng rượu, đèn lồng, bồn cây, xe kéo tự đặt ở các ô bị chặn sát đường (không chắn lối).
+- **Thú nhỏ**: mỗi vùng thêm vài con cùng loài của vùng đó, rải ở ô cỏ.
+- Đã xem tận mắt: ban đêm ở làng Ashford (có quầng đèn), hang mỏ ải 4 (pha lê, măng đá, quầng đuốc), làng ban ngày có hoa. CHƯA xem: nền trời + mây trong trận ngoài trời, nước, thông vẽ tay, đồ đạc phố cổ, thú thêm, đá lát ở kinh thành, 6 vùng khác, máy yếu.
+- Chưa làm: soát từng vật cản đi xuyên được / vật không hợp thời; viền nét mực quanh nhân vật (của Painted Valley, chỉ hợp nhân vật 3D).
+- 186 bài kiểm tra tự động đạt. Ai làm: Claude.
+
+---
+
+## 12/11/2026 (tối) — MỘT NÉT VẼ CHO MỌI LOẠI CÂY · CÂY TÁO · ĐÁ LÁT · NƯỚC · TÀI NGUYÊN THEO CỤM, 3 NGÀY HỒI LẠI
+
+- **Cây**: mọi mô hình cây cũ (kể cả thông, cây trong cảnh chiến đấu, cây đặt tay trong làng) đều đổi sang cây vẽ tay; vẫn nhiều loại (tán tròn, thông xếp tầng, cây tối màu, cây lá vàng, cây táo) nhưng cùng một nét. Đổi ở một chỗ: `Batch.put` trong `src/world3d/build.js`.
+- **Cây táo / cây sồi hái được** giờ là cây vẽ tay có quả đỏ (hình 2D cũ được ẩn); lác đác có thêm cây táo trang trí mọc lẫn trong rừng.
+- **Đá lát kiểu phố cổ châu Âu** cho mọi mặt nền màu đá (viên so le, mạch vữa, mỗi viên một tông); đường đất có sỏi nhỏ.
+- **Nước**: hai tông lam nông / sâu, vệt sáng trôi, lấp lánh, viền bọt sát bờ (`paintWater`). CHƯA xem tận mắt.
+- **Đồ trang trí trên ô đi được**: bỏ bụi cây nhỏ / cây thấp trông như vật cản; đá trên đường ít hơn và nhỏ hơn.
+- **Tài nguyên** (Codex làm): 25 -> 73 điểm hái, xếp theo cụm (vườn táo, mạch đồng, mạch sắt, vòng nấm, bụi quả mọng, luống rau thơm, đống củi...), hái xong 72 giờ thật mới mọc lại; save cũ không lỗi; câu cá giữ nguyên theo ngày. Bảng cụm: xem commit 2fd1379.
+- Đã xem tận mắt: làng Ashford (cây táo, mái ngói), trận Đấu Tập ở đồng cỏ (cây, cỏ, nền xanh). CHƯA xem: thông vẽ tay, nước, đá lát ở kinh thành, các điểm tài nguyên mới, hầm ngục / hang.
+- Còn nợ: thành Ashford thêm chi tiết (đồ đạc phố cổ), thú nhỏ, soát vật cản đi xuyên được + vật không hợp thời, hầm ngục / hang, nền + trời cảnh chiến đấu.
+- 186 bài kiểm tra tự động đạt. Ai làm: Claude (đồ hoạ) · Codex (tài nguyên).
+
+---
+
+## 12/11/2026 (chiều) — ĐỒ HOẠ KIỂU "TRANH VẼ TAY" cho bản đồ + cảnh chiến đấu (BẬT sẵn, `?paint=0` xem kiểu cũ)
+
+Học cách làm từ game mã mở Painted Valley của @blendi (mã MIT), viết lại cho game mình trong `src/world3d/paint.js`. Người chơi đã xem và khen đẹp.
+
+- **Tán cây**: cây tự mọc thành tán nhiều cụm lá, phía nắng xanh vàng, phía khuất xanh lam, lá rung theo gió.
+- **Cỏ**: ô cỏ mọc ngọn cỏ dày, gốc đậm ngọn sáng; trong trận cỏ nhỏ hơn và thưa ở giữa sân.
+- **Nhà cửa**: mái có từng hàng ngói so le, tường gỗ có ván dọc, tường đá có hàng đá, có vệt ố cũ (vẽ bằng code trong `assets.js`, áp cho bộ nhà, lâu đài, nghĩa địa và các khối tự dựng như tháp, tường thành).
+- **Màu**: gom về ít tông, chỗ khuất ngả lam. Lớp nét cọ phủ lên bản đồ, chừa nhân vật.
+- **Mây**: vài đám mây trôi trên bản đồ (tự mờ khi tới gần nhân vật); cảnh chiến đấu ngoài trời có mây tích phía sau.
+- **Vòng mờ quanh người**: bỏ viền sáng, giờ là vùng tròn mờ dịu, giữa còn 50%, ra mép tan dần.
+- **Bảng ải / bảng việc hôm nay** đứng yên, không nhấp nhô nữa.
+- Đã xem tận mắt: làng Ashford (khu cổng đông), trận ải 1. CHƯA xem: 6 vùng còn lại, các cảnh hầm ngục / hang mỏ / lâu đài trong trận, máy yếu có giật không.
+- Còn nợ: làm đẹp riêng cho hầm ngục và hang; nền đất + bầu trời của cảnh chiến đấu; cây đặt tay trong làng.
+- Ai làm: Claude.
+
+---
+
+## 12/11/2026 — THƯỞNG CHÍNH TUYẾN 3 MỨC · BÌNH EXP SIÊU LỚN · VÒNG TRÒN MỜ QUANH NGƯỜI · MỞ TỪNG TƯỚNG TRONG TOOL THỬ
+
+- **Thưởng chính tuyến chia 3 mức** (thay cho "mỗi bước +20 Kim Cương"), số nằm ở `MAIN_TIERS` trong `game/questData1.js`:
+  - Bước NHỎ (35 bước): 150 Vàng + 1 Bình EXP nhỏ. Không có Kim Cương.
+  - Bước TRUNG BÌNH (8 bước, là bước cuối của ải 2, 5, 7, 8, 12, 14, 17, 18): 500 Vàng + 30 Kim Cương + 1 Bình EXP lớn.
+  - Bước QUAN TRỌNG (3 bước, cuối ải 10 Skarn, ải 15 Morwen, ải 20 kết chương): 1.500 Vàng + 100 Kim Cương + 1 Bình EXP siêu lớn.
+  - Cả chương: 540 Kim Cương từ chính tuyến (trước là 920), chưa kể 50 / 100 / 150 mỗi ải.
+- **Bình EXP siêu lớn** (mới, màu tím): +25.000 EXP, chỉ có từ bước quan trọng, không bán. Bình nhỏ 500 và bình lớn 5.000 giữ nguyên. Dùng ở bảng Nhân vật.
+- **Báo xong mới cộng**: Vàng và Kim Cương trên thanh đầu bản đồ chỉ nhảy số lúc dòng báo thưởng hiện lên (số nảy nhẹ). Dòng báo cách nhau 1,4 giây cho dễ đọc.
+- **Vòng tròn quanh người**: vật che nhân vật giờ mờ 50% trong MỘT hình tròn gọn quanh người, có viền sáng mảnh (trước là vùng mờ loang). `?seeThrough=off` để tắt.
+- **Tool thử**: gõ "mở tướng" ra lệnh mở TỪNG tướng (11 tướng), "cất tướng" để bỏ lại; "Có đủ mọi anh hùng" vẫn còn. Đã có tướng mà ải tặng nữa thì không có gì xảy ra (đã bấm thử với Jessica ở ải 2).
+- Đã bấm thử thật: ải 1 + 2, về báo Bà Mira (dòng báo "+500 Vàng · +30 Kim Cương · +1 Bình EXP lớn", số cộng đúng lúc báo), mở Jessica + Lyra, vòng tròn ở làng Ashford và Ngoại ô. 183 bài kiểm tra tự động đạt.
+- Chưa bấm thử: bước quan trọng (ải 10) và dùng Bình siêu lớn trên một tướng.
+- Ai làm: Claude.
+
+---
+
 ## 11/11/2026 — ĐỢT LỚN: BẢN ĐỒ SỐNG ĐỘNG · NHẢY · NHIỆM VỤ KIỂU MMO · SÂN ĐẤU 3D · LỜI THOẠI VIẾT LẠI · TOOL THỬ MỘT BẢNG
 
 **Bản đồ thế giới**

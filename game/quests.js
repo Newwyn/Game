@@ -13,7 +13,8 @@ const A = require('./account');
 const QUESTS = QD.QUESTS;
 const BY_ID = Object.fromEntries(QUESTS.map(q => [q.id, q]));
 const DAILY = QD.DAILY;
-const MAIN_REWARD = QD.MAIN_REWARD;
+const MAIN_TIERS = QD.MAIN_TIERS;
+const mainReward = (st) => MAIN_TIERS[st?.tier] ?? MAIN_TIERS.small;
 let MAIN = [];                      // các bước chính tuyến (game/world.js nạp bằng setMain)
 let locate = () => null;            // id NPC / vật -> { scene, kind, id } (game/world.js nạp bằng setLocator)
 const setMain = (steps) => { MAIN = steps; };
@@ -155,7 +156,7 @@ function start(pr, q) {
 
 // ---------- thưởng ----------
 const REWARD_NAME = { gold: 'Vàng', diamond: 'Kim Cương', stone: 'Đá Cường Hoá' };
-const ITEM_NAME = { exp_small: 'Bình EXP nhỏ', exp_big: 'Bình EXP lớn', refine_stone: 'Đá Tinh Luyện', luck_charm: 'Bùa May Mắn' };
+const ITEM_NAME = { exp_small: 'Bình EXP nhỏ', exp_big: 'Bình EXP lớn', exp_huge: 'Bình EXP siêu lớn', refine_stone: 'Đá Tinh Luyện', luck_charm: 'Bùa May Mắn' };
 function rewardText(r = {}) {
     const out = [];
     for (const k of Object.keys(REWARD_NAME)) if (r[k]) out.push(`+${r[k]} ${REWARD_NAME[k]}`);
@@ -217,8 +218,9 @@ function advanceMain(pr, wallet) {
     while (w.main < MAIN.length && mainDone(pr, MAIN[w.main])) {
         const st = MAIN[w.main];
         w.main++;                                   // tăng chỉ số trước -> mỗi bước chỉ trả 1 lần
-        W.add(wallet, 'diamond', MAIN_REWARD);
-        note(pr, `⭐ Chính tuyến: ${st.text} · +${MAIN_REWARD} Kim Cương`, 'main');
+        const r = mainReward(st);                   // nhỏ: bình EXP nhỏ + vàng · trung bình: + Kim Cương · quan trọng: bình siêu lớn
+        grant(pr, wallet, r);
+        note(pr, `${st.tier === 'big' ? '🌟' : '⭐'} Chính tuyến: ${st.text} · ${rewardText(r)}`, 'main');
         n++;
     }
     return n;
@@ -468,9 +470,9 @@ function log(pr, now = Date.now(), npcName = (id) => id) {
     const i = Math.min(pr.world?.main ?? 0, MAIN.length);
     return { list, daily: dailyState(pr, now),
         hidden: { found: hidden.filter(q => stateOf(pr, q.id)).length, total: hidden.length },
-        main: { i, total: MAIN.length, reward: MAIN_REWARD, text: MAIN[i]?.text ?? null, last: MAIN[i - 1]?.text ?? null },
+        main: { i, total: MAIN.length, reward: MAIN[i] ? rewardText(mainReward(MAIN[i])) : null, tier: MAIN[i]?.tier ?? 'small', text: MAIN[i]?.text ?? null, last: MAIN[i - 1]?.text ?? null },
         titles: [...(pr.titles ?? [])] };
 }
 
-module.exports = { QUESTS, BY_ID, DAILY, MAIN_REWARD, setMain, setLocator, mainList: () => MAIN, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
+module.exports = { QUESTS, BY_ID, DAILY, MAIN_TIERS, setMain, setLocator, mainList: () => MAIN, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
     markOf, needed, objState, wantsItem, resetMain, takeNotes, note, dayKey, pickDaily, ensureDaily, dailyState, dailyEvent, log, rewardText, grant };

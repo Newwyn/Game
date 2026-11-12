@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { GROUND_Y } from '../config.js';
 import { uTime, uSeeThrough } from '../world3d/assets.js';
 import { buildProps } from '../world3d/build.js';
+import { PAINT, paintGrass, paintBackClouds, paintBackSky, paintSeeds, paintDungeon, paintMineLife } from '../world3d/paint.js';
 
 export const BG3D = typeof location === 'undefined' || new URLSearchParams(location.search).get('bg3d') !== '0';
 const S = 2.6;   // 1 ô bản đồ = 2,6 đơn vị trận đấu (nhân vật trận cao ~2,9 = ~1,1 ô như trên bản đồ)
@@ -78,13 +79,119 @@ function scene(seedNo) {
         },
         /** Dãy nhà dân sau sân */
         houses(z0 = -11, { xs = [-17, -10, -3, 5, 12], roofs = ['red', 'brown', 'red', 'brown', 'blue'], wall = 'wood', d = 3.6, h = 2.0 } = {}) {
+            if (PAINT) {   // (12/11/2026) nhà bộ Làng Trung Cổ: tường trát vôi khung gỗ / tường đá, mái ngói ống — thay cho nhà khối cũ
+                const kinds = [[2, 3, 1, 'plaster'], [2, 2, 0, 'brick'], [3, 4, 1, 'plaster'], [2, 3, 0, 'brick'], [2, 3, 1, 'plaster'], [2, 2, 0, 'plaster']];
+                xs.forEach((x, i) => { const [w, dd, turn, wl] = kinds[i % kinds.length]; put('vhouse', { x: x + 2.4, z: z0 + 1.4 + (R() - 0.5) * 0.6, w, d: dd, turn, wall: wall === 'plaster' && wl === 'brick' ? 'plaster' : wl }); });
+                // đồ đạc phố cổ (bộ Codex) rải dọc chân dãy nhà: xe hàng, thùng, bao, bồn hoa, ghế, đèn, dây cờ giăng ngang
+                const T2 = 'custom/town_', zf = z0 + 4.4;
+                model(T2 + 'cart_goods', xs[0] + 6.2, zf, 0.66, 1.3); model(T2 + 'cart_hay', xs[xs.length - 1] + 6.4, zf + 0.2, 0.66, -1.0);
+                [['barrels', -19.5], ['crates', -13.2], ['sacks', -6.4], ['planter_a', -1.5], ['bench', 2.6], ['planter_b', 6.5], ['woodpile', 11.4], ['haybale', 15.6], ['flowerpots', 19.4]]
+                    .forEach(([n, x], i) => model(T2 + n, x + (R() - 0.5), zf - 0.2 + (i % 2) * 0.5, 0.66, n === 'bench' || n.startsWith('planter') ? 0 : R() * 6));
+                for (const x of [-16, -5.5, 5.5, 16]) model(T2 + 'lamp_post', x, zf + 0.7, 0.7, 0);
+                for (const x of [-12, 0, 12]) model(T2 + 'bunting', x, z0 + 3.2, 1.3, 0, 0.6);
+                return;
+            }
             xs.forEach((x, i) => { const w = 4 + R() * 1.6; put('house', { x0: x, z0: z0 + (R() - 0.5), x1: x + w, z1: z0 + d, door: x + w / 2, roof: roofs[i % roofs.length], wall: i % 3 === 2 ? 'stone' : wall, h: h + R() * 0.4 }); });
         },
         lamps(z = -6.2, xs = [-15, -7.5, 0, 7.5, 15]) { xs.forEach(x => put('lamp', x, z)); },
+        /** Đồ đạc hầm ngục (KayKit): thùng rượu, thùng gỗ, rương, đống đá vụn, giá đuốc, bàn dài — rải dọc chân tường sau */
+        dprops(z = -7, cave = false) {
+            const D = 'dungeon/', sc = 0.62;
+            const sets = [['barrel_large', 'barrel_small_stack'], ['crates_stacked', 'box_stacked'], ['chest'], ['rubble_half'], ['torch_lit'], ['keg_decorated', 'barrel_large'], ['trunk_large_A'], ['table_long_decorated_A']];
+            for (let x = -20, i = 0; x <= 20; x += 4.6 + R() * 1.6, i++) {
+                if (Math.abs(x) < 3) continue;
+                const set = sets[(i * 5 + (cave ? 3 : 0)) % sets.length];
+                set.forEach((n, k) => model(D + n, x + k * 1.25, z - R() * 0.5 + k * 0.2, sc * (n === 'rubble_half' ? 0.8 : 1), (R() - 0.5) * 0.8 + (n === 'chest' ? 0 : 0)));
+            }
+            if (cave) { model(D + 'rubble_large', -15, z - 1.2, 0.7, 0.2); model(D + 'rubble_large', 16, z - 1.4, 0.7, 3.3); }
+        },
         banners(z, xs, colors = [RED]) { xs.forEach((x, i) => put('banner', x, z, colors[i % colors.length])); },
     };
     return api;
 }
+
+// ============================================================
+// (12/11/2026) CẢNH LÂU ĐÀI / TRONG NHÀ DỰNG LẠI bằng bộ KayKit Dungeon (tường đá cao, trụ, đuốc, cờ, bàn tiệc, kệ sách) + tháp mái ngói bộ Village.
+//   Người chơi chê bản cũ: tối xanh, tường thấp, cột đèn + cờ kiểu khối lẫn vào. Ở đây KHÔNG dùng món nào của bộ khối cũ.
+// ============================================================
+const D = 'dungeon/';
+const pillars = (c, z, xs, sc = 1.0, name = 'pillar_decorated') => xs.forEach(x => c.model(D + name, x, z, sc, 0));
+const braziers = (c, z, xs, sc = 0.9) => xs.forEach(x => c.model(D + 'torch_lit', x, z, sc, 0));
+const PAINTED = {
+    /** HANG MỎ (12/11/2026): bộ mô hình Codex dựng bằng code (tools/models/make_mine_kit.py) — vách đá, cửa hầm khung gỗ, đường ray, xe goòng, khung chống, pha lê, nhũ đá */
+    mine(c, deep) {
+        const C = 'custom/', Z = -8.2;
+        const walls = ['mine_wall_c', 'mine_wall_a', 'mine_wall_c', 'mine_wall_b', 'mine_entrance', 'mine_wall_a', 'mine_wall_b', 'mine_wall_c', 'mine_wall_a'];
+        walls.forEach((n, i) => { const x = (i - 4) * 6; c.model(C + n, x, Z, 1, 0); c.model(C + 'mine_stalactites', x, Z + 0.96, 1, 0); });
+        for (const x of [-4, 0, 4]) c.model(C + 'mine_rails', x, Z + 2.35, 1, 0);
+        c.model(C + 'mine_cart', -2.6, Z + 2.35, 1, 0, 0.12);
+        for (const x of [-17, -10, 10, 17]) c.model(C + 'mine_support', x, Z + 1.5, 1, 0);   // khung chống có đèn dầu treo -> 4 vũng sáng + đèn ở cửa hầm
+        c.mineLamps = [[-16.5, 2.75, Z + 1.85], [-9.5, 2.75, Z + 1.85], [0, 3.1, Z + 1.7], [10.5, 2.75, Z + 1.85], [17.5, 2.75, Z + 1.85]];
+        c.mineDeep = !!deep;
+        c.model(C + 'mine_crystals', -14, Z + 1.5, 1, -0.26); c.model(C + 'mine_crystals', 7.2, Z + 1.5, 1, 0.35);
+        c.model(C + 'mine_orepile', 3.1, Z + 1.35, 1, -0.2); c.model(C + 'mine_orepile', -7.3, Z + 1.55, 1, 0.26);
+        c.model('dungeon/barrel_large', 16, Z + 1.6, 0.6, 0.4); c.model('dungeon/crates_stacked', -18, Z + 1.6, 0.6, -0.3);
+        if (deep) { for (const x of [-20, -3.5, 13, 20]) c.model(C + 'mine_crystals', x, Z + 1.7, 1.25, c.R() * 6); c.put('glowShroom', -6, -6.3, 2.2); c.put('glowShroom', 12, -6.2, 2.2); c.put('mist', 0, -6.2, 7); }
+    },
+    /** Đỉnh tháp — nơi đấu Đại tướng Valdric: sảnh đá cao, cổng vòm lớn giữa, hàng trụ chạm, cờ đỏ, lửa đuốc */
+    tower(c) {
+        c.put('dwall', [-29, -8.4], [29, -8.4], { s: 1.45, banners: ['banner_patternA_red', 'banner_shield_blue', 'banner_patternA_red'] });
+        pillars(c, -6.6, [-21, -14, -7, 7, 14, 21], 1.05);
+        braziers(c, -5.9, [-17.5, -10.5, -3.5, 3.5, 10.5, 17.5]);
+        c.model(D + 'sword_shield', -3.4, -7.3, 1.2, 0, 2.2); c.model(D + 'sword_shield', 3.4, -7.3, 1.2, 0, 2.2);
+        c.model(D + 'chest_gold', -23.5, -6.4, 0.9, 0.4); c.model(D + 'trunk_large_A', 23.5, -6.4, 0.9, -0.4);
+    },
+    /** Sảnh lâu đài: tường cao treo cờ, bàn tiệc dài, hàng trụ */
+    hall(c) {
+        c.put('dwall', [-29, -9], [29, -9], { s: 1.4 });
+        pillars(c, -7.2, [-20, -10, 10, 20], 1.0);
+        for (const x of [-15, -5, 5, 15]) c.model(D + 'table_long_decorated_A', x, -6.5, 0.8, Math.PI / 2);
+        braziers(c, -5.9, [-22, -10, 0, 10, 22]); c.model(D + 'keg_decorated', -24, -6.6, 0.8, 0.5); c.model(D + 'barrel_small_stack', 24, -6.6, 0.8, -0.5);
+    },
+    /** Thư viện: tường kệ sách, bàn dài, kệ đứng */
+    library(c) {
+        c.put('dwall', [-29, -8.8], [29, -8.8], { s: 1.3, shelves: true, banners: ['banner_shield_blue', 'banner_triple_green'] });
+        for (const x of [-20, -12, 12, 20]) c.model(D + 'shelf_large', x, -6.9, 0.9, 0);
+        c.model(D + 'table_long_decorated_A', -5, -6.4, 0.8, Math.PI / 2); c.model(D + 'table_long_decorated_A', 5, -6.4, 0.8, Math.PI / 2);
+        braziers(c, -5.9, [-16, 0, 16]); pillars(c, -7.3, [-25, 25], 0.95, 'pillar');
+    },
+    /** Hầm mộ: tường đá song sắt, cột đá, rương, đá vụn, sương */
+    crypt(c) {
+        c.put('dwall', [-29, -9.2], [29, -9.2], { s: 1.25, banners: ['banner_shield_blue'] });
+        pillars(c, -7.2, [-18, -9, 9, 18], 0.95, 'pillar');
+        c.dprops(-6.5); c.model(D + 'rubble_large', -22, -7.6, 0.6, 0.3); c.model(D + 'rubble_large', 22, -7.8, 0.6, 3.4);
+        c.edge({ grave: 0.8, stone: 0.2 }, { step: 2.6, z: -6.0 }); c.put('mist', -8, -6.2, 6); c.put('mist', 8, -6.4, 6);
+    },
+    /** Cổng thành: tường thành đá cao, cổng vòm giữa, 4 tháp mái ngói, cờ, thùng hàng */
+    gate(c) {
+        c.put('dwall', [-29, -8.8], [29, -8.8], { s: 1.35, banners: ['banner_patternA_red', 'banner_shield_blue'] });
+        c.put('vtower', -8.5, -9.6, { r: 2.0, h: 9, roof: true }); c.put('vtower', 8.5, -9.6, { r: 2.0, h: 9, roof: true });
+        c.put('vtower', -22, -9.6, { r: 1.8, h: 7, roof: true }); c.put('vtower', 22, -9.6, { r: 1.8, h: 7, roof: true });
+        c.dprops(-6.5); c.edge({ bush: 0.5, flower: 0.5 }, { step: 2.8 });
+    },
+    /** Sân lâu đài: tường cao + 4 tháp, đài phun nước, hàng rào cây */
+    castle(c) {
+        c.put('dwall', [-29, -10.6], [29, -10.6], { s: 1.45, banners: ['banner_shield_blue', 'banner_patternA_red'] });
+        c.put('vtower', -11, -11.6, { r: 2.2, h: 11, roof: true }); c.put('vtower', 11, -11.6, { r: 2.2, h: 11, roof: true });
+        c.put('vtower', -23, -11.4, { r: 1.8, h: 8, roof: true }); c.put('vtower', 23, -11.4, { r: 1.8, h: 8, roof: true });
+        c.put('fountain', 0, -7.4, 1.8); for (const x of [-16, -12, 12, 16]) c.model('town/hedge-large', x, -6.3, 2, 0);
+        braziers(c, -6.2, [-6, 6, -20, 20]); c.edge({ flower: 0.6, bush: 0.4 }, { step: 2.2, z: -5.9 });
+    },
+    /** Cầu đá: lan can thấp hai bên, tháp canh hai đầu, rừng xa */
+    bridge(c) {
+        c.put('dwall', [-29, -5.9], [29, -5.9], { s: 0.55, half: true });
+        c.put('vtower', -23, -7.2, { r: 1.7, h: 7, roof: true }); c.put('vtower', 23, -7.2, { r: 1.7, h: 7, roof: true });
+        braziers(c, -5.3, [-15, -5, 5, 15], 0.8);
+        c.trees(DARK, -16, { x0: -32, x1: 32, sc: 3, step: 2.2 }); c.trees(PINES, -21, { x0: -34, x1: 34, sc: 4, step: 2.4 });
+    },
+    /** Tường lũy: lan can sau lưng, tháp giữa cao, 2 tháp bên, thùng hàng, rừng xa phía dưới */
+    battlement(c) {
+        c.put('dwall', [-29, -5.9], [29, -5.9], { s: 0.6, half: true });
+        c.put('vtower', 0, -8.4, { r: 2.1, h: 10, roof: true }); c.put('vtower', -20, -7.6, { r: 1.8, h: 7, roof: true }); c.put('vtower', 20, -7.6, { r: 1.8, h: 7, roof: true });
+        c.dprops(-5.2); braziers(c, -5.2, [-10, 10], 0.8);
+        c.trees(DARK, -22, { x0: -34, x1: 34, sc: 2.6, step: 2 });
+    },
+};
 
 /** Công thức từng cảnh (khoá = tên trong src/core/battleThemes.js) */
 const RECIPES = {
@@ -117,9 +224,11 @@ const RECIPES = {
     },
     // ---- mỏ ----
     mine(c, deep = false) {
+        if (PAINT) return PAINTED.mine(c, deep);
         c.put('cliff', -24, -12, 24, -8, deep ? 4.4 : 3.4); c.put('cliff', -24, -8, -10, -6.6, 2.2); c.put('cliff', 10, -8, 24, -6.6, 2.2); c.put('mineEntrance', 0, -7.6); c.put('rails', [[0, -7.2], [0, -5.6]]); c.put('rails', [[-14, -5.9], [14, -5.9]]);
         for (const x of [-16, -8, 8, 16]) c.model('graveyard/lantern-candle', x, -6.3, 2.4, 0);
         c.edge({ stone: 0.5, crate: 0.3, rock: 0.2 }, { step: 1.7, z: -6 }); c.model('survival/tool-pickaxe', -4, -6.2, 2.2, 0.6); c.model('survival/resource-stone', 5, -6.3, 2.4); c.model('town/cart-high', -11, -6.2, 2, 1.2);
+        if (PAINT) c.dprops(-6.4, true);
         if (deep) { c.put('glowShroom', -6, -6.3, 2.2); c.put('glowShroom', 12, -6.2, 2.2); c.put('mist', 0, -6.2, 7); }
     },
     deepMine(c) { RECIPES.mine(c, true); },
@@ -130,26 +239,30 @@ const RECIPES = {
         [[-16, RED], [-11, GOLD], [-6, GREEN], [0, BLUE], [6, PURPLE], [11, RED], [16, GOLD]].forEach(([x, col], i) => c.put('stall', x, -6.9 - (i % 2) * 0.5, col, (c.R() - 0.5) * 0.3));
         c.edge({ crate: 0.7, flower: 0.3 }, { step: 2.4, z: -5.9 }); c.model('town/cart', -19, -6.4, 2.2, 0.6); c.lamps(-6.1, [-13.5, -3, 8.5, 19]);
     },
-    gate(c) { c.put('castleWall', [-26, -8.6], [-3.2, -8.6], 4.2); c.put('castleWall', [3.2, -8.6], [26, -8.6], 4.2); c.put('tower', -3.6, -8.6, { h: 5.6, r: 1.5 }); c.put('tower', 3.6, -8.6, { h: 5.6, r: 1.5 }); c.model('castle/gate', 0, -8.5, 3.1, 0); c.put('tower', -17, -8.6, { h: 5, roof: null }); c.put('tower', 17, -8.6, { h: 5, roof: null }); c.banners(-7.9, [-10, -6.5, 6.5, 10], [RED, BLUE]); c.lamps(-6, [-14, -5, 5, 14]); c.edge({ crate: 0.4, bush: 0.4, flower: 0.2 }, { step: 2.6 }); },
+    gate(c) { if (PAINT) return PAINTED.gate(c); c.put('castleWall', [-26, -8.6], [-3.2, -8.6], 4.2); c.put('castleWall', [3.2, -8.6], [26, -8.6], 4.2); c.put('tower', -3.6, -8.6, { h: 5.6, r: 1.5 }); c.put('tower', 3.6, -8.6, { h: 5.6, r: 1.5 }); c.model('castle/gate', 0, -8.5, 3.1, 0); c.put('tower', -17, -8.6, { h: 5, roof: null }); c.put('tower', 17, -8.6, { h: 5, roof: null }); c.banners(-7.9, [-10, -6.5, 6.5, 10], [RED, BLUE]); c.lamps(-6, [-14, -5, 5, 14]); c.edge({ crate: 0.4, bush: 0.4, flower: 0.2 }, { step: 2.6 }); },
     castle(c) {
+        if (PAINT) return PAINTED.castle(c);
         c.put('hall', { x0: -8, z0: -15, x1: 8, z1: -10, h: 4.4, roofH: 2.4, door: 0 }); c.put('tower', -9, -10.4, { h: 6.4, r: 1.5 }); c.put('tower', 9, -10.4, { h: 6.4, r: 1.5 }); c.put('spire', 0, -13, { w: 2.2, h: 7.5, roofH: 3.2, wall: 0xe8e4dc, roof: BLUE });
         c.put('castleWall', [-26, -9.4], [-10.6, -9.4], 2.4); c.put('castleWall', [10.6, -9.4], [26, -9.4], 2.4); c.put('tower', -20, -9.4, { h: 4.4 }); c.put('tower', 20, -9.4, { h: 4.4 });
         c.put('fountain', 0, -7.2, 1.8); for (const x of [-15, -11, 11, 15]) c.model('town/hedge-large', x, -6.2, 2, 0); c.banners(-9.2, [-4.5, 4.5], [BLUE]); c.lamps(-6, [-6.5, 6.5, -18, 18]); c.edge({ flower: 0.6, bush: 0.4 }, { step: 2.2, z: -5.9 });
     },
-    bridge(c) { for (const z of [-5.6, 5.8]) c.put('castleWall', [-26, z], [26, z], 0.9); c.lamps(-5.9, [-16, -8, 0, 8, 16]); c.put('tower', -22, -6.4, { h: 4.6, roof: null, r: 1.5 }); c.put('tower', 22, -6.4, { h: 4.6, roof: null, r: 1.5 }); c.banners(-5.9, [-12, 12], [RED]); c.trees(DARK, -16, { x0: -32, x1: 32, sc: 3, step: 2.2 }); c.trees(PINES, -21, { x0: -34, x1: 34, sc: 4, step: 2.4 }); },
-    battlement(c) { c.put('castleWall', [-26, -5.8], [26, -5.8], 1.3); c.put('tower', -19, -6.4, { h: 4, roof: null, r: 1.6 }); c.put('tower', 19, -6.4, { h: 4, roof: null, r: 1.6 }); c.put('tower', 0, -7.4, { h: 6.2, r: 1.7 }); for (const x of [-12, -6, 6, 12]) c.model('castle/flag-banner-long', x, -5.9, 2.4, 0, 1.3); c.edge({ crate: 0.7, stone: 0.3 }, { step: 3, z: -5.2, x0: -17, x1: 17 }); c.trees(DARK, -22, { x0: -34, x1: 34, sc: 2.6, step: 2 }); },
-    tower(c) { c.put('castleWall', [-26, -5.8], [26, -5.8], 1.1); c.put('spire', -14, -7.6, { w: 2, h: 6.5, roofH: 3 }); c.put('spire', 14, -7.6, { w: 2, h: 6.5, roofH: 3 }); c.put('tower', 0, -8.2, { h: 7.5, r: 2, roof: 0x2a3b6a }); for (const x of [-8, 8]) c.model('castle/flag-pennant', x, -5.9, 2.6, 0, 1.1); for (const x of [-18, -5, 5, 18]) c.model('graveyard/lightpost-single', x, -5.3, 2.2, 0); },
+    bridge(c) { if (PAINT) return PAINTED.bridge(c); for (const z of [-5.6, 5.8]) c.put('castleWall', [-26, z], [26, z], 0.9); c.lamps(-5.9, [-16, -8, 0, 8, 16]); c.put('tower', -22, -6.4, { h: 4.6, roof: null, r: 1.5 }); c.put('tower', 22, -6.4, { h: 4.6, roof: null, r: 1.5 }); c.banners(-5.9, [-12, 12], [RED]); c.trees(DARK, -16, { x0: -32, x1: 32, sc: 3, step: 2.2 }); c.trees(PINES, -21, { x0: -34, x1: 34, sc: 4, step: 2.4 }); },
+    battlement(c) { if (PAINT) return PAINTED.battlement(c); c.put('castleWall', [-26, -5.8], [26, -5.8], 1.3); c.put('tower', -19, -6.4, { h: 4, roof: null, r: 1.6 }); c.put('tower', 19, -6.4, { h: 4, roof: null, r: 1.6 }); c.put('tower', 0, -7.4, { h: 6.2, r: 1.7 }); for (const x of [-12, -6, 6, 12]) c.model('castle/flag-banner-long', x, -5.9, 2.4, 0, 1.3); c.edge({ crate: 0.7, stone: 0.3 }, { step: 3, z: -5.2, x0: -17, x1: 17 }); c.trees(DARK, -22, { x0: -34, x1: 34, sc: 2.6, step: 2 }); },
+    tower(c) { if (PAINT) return PAINTED.tower(c); c.put('castleWall', [-26, -5.8], [26, -5.8], 1.1); c.put('spire', -14, -7.6, { w: 2, h: 6.5, roofH: 3 }); c.put('spire', 14, -7.6, { w: 2, h: 6.5, roofH: 3 }); c.put('tower', 0, -8.2, { h: 7.5, r: 2, roof: 0x2a3b6a }); for (const x of [-8, 8]) c.model('castle/flag-pennant', x, -5.9, 2.6, 0, 1.1); for (const x of [-18, -5, 5, 18]) c.model('graveyard/lightpost-single', x, -5.3, 2.2, 0); },
     // ---- trong nhà ----
     hall(c) {
-        c.put('castleWall', [-26, -9], [26, -9], 5.4); for (let x = -20; x <= 20; x += 5) { c.model('graveyard/pillar-large', x, -6.6, 3.4, 0); c.model('graveyard/pillar-large', x + 2.5, -8.2, 3.4, 0); }
+        if (PAINT) return PAINTED.hall(c);
+        c.put('castleWall', [-26, -9], [26, -9], 5.4);
+        for (let x = -20; x <= 20; x += 5) { c.model('graveyard/pillar-large', x, -6.6, 3.4, 0); c.model('graveyard/pillar-large', x + 2.5, -8.2, 3.4, 0); }
         for (const x of [-15, -5, 5, 15]) c.model('castle/flag-banner-long', x, -8.4, 3, 0, 2.6); c.model('graveyard/altar-stone', 0, -7.6, 3, 0); for (const x of [-12.5, -7.5, 7.5, 12.5]) c.model('graveyard/lightpost-double', x, -6, 2.2, 0); for (const x of [-18, 18]) c.model('graveyard/urn-round', x, -6, 2.4);
     },
     library(c) {
+        if (PAINT) return PAINTED.library(c);
         c.put('hall', { x0: -24, z0: -13, x1: 24, z1: -8.6, h: 5, wall: 0x8a6a48, roof: 0x5a3f2a, roofH: 0.6, windows: 0xf2d49a });
         for (let x = -20; x <= 20; x += 4) { c.model('town/wall-wood-detail-cross', x, -8.3, 2.6, 0); c.model('town/pillar-wood', x + 2, -6.6, 3, 0); }
         for (const x of [-16, -8, 8, 16]) c.model('graveyard/lantern-candle', x, -6, 2.6, 0); c.edge({ crate: 1 }, { step: 3.4, z: -6.4 }); c.model('survival/workbench', -3, -6.8, 2.6, 0); c.model('graveyard/bench', 3.5, -6.6, 2.2, 0);
     },
-    crypt(c) { c.put('castleWall', [-26, -9.4], [26, -9.4], 4.6); c.put('crypt', -9, -7.6, 3.2); c.put('crypt', 9, -7.6, 3.2); c.model('graveyard/crypt-door', 0, -9, 3.4, 0); for (let x = -20; x <= 20; x += 5) c.model('graveyard/column-large', x, -6.8, 3, 0); c.put('fence', [-21, -5.8], [21, -5.8], 'graveyard/iron-fence', 1.5); c.edge({ grave: 0.8, stone: 0.2 }, { step: 1.8, z: -6.3 }); for (const x of [-14, 14]) c.model('graveyard/lightpost-single', x, -6, 2.4, 0); c.put('mist', -8, -6.2, 6); c.put('mist', 8, -6.4, 6); },
+    crypt(c) { if (PAINT) return PAINTED.crypt(c); c.put('castleWall', [-26, -9.4], [26, -9.4], 4.6); c.put('crypt', -9, -7.6, 3.2); c.put('crypt', 9, -7.6, 3.2); c.model('graveyard/crypt-door', 0, -9, 3.4, 0); for (let x = -20; x <= 20; x += 5) c.model('graveyard/column-large', x, -6.8, 3, 0); c.put('fence', [-21, -5.8], [21, -5.8], 'graveyard/iron-fence', 1.5); c.edge({ grave: 0.8, stone: 0.2 }, { step: 1.8, z: -6.3 }); for (const x of [-14, 14]) c.model('graveyard/lightpost-single', x, -6, 2.4, 0); c.put('mist', -8, -6.2, 6); c.put('mist', 8, -6.4, 6); },
     ruins(c) { for (let x = -19; x <= 19; x += 4.2) c.model(c.R() < 0.6 ? 'graveyard/column-large' : 'graveyard/pillar-obelisk', x + c.R(), -6.6 - c.R() * 1.6, 2.2 + c.R() * 1.6, c.R(), 0); c.put('fence', [-22, -8.6], [-6, -8.6], 'graveyard/stone-wall', 1.8); c.put('fence', [7, -8.6], [22, -8.6], 'graveyard/stone-wall', 1.8); c.model('graveyard/altar-stone', 0, -7.6, 3.2, 0); c.edge({ stone: 0.45, rock: 0.3, bush: 0.15, grave: 0.1 }, { step: 1.5 }); c.trees(DARK, -11.5, { sc: 3.6, step: 2.6 }); c.trees(TALLPINES, -16, { x0: -30, x1: 30, sc: 4.6 }); c.put('mist', -9, -6.2, 6); c.put('mist', 9, -6.6, 6); c.turf(120, { flowers: 0.03 }); },
     moon(c) {
         for (let x = -20; x <= 20; x += 4) c.model('graveyard/column-large', x, -6.6, 3.6, 0); c.put('hall', { x0: -7, z0: -14, x1: 7, z1: -9.6, h: 4.2, wall: 0xdfe8f4, roof: 0x8fb4e8, roofH: 2, windows: 0x9fd0ff, door: 0, doorColor: 0x6f8fc0 }); c.put('dome', 0, -11.8, 2.6, 4.2, 0x9fc4ee);
@@ -181,6 +294,12 @@ const settle = (group) => {
     return group;
 };
 
+const PAINT_GRASS = new Set(['meadow', 'forest', 'field', 'road', 'swamp', 'elf', 'village', 'camp', 'outpost', 'ruins', 'moon']);
+const PAINT_DARK = new Set(['swamp', 'moon', 'ruins']);
+const PAINT_SKY = new Set(['meadow', 'forest', 'field', 'road', 'elf', 'village', 'well', 'camp', 'outpost', 'square', 'market', 'gate', 'castle', 'bridge', 'battlement']);
+
+const PAINT_DUNGEON = { mine: 'warm', deepMine: 'cold', hall: 'warm', library: 'warm', crypt: 'cold', tower: 'warm', moon: 'cold', ruins: 'cold' };
+const PAINT_CAVE = new Set([]);   // hang mỏ đã có nhũ đá + pha lê thật của bộ Codex, không cần hình nón tạm nữa   // chỉ hang mới có nhũ đá + pha lê
 /** Dựng cảnh 3D cho `key`; trả về ngay 2 nhóm rỗng, mô hình hiện ra khi tải xong */
 export function createModelScene(key) {
     const rear = new THREE.Group(), foreground = new THREE.Group();
@@ -189,7 +308,26 @@ export function createModelScene(key) {
     RECIPES[key](c);
     const entry = { rear, anim: [] };
     live.push(entry);
-    buildProps(c.items, {}, seedNo).then(({ group, anim }) => { rear.add(settle(group)); entry.anim = anim; });
+    // kiểu TRANH VẼ TAY (12/11/2026): cây tán tròn -> tán cụm lá vẽ tay; sân cỏ mọc ngọn cỏ; mây tích sau cảnh ngoài trời
+    const items = c.items;   // mọi cây (kể cả thông) đã được bộ dựng đổi sang cây vẽ tay -> cả cảnh chỉ một kiểu cây
+    buildProps(items, {}, seedNo).then(({ group, anim }) => {
+        if (PAINT) {
+            if (PAINT_GRASS.has(key)) {
+                const tiles = [], R = c.R;
+                for (let z = -8; z < 7; z++) for (let x = -24; x < 24; x++) {
+                    const lane = z >= -3 && z < 3;                       // giữa sân (chỗ nhân vật đánh): cỏ thưa hơn để không rối mắt
+                    if (lane && R() < 0.5) continue;
+                    // máy quay trận ở rất gần -> cỏ nhỏ hơn bản đồ nhiều: sau sân 0,5 · giữa sân 0,26 (chỉ tới mắt cá) · trước sân 0,36
+                    tiles.push([x, z, 0, 0.5 + 0.5 * Math.sin(x * 0.31 + z * 0.12) * Math.cos(z * 0.27 - x * 0.08), lane ? 0.26 : z < -3 ? 0.5 : 0.36]);
+                }
+                paintGrass(group, tiles, PAINT_DARK.has(key) ? 16 : 24, PAINT_DARK.has(key) ? 0.9 : 1.25);
+            }
+            if (PAINT_SKY.has(key)) { paintBackSky(group); anim.push(paintBackClouds(group, seedNo)); anim.push(paintSeeds(group, [-24, -8, 24, 7], { count: 60, y0: 0.3, y1: 4 })); }
+            if (c.mineLamps) anim.push(paintMineLife(group, c.mineLamps, { deep: c.mineDeep, scale: S }));   // hang mỏ: tối, đèn dầu, dơi, đá rơi
+            else if (PAINT_DUNGEON[key]) anim.push(paintDungeon(group, PAINT_DUNGEON[key], seedNo, PAINT_CAVE.has(key)));   // hầm ngục / hang: luồng sáng, bụi, quầng đuốc
+        }
+        rear.add(settle(group)); entry.anim = anim;
+    });
     // lớp trước mặt (sát máy quay, chỉ hiện ngoài lúc đánh): vài bụi cây khung dưới — chỉ cảnh ngoài trời
     if (['meadow', 'forest', 'field', 'road', 'swamp', 'elf', 'camp', 'outpost', 'village', 'ruins'].includes(key)) {
         const f = scene(seedNo + 5);

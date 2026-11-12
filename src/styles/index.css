@@ -1521,3 +1521,10 @@ span.wd-act-ic { font-size: 22px; width: auto; height: auto; }
 .wd-stamina i.filled { background:#75df99; }
 .wd-stamina.empty { animation:wd-stamina-flash .15s alternate 3; }
 @keyframes wd-stamina-flash { to { background:#d84646; transform:translateX(2px); } }
+
+/* (12/11/2026) vào game không chờ tải hết tranh: màn chờ thu thành dòng nhỏ ở góc dưới phải, không chặn bấm */
+#loading-screen.mini { inset: auto 10px 10px auto; width: auto; height: auto; padding: 6px 10px; border-radius: 10px; background: rgba(15, 23, 42, .78); pointer-events: none; z-index: 50; backdrop-filter: none; }
+#loading-screen.mini h1, #loading-screen.mini small { display: none; }
+#loading-screen.mini .ld-box { padding: 0; background: none; box-shadow: none; border: 0; min-width: 0; }
+#loading-screen.mini .ld-bar { width: 150px; height: 4px; margin: 0 0 3px; }
+#loading-screen.mini .ld-text { font-size: 11px; margin: 0; opacity: .85; }

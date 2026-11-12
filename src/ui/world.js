@@ -9,6 +9,7 @@ import { net, socket } from '../net/socket.js';
 import { playStory, playCutscene, storyArt, setStoryGender, storyPlaying } from './story.js';
 import { MAPS } from '../world/maps.js';
 import { EXTRA, PATCH } from '../world/mapsExtra.js';
+import { PAINT as PAINT3D } from '../world3d/assets.js';
 import { presentationHTML } from './evidence.js';   // 🔎 đối chất trước nhà vua (ải 18)
 for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const objs = MAPS[id]?.objects; if (!objs) continue; const i = objs.findIndex(x => x.id === o.id); if (i >= 0) objs[i] = o; else objs.push(o); }   // điểm truyện + vật điều tra (chương 1)
 // 🧺 độ cao thêm (Đồi Gió, gờ đá mỏ) — maps.js không sinh lại được nên vá lúc nạp; bản đồ 3D đọc cùng MAPS này
@@ -75,7 +76,7 @@ const JUMP_MS = 420;
 const ITEM_CELL = { chest: 0, chest_open: 1, mine: 2, wheat: 3, mushroom: 4, hammer: 5, herb: 6, pages: 7, board: 8 };
 // bộ vật thứ 2 (điểm truyện chương 1) — items2.webp 4x3 ô
 const ITEM2_CELL = { bandage: 0, wolf_tracks: 1, smoke: 2, reeds: 3, wheel_tracks: 4, ash_arrows: 5, ledger: 6, archive_door: 7, stairs: 8, poster: 9, crate: 10, torch: 11 };
-const NO_BOB = new Set(['chest', 'mine', 'smoke', 'wolf_tracks', 'wheel_tracks', 'ash_arrows', 'archive_door', 'stairs', 'reeds', 'crate', 'torch']);
+const NO_BOB = new Set(['board', 'poster', 'ledger', 'chest', 'mine', 'smoke', 'wolf_tracks', 'wheel_tracks', 'ash_arrows', 'archive_door', 'stairs', 'reeds', 'crate', 'torch']);
 const noBob = (sprite) => NO_BOB.has(sprite) || !!sprite?.startsWith('i_');   // vật vẽ bằng code đứng yên (cây, đá, biển gỗ…); chỗ hái được có tia lấp lánh riêng
 // ✨ vật đang hái / đọc được: điểm hái còn đồ (đủ dụng cụ), ghi chép chưa đọc
 const sparkles = (st) => (st.type === 'node' && st.state === 'ready' && !st.lack) || (st.type === 'note' && st.unread);
@@ -291,7 +292,7 @@ function quests() {
     const main = legacy.find(q => q.type === 'main');
     const inCh1 = ql.main.i < ql.main.total;
     return [...(main ? [{ ...main, progress: inCh1 ? { have: ql.main.i, need: ql.main.total } : null,
-        reward: inCh1 ? `+${ql.main.reward} Kim Cương mỗi bước · thưởng ải cốt truyện` : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
+        reward: inCh1 ? ql.main.reward ? `Bước này: ${ql.main.reward}` : 'Thưởng ải cốt truyện' : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
 }
 // màu dấu ! / ? theo loại nhiệm vụ: vàng chính tuyến · xanh lá phụ · tím nhánh
 const MARK_COLOR = { main: '#facc15', side: '#4ade80', branch: '#c084fc' };
@@ -301,15 +302,22 @@ const objMark = (o) => { const st = scene?.objects.find(q => q.id === o.id); ret
 function openQuestLog(tab) { qlOpen = true; mapOpen = false; if (tab) { qlTab = tab; qlSel = null; } else qlSel = trackedQuest()?.id ?? null; renderHud(); }
 // ---------- dòng báo nhiệm vụ bay lên (+20 Kim Cương mỗi bước chính tuyến, xong nhiệm vụ, việc hôm nay…) ----------
 const noteQueue = [];
+/** Kim Cương nằm trong các dòng báo CHƯA hiện: chưa cộng vào con số trên màn hình (báo xong mới cộng) */
+const pendingOf = (name) => noteQueue.reduce((s, n) => s + Number(new RegExp(`\\+(\\d+) ${name}`).exec(n.t ?? '')?.[1] ?? 0), 0);
 let noteAt = 0;
 function pumpNotes(now) {
-    if (!noteQueue.length || now - noteAt < 950 || dialog || puzzle || busy || storyPlaying() || heroPanelOpen()) return;
+    if (!noteQueue.length || now - noteAt < 1400 || dialog || puzzle || busy || storyPlaying() || heroPanelOpen()) return;
     noteAt = now;
     const n = noteQueue.shift(), fx = document.createElement('div');
     fx.className = `wd-float k-${n.k ?? 'info'}`;
     fx.textContent = n.t;
     root.appendChild(fx);
     setTimeout(() => fx.remove(), 3300);
+    if (/\+\d+ (Kim Cương|Vàng)/.test(n.t ?? '')) {
+        renderHud();
+        if (/\+\d+ Kim Cương/.test(n.t)) hud?.querySelector('[data-wd-gem]')?.classList.add('wd-gem-pop');
+        if (/\+\d+ Vàng/.test(n.t)) hud?.querySelector('[data-wd-gold]')?.classList.add('wd-gem-pop');
+    }   // báo xong mới cộng số
 }
 function trackedQuest() {
     const list = quests();
@@ -811,6 +819,10 @@ function draw3d(now) {
             if (st.mark) marks.push({ key: 'm:' + o.id, x: o.x + 0.5, z: o.y + 0.5, txt: st.mark, color: markColor(st.mk) });
             continue;
         }
+        if (PAINT3D && (o.sprite === 'i_appletree' || o.sprite === 'i_oak')) {   // cây hái được đã là cây vẽ tay 3D (world3d/build.js): chỉ giữ tia lấp lánh khi hái được
+            if (sparkles(st)) { const sp = itemSrc('i_spark'); if (sp) items.push({ key: o.id + ':sp', url: sp.url, meta: sp.meta, cell: sp.cell, x: o.x + 0.78, z: o.y + 0.8, size: 0.42 + Math.sin(now / 180 + o.x) * 0.12, bob: true }); }
+            continue;
+        }
         const src = o.sprite && itemSrc(o.sprite, st.state === 'done');
         if (!src) continue;
         items.push({ key: o.id, url: src.url, meta: src.meta, cell: src.cell, x: o.x + 0.5 + shakeOf(o.id, now), z: o.y + 0.75, size: (o.big ? 1.35 : 0.95) * 1.1,
@@ -833,7 +845,7 @@ function renderHud() {
     <div class="wd-top">
         <button class="cp-back-btn" data-wd-back>← Menu</button>
         <div class="wd-title"><b>🗺️ ${scene?.name ?? ''}</b><small>${data.player ? `${data.player.gender === 'f' ? '♀' : '♂'} ${data.player.name}` : ''}</small></div>
-        <div class="wd-res"><span>${icon('gold', '🪙')} ${fmt(w.gold)}</span><span>${icon('diamond', '💎')} ${fmt(w.diamond)}</span><span>${icon('stone', '🔷')} ${fmt(w.stone)}</span></div>
+        <div class="wd-res"><span data-wd-gold>${icon('gold', '🪙')} ${fmt(Math.max(0, (w.gold ?? 0) - pendingOf('Vàng')))}</span><span data-wd-gem>${icon('diamond', '💎')} ${fmt(Math.max(0, (w.diamond ?? 0) - pendingOf('Kim Cương')))}</span><span>${icon('stone', '🔷')} ${fmt(w.stone)}</span></div>
     </div>
     <div class="wd-bar" role="toolbar" aria-label="Chức năng">
         ${ACTIONS.map(([k, ic, t, key]) => `<button class="wd-act-btn" data-wd-act="${k}" title="${t}${key ? ` (phím ${key})` : ''}">${icon(`ui_${k}`, ic, 'wd-act-ic')}<small>${t}</small>${key ? `<kbd>${key}</kbd>` : ''}</button>`).join('')}

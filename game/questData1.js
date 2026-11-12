@@ -392,7 +392,15 @@ const DAILY = {
     ],
 };
 
-/** Các BƯỚC chính tuyến chương 1 (mỗi bước xong +20 Kim Cương): với mỗi ải — tới điểm truyện -> qua ải -> (nếu có) về báo lại */
+/** Các BƯỚC chính tuyến chương 1 (thưởng 3 mức: MAIN_TIERS): với mỗi ải — tới điểm truyện -> qua ải -> (nếu có) về báo lại */
+// 3 mức thưởng của bước chính tuyến (người chơi quyết 12/11/2026): bước NHỎ = bình EXP nhỏ + vàng · bước TRUNG BÌNH (8 ải) = bình EXP lớn + vàng +
+// Kim Cương · bước QUAN TRỌNG (3 ải: trùm Skarn, Morwen, kết chương) = bình EXP siêu lớn + vàng + Kim Cương. Mức tính ở bước CUỐI của ải; bước khác đều là nhỏ.
+const MAIN_BIG = [10, 15, 20], MAIN_MID = [2, 5, 7, 8, 12, 14, 17, 18];
+const MAIN_TIERS = {
+    small: { gold: 150, items: { exp_small: 1 } },
+    mid: { gold: 500, diamond: 30, items: { exp_big: 1 } },
+    big: { gold: 1500, diamond: 100, items: { exp_huge: 1 } },
+};
 function mainSteps(spots, reports, stages) {
     const out = [];
     for (const s of stages) {
@@ -400,8 +408,9 @@ function mainSteps(spots, reports, stages) {
         out.push({ id: `go${n}`, kind: 'go', no: n, text: n === 2 ? 'Ra cánh đồng Ngoại ô, có tiếng ồn' : sp?.go ?? `Tới chỗ bắt đầu ải ${n}` });
         out.push({ id: `clear${n}`, kind: 'clear', no: n, text: `Vượt ải ${n}: ${s.name}` });
         if (rep) out.push({ id: `report${n}`, kind: 'report', no: n, text: rep.go });
+        out[out.length - 1].tier = MAIN_BIG.includes(n) ? 'big' : MAIN_MID.includes(n) ? 'mid' : 'small';   // chỉ MỐC CUỐI của mỗi ải (qua ải, hoặc về báo lại nếu có) mới trả Kim Cương
     }
     return out;
 }
 
-module.exports = { QUESTS, QUEST_OBJECTS, ITEM_NAMES, DAILY, MAIN_REWARD: 20, mainSteps };
+module.exports = { QUESTS, QUEST_OBJECTS, ITEM_NAMES, DAILY, MAIN_TIERS, mainSteps };

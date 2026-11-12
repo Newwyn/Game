@@ -1,3 +1,10 @@
+Do hoa kieu tranh ve tay (tan cay, co, ngoi nha, may) cho ban do + tran dau; vong mo quanh nguoi kieu blur (12/11 chieu)
+
+Thuong chinh tuyen 3 muc + binh EXP sieu lon + vong tron mo quanh nguoi + mo tung tuong trong tool thu (12/11)
+
+- Chi tiet: NHAT_KY_CAP_NHAT.md (12/11)
+- 183 bai kiem tra tu dong
+
 Ban do song dong + nhay + nhiem vu chuong 1 kieu MMO + san dau 3D + loi thoai viet lai + tool thu mot bang (11/11)
 
 - Chi tiet: NHAT_KY_CAP_NHAT.md (11/11) va TIEP_TUC.md

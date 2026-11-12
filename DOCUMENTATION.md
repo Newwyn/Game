@@ -1239,3 +1239,20 @@ Mọi bảng **kéo thả được**, bấm tiêu đề để thu gọn, nút **
 - Làm thử trước trên Jessica (dao găm) rồi mới chọn hướng cho cả đội. Prompt sprite đã dặn "không vẽ hiệu ứng quanh vũ khí" → vũ khí luôn tách bạch, dễ đánh dấu về sau.
 
 - **Đợt 11/11/2026** (chi tiết: NHAT_KY_CAP_NHAT.md): `src/core/battleScene3d.js` (sân đấu 3D từ `src/world3d/build.js buildProps`, cờ `?bg3d=0`) · `FrameSpriteView._juice` (lớp động tác, bật bằng `juice: true | 'ranged'` trong sprite def) · `src/world3d/life.js` (chim, thú, bóng cây) + `patchMaterial` (làm mờ vật che) · nhảy: `heights` / `gaps` / `stones` trong `src/world/maps.js`, luật ở `src/ui/world.js` · nhiệm vụ: `game/quests.js` + `game/questData1.js`, sổ `src/ui/questLog.js` · tranh truyện `src/assets/story/<khoá>[_m|_f].webp` qua `storyArt` (`src/ui/story.js`) · tool thử `src/ui/testHub.js` + `testHubCore.mjs` · kim cương ải `game/campaign.js rewardsFor`.
+
+
+## Thưởng chính tuyến 3 mức + bình EXP (12/11/2026)
+
+- `game/questData1.js`: `MAIN_TIERS` (small / mid / big) và danh sách ải `MAIN_MID`, `MAIN_BIG`; `mainSteps()` gắn `tier` vào bước CUỐI của mỗi ải, bước khác là small.
+- `game/quests.js` `advanceMain()`: trả thưởng theo `tier` bằng `grant()`, dòng báo dùng `rewardText()`. `qlog.main.reward` là chuỗi thưởng của bước đang làm.
+- `progression.js` `ITEMS.exp_huge` (25.000 EXP). Hình: `src/assets/icons/exp_huge.webp`.
+- `src/ui/world.js`: `pendingOf('Vàng' | 'Kim Cương')` trừ phần thưởng nằm trong dòng báo chưa hiện khỏi con số trên thanh đầu; `pumpNotes()` vẽ lại lúc dòng báo hiện.
+- `src/world3d/assets.js`: vòng tròn mờ quanh nhân vật (khoảng lệch so với tia camera -> nhân vật, chia `tProj`, bán kính `rOuter = 1.75`).
+- Tool thử: `testTool { op: 'hero', id, own: true | false }` (`game/testTools.js`), lệnh `own:<id>` / `unown:<id>` trong `src/ui/testHubCore.mjs`.
+
+## Ban thu "tranh ve tay" cho ban do 3D (12/11/2026) — `?paint=1`, mac dinh TAT
+
+- `src/world3d/paint.js`: tan cay cum la (`paintTrees`), co net co (`paintGrass`), lop hoan thien Kuwahara (`PaintShader`). Hoc cach lam tu Painted Valley cua @blendi (ma MIT, https://patch.gg/blendi/painted-valley), viet lai cho goc nhin tu tren xuong.
+- `assets.js`: co `PAINT`; khi bat, `patchMaterial` gom anh sang thanh it tong, cho khuat nga lam.
+- `build.js`: khi bat, cay tu rai dung `paintTrees` thay mo hinh Kenney, o co (g / t / b) duoc rai co, mau dat co theo bang mau co.
+- `view.js`: lop `PaintShader` ngay sau RenderPass; hinh nhan vat (Sprite) ghi alpha = 0 de lop net co chua ra.

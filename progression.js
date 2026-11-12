@@ -160,6 +160,7 @@ const expToNext = (level) => Math.round(5 * Math.pow(level, 1.3)) * 10;
 const ITEMS = {
     exp_small: { name: 'Bình Kinh Nghiệm Nhỏ', emoji: '🧪', exp: 500 },
     exp_big: { name: 'Bình Kinh Nghiệm Lớn', emoji: '⚗️', exp: 5000 },
+    exp_huge: { name: 'Bình Kinh Nghiệm Siêu Lớn', emoji: '🏺', exp: 25000 },   // chỉ có từ thưởng nhiệm vụ quan trọng (không bán)
     stone_s: { name: 'Đá Đột Phá S', emoji: '🔷' },
     stone_ss: { name: 'Đá Đột Phá SS', emoji: '🔶' },
     stone_sss: { name: 'Đá Đột Phá SSS', emoji: '💠' },

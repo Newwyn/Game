@@ -19,20 +19,47 @@ import { TERRAIN } from '../world/terrain3d.js';
 import { LAYOUTS } from './layouts.js';
 import { buildScene } from './build.js';
 import { uTime, uHeroPos, uCamPos, uSeeThrough, uQuality } from './assets.js';
+import { PAINT, PaintShader } from './paint.js';
+import { setNight } from './build.js';
 
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
 const CHAR_H = 1.55;
 
 const GradeShader = {
-    uniforms: { tDiffuse: { value: null } },
+    uniforms: { tDiffuse: { value: null }, uDay: { value: new THREE.Vector3(1, 1, 1) } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+    fragmentShader: `uniform sampler2D tDiffuse; uniform vec3 uDay; varying vec2 vUv;
       void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb;
+        c *= uDay;   // giờ trong ngày: trưa (1,1,1) · hoàng hôn ngả cam · đêm ngả lam và tối
         float l = dot(c, vec3(0.299,0.587,0.114));
         c = mix(vec3(l), c, 1.12); c *= vec3(1.045, 1.005, 0.925); c = (c - 0.5) * 1.06 + 0.5;
         vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * 0.85;
         gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`,
 };
+
+// ---------- GIỜ TRONG NGÀY (12/11/2026, ý tưởng từ Painted Valley + thêm ban đêm) ----------
+//   Một ngày trong game = 24 phút thật: sáng -> trưa -> chiều vàng -> hoàng hôn -> đêm -> rạng sáng.
+//   Ép giờ để xem thử: ?hour=noon | gold | sunset | night | dawn ; tắt hẳn: ?hour=off
+const HOUR = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('hour') : null;
+const DAY_KEYS = [   // [mốc 0..1, màu nhân vào khung hình, độ sáng đèn]
+    [0.00, [1.00, 1.00, 1.00], 1.00],    // sáng
+    [0.50, [1.00, 1.00, 1.00], 1.00],    // hết buổi trưa
+    [0.60, [1.08, 0.98, 0.82], 0.95],    // chiều vàng
+    [0.68, [1.12, 0.80, 0.66], 0.80],    // hoàng hôn
+    [0.74, [0.52, 0.62, 0.98], 0.55],    // chập tối
+    [0.92, [0.46, 0.56, 0.95], 0.50],    // đêm
+    [0.97, [0.95, 0.82, 0.80], 0.80],    // rạng sáng
+    [1.00, [1.00, 1.00, 1.00], 1.00],
+];
+const FIXED_HOUR = { noon: 0.25, gold: 0.6, sunset: 0.68, night: 0.85, dawn: 0.97 };
+export function dayAt(nowMs) {
+    if (HOUR === 'off') return { tint: [1, 1, 1], light: 1, night: 0 };
+    const f = FIXED_HOUR[HOUR] ?? ((nowMs / 1000 / 60 / 24) % 1);
+    let i = 0; while (i < DAY_KEYS.length - 2 && f >= DAY_KEYS[i + 1][0]) i++;
+    const [a, ca, la] = DAY_KEYS[i], [b, cb, lb] = DAY_KEYS[i + 1], k = Math.min(1, Math.max(0, (f - a) / Math.max(1e-6, b - a)));
+    const tint = ca.map((v, j) => v + (cb[j] - v) * k);
+    return { tint, light: la + (lb - la) * k, night: Math.max(0, Math.min(1, (0.98 - tint[0]) * 2.2)) * (tint[2] > tint[0] ? 1 : 0) };
+}
 
 /** Có chạy được WebGL không (để world.js tự quay về bản đồ phẳng nếu không) */
 export function webglOK() {
@@ -62,11 +89,13 @@ export function createView(host) {
 
     // ---------- hậu kỳ ----------
     class VisPass extends Pass { constructor(v) { super(); this.v = v; this.needsSwap = false; } render() { sprites.visible = this.v; } }
-    let composer, gtao, bloom, hts, vts, quality = null;
+    let composer, gtao, bloom, hts, vts, paint = null, grade = null, quality = null;
     function buildComposer(q) {
         composer?.dispose?.();
         composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
+        paint = null;
+        if (PAINT) { paint = new ShaderPass(PaintShader); paint.uniforms.uRad.value = PAINT >= 2 ? 3 : 2; composer.addPass(paint); }   // nét cọ, chừa nhân vật (alpha 0)
         gtao = null;
         if (q === 'high') {
             gtao = new GTAOPass(scene, camera, 800, 450);
@@ -77,7 +106,7 @@ export function createView(host) {
             composer.addPass(bloom);
         }
         composer.addPass(new OutputPass());
-        composer.addPass(new ShaderPass(GradeShader));
+        grade = new ShaderPass(GradeShader); composer.addPass(grade);
         hts = new ShaderPass(HorizontalTiltShiftShader); vts = new ShaderPass(VerticalTiltShiftShader);
         composer.addPass(hts); composer.addPass(vts);
         resize();
@@ -98,6 +127,7 @@ export function createView(host) {
         const w = host.clientWidth, h = host.clientHeight;
         if (!w || !h) return;
         renderer.setSize(w, h); composer?.setSize(w, h);
+        if (paint) renderer.getDrawingBufferSize(paint.uniforms.uRes.value);
         camera.aspect = w / h; camera.updateProjectionMatrix();
         if (hts) { hts.uniforms.h.value = 2.4 / w; vts.uniforms.v.value = 2.4 / h; hts.uniforms.r.value = vts.uniforms.r.value = 0.5; }
     }
@@ -156,6 +186,9 @@ export function createView(host) {
             const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             bits = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe9a8, size: 0.09, transparent: true, depthWrite: false, opacity: 0 }));
         }
+        if (PAINT && !dz) {   // tranh vẽ: nhân vật ghi alpha = 0 để lớp nét cọ chừa ra (nhân vật giữ nét pixel)
+            Object.assign(mat, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneMinusSrcAlphaFactor });
+        }
         const sp = new THREE.Sprite(mat);
         sp.center.set(0.5, 0.03);
         const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.025;
@@ -204,6 +237,7 @@ export function createView(host) {
         const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt; uTime.value = t;
         frameNo++;
         if (!cur) return;
+        if (grade) { const d = dayAt(Date.now()); grade.uniforms.uDay.value.set(d.tint[0], d.tint[1], d.tint[2]); setNight(d.night); }
         let meX = state.focus.x, meZ = state.focus.z, meLift = 0;
         const mapHeights = MAPS[mapId]?.heights;
         // nhân vật (h: độ cao bậc 0..2, nâng nhân vật + bóng dưới chân lên h * 0.45 ô; lúc nhảy bóng nhỏ lại)
