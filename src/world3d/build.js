@@ -459,16 +459,16 @@ export const BUILD = {
         ctx.roofPerches?.push([x, 3.0 * sy + 1.4, z]);
     },
     /** Nhà Làng Trung Cổ vừa khít một khung x0..x1 × z0..z1 (thay cho nhà khối cũ ở cả bản đồ lẫn cảnh chiến đấu): tự chọn dáng mái gần nhất rồi co giãn cho khít */
-    vhouseFit(ctx, { x0, z0, x1, z1, wall = 'plaster', h = 2.0, door = true, tall = false }) {
+    vhouseFit(ctx, { x0, z0, x1, z1, wall = 'plaster', h = 2.0, door = true, tall = false, shape = null }) {
         const W = x1 - x0, D = z1 - z0, want = Math.log(W / D);
         let best = null;
-        for (const [w, d, turn] of [[2, 2, 0], [2, 3, 0], [3, 4, 0], [2, 3, 1], [3, 4, 1]]) {
+        for (const [w, d, turn] of shape ? [shape] : [[2, 2, 0], [2, 3, 0], [3, 4, 0], [2, 3, 1], [3, 4, 1]]) {
             const mx = (turn ? d : w) * 2, mz = (turn ? w : d) * 2, err = Math.abs(Math.log(mx / mz) - want) + (turn ? 0 : 0.05);
             if (!best || err < best.err) best = { w, d, turn, mx, mz, err };
         }
         const kx = W / best.mx, kz = D / best.mz;   // co giãn theo trục THẾ GIỚI -> đổi về trục của nhà nếu nhà xoay
         BUILD.vhouse(ctx, { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: best.w, d: best.d, turn: best.turn, wall, door,
-            sx: best.turn ? kz : kx, sz: best.turn ? kx : kz, sy: Math.max(0.5, Math.min(tall ? 1.15 : 0.8, h / 3.1)) });
+            sx: best.turn ? kz : kx, sz: best.turn ? kx : kz, sy: Math.max(0.5, Math.min(tall ? 0.9 : 0.8, h / 3.1)) });
     },
     /** THÁP đá mái ngói nhọn (bộ Village): mỗi tầng là một vòng tường đá 2×2 mảng, trên cùng là mái tháp */
     vtower(ctx, x, z, { r = 1.1, h = 3.4, roof = true } = {}) {
@@ -727,8 +727,9 @@ export const BUILD = {
     /** Khối nhà lớn (cung điện / thư viện / nhà thờ): thân + mái */
     hall(ctx, { x0, z0, x1, z1, h = 3, wall = 0xe8e4dc, roof = 0x3f6fc6, roofH = 1.6, windows = 0x2b3a55, door = null, doorColor = 0x5a3a1e }) {
         if (PAINT && !ctx.props) {   // (12/11/2026) bản đồ: công trình lớn (cung điện, nhà thờ, thư viện) = dãy nhà đá mái ngói liền nhau + 2 tháp hai đầu, thay cho khối hộp trơn
-            const W = x1 - x0, D = z1 - z0, n = Math.max(1, Math.round(W / (D * 1.25))), seg = W / n;
-            for (let i = 0; i < n; i++) BUILD.vhouseFit(ctx, { x0: x0 + i * seg, z0: z0 + (i % 2 ? 0.25 : 0), x1: x0 + (i + 1) * seg, z1, wall: 'brick', h: Math.max(2.2, h * 0.8), door: door != null && i === Math.floor(n / 2), tall: true });
+            // mỗi gian = nhà 3×4 mảng (6 m × 8 m) quay đầu hồi ra đường, co cho vừa chiều sâu -> ngói và cửa sổ giữ đúng cỡ, không bị kéo giãn
+            const W = x1 - x0, D = z1 - z0, n = Math.max(1, Math.round(W / (D * 0.75))), seg = W / n;
+            for (let i = 0; i < n; i++) BUILD.vhouseFit(ctx, { x0: x0 + i * seg, z0: z0 + (i % 2 ? 0.3 : 0), x1: x0 + (i + 1) * seg, z1, wall: 'brick', h: 2.6, door: door != null && i === Math.floor(n / 2), tall: true, shape: [3, 4, 0] });
             const r = Math.min(1.3, D * 0.2);
             BUILD.vtower(ctx, x0 + r * 0.6, z0 + r * 0.8, { r, h: h + 2.2, roof: true }); BUILD.vtower(ctx, x1 - r * 0.6, z0 + r * 0.8, { r, h: h + 2.2, roof: true });
             ctx.cover(x0, z0, x1, z1);
