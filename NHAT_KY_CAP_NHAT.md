@@ -5,6 +5,15 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 12/11/2026 (toi 4) — VALORIA dot 2: pho co day dac
+
+- Codex (tai khoan moi) lam lai `tools/build_capital.py`: 73 nha nho (3x3 / 3x4 o) xep thanh day thay 17 khoi lon; 265 do dac 24 loai (31 den duong, sap, ghe, bon hoa, thung, bao, day phoi, dong cui, gieng, xe, bang thong bao, tuong...); cho 10 sap 2 hang; ke da hai bo kenh + 5 bac thang; hang cay doc dai lo, cong vien, vuon tao; ban do nho ve lai tung mai nha. 38,4% o di duoc, mot mang lien thong. 192 bai kiem tra dat. So do: `Claude outputs/so_do_thanh_valoria_dot2.png`.
+- Thanh da co nha tho lon (khu phia tay, co So Agnes + cua ham mo) — hop tuyen truyen cua Seraphine.
+- Da xem tan mat mot goc khu dan cu: nha khung go san sat, ong khoi co khoi, bon hoa, ghe, tuong da, cay tao — ra dang pho co. CHUA di het thanh (cho, kenh, cau, cung dien, cong).
+- Loi con treo: console bao mot hinh co toa do NaN (`computeBoundingSphere`), chua tim ra la hinh nao; chua thay anh huong tren man hinh.
+
+---
+
 ## 12/11/2026 (toi 3) — BO DO DAC PHO CO (Codex) + THANH VALORIA MOI 72x44 + quyet dinh cau truc Chuong
 
 - Bo do dac pho co: 32 mo hinh Codex dung bang code (`tools/models/make_town_kit.py`): sap cho, dai phun nuoc, den, ghe, bon hoa, bien hieu, xe, thung, cau da/go, tuong thap, day co... Da dua vao: sap cho / dai phun / den duong tu doi; moi nha co den tuong + chau hoa (+ bien hieu, ghe); o trong sat duong rai do; canh chien dau lang / cho / quang truong them do.
