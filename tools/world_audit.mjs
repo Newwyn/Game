@@ -8,7 +8,7 @@ export const read = p => fs.readFileSync(new URL(p, root), 'utf8');
 const moduleData = async p => import('data:text/javascript;base64,' + Buffer.from(read(p)).toString('base64'));
 export const { MAPS } = await moduleData('src/world/maps.js');
 export const { TERRAIN } = await moduleData('src/world/terrain3d.js');
-export const { LAYOUTS } = await moduleData('src/world3d/layouts.js');
+export const { LAYOUTS } = await import('../src/world3d/layouts.js');
 const { EXTRA } = await moduleData('src/world/mapsExtra.js');
 const WD = createRequire(import.meta.url)('../game/world.js');
 export const key = (x, y) => `${x},${y}`;
@@ -38,7 +38,17 @@ export function footprint(id) {
         } else if (['cliff','flowerbed'].includes(type)) {
             for(let y=Math.floor(p[1]);y<p[3];y++) for(let x=Math.floor(p[0]);x<p[2];x++)
                 if(x+.5>=p[0] && x+.5<p[2] && y+.5>=p[1] && y+.5<p[3]) put(x,y);
-        } else if(type==='model') put(p[1],p[2]);
+        } else if (type === 'dwall') {
+            const [[x,y],[xx,yy]]=p, n=Math.max(1,Math.ceil(Math.hypot(xx-x,yy-y)*20));
+            for(let i=0;i<=n;i++) put(x+(xx-x)*i/n,y+(yy-y)*i/n);
+        } else if (type === 'roomBox' && !p[0].floor) {
+            const b=p[0];
+            for(let y=Math.floor(b.z0);y<Math.ceil(b.z1);y++) for(let x=Math.floor(b.x0);x<Math.ceil(b.x1);x++) put(x,y);
+        } else if(type==='model') {
+            const cover=MAPS[id]?.interior3d ? p[3]?.cover : null;
+            if(cover) for(let y=Math.floor(cover[1]);y<Math.ceil(cover[3]);y++) for(let x=Math.floor(cover[0]);x<Math.ceil(cover[2]);x++) put(x,y);
+            else put(p[1],p[2]);
+        }
         else if(!['plaza','clear','mist','rails','stoneBridge','label'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
     }
     return cells;
@@ -82,7 +92,8 @@ export function audit(maps=MAPS) {
             if(!backs.length) add('b',e.at,`→ ${e.scene}: thiếu lối ngược`);
             else if(!near.length) add('b',e.at,`→ ${e.scene}: điểm đáp xa lối ngược`);
             if(e.edge && (!near.some(b=>b.edge===opposite[e.edge]) || e.face!==e.edge)) add('b',cells[0]??e.at,`→ ${e.scene}: hướng nối mép / mặt không khớp`);
-            if(near.length && !near.some(b=>exitCells(dest,b).some(([x,y])=> {
+            // Walk-in rooms return to the exterior trigger itself; loading a map does not trigger onArrive.
+            if(near.length && !(m.interior3d && e.door && near.some(b=>exitCells(dest,b).some(p=>distance(p,e.at)===0))) && !near.some(b=>exitCells(dest,b).some(([x,y])=> {
                 const [dx,dy]=e.face==='left'?[-1,0]:e.face==='right'?[1,0]:e.face==='up'?[0,-1]:[0,1];
                 return (e.at[0]-x)*dx+(e.at[1]-y)*dy>0;
             }))) add('b',e.at,`→ ${e.scene}: mặt chưa quay ra khỏi lối vào`);

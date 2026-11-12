@@ -125,7 +125,7 @@ const webglOK = () => { try { const c = document.createElement('canvas'); return
 if (!webglOK()) quality = '2d';
 let viewLoading = null;
 // vẽ phẳng (tranh): chọn 🗺️ Phẳng 2D, hoặc đang ở TRONG NHÀ (phòng luôn vẽ tranh kiểu Pokémon)
-const flat = () => quality === '2d' || !!map?.interior;
+const flat = () => quality === '2d' || (!!map?.interior && !map?.interior3d);
 const use3d = () => !flat() && !!view;
 function applyQuality() {
     if (!root) return;

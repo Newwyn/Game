@@ -77,6 +77,8 @@ protected |= {(x,37) for x in range(2,70)}
 protected |= {(53,y) for y in range(2,20)} | {(69,y) for y in range(2,29)}
 protected |= {(26,y) for y in range(4,17)} | {(28,y) for y in range(14,21)} | {(27,16)}
 protected |= {(30,35),(55,39),(29,18),(29,19)} | {(39,y) for y in range(34,41)}
+# Keep approaches wide enough to pass the archive marker and Elise without moving them.
+protected |= {(x,y) for cx in (8,42) for x in range(cx-1,cx+2) for y in (10,11)}
 for x,y in protected:
     if plan[y][x] not in 'WwBNO' and (x,y) not in ((14,31),(36,31)): plan[y][x]='s'
 for key in ('g_capital_tao_1','g_capital_tao_2'):
@@ -202,6 +204,9 @@ def city():
     m['exits']=[dict(edge='right',a=20,b=20,scene='sylvaren',at=[1,13],face='right'),
                 dict(edge='right',a=21,b=21,scene='sylvaren',at=[1,14],face='right'),
                 dict(tiles=[[35,43]],scene='road',at=[41,11],face='left')]
+    from build_interiors import DOORS, room
+    for sid, tile in DOORS.items():
+        m['exits'].append(dict(tiles=[tile],scene=sid,at=room(sid)[0]['spawn'],face='up',door=True))
     seen={tuple(m['spawn'])};queue=deque(seen)
     while queue:
         x,y=queue.popleft()
@@ -222,6 +227,9 @@ def layout():
         if kind=='hall':
             b.update(wall=0xe3d6b6,roof=0x626a76,h=4 if b['x0']==32 else 3.5,roofH=1.6)
         items.append([kind,b])
+        if kind=='hall':
+            # Explicit door aligned with the trigger, inset into the blocked facade.
+            items.append(['model','dungeon/wall_doorway',b['door']+.5,b['z1']-.3,dict(s=.45,sz=.15)])
     # Adjacent one-tile wall courses make a continuous, visibly two-tile ring.
     # Run endpoints remain within blocked cells, including the gate openings.
     for y,row in enumerate(PLAN):
@@ -294,7 +302,9 @@ def render(m,extra):
         X,Y=int(x*S),int(y*S);d.ellipse((X-10,Y-10,X+10,Y+10),fill='#485768',outline='#c9c4b7',width=2)
     for x,y in [(1,1),(71,1),(1,43),(71,43),(32.5,43),(39.5,43),(71,18),(71,25)]:
         X,Y=int(x*S),int(y*S);d.ellipse((X-14,Y-14,X+14,Y+14),fill='#727b84',outline='#dbd4c2',width=3)
-    im.save(ROOT/'src/assets/maps/capital.webp',lossless=True,method=6)
+    # Interior-only tasks may preserve existing artwork while updating collision/layout data.
+    if '--keep-map-image' not in __import__('sys').argv:
+        im.save(ROOT/'src/assets/maps/capital.webp',lossless=True,method=6)
     preview=Image.new('RGB',(1840,1180),'#eee7d6');preview.paste(im.resize((1440,880)),(20,55));d=ImageDraw.Draw(preview)
     try:
         font=ImageFont.truetype('C:/Windows/Fonts/arial.ttf',16);title=ImageFont.truetype('C:/Windows/Fonts/arialbd.ttf',23)

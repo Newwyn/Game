@@ -50,6 +50,10 @@ def main():
             from build_capital import city
             out[mid] = city()[2]
             continue
+        if m.get('interior3d'):
+            from build_interiors import room
+            out[mid] = room(mid)[1]
+            continue
         if m.get('interior'):   # trong nhà: vẽ tranh phẳng, không dựng 3D
             continue
         im = Image.open(f"src/assets/maps/{m['image']}.webp").convert('RGB')
