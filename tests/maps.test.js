@@ -30,7 +30,7 @@ test('NPC / đồ vật trên bản đồ khớp server, đứng ở ô đi đư
         assert.deepEqual(m.npcs.map(n => n.id).sort(), [...s.npcs].sort(), id);
         assert.deepEqual(m.objects.map(o => o.id).sort(), s.objects.map(o => o.id).sort(), id);
         for (const n of m.npcs) assert.ok(walk(m, n.x, n.y), `${id}/${n.id}`);
-        for (const o of m.objects) if (!o.area) assert.ok(walk(m, o.x, o.y), `${id}/${o.id}`);
+        for (const o of m.objects) if (!o.area) assert.ok(walk(m, o.x, o.y) || (o.solid && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => walk(m, o.x + dx, o.y + dy))), `${id}/${o.id}`);   // vat chan (cay tao, tang quang) duoc dung o o bi chan neu ke ben co o di duoc
         // 2 thứ không đứng chung 1 ô
         const cells = [...m.npcs, ...m.objects.filter(o => !o.area && !o.trigger)].map(q => `${q.x},${q.y}`);
         assert.equal(new Set(cells).size, cells.length, id);

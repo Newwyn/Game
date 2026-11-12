@@ -1,4 +1,4 @@
-// 🧺 Khám phá bản đồ chương 1 (game/gather.js): hái lượm mọc lại 05:00 · dụng cụ nhiều bậc · câu cá · ghi chép · rương ẩn · chỗ leo · đồi · lời dân làng · ảnh vật phẩm
+// 🧺 Khám phá bản đồ chương 1 (game/gather.js): hái lượm mọc lại sau 72 giờ · dụng cụ nhiều bậc · câu cá · ghi chép · rương ẩn · chỗ leo · đồi · lời dân làng · ảnh vật phẩm
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -46,9 +46,9 @@ test('bảng dữ liệu: dụng cụ 3 bậc, bậc 1 từ nhiệm vụ, bậc 
     for (const o of G.ALL_OBJECTS) for (const t of [o.label ?? '', o.title ?? '', ...(o.lines ?? [])]) assert.ok(!t.includes('—'), `${o.id}: lời có gạch dài`);
 });
 
-test('hái lượm: nhận đồ 1 lần, hôm sau 05:00 mọc lại, số lượng trong khoảng', () => {
+test('hái lượm: nhận đồ 1 lần, sau 72 giờ mọc lại, số lượng trong khoảng', () => {
     const pr = fresh();
-    const morning = new Date(2026, 10, 12, 5, 0, 1).getTime(), before5 = new Date(2026, 10, 12, 4, 59, 0).getTime();
+    const respawnTime = NOW + 72 * HOUR, beforeRespawn = respawnTime - 1;
     assert.equal(obj(pr, 'outskirts', 'g_lua1').state, 'ready');
     const r = act(pr, 'outskirts', 'g_lua1');
     assert.ok(r.ok && r.done);
@@ -56,10 +56,10 @@ test('hái lượm: nhận đồ 1 lần, hôm sau 05:00 mọc lại, số lư�
     const n = G.have(pr, 'lua');
     assert.equal(obj(pr, 'outskirts', 'g_lua1').state, 'hidden');
     assert.equal(act(pr, 'outskirts', 'g_lua1').ok, false);
-    assert.equal(act(JSON.parse(JSON.stringify(pr)), 'outskirts', 'g_lua1', before5).ok, false);   // nạp lại save, trước 05:00: chưa mọc
+    assert.equal(act(JSON.parse(JSON.stringify(pr)), 'outskirts', 'g_lua1', beforeRespawn).ok, false);   // nạp lại save, before 72 hours: still depleted
     assert.equal(G.have(pr, 'lua'), n);
-    assert.equal(obj(pr, 'outskirts', 'g_lua1', morning).state, 'ready');
-    assert.ok(act(pr, 'outskirts', 'g_lua1', morning).ok);
+    assert.equal(obj(pr, 'outskirts', 'g_lua1', respawnTime).state, 'ready');
+    assert.ok(act(pr, 'outskirts', 'g_lua1', respawnTime).ok);
     assert.ok(G.have(pr, 'lua') > n);
     // cây táo: rung xong cây vẫn đứng đó (trạng thái 'done'), được 2–3 quả
     const t = act(pr, 'outskirts', 'g_tao1');
@@ -264,7 +264,7 @@ test('bản đồ: mọi vật khám phá có chỗ đứng hợp lệ; vật th
         for (const o of list) {
             const p = pos.get(o.id);
             assert.ok(p, `${id}/${o.id}: thiếu vị trí trong mapsExtra.js`);
-            assert.equal(m.grid[p.y][p.x], '.', `${id}/${o.id}`);
+            if (!p.solid || !/^g_(outskirts|forest|ashford|road|capital)_/.test(o.id)) assert.equal(m.grid[p.y][p.x], '.', `${id}/${o.id}`);
             if (o.type === 'climb') {
                 assert.ok(p.from.length && !p.solid && p.optional, `${id}/${o.id}`);
                 for (const [fx, fy] of p.from) {
@@ -334,4 +334,64 @@ test('việc hằng ngày "nhặt vật" tính cả điểm hái mới; hoa dạ
     assert.equal(pr.wallet.gold, gold + 20);
     assert.equal(pr.world.daily.got.d_gather, true);
     assert.ok(QD.DAILY.tasks.find(t => t.id === 'd_gather'));
+});
+
+// Existing nodes retain their original placements; these IDs identify the new clusters.
+const isNewNode = o => /^g_(outskirts|forest|ashford|road|capital)_/.test(o.id);
+test('all resource kinds respawn exactly 72 hours after completion, across save reloads', () => {
+    for (const [kind, n] of Object.entries(G.NODES).filter(([, n]) => !n.fish)) {
+        const pr = fresh(), o = { id: 'cooldown_test', kind };
+        G.giveTool(pr, 'axe', 3); G.giveTool(pr, 'pick', 3);
+        let result;
+        do { result = G.hitNode(pr, pr.wallet, o, NOW, () => 0.5); } while (result.hit);
+        assert.ok(result.done, kind);
+        assert.equal(pr.world.gather[o.id], NOW);
+        assert.equal(result.respawnAt, NOW + 72 * HOUR);
+        const saved = JSON.parse(JSON.stringify(pr));
+        for (const elapsed of [1, 24 * HOUR, 48 * HOUR, 72 * HOUR - 1]) {
+            assert.equal(G.nodeState(saved, o, NOW + elapsed), n.stay ? 'done' : 'hidden', kind);
+            assert.equal(G.hitNode(saved, saved.wallet, o, NOW + elapsed).ok, false, kind);
+        }
+        assert.equal(G.nodeState(saved, o, NOW + 72 * HOUR), 'ready', kind);
+        assert.ok(G.hitNode(saved, saved.wallet, o, NOW + 72 * HOUR).ok, kind);
+    }
+});
+test('legacy day keys and invalid gather values are safely treated as respawned', () => {
+    for (const value of [Q.dayKey(NOW), 20261111, '20261111', null, undefined, {}, NaN, Infinity]) {
+        const pr = fresh(), o = { id: 'legacy', kind: 'lua' };
+        pr.world.gather[o.id] = value;
+        assert.equal(G.nodeState(pr, o, NOW), 'ready');
+        assert.ok(G.hitNode(pr, pr.wallet, o, NOW).done);
+        assert.equal(pr.world.gather[o.id], NOW);
+    }
+});
+test('gather definitions match positions both ways; clusters never overlap or obstruct paths', () => {
+    const sprites = new Set(['i_wheat', 'i_mushroom', 'i_herb', 'i_berry', 'i_nest', 'i_appletree', 'i_hive', 'i_logs', 'i_oak', 'i_ore_copper', 'i_ore_iron', 'i_fishspot']);
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [id, list] of Object.entries(G.OBJECTS)) {
+        const nodes = list.filter(o => o.type === 'node');
+        assert.deepEqual(nodes.map(o => o.id).sort(), (EXTRA[id] ?? []).filter(o => sprites.has(o.sprite)).map(o => o.id).sort(), id);
+        const m = clientMap(id), occupied = new Set();
+        for (const o of m.objects) {
+            const key = `${o.x},${o.y}`;
+            assert.ok(!occupied.has(key), `${id}/${o.id}: duplicate object tile`);
+            occupied.add(key);
+        }
+        const reserved = new Set([...m.npcs.map(o => [o.x, o.y]), ...m.gaps, ...m.stones,
+            ...(PATCH[id]?.heights ?? []).map(([x, y]) => [x, y]), m.spawn,
+            ...m.objects.filter(o => !isNewNode(o)).flatMap(o => [...(o.area ?? []), ...(o.from ?? []), ...(o.group ?? []).map(([dx, dy]) => [o.x + dx, o.y + dy])])].map(t => t.join(',')));
+        const exits = m.exits.flatMap(e => {
+            if (e.tiles) return e.tiles;
+            return Array.from({ length: e.b - e.a + 1 }, (_, i) => ({ up: [e.a + i, 0], down: [e.a + i, m.rows - 1], left: [0, e.a + i], right: [m.cols - 1, e.a + i] })[e.edge]);
+        });
+        for (const o of m.objects.filter(isNewNode)) {
+            assert.ok(!reserved.has(`${o.x},${o.y}`), `${id}/${o.id}: reserved tile`);
+            assert.equal(m.heights[o.y][o.x], '0');
+            assert.ok(exits.every(([x, y]) => Math.max(Math.abs(x - o.x), Math.abs(y - o.y)) > 2));
+            if (o.solid) {
+                assert.notEqual(m.grid[o.y][o.x], '.', o.id);
+                assert.ok(dirs.some(([dx, dy]) => m.grid[o.y + dy]?.[o.x + dx] === '.'), o.id);
+            } else assert.equal(m.grid[o.y][o.x], '.', o.id);
+        }
+    }
 });

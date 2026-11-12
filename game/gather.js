@@ -1,7 +1,7 @@
 // ============================================================
 // 🧺 KHÁM PHÁ BẢN ĐỒ (chương 1): hái lượm · chặt cây · đập quặng · câu cá · dụng cụ nhiều bậc · ghi chép · rương ẩn · chỗ leo · lời bâng quơ của dân làng
 //   Luật thuần, không socket. game/world.js gộp OBJECTS vào SCENES và gọi các hàm ở đây; vị trí từng vật: src/world/mapsExtra.js
-//   Lưu trong pr.world: mats { mã: số lượng } · tools { pick, axe, rod: bậc } · gather { id vật: khoá ngày } (mọc lại 05:00)
+//   Saved in pr.world: mats { id: count }, tools { pick, axe, rod: tier }, gather { nodeId: completion timestamp in ms } (72-hour respawn)
 //       hits { id vật: { d: khoá ngày, n: số lần đã gõ } } · casts { id chỗ câu: { d, n } } · notes { id: true } · books { id: true }
 //   Chương sau chỉ cần thêm dòng vào 3 bảng: TOOLS (bậc dụng cụ) · NODES (loại điểm hái) · OBJECTS (vật trên bản đồ).
 // ============================================================
@@ -67,15 +67,24 @@ const node = (id, kind, extra = {}) => ({ id, type: 'node', kind, label: NODES[k
 const lore = (id, label, title, lines, extra = {}) => ({ id, type: 'note', lore: true, label, title, lines, ...extra });
 const OBJECTS = {
     outskirts: [
+        node('g_outskirts_lua_1', 'lua'), node('g_outskirts_lua_2', 'lua'), node('g_outskirts_lua_3', 'lua'), node('g_outskirts_tao_4', 'tao'),
+        node('g_outskirts_tao_5', 'tao'), node('g_outskirts_tao_6', 'tao'), node('g_outskirts_dong_7', 'dong'), node('g_outskirts_dong_8', 'dong'),
+        node('g_outskirts_dong_9', 'dong'), node('g_outskirts_sat_10', 'sat'), node('g_outskirts_sat_11', 'sat'), node('g_outskirts_go_12', 'go'),
+        node('g_outskirts_go_13', 'go'), node('g_outskirts_go_14', 'go'), node('g_outskirts_trung_15', 'trung'), node('g_outskirts_trung_16', 'trung'),
         node('g_lua1', 'lua'), node('g_lua2', 'lua'), node('g_trung1', 'trung'), node('g_dau1', 'dau'), node('g_tao1', 'tao'),
         node('g_go1', 'go'), node('g_go2', 'go'), node('g_dong1', 'dong'), node('g_sat1', 'sat', { up: true }),
         { id: 'c_mo', type: 'climb', label: 'Dây thừng lên gờ đá' },
         { id: 'lua_trai1', type: 'cook', label: 'Lửa trại bên ruộng' },
-        lore('n_bien_dong', 'Biển chỉ đường', 'Biển chỉ đường Ngoại ô', ['Tây: làng Ashford. Đông: Rừng Sương. Bắc: mỏ đá của làng.', 'Ai đó khắc thêm bằng dao: "Ruộng chín thì hái, mai lại mọc. Đừng tham."']),
+        lore('n_bien_dong', 'Biển chỉ đường', 'Biển chỉ đường Ngoại ô', ['Tây: làng Ashford. Đông: Rừng Sương. Bắc: mỏ đá của làng.', 'Ai đó khắc thêm bằng dao: "Ruộng chín thì hái, ba ngày sau lại mọc. Đừng tham."']),
         lore('n_mo', 'Bảng gỗ ở mỏ đá', 'Nội quy mỏ đá', ['Mỏ đá Ashford. Quặng đồng đập bằng cuốc gỗ cũng được. Quặng sắt trên gờ cao thì phải cuốc sắt.', 'Dòng cuối viết vội: "Thợ cả giấu hòm đồ nghề sau tảng đá cuối mỏ, phía đông."'], { reveal: 'hc_mo' }),
         { id: 'hc_mo', type: 'chest', needNote: 'n_mo', label: 'Hòm đồ nghề thợ mỏ', reward: { stone: 6, gold: 200 } },
     ],
     forest: [
+        node('g_forest_nam_1', 'nam'), node('g_forest_nam_2', 'nam'), node('g_forest_nam_3', 'nam'), node('g_forest_nam_4', 'nam'),
+        node('g_forest_nam_5', 'nam'), node('g_forest_nam_6', 'nam'), node('g_forest_dau_7', 'dau'), node('g_forest_dau_8', 'dau'),
+        node('g_forest_dau_9', 'dau'), node('g_forest_thao_10', 'thao'), node('g_forest_thao_11', 'thao'), node('g_forest_thao_12', 'thao'),
+        node('g_forest_go_cung_13', 'go_cung'), node('g_forest_go_cung_14', 'go_cung'), node('g_forest_go_15', 'go'), node('g_forest_go_16', 'go'),
+        node('g_forest_go_17', 'go'), node('g_forest_mat_18', 'mat'),
         node('g_nam1', 'nam'), node('g_nam2', 'nam'), node('g_thao1', 'thao'), node('g_thao2', 'thao'), node('g_dau2', 'dau'),
         node('g_go3', 'go'), node('g_gocung1', 'go_cung'), node('g_tao2', 'tao', { up: true }), node('g_mat', 'mat', { up: true }),
         node('f_rung', 'ca'), node('f_sau', 'ca_sau'),
@@ -87,6 +96,7 @@ const OBJECTS = {
         { id: 'hc_dinh', type: 'chest', label: 'Rương trên đỉnh đồi', up: true, reward: { diamond: 40, gold: 300 } },
     ],
     ashford: [
+        node('g_ashford_tao_1', 'tao'), node('g_ashford_tao_2', 'tao'), node('g_ashford_tao_3', 'tao'), node('g_ashford_trung_4', 'trung'),
         node('g_trung2', 'trung'), node('g_tao3', 'tao'),
         lore('n_bang_lang', 'Bảng tin của làng', 'Bảng tin làng Ashford', ['"Ai nhặt được búa của bác Borin xin mang trả. Hậu tạ một bữa ở quán cô Lena."', '"Tối thứ bảy: cả làng góp gạo nấu cháo. Mang bát theo."']),
         lore('n_gieng', 'Phiến đá cạnh giếng', 'Lời khắc cạnh Giếng Cổ', ['"Giếng này đào năm làng lập. Nước trong thì làng yên."', 'Phía dưới có nét khắc mới hơn: "Ông tôi chôn hũ sành dưới bãi cỏ phía đông nam giếng."'], { reveal: 'hc_gieng' }),
@@ -94,12 +104,15 @@ const OBJECTS = {
         lore('n_cong', 'Cáo thị ở cổng đông', 'Cáo thị cổng đông', ['"Lệnh của đội tuần tra: sau khi trời tối không ai ra Ngoại ô một mình."', 'Chữ ký: Rok. Bên dưới có đứa trẻ nào vẽ thêm một cái mặt cười.']),
     ],
     road: [
+        node('g_road_dau_1', 'dau'), node('g_road_dau_2', 'dau'), node('g_road_dau_3', 'dau'), node('g_road_thao_4', 'thao'),
+        node('g_road_thao_5', 'thao'), node('g_road_thao_6', 'thao'), node('g_road_dong_7', 'dong'), node('g_road_dong_8', 'dong'),
         node('g_dau3', 'dau'), node('g_thao3', 'thao'), node('g_go4', 'go'), node('g_dong2', 'dong'), node('f_ao', 'ca'),
         { id: 'lua_trai3', type: 'cook', label: 'Lửa trại bên đường' },
         lore('n_cot_moc', 'Cột mốc đá', 'Cột mốc Đường Vương Đạo', ['"Valoria: nửa ngày đường. Ashford: nửa ngày đường."', 'Ai đó viết phấn: "Ao bên đường có cá. Quăng câu lúc phao vào vạch xanh thì trúng."']),
         lore('n_tram', 'Tờ giấy dán ở trạm canh', 'Lịch gác trạm canh', ['Lịch gác bị gạch xoá nhiều lần. Tên "Will" bị xếp gác liền ba đợt.', 'Mặt sau có dòng chữ nhỏ: "Gửi Hanna: anh vẫn ổn. Đừng lo."']),
     ],
     capital: [
+        node('g_capital_tao_1', 'tao'), node('g_capital_tao_2', 'tao'),
         node('g_tao4', 'tao'),
         lore('n_tuong', 'Bệ tượng đá', 'Bệ tượng vị vua đầu tiên', ['"Người dựng thành này bằng lời hứa: không ai trong tường thành phải đói."', 'Dưới chân tượng có mấy mẩu bánh mì ai đó đặt cho chim.']),
         lore('n_cho', 'Bảng giá ở chợ', 'Bảng giá chợ kinh thành', ['Giá bột mì tăng gấp ba trong một tháng. Dòng "lương cứu trợ" bị gạch.', 'Góc bảng có ghi chú của người bán: "Hàng dự trữ tôi để trong rương ở ngõ cụt phía nam phố chợ, ai đói cứ lấy."'], { reveal: 'hc_cho' }),
@@ -124,7 +137,7 @@ const AMBIENT = {
     villager_m: [[0, ['Kho lúa cháy hết rồi…', 'Phải dựng lại trước mùa mưa.']], [10, ['Nhà tôi lợp xong mái rồi!', 'Sói bớt phá rào hẳn.']]],
     villager_f: [[0, ['Không biết anh Will có ổn không…', 'Đêm qua giếng lại kêu lạ.']], [10, ['Táo ở góc làng chín rồi đấy.', 'Mong thư sớm tới nơi.']]],
     kid: [[0, ['Yaa! Tiêu diệt Goblin!', 'Con Mướp đâu rồi nhỉ?']], [7, ['Chị Sera về rồi!', 'Lớn lên em sẽ leo được đỉnh đồi!']]],
-    farmer: [[0, ['Lúa chín mà chẳng ai dám gặt.', 'Cái chân này lại đau.']], [3, ['Cá ao dạo này béo lắm.', 'Hái lúa nhớ chừa gốc, mai nó lại lên.']], [10, ['Năm nay được mùa đấy.', 'Thỏ rừng nướng là nhất.']]],
+    farmer: [[0, ['Lúa chín mà chẳng ai dám gặt.', 'Cái chân này lại đau.']], [3, ['Cá ao dạo này béo lắm.', 'Hái lúa nhớ chừa gốc, ba ngày sau lại lên.']], [10, ['Năm nay được mùa đấy.', 'Thỏ rừng nướng là nhất.']]],
     rok: [[0, ['Tuần tra thêm một vòng nữa.', 'Đừng đi xa một mình.']], [5, ['Ăn no rồi hãy đánh.', 'Thịt nướng than… lâu rồi chưa ăn.']]],
     sera: [[7, ['Trà thảo mộc giúp ngủ ngon lắm.', 'Mọi người nhớ thay băng đúng giờ.']]],
     jessica: [[2, ['Hừm.', 'Bánh táo ở kinh thành mới gọi là bánh.']], [14, ['Sổ sách không biết nói dối.', 'Đừng nhìn tôi.']]],
@@ -201,12 +214,18 @@ const costText = (c) => [...Object.entries(c.mats ?? {}).map(([id, n]) => `${n} 
 
 // ---------- điểm hái ----------
 const dayOf = (now) => Q.dayKey(now);
-/** 'ready' | 'done' (đã hái hôm nay, vật vẫn đứng đó) | 'hidden' */
+const RESPAWN_MS = 72 * 60 * 60 * 1000;
+// Legacy day keys (date strings or small numeric dates) are already respawned.
+function respawnAt(pr, o) {
+    const at = pr.world?.gather?.[o.id];
+    return typeof at === 'number' && Number.isFinite(at) && at > 1e11 ? at + RESPAWN_MS : null;
+}
+/** 'ready' | 'done' (depleted persistent object) | 'hidden' */
 function nodeState(pr, o, now) {
     const n = NODES[o.kind], w = pr.world ?? {};
     if (!n) return 'hidden';
     if (n.fish) { const c = w.casts?.[o.id]; return c?.d === dayOf(now) && (c.n >= castsOf(pr, n) || (c.t ?? 0) >= FISH_TRIES) ? 'done' : 'ready'; }
-    return w.gather?.[o.id] === dayOf(now) ? (n.stay ? 'done' : 'hidden') : 'ready';
+    return (now ?? Date.now()) < (respawnAt(pr, o) ?? 0) ? (n.stay ? 'done' : 'hidden') : 'ready';
 }
 const pressesFor = (n, tier) => Math.max(1, (n.presses ?? 1) - Math.max(0, tier - (n.tier ?? 0)));
 const castsOf = (pr, n) => n.casts + (toolTier(pr, 'rod') >= 3 ? 1 : 0);
@@ -226,7 +245,7 @@ function rollYield(n, tier, rng) {
 function hitNode(pr, wallet, o, now = Date.now(), rng = Math.random) {
     const n = NODES[o.kind], w = ensure(pr);
     if (!n) return { ok: false, why: 'Không có gì ở đây' };
-    if (nodeState(pr, o, now) !== 'ready') return { ok: false, why: n.fish ? 'Cá ở đây đã bị động, mai quay lại nhé' : `${n.name} đã hái rồi, sáng mai mọc lại` };
+    if (nodeState(pr, o, now) !== 'ready') return { ok: false, why: n.fish ? 'Cá ở đây đã bị động, mai quay lại nhé' : `${n.name} đã hái rồi, mọc lại sau 72 giờ kể từ lúc hái` };
     const lack = toolLack(pr, n);
     if (lack) return { ok: false, why: lack };
     if (n.fish) return { ok: true, fishing: fishInfo(pr, o) };
@@ -235,7 +254,7 @@ function hitNode(pr, wallet, o, now = Date.now(), rng = Math.random) {
     h.n++;
     if (h.n < total) return { ok: true, hit: { left: total - h.n, total }, text: `${n.verb ?? 'Hái'}… còn ${total - h.n} lần` };
     delete w.hits[o.id];
-    w.gather[o.id] = day;                       // đánh dấu đã hái TRƯỚC khi cộng đồ -> không nhận 2 lần
+    w.gather[o.id] = now;                       // đánh dấu đã hái TRƯỚC khi cộng đồ -> không nhận 2 lần
     const got = {}, count = addMat(pr, n.item, rollYield(n, tier, rng));
     if (count) got[n.item] = count;
     const parts = count ? [`+${count} ${MATS[n.item].name}`] : [`Túi đã đầy ${MATS[n.item].name}`];
@@ -243,7 +262,7 @@ function hitNode(pr, wallet, o, now = Date.now(), rng = Math.random) {
         if (n.bonus.wallet) { W.add(wallet, n.bonus.wallet, 1); parts.push('+1 Đá Cường Hoá'); }
         else if (addMat(pr, n.bonus.mat, 1)) { got[n.bonus.mat] = 1; parts.push(`+1 ${MATS[n.bonus.mat].name}`); }
     }
-    return { ok: true, got, done: true, text: `${n.verb ?? 'Hái'} ${n.name}: ${parts.join(' · ')}` };
+    return { ok: true, got, done: true, respawnAt: now + RESPAWN_MS, text: `${n.verb ?? 'Hái'} ${n.name}: ${parts.join(' · ')}` };
 }
 
 // ---------- câu cá: client chơi thanh thời điểm, server quyết định cá (giới hạn theo ngày) ----------
@@ -304,4 +323,4 @@ function bagState(pr) {
 }
 
 module.exports = { MATS, MAT_MAX, TOOLS, NODES, FISH, FISH_TRIES, OBJECTS, ALL_OBJECTS, NOTES, AMBIENT, ambient, ensure, have, addMat, hasMats, takeMats, toolTier, tierInfo, giveTool, craft, costText,
-    nodeState, pressesFor, toolLack, rollYield, hitNode, fishInfo, fishCast, readNote, noteRead, notesState, bagState };
+    RESPAWN_MS, respawnAt, nodeState, pressesFor, toolLack, rollYield, hitNode, fishInfo, fishCast, readNote, noteRead, notesState, bagState };
