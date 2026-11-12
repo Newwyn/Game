@@ -11,7 +11,6 @@ import { EXTRA_BUILD, buildJumpFeatures, buildRegionLife } from './life.js';
 
 export const isOldDetail = () => typeof location !== 'undefined' && new URLSearchParams(location.search).get('mapDetail') === 'old';
 
-const M = 10;   // viền trang trí ngoài mép bản đồ (ô)
 let seed = 1;
 const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const pick = (a) => a[Math.floor(rnd() * a.length)];
@@ -39,8 +38,9 @@ export function setNight(k) { if (nightMat) { nightMat.opacity = Math.min(1, k *
 
 /** Gom đặt mô hình -> InstancedMesh */
 class Batch {
-    constructor() { this.list = new Map(); this.trees = []; this.lights = []; }
+    constructor(indoor = false) { this.list = new Map(); this.trees = []; this.lights = []; this.indoor = indoor; }
     put(key, x, y, z, rot = 0, sx = 1, sy = sx, sz = sx, near = true) {
+        if (this.indoor && /^dungeon\/(torch_|candle_)/.test(key)) this.lights.push([x, y + .7 * sy, z, sx]);
         if (PAINT && (key === 'town/lantern' || key === 'graveyard/lightpost-single')) this.lights.push([x, y + 1.25 * sy, z, sx]);
         if (PAINT && key === 'custom/town_lamp_post') this.lights.push([x, y + 2.6 * sy, z, sx * 1.6]);
         if (PAINT && key === 'custom/town_lamp_wall') this.lights.push([x, y + 0.4 * sy, z, sx * 1.2]);
@@ -52,9 +52,13 @@ class Batch {
     keys() { return [...this.list.keys()]; }
     flush(group) {
         if (this.trees.length) paintTrees(group, this.trees);
-        for (const [x, y, z, sc] of this.lights) { const sp = new THREE.Sprite(nightGlowMat()); sp.position.set(x, y, z); sp.scale.setScalar(2.6 * sc); sp.renderOrder = 7; group.add(sp); }
+        const glow = this.indoor ? nightGlowMat().clone() : nightGlowMat();
+        if (this.indoor) { glow.opacity = .8; glow.visible = true; }
+        for (const [x, y, z, sc] of this.lights) { const sp = new THREE.Sprite(glow); sp.position.set(x, y, z); sp.scale.setScalar(2.6 * sc); sp.renderOrder = 7; group.add(sp); }
         for (const [key, mats] of this.list) for (const p of proto(key)) {
-            const im = new THREE.InstancedMesh(p.geo, p.mat, mats.length);
+            // Indoor copies must not alter the shared outdoor model materials.
+            const mat = this.indoor ? patchMaterial(p.mat.clone(), { sway: 0, occlude: true, cloud: false }) : p.mat;
+            const im = new THREE.InstancedMesh(p.geo, mat, mats.length);
             mats.forEach((m, k) => im.setMatrixAt(k, m));
             im.castShadow = im.receiveShadow = true;
             im.computeBoundingSphere();
@@ -80,10 +84,12 @@ const lam = (hex, opts = {}) => {
  * Trả { group, water, anim: [fn(t)], top } — top: InstancedMesh mặt đất (để bấm chuột chọn ô)
  */
 export async function buildScene(id, map, terrain, layout) {
+    const indoor = !!map.interior3d;
+    const M = indoor ? 0 : 10;
     seed = 7 + id.length * 131;
     const cols = map.cols, rows = map.rows;
     const group = new THREE.Group(), anim = [];
-    const B = new Batch();
+    const B = new Batch(indoor);
     const cover = new Uint8Array(cols * rows);   // ô có công trình -> không rải cây / cỏ
     const coverRect = (x0, z0, x1, z1) => { for (let z = Math.floor(z0); z < Math.ceil(z1); z++) for (let x = Math.floor(x0); x < Math.ceil(x1); x++) if (x >= 0 && z >= 0 && x < cols && z < rows) cover[x + z * cols] = 1; };
     const T = (x, z) => terrain[Math.max(0, Math.min(rows - 1, z))][Math.max(0, Math.min(cols - 1, x))];
@@ -103,7 +109,7 @@ export async function buildScene(id, map, terrain, layout) {
     // ---------- công trình đặt tay ----------
     const oldMode = isOldDetail();
     const roofPerches = [], treeSpots = [];
-    const ctx = { B, group, anim, cover: coverRect, lam, rnd, pick, style, oldMode, roofPerches };
+    const ctx = { B, group, anim, cover: coverRect, lam, rnd, pick, style, oldMode, roofPerches, indoor };
     // Chốt an toàn: vật trang trí thêm (detailItems) mà rơi vào ô ĐI ĐƯỢC hoặc ô nhảy đặc biệt thì bỏ — không để nhân vật đi xuyên vật.
     //   (vật phẳng / bay trên cao thì không cần chặn)
     const FLAT = new Set(['dirtPatch', 'steppingStones', 'butterflies', 'fireflies', 'groundFog', 'smoke', 'chickens', 'clothesline']);
@@ -126,8 +132,8 @@ export async function buildScene(id, map, terrain, layout) {
     // ---------- mặt đất (thân đất nâu + lớp mặt) ----------
     const W = cols + 2 * M, H = rows + 2 * M;
     const box = new THREE.BoxGeometry(1, 1, 1);
-    const bodyMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: true });
-    const topMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: true, detail: !!PAINT });
+    const bodyMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: !indoor });
+    const topMat = patchMaterial(new THREE.MeshLambertMaterial({ color: 0xffffff }), { sway: 0, occlude: false, cloud: !indoor, detail: !!PAINT });
     const body = new THREE.InstancedMesh(box, bodyMat, W * H);
     const top = new THREE.InstancedMesh(box, topMat, W * H);
     body.receiveShadow = top.receiveShadow = true; body.castShadow = true;
@@ -169,7 +175,7 @@ export async function buildScene(id, map, terrain, layout) {
     buildJumpFeatures(ctx, map, terrain, H_AT, gapSet, stoneSet);
 
     // ---------- mép đường mòn lởm chởm & đá lát lẫn cỏ cho mọi vùng (khi !oldMode) ----------
-    if (!oldMode) {
+    if (!oldMode && !indoor) {
         const edgeStones = [];
         const grassPatches = [];
         for (let z = 0; z < rows; z++) for (let x = 0; x < cols; x++) {
@@ -236,6 +242,7 @@ export async function buildScene(id, map, terrain, layout) {
     const wheatAt = [], paintTiles = [];
     k = 0;
     for (let z = -M; z < rows + M; z++) for (let x = -M; x < cols + M; x++, k++) {
+        if (indoor) continue;
         let t = tileType[k];
         const ins = inside(x, z), cx = x + 0.5, cz = z + 0.5;
         if (t === 't' && (style.noTrees ?? []).some(([a0, b0, a1, b1]) => x >= a0 && x < a1 && z >= b0 && z < b1)) t = 'b';   // trong phố: bụi thay cây
@@ -279,7 +286,7 @@ export async function buildScene(id, map, terrain, layout) {
     }
 
     if (wheatAt.length) group.add(wheatField(wheatAt));
-    if (PAINT) {
+    if (PAINT && !indoor) {
         // cây hái được (cây táo, cây sồi già) cũng là cây vẽ tay, đứng đúng ô của vật trên bản đồ (hình 2D của chúng được ẩn ở src/ui/world.js)
         for (const o of map.objects ?? []) if (o.sprite === 'i_appletree' || o.sprite === 'i_oak') B.trees.push([o.x + 0.5, o.y + 0.5, 2.3, true, o.sprite === 'i_appletree' ? 'apple' : 'round', o.sprite === 'i_appletree' ? 'apple' : 'dark']);
         paintGrass(group, paintTiles, 12); anim.push(paintMapClouds(group, cols, rows));
@@ -302,7 +309,7 @@ export async function buildScene(id, map, terrain, layout) {
             coverRect(x, z, x + 1, z + 1);
         }
     }
-    if (!oldMode) buildRegionLife(ctx, id, map, terrain, treeSpots, roofPerches);
+    if (!oldMode && !indoor) buildRegionLife(ctx, id, map, terrain, treeSpots, roofPerches);
     await loadModels(B.keys());
     B.flush(group);
     return { group, water, anim, top };
@@ -359,6 +366,12 @@ const along = (a, b, step, f) => {   // rải đều dọc đoạn a->b
 
 const VH_FRONT = 0;   // mặt ngoài của mảng tường bộ Village quay về -z (phần bệ / bậu cửa nhô ra phía đó)
 export const BUILD = {
+    // Rectangular indoor surfaces: circular plaza geometry cannot form an aisle or dais.
+    roomBox(ctx, { x0, z0, x1, z1, height, color, y = 0, floor = false }) {
+        const mat = lam(color, { cloud: false, occlude: !floor, detail: false });
+        mesh(ctx, new THREE.BoxGeometry(x1-x0, height, z1-z0), mat, (x0+x1)/2, y+height/2, (z0+z1)/2);
+        if (!floor) ctx.cover(x0,z0,x1,z1);
+    },
     /** Nhà lắp từ mảnh bộ thị trấn: khung x0..x1 × z0..z1, cửa ở mặt trước (phía z1) tại cột doorX */
     house(ctx, { x0, z0, x1, z1, door, wall = 'wood', roof = 'red', h = 2.0, chimney = true, sign = null }) {
         if (PAINT) {   // (12/11/2026) nhà bộ Làng Trung Cổ thay cho nhà khối

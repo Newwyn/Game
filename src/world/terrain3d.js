@@ -157,5 +157,4 @@ export const TERRAIN = {
   "ttgggtdpppppgpdgggpgpgdtppppbspgggggggggggt",
   "tgtttgggpppppggggggggggspppttppttggtgtttttt",
   "ttbtgtgtgttbggggttgggggttpgttbpgtttttggtbgg"
- ]
-};
+ ], "cathedral_in": ["sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss"], "palace_in": ["sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss", "sssssssssssssssssssss"], "archive_in": ["sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss", "sssssssssssssss"]};

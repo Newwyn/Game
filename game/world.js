@@ -154,6 +154,32 @@ Object.assign(SCENES, {
         ],
     },
 });
+Object.assign(SCENES, {
+    cathedral_in: {
+        area: 'capital', name: 'Nhà thờ lớn Valoria', interior: true, interior3d: true,
+        npcs: ['sister_anna'],
+        objects: [
+            { id: 'cathedral_note', type: 'note', label: 'Sách cầu nguyện', lines: ['Nguyện Ngọn Lửa Thánh soi đường cho người lạc bước.', 'Bên lề có nét chữ của Sera: “Sức mạnh chỉ có ý nghĩa khi ta dùng nó để che chở người khác.”'] },
+            { id: 'cathedral_chest', type: 'chest', reward: { gold: 150 } },
+        ],
+    },
+    palace_in: {
+        area: 'capital', name: 'Cung điện Valoria — Sảnh ngai', interior: true, interior3d: true,
+        npcs: ['palace_guard_left', 'palace_guard_right'],
+        objects: [
+            { id: 'palace_note', type: 'note', label: 'Chiếu chỉ hoàng gia', lines: ['Cổng thành phải mở cho dân tìm nơi trú ẩn. Không được thu thêm phí lương thực trong những ngày khó khăn.', 'Dấu son hoàng gia còn mới. Bên dưới là danh sách các kho cứu tế.'] },
+            { id: 'palace_chest', type: 'chest', reward: { gold: 250 } },
+        ],
+    },
+    archive_in: {
+        area: 'capital', name: 'Thư khố Hoàng gia', interior: true, interior3d: true,
+        npcs: [],
+        objects: [
+            { id: 'archive_note', type: 'note', label: 'Biên niên sử và bản đồ cũ', lines: ['Bản đồ ghi lại những con đường nối Valoria với các vùng đất phía đông.', 'Một dòng chú thích đã phai: “Khi bảy vị Thánh cùng giữ lời thề, ngọn lửa sẽ không lụi tắt.”'] },
+            { id: 'archive_chest', type: 'chest', reward: { gold: 200 } },
+        ],
+    },
+});
 // ---------- ĐIỂM TRUYỆN + ĐIỀU TRA (chương 1) ----------
 // Song song với Bảng ải: mỗi ải chính có 1 điểm trên bản đồ (gặp NPC hoặc tới đúng chỗ) -> xem lời trước ải -> mở BẢNG ẢI đúng ải đó.
 //   npc: nói chuyện với NPC đó khi ải này là ải kế tiếp · obj: vật hiện ra trên bản đồ (vị trí ở src/world/mapsExtra.js)
@@ -263,6 +289,9 @@ const START = { scene: 'outskirts', x: 3, y: 12, face: 'right' };
 
 // ---------- NPC ----------
 const NPCS = {
+    sister_anna: { name: 'Sơ Anna', title: 'Người giữ Ngọn Lửa Thánh', art: 'npc_nun' },
+    palace_guard_left: { name: 'Vệ binh hoàng cung', title: 'Gác sảnh ngai', art: 'npc_guard' },
+    palace_guard_right: { name: 'Vệ binh hoàng cung', title: 'Gác sảnh ngai', art: 'npc_guard' },
     mira: { name: 'Bà Mira', title: 'Trưởng làng', art: 'npc_mira' },
     borin: { name: 'Bác Borin', title: 'Thợ rèn', art: 'npc_borin' },
     lena: { name: 'Cô Lena', title: 'Chủ quán', art: 'npc_lena' },
@@ -475,6 +504,9 @@ function npcDialog(pr, id) {
         merchant: ['Hàng từ kinh thành đây! … À mà đường lên đó đang bị chặn, bán chẳng được bao nhiêu.'],
         merchant2: ['Táo đỏ, lê vàng! Kinh thành dạo này lính tráng nhiều quá, khách cũng ngại ra chợ.'],
         nun: ['Phe hòa bình vẫn cầu nguyện mỗi ngày. Chiến tranh chẳng đem lại điều gì tốt đẹp.'],
+        sister_anna: ['Cứ vào nghỉ một lát nhé. Ngọn Lửa Thánh luôn sáng vì những người còn cần được chở che.', 'Sera từng cầu nguyện ở đây trước mỗi chuyến đi. Em ấy tin rằng một hiệp sĩ phải biết đưa tay ra giúp người khác trước khi rút kiếm.'],
+        palace_guard_left: ['Mời bạn đi theo thảm đỏ. Xin giữ yên lặng trong sảnh ngai.'],
+        palace_guard_right: ['Công chúa Elise vẫn ở ngoài tiền sảnh để nghe dân trình bày. Bạn có thể tìm cô ấy ở đó.'],
         villager_m2: cleared(pr, 20) ? ['Nữ vương công khai hồ sơ rồi… hóa ra lương cứu trợ bị đem đi chuẩn bị chiến tranh.'] : ['Có lệnh của bộ chỉ huy: ai thấy người Elf thì phải báo ngay. Lạ thật…'],
         elfmerchant: ['Thảo dược rừng Sylvaren chữa được cả vết bỏng lửa thần đấy!', 'Dạo này rừng bệnh, thảo dược héo hết cả…'],
         elfkid: clearedId(pr, 'c2-05') ? ['Treant Già ngủ yên rồi! Cảm ơn {anh}!'] : ['{Anh} là người tộc Người à? Lần đầu em thấy đó!', 'Đừng lại gần cây cổ thụ có tim xanh nhé, nó dữ lắm.'],
