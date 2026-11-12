@@ -5,6 +5,17 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 12/11/2026 (toi 3) — BO DO DAC PHO CO (Codex) + THANH VALORIA MOI 72x44 + quyet dinh cau truc Chuong
+
+- Bo do dac pho co: 32 mo hinh Codex dung bang code (`tools/models/make_town_kit.py`): sap cho, dai phun nuoc, den, ghe, bon hoa, bien hieu, xe, thung, cau da/go, tuong thap, day co... Da dua vao: sap cho / dai phun / den duong tu doi; moi nha co den tuong + chau hoa (+ bien hieu, ghe); o trong sat duong rai do; canh chien dau lang / cho / quang truong them do.
+- Thanh Valoria ve lai 72x44 o (truoc 43x24) bang `tools/build_capital.py` (Codex): tuong thanh + thap, cong nam, dai lo 4 o, quang truong cho, kenh + 2 cau, cung dien, nha tho + nghia dia, khu hoc gia, khu dan cu; du moi NPC / vat pham / loi ra; ban do nho moi; 189 bai kiem tra dat. So do: `Claude outputs/so_do_thanh_valoria_moi.png`.
+- Tren ban do (kieu ve tay): cong trinh lon (`hall`) = day nha da mai ngoi + 2 thap; `spire` / `tower` = thap da mai ngoi; `castleWall` = tuong da bo ham nguc. Trang vao game giu tranh thanh cu (`src/assets/ui/landing_city.webp`).
+- SU CO (da khac phuc): Claude xoa nham thu muc lam viec cua Codex khi phan viec chua luu; khoi phuc du 12 file tu kho git (`git fsck --lost-found`). Da ghi bai hoc vao bo nho.
+- Codex het luot giua chung (tai khoan cu); nguoi choi doi tai khoan -> dang chay dot 2 cho Valoria: 70-90 nha nho thay 17 khoi lon, 250+ do dac, cho 10 sap, bo ke kenh.
+- Quyet dinh cua nguoi choi ve cau truc Chuong (1 chuong = ca phan Toc nguoi, ~1 thang choi, lang + 4 ban do + mo + thanh + 3 ham nguc + ham nguc an; 6 loai nhiem vu + hang ngay + hang tuan): da ghi vao bo nho; dang cho nguoi choi chot 3 cau (ban do thu 4, ham nguc di lai hay chuoi tran, cach keo 1 thang).
+
+---
+
 ## 12/11/2026 (toi 2) — HANG MO toi nhu dem, sang nho den dau, co doi bay va da roi
 
 - Canh `mine` / `deepMine`: anh sang chung rat thap (`PAINT_PROFILE` + `hemi` / `ambient` theo canh trong `environment.js`); 5 ngon den dau la den diem that + quang sang + vung sang tren nen, lua chap chon; 7-16 giay mot dan doi 2-5 con bay ngang; 9-20 giay vai vien da roi tu tran, nay, boc bui (`paintMineLife` trong `src/world3d/paint.js`). Nhan vat va quai van sang ro (hinh khong an den).
