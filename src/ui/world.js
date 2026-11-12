@@ -481,7 +481,8 @@ function togglePlaces(show = placesEl.style.display === 'none') {
     const seen = new Set(), ways = [];
     for (const e of map.exits ?? []) {
         if (seen.has(e.scene) || !data.scenes[e.scene]) continue; seen.add(e.scene);
-        ways.push(row(data.scenes[e.scene].open ? '🚶' : '🔒', 'Sang ' + data.scenes[e.scene].name, { scene: e.scene }));
+        const sc = data.scenes[e.scene], inDoor = sc.interior || scene.interior && !sc.interior;
+        ways.push(row(!sc.open ? '🔒' : inDoor ? '🚪' : '🚶', (sc.interior ? 'Vào ' : scene.interior ? 'Ra ' : 'Sang ') + sc.name, { scene: e.scene }));
     }
     placesEl.innerHTML = `<div class="wd-places-head">📍 ${esc(scene.name ?? 'Địa điểm')}<button type="button" class="wd-places-x" data-place-close aria-label="Đóng">✕</button></div>
         <div class="wd-places-list">${sec('Nơi nổi bật', spots)}${sec('Người ở đây', people)}${sec('Lối sang khu khác', ways)}</div>

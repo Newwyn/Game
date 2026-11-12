@@ -5,6 +5,18 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 12/11/2026 (toi 5) — Valoria: vao duoc ben trong, bang Dia diem, mai nha cat mo
+
+- **Vao duoc ben trong 3 cong trinh chinh** (Codex): Nha tho lon (So Anna, sach cau nguyen, ruong), Cung dien — Sanh ngai (2 ve binh, chieu chi, ruong), Thu kho Hoang gia (bien nien su, ruong). Phong 3D that, cua hai chieu. `tools/build_interiors.py`. Da tu di thu vao Nha tho va noi chuyen voi So Anna; CHUA vao thu Cung dien va Thu kho.
+- **Bang "📍 Dia diem"** (goc trai tren): bam ten noi noi bat / nguoi / loi sang khu khac -> nhan vat tu di toi. Danh sach noi noi bat o `src/world/places.js` (hien co Valoria + Ashford).
+- **Mai nha cat mo quanh nhan vat**: di trong hem van thay mot vong mat dat quanh nguoi (ngoi + xa go + ong khoi cung mo). Lan chinh cuoi (chieu theo tia nhin) CHUA kip xem lai bang mat.
+- **May**: het o vuong (chum dom tron mem). **Do tren duong**: bo chau hoa / ghe truoc cua, Valoria khong tu rai them do.
+- **Bang ten noi** Cung dien / Nha tho lon / Thu kho / Cho trung tam — phong Be Vietnam Pro (du dau tieng Viet).
+- **The luc**: chi hien canh nhan vat khi nhay, 3 giay sau tu an. **An phim A/B + dieu huong** tren may co chuot (dien thoai van giu).
+- CON DO: mang toi goc canh quanh tan cay khi dung sat cay (chua tim ra nguyen nhan — da loai tru mau dat, co, bong do); noi that con don so (cot ngan, san tron).
+
+---
+
 ## 12/11/2026 (toi 4) — VALORIA dot 2: pho co day dac
 
 - Codex (tai khoan moi) lam lai `tools/build_capital.py`: 73 nha nho (3x3 / 3x4 o) xep thanh day thay 17 khoi lon; 265 do dac 24 loai (31 den duong, sap, ghe, bon hoa, thung, bao, day phoi, dong cui, gieng, xe, bang thong bao, tuong...); cho 10 sap 2 hang; ke da hai bo kenh + 5 bac thang; hang cay doc dai lo, cong vien, vuon tao; ban do nho ve lai tung mai nha. 38,4% o di duoc, mot mang lien thong. 192 bai kiem tra dat. So do: `Claude outputs/so_do_thanh_valoria_dot2.png`.

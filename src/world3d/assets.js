@@ -126,8 +126,10 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
           }` : ''}
           ${occlude && fadeTo < 0.45 ? `// (12/11) MÁI NHÀ: cắt mở cả vùng tròn quanh nhân vật (tính theo mặt đất), không chỉ phần che đúng người -> đi trong hẻm vẫn thấy lối, thấy vật cản hai bên
           if (uSeeThrough > 0.01 && vWorldPos.y > 1.2) {
-            vec2 rd = vWorldPos.xz - uHeroPos.xz;
-            float cut = (1.0 - smoothstep(2.4, 4.2, length(rd))) * smoothstep(-1.8, -0.5, rd.y);
+            // chiếu mảnh mái theo tia nhìn xuống mặt đất: nếu nó che một điểm trong vòng tròn quanh nhân vật thì cắt mở -> luôn lộ ra MỘT VÒNG MẶT ĐẤT quanh người
+            vec3 cr = vWorldPos - uCamPos; float tg = (uHeroPos.y + 0.1 - uCamPos.y) / min(cr.y, -0.001);
+            vec2 gp = uCamPos.xz + cr.xz * tg - uHeroPos.xz;
+            float cut = (1.0 - smoothstep(2.6, 3.8, length(gp * vec2(1.0, 1.25)))) * step(1.0, tg);
             gl_FragColor.a = min(gl_FragColor.a, mix(1.0, ${fadeTo.toFixed(2)}, cut * uSeeThrough));
           }` : ''}
           ${cloud ? `vec2 cUv = vWorldPos.xz * 0.075 + vec2(uTime * 0.018, uTime * 0.009);
