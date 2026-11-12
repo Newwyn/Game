@@ -1,3 +1,8 @@
+// CAPITAL_GENERATED_BEGIN
+const CAPITAL_ITEMS = [["hall", {"x0": 4, "z0": 4, "x1": 20, "z1": 10, "door": 12.0, "wall": 14931638, "roof": 6449782, "h": 3.5, "roofH": 1.6}], ["hall", {"x0": 32, "z0": 4, "x1": 52, "z1": 10, "door": 42.0, "wall": 14931638, "roof": 6449782, "h": 4, "roofH": 1.6}], ["hall", {"x0": 4, "z0": 13, "x1": 16, "z1": 20, "door": 10.0, "wall": 14931638, "roof": 6449782, "h": 3.5, "roofH": 1.6}], ["house", {"x0": 54, "z0": 4, "x1": 60, "z1": 10, "door": 57.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 62, "z0": 4, "x1": 68, "z1": 10, "door": 65.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 48, "z0": 12, "x1": 55, "z1": 18, "door": 51.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 48, "z0": 23, "x1": 55, "z1": 28, "door": 51.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 57, "z0": 12, "x1": 62, "z1": 18, "door": 59.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 57, "z0": 23, "x1": 62, "z1": 28, "door": 59.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 64, "z0": 12, "x1": 68, "z1": 18, "door": 66.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 64, "z0": 23, "x1": 68, "z1": 28, "door": 66.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 4, "z0": 23, "x1": 10, "z1": 28, "door": 7.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 12, "z0": 23, "x1": 18, "z1": 28, "door": 15.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 20, "z0": 23, "x1": 24, "z1": 28, "door": 22.0, "wall": "plaster", "roof": "red"}], ["house", {"x0": 4, "z0": 34, "x1": 11, "z1": 39, "door": 7.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 13, "z0": 34, "x1": 20, "z1": 39, "door": 16.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 22, "z0": 34, "x1": 29, "z1": 39, "door": 25.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 43, "z0": 34, "x1": 50, "z1": 39, "door": 46.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 52, "z0": 34, "x1": 59, "z1": 39, "door": 55.5, "wall": "plaster", "roof": "red"}], ["house", {"x0": 61, "z0": 34, "x1": 68, "z1": 39, "door": 64.5, "wall": "plaster", "roof": "red"}], ["castleWall", [0.5, 0.5], [71.5, 0.5], 2.6], ["castleWall", [0.5, 1.5], [71.5, 1.5], 2.6], ["castleWall", [0.5, 2.5], [1.5, 2.5], 2.6], ["castleWall", [70.5, 2.5], [71.5, 2.5], 2.6], ["castleWall", [0.5, 3.5], [1.5, 3.5], 2.6], ["castleWall", [70.5, 3.5], [71.5, 3.5], 2.6], ["castleWall", [0.5, 4.5], [1.5, 4.5], 2.6], ["castleWall", [30.5, 4.5], [31.5, 4.5], 1.35], ["castleWall", [70.5, 4.5], [71.5, 4.5], 2.6], ["castleWall", [0.5, 5.5], [1.5, 5.5], 2.6], ["castleWall", [30.5, 5.5], [31.5, 5.5], 1.35], ["castleWall", [70.5, 5.5], [71.5, 5.5], 2.6], ["castleWall", [0.5, 6.5], [1.5, 6.5], 2.6], ["castleWall", [30.5, 6.5], [31.5, 6.5], 1.35], ["castleWall", [70.5, 6.5], [71.5, 6.5], 2.6], ["castleWall", [0.5, 7.5], [1.5, 7.5], 2.6], ["castleWall", [30.5, 7.5], [31.5, 7.5], 1.35], ["castleWall", [70.5, 7.5], [71.5, 7.5], 2.6], ["castleWall", [0.5, 8.5], [1.5, 8.5], 2.6], ["castleWall", [30.5, 8.5], [31.5, 8.5], 1.35], ["castleWall", [70.5, 8.5], [71.5, 8.5], 2.6], ["castleWall", [0.5, 9.5], [1.5, 9.5], 2.6], ["castleWall", [30.5, 9.5], [31.5, 9.5], 1.35], ["castleWall", [70.5, 9.5], [71.5, 9.5], 2.6], ["castleWall", [0.5, 10.5], [1.5, 10.5], 2.6], ["castleWall", [30.5, 10.5], [31.5, 10.5], 1.35], ["castleWall", [52.5, 10.5], [52.51, 10.5], 1.35], ["castleWall", [70.5, 10.5], [71.5, 10.5], 2.6], ["castleWall", [0.5, 11.5], [1.5, 11.5], 2.6], ["castleWall", [30.5, 11.5], [31.5, 11.5], 1.35], ["castleWall", [52.5, 11.5], [52.51, 11.5], 1.35], ["castleWall", [70.5, 11.5], [71.5, 11.5], 2.6], ["castleWall", [0.5, 12.5], [1.5, 12.5], 2.6], ["castleWall", [30.5, 12.5], [31.5, 12.5], 1.35], ["castleWall", [52.5, 12.5], [52.51, 12.5], 1.35], ["castleWall", [70.5, 12.5], [71.5, 12.5], 2.6], ["castleWall", [0.5, 13.5], [1.5, 13.5], 2.6], ["castleWall", [18.5, 13.5], [23.5, 13.5], 1.35], ["castleWall", [30.5, 13.5], [31.5, 13.5], 1.35], ["castleWall", [52.5, 13.5], [52.51, 13.5], 1.35], ["castleWall", [70.5, 13.5], [71.5, 13.5], 2.6], ["castleWall", [0.5, 14.5], [1.5, 14.5], 2.6], ["castleWall", [18.5, 14.5], [18.51, 14.5], 1.35], ["castleWall", [23.5, 14.5], [23.51, 14.5], 1.35], ["castleWall", [30.5, 14.5], [33.5, 14.5], 1.35], ["castleWall", [38.5, 14.5], [52.5, 14.5], 1.35], ["castleWall", [70.5, 14.5], [71.5, 14.5], 2.6], ["castleWall", [0.5, 15.5], [1.5, 15.5], 2.6], ["castleWall", [18.5, 15.5], [18.51, 15.5], 1.35], ["castleWall", [23.5, 15.5], [23.51, 15.5], 1.35], ["castleWall", [70.5, 15.5], [71.5, 15.5], 2.6], ["castleWall", [0.5, 16.5], [1.5, 16.5], 2.6], ["castleWall", [18.5, 16.5], [18.51, 16.5], 1.35], ["castleWall", [23.5, 16.5], [23.51, 16.5], 1.35], ["castleWall", [70.5, 16.5], [71.5, 16.5], 2.6], ["castleWall", [0.5, 17.5], [1.5, 17.5], 2.6], ["castleWall", [18.5, 17.5], [18.51, 17.5], 1.35], ["castleWall", [23.5, 17.5], [23.51, 17.5], 1.35], ["castleWall", [70.5, 17.5], [71.5, 17.5], 2.6], ["castleWall", [0.5, 18.5], [1.5, 18.5], 2.6], ["castleWall", [18.5, 18.5], [18.51, 18.5], 1.35], ["castleWall", [23.5, 18.5], [23.51, 18.5], 1.35], ["castleWall", [70.5, 18.5], [71.5, 18.5], 2.6], ["castleWall", [0.5, 19.5], [1.5, 19.5], 2.6], ["castleWall", [18.5, 19.5], [18.51, 19.5], 1.35], ["castleWall", [23.5, 19.5], [23.51, 19.5], 1.35], ["castleWall", [70.5, 19.5], [71.5, 19.5], 2.6], ["castleWall", [0.5, 20.5], [1.5, 20.5], 2.6], ["castleWall", [0.5, 21.5], [1.5, 21.5], 2.6], ["castleWall", [0.5, 22.5], [1.5, 22.5], 2.6], ["castleWall", [0.5, 23.5], [1.5, 23.5], 2.6], ["castleWall", [70.5, 23.5], [71.5, 23.5], 2.6], ["castleWall", [0.5, 24.5], [1.5, 24.5], 2.6], ["castleWall", [70.5, 24.5], [71.5, 24.5], 2.6], ["castleWall", [0.5, 25.5], [1.5, 25.5], 2.6], ["castleWall", [70.5, 25.5], [71.5, 25.5], 2.6], ["castleWall", [0.5, 26.5], [1.5, 26.5], 2.6], ["castleWall", [70.5, 26.5], [71.5, 26.5], 2.6], ["castleWall", [0.5, 27.5], [1.5, 27.5], 2.6], ["castleWall", [70.5, 27.5], [71.5, 27.5], 2.6], ["castleWall", [0.5, 28.5], [1.5, 28.5], 2.6], ["castleWall", [70.5, 28.5], [71.5, 28.5], 2.6], ["castleWall", [0.5, 29.5], [1.5, 29.5], 2.6], ["castleWall", [70.5, 29.5], [71.5, 29.5], 2.6], ["castleWall", [0.5, 30.5], [1.5, 30.5], 2.6], ["castleWall", [70.5, 30.5], [71.5, 30.5], 2.6], ["castleWall", [0.5, 31.5], [1.5, 31.5], 2.6], ["castleWall", [70.5, 31.5], [71.5, 31.5], 2.6], ["castleWall", [0.5, 32.5], [1.5, 32.5], 2.6], ["castleWall", [70.5, 32.5], [71.5, 32.5], 2.6], ["castleWall", [0.5, 33.5], [1.5, 33.5], 2.6], ["castleWall", [70.5, 33.5], [71.5, 33.5], 2.6], ["castleWall", [0.5, 34.5], [1.5, 34.5], 2.6], ["castleWall", [70.5, 34.5], [71.5, 34.5], 2.6], ["castleWall", [0.5, 35.5], [1.5, 35.5], 2.6], ["castleWall", [70.5, 35.5], [71.5, 35.5], 2.6], ["castleWall", [0.5, 36.5], [1.5, 36.5], 2.6], ["castleWall", [70.5, 36.5], [71.5, 36.5], 2.6], ["castleWall", [0.5, 37.5], [1.5, 37.5], 2.6], ["castleWall", [70.5, 37.5], [71.5, 37.5], 2.6], ["castleWall", [0.5, 38.5], [1.5, 38.5], 2.6], ["castleWall", [70.5, 38.5], [71.5, 38.5], 2.6], ["castleWall", [0.5, 39.5], [1.5, 39.5], 2.6], ["castleWall", [70.5, 39.5], [71.5, 39.5], 2.6], ["castleWall", [0.5, 40.5], [1.5, 40.5], 2.6], ["castleWall", [70.5, 40.5], [71.5, 40.5], 2.6], ["castleWall", [0.5, 41.5], [1.5, 41.5], 2.6], ["castleWall", [70.5, 41.5], [71.5, 41.5], 2.6], ["castleWall", [0.5, 42.5], [33.5, 42.5], 2.6], ["castleWall", [38.5, 42.5], [71.5, 42.5], 2.6], ["castleWall", [0.5, 43.5], [33.5, 43.5], 2.6], ["castleWall", [38.5, 43.5], [71.5, 43.5], 2.6], ["vtower", 1, 1, {"r": 0.9, "h": 4.2}], ["vtower", 71, 1, {"r": 0.9, "h": 4.2}], ["vtower", 1, 43, {"r": 0.9, "h": 4.2}], ["vtower", 71, 43, {"r": 0.9, "h": 4.2}], ["vtower", 32.5, 43, {"r": 0.9, "h": 4.2}], ["vtower", 39.5, 43, {"r": 0.9, "h": 4.2}], ["vtower", 71, 18, {"r": 0.9, "h": 4.2}], ["vtower", 71, 25, {"r": 0.9, "h": 4.2}], ["spire", 8, 15, {"w": 2, "h": 7}], ["spire", 14, 15, {"w": 2, "h": 6}], ["spire", 42, 6, {"w": 2, "h": 6.5}], ["vtower", 33.5, 5.5, {"r": 1.3, "h": 5}], ["vtower", 50.5, 5.5, {"r": 1.3, "h": 5}], ["model", "custom/town_bridge_stone", 14, 31, {"s": 0.67, "sz": 2, "sy": 0.25, "r": 1.5707963267948966, "y": -0.3, "cover": [11, 29, 17, 33]}], ["model", "custom/town_bridge_stone", 36, 31, {"s": 0.67, "sz": 2, "sy": 0.25, "r": 1.5707963267948966, "y": -0.3, "cover": [33, 29, 39, 33]}], ["model", "custom/town_stall_fruit", 28.0, 18.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_cloth", 28.0, 27.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_fruit", 32.0, 18.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_cloth", 32.0, 27.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_fruit", 40.0, 18.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_cloth", 40.0, 27.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_fruit", 44.0, 18.0, {"s": 0.62, "r": 0}], ["model", "custom/town_stall_cloth", 44.0, 27.0, {"s": 0.62, "r": 0}], ["model", "custom/town_fountain", 40.5, 24.5, {"s": 0.9, "r": 0}], ["model", "custom/town_statue", 28.0, 23.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 32.5, 14.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 38.5, 14.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 33.5, 26.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 46.5, 20.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 60.5, 18.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 64.5, 18.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 31.5, 34.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 38.5, 34.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 32.5, 42.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 38.5, 42.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 32.5, 10.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 38.5, 10.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 10.5, 29.5, {"s": 0.5, "r": 0}], ["model", "custom/town_lamp_post", 18.5, 29.5, {"s": 0.5, "r": 0}], ["model", "custom/town_bench", 30.0, 23.5, {"s": 0.62, "r": 0}], ["model", "custom/town_bench", 45, 23.5, {"s": 0.62, "r": 0}], ["model", "custom/town_noticeboard", 26.5, 26.5, {"s": 0.44, "r": 0}], ["model", "custom/town_cart_goods", 42, 35, {"s": 0.62, "r": 0}], ["model", "custom/town_cart_hay", 32.5, 38, {"s": 0.48, "r": 0}], ["model", "custom/town_woodpile", 4.5, 10.5, {"s": 0.48, "r": 0}], ["model", "custom/town_laundry", 14.5, 39.5, {"s": 0.62, "r": 0}], ["model", "custom/town_barrels", 54.5, 9.5, {"s": 0.6, "r": 0}], ["model", "custom/town_crates", 62.5, 9.5, {"s": 0.62, "r": 0}], ["model", "custom/town_sacks", 4.5, 39.5, {"s": 0.62, "r": 0}], ["model", "custom/town_trough", 22.5, 39.5, {"s": 0.48, "r": 0}], ["model", "custom/town_planter_a", 44.5, 39.5, {"s": 0.62, "r": 0}], ["model", "custom/town_planter_b", 62.5, 39.5, {"s": 0.62, "r": 0}], ["model", "custom/town_sign_inn", 42.5, 38.5, {"s": 0.62, "r": 0}], ["model", "custom/town_flowerpots", 53.5, 39.5, {"s": 0.62, "r": 0}], ["well", 30, 35]];
+const CAPITAL_DETAIL = [["model", "custom/town_planter_a", 14.5, 31.5, {"s": 0.4, "y": 0.1}], ["model", "custom/town_planter_a", 36.5, 31.5, {"s": 0.4, "y": 0.1}], ["model", "graveyard/gravestone-cross", 19.5, 17.5, {"s": 0.6}], ["model", "graveyard/gravestone-cross", 20.5, 17.5, {"s": 0.6}], ["model", "graveyard/gravestone-cross", 21.5, 17.5, {"s": 0.6}], ["model", "graveyard/gravestone-cross", 22.5, 17.5, {"s": 0.6}], ["model", "custom/town_bunting", 28, 17.5, {"s": 0.62, "y": 1}], ["model", "custom/town_bunting", 40, 17.5, {"s": 0.62, "y": 1}]];
+const CAPITAL_STYLE = {"trees": ["nature/tree_oak", "nature/tree_default"], "sky": 13161695, "fog": [14015713, 65, 135], "sun": 16769202, "ground": {"s": [0.09, 0.1, 0.62], "p": [0.1, 0.28, 0.57], "g": [0.28, 0.3, 0.43], "t": [0.28, 0.26, 0.37]}};
+// CAPITAL_GENERATED_END
 // ============================================================
 // Bản đồ 3D — công trình đặt tay cho 7 bản đồ, đo theo tranh nền cũ (src/assets/maps/<khu>.webp, 43 x 24 ô)
 //   Mỗi mục: [kiểu, ...tham số] — kiểu xem BUILD trong build.js. Toạ độ = ô (x trái->phải, z trên->dưới), số lẻ được.
@@ -379,107 +384,7 @@ export const LAYOUTS = {
     },
 
     // ---------------- 5. Kinh thành Valoria ----------------
-    capital: {
-        style: { trees: ROUND, sky: 0xcad9bd, fog: [0xc8d2b4, 32, 66], sun: 0xffdcae, noTrees: [[5, 7, 37, 19]] },
-        items: [
-            // cung điện (trên cùng) + tường + 4 tháp mái xanh
-            ['hall', { x0: 21, z0: -1, x1: 35, z1: 3.6, h: 3.2, wall: WHITE, roof: BLUE, roofH: 1.8 }],
-            ['hall', { x0: 26.2, z0: -0.5, x1: 29.6, z1: 4.0, h: 4.2, wall: WHITE, roof: BLUE, roofH: 2.2, door: 27.9, doorColor: 0x2b2b33 }],
-            ['castleWall', [19.4, 6.6], [36.8, 6.6], 2.0],
-            ['tower', 19.4, 6.2, { r: 1.0, h: 3.2 }], ['tower', 25.8, 6.2, { r: 1.0, h: 3.4 }], ['tower', 30.3, 6.2, { r: 1.0, h: 3.4 }], ['tower', 36.8, 6.2, { r: 1.0, h: 3.2 }],
-            ['model', 'castle/gate', 27.9, 7.1, { s: 3, r: Math.PI / 2 }],
-            ['castleWall', [19.2, -1], [19.2, 5.6], 2.0], ['castleWall', [37.0, -1], [37.0, 5.6], 2.0],
-            // nhà thờ ánh sáng
-            ['hall', { x0: 10.5, z0: 2.6, x1: 16.3, z1: 7.0, h: 3.6, wall: 0xb8b2a6, roof: 0x5f6670, roofH: 2.0, door: 13.4, doorColor: 0x2b2b33 }],
-            ['spire', 11.4, 2.4, { w: 1.5, h: 5.2 }], ['spire', 15.4, 2.4, { w: 1.5, h: 5.2 }],
-            // thư viện hoàng gia + mái vòm
-            ['hall', { x0: 5.8, z0: 9.2, x1: 12.0, z1: 15.0, h: 2.8, wall: 0xd8cdb6, roof: 0x9a8a72, roofH: 1.0, door: 8.9, doorColor: 0x2b2420 }],
-            ['dome', 8.8, 10.6, 1.4, 2.8],
-            // nhà dân
-            ['house', { x0: 5.0, z0: 4.2, x1: 8.1, z1: 7.1, door: 6.5, roof: 'brown' }],
-            ['house', { x0: 38.3, z0: 2.6, x1: 42.4, z1: 6.8, door: 39.7, roof: 'brown' }],
-            ['house', { x0: 31.5, z0: 9.0, x1: 36.7, z1: 12.6, door: 35.3, roof: 'blue', wall: 'stone' }],
-            ['house', { x0: 38.2, z0: 9.2, x1: 41.8, z1: 12.6, door: 39.6, roof: 'brown' }],
-            ['house', { x0: 30.3, z0: 15.0, x1: 33.4, z1: 18.4, door: 31.6, roof: 'red' }],
-            ['house', { x0: 9.3, z0: 17.4, x1: 12.9, z1: 19.2, door: 11, roof: 'brown', h: 1.5, chimney: false }],
-            ['house', { x0: 12.5, z0: 21.6, x1: 14.6, z1: 24.5, door: null, roof: 'red' }],
-            ['house', { x0: 15.2, z0: 21.6, x1: 17.4, z1: 24.5, door: null, roof: 'blue' }],
-            ['house', { x0: 27.3, z0: 21.6, x1: 29.6, z1: 24.5, door: null, roof: 'blue' }],
-            ['model', 'nature/tree_oak', 35.2, 14.6, { s: 2.6 }],
-            ['model', 'survival/barrel', 7.5, 16.9, { s: 2.6 }],
-            // chợ quanh đài phun nước
-            ['fountain', 21.5, 13.3, 1.35],
-            ...[[15.8, 10.4, 0xc0392b], [18.0, 10.2, 0x8e44ad], [19.9, 10.3, 0x27ae60], [15.8, 11.8, 0x3f6fc6], [17.8, 11.7, 0xe0b030],
-                [23.1, 10.3, 0xd35454], [24.9, 10.3, 0x27ae60], [26.4, 10.3, 0xe0b030], [24.8, 11.8, 0x3f6fc6], [26.2, 11.8, 0xc0392b],
-                [16.3, 15.3, 0x27ae60], [17.9, 15.3, 0xc0392b], [20.0, 16.5, 0x3f6fc6], [23.1, 16.5, 0xc0392b], [24.9, 15.2, 0xe0b030], [26.4, 15.2, 0x2a9d8f]]
-                .map(([x, z, c]) => ['stall', x, z, c]),
-            ['lamp', 14.3, 9.1], ['lamp', 28.6, 9.1], ['lamp', 14.3, 17.6], ['lamp', 28.6, 17.6],
-            // tường thành ngoài + cổng
-            ['castleWall', [4.3, -1], [4.3, 16]], ['castleWall', [4.3, 16], [8, 19.8]], ['castleWall', [8, 19.8], [18.4, 19.8]],
-            ['castleWall', [24.6, 19.8], [33, 19.8]], ['castleWall', [33, 19.8], [37, 15.2]], ['castleWall', [37, 15.2], [44, 15.2]],
-            ['hall', { x0: 19.9, z0: 19.4, x1: 23.1, z1: 21.6, h: 3.0, wall: WHITE, roof: 0xd8d2c6, roofH: 0.3, door: 21.5, doorColor: 0x14110e }],
-            ['tower', 19.1, 19.9, { r: 1.05, h: 3.6, roof: null }], ['tower', 23.9, 19.9, { r: 1.05, h: 3.6, roof: null }],
-        ],
-        detailItems: [
-            // Tượng hiệp sĩ & đài phun nước phụ
-            ['statue', 23.5, 7.5, 0],
-            ['statue', 31.5, 7.5, 0],
-            ['statue', 16.5, 13.5, Math.PI / 2],
-            ['statue', 25.5, 13.5, -Math.PI / 2],
-            ['fountain', 34.5, 16.5, 1.05],
-
-            // Chậu cây cắt tỉa hoàng gia (topiary)
-            ['topiary', 20.5, 7.4, 'cone'],
-            ['topiary', 25.5, 7.4, 'sphere'],
-            ['topiary', 29.8, 7.4, 'sphere'],
-            ['topiary', 34.8, 7.4, 'cone'],
-            ['topiary', 12.4, 9.5, 'sphere'],
-            ['topiary', 12.4, 14.5, 'sphere'],
-            ['topiary', 18.5, 19.2, 'cone'],
-            ['topiary', 24.5, 19.2, 'cone'],
-
-            // Cờ phướn dài hoàng gia (royalBanner)
-            ['royalBanner', 21.5, 7.2, 0x3f6fc6],
-            ['royalBanner', 24.5, 7.2, 0xc0392b],
-            ['royalBanner', 30.8, 7.2, 0xc0392b],
-            ['royalBanner', 33.8, 7.2, 0x3f6fc6],
-            ['royalBanner', 10.2, 6.8, 0xf1c40f],
-            ['royalBanner', 16.5, 6.8, 0xf1c40f],
-            ['royalBanner', 18.2, 19.3, 0x3f6fc6],
-            ['royalBanner', 25.2, 19.3, 0x3f6fc6],
-
-            // Ghế đá cẩm thạch & đèn đường
-            ['stoneBench', 18.4, 12.4, Math.PI / 2],
-            ['stoneBench', 23.4, 12.4, -Math.PI / 2],
-            ['stoneBench', 18.4, 14.4, Math.PI / 2],
-            ['stoneBench', 23.4, 14.4, -Math.PI / 2],
-            ['stoneBench', 34.5, 15.2, 0],
-            ['stoneBench', 34.5, 17.8, Math.PI],
-            ['lamp', 9.5, 8.4],
-            ['lamp', 18.5, 9.2],
-            ['lamp', 23.5, 9.2],
-            ['lamp', 30.5, 10.4],
-            ['lamp', 30.5, 12.4],
-            ['lamp', 15.4, 19.2],
-            ['lamp', 26.4, 19.2],
-            ['lamp', 33.8, 15.4],
-
-            // Sạp chợ bổ sung, thùng hàng, bao tải, chậu hoa
-            ['stall', 30.5, 13.5, 0x8e44ad, -Math.PI / 2],
-            ['veggieBasket', 19.5, 16.3],
-            ['sack', 22.5, 16.3, 3],
-            ['model', 'survival/barrel', 25.5, 16.3, { s: 2.2 }],
-            ['model', 'survival/box-large', 16.5, 16.3, { s: 2.2, r: 0.3 }],
-            ['model', 'survival/barrel', 36.8, 10.5, { s: 2.2 }],
-            ['model', 'town/cart', 5.4, 15.4, { s: 1.25, r: 0.4 }],
-            ['flowerPot', 30.5, 11.4, 'nature/flower_purpleA'],
-            ['flowerPot', 7.5, 7.4, 'nature/flower_redA'],
-            ['flowerPot', 12.4, 11.5, 'nature/flower_yellowA'],
-            ['flowerPot', 12.4, 13.2, 'nature/flower_redB'],
-        ],
-    },
-
-    // ---------------- 6. Bìa rừng Elf Sylvaren ----------------
+    capital: { style: CAPITAL_STYLE, items: CAPITAL_ITEMS, detailItems: CAPITAL_DETAIL },
     sylvaren: {
         style: {
             trees: ['nature/tree_detailed', 'nature/tree_fat', 'nature/tree_oak'], edgeTrees: ['nature/tree_detailed', 'nature/tree_fat'], treeScale: [2.0, 2.7],

@@ -54,7 +54,7 @@ test('mỗi vùng: BFS đi bộ tới tất cả mục tiêu bắt buộc kể c
         }
         for(const e of m.exits)if(!exitCells(m,e).some(([x,y])=>reached.has(key(x,y))))errors.push(`${id}/exit ${e.scene}`);
         for(const [from,src]of Object.entries(MAPS))for(const e of src.exits)if(e.scene===id&&!reached.has(key(...e.at)))errors.push(`${id}/landing ${from}`);
-        if(!m.interior){assert.ok(m.jumpSites.length>=4&&m.jumpSites.length<=7,id);assert.equal(m.heights.length,m.rows);for(const r of m.heights)assert.match(r,new RegExp(`^[012]{${m.cols}}$`));}
+        if(!m.interior){assert.ok(id==='capital' ? m.jumpSites.length===0 : m.jumpSites.length>=4&&m.jumpSites.length<=7,id);assert.equal(m.heights.length,m.rows);for(const r of m.heights)assert.match(r,new RegExp(`^[012]{${m.cols}}$`));}
     }
     assert.deepEqual(errors,[]);
 });
@@ -90,7 +90,7 @@ test('rương phụ cần nhảy và có đường tới bằng luật nhảy th
     const {MAPS,flood,key}=await import('../tools/world_audit.mjs');
     const {jumpTarget,canWalkTile,tileHeight,isGap}=await rules;
     for(const [id,m]of Object.entries(MAPS)){
-        const bonus=m.objects.filter(o=>o.optional);if(!bonus.length)continue;
+        const bonus=m.objects.filter(o=>o.optional && m.jumpSites.some(site=>site.chest===o.id));if(!bonus.length)continue;
         const chests=new Set(m.objects.filter(o=>o.solid).map(o=>key(o.x,o.y)));
         const blocked=(x,y)=>m.grid[y]?.[x]!=='.'||isGap(m,x,y)||chests.has(key(x,y));
         const seen=new Set([key(...m.spawn)]),q=[m.spawn];

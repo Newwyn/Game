@@ -293,8 +293,8 @@ DEMO_FIX = json.loads(r'''{
         "b": 23,
         "scene": "capital",
         "at": [
-          21,
-          18
+          35,
+          42
         ],
         "face": "up"
       },
@@ -360,19 +360,23 @@ def apply_demo(out):
         row[10] = '.'
         out['road']['grid'][y] = ''.join(row)
 
-EXTRA_ANCHORS = {'forest': [{'id': 'sp_bandage', 'x': 6, 'y': 11, 'sprite': 'bandage', 'solid': True}, {'id': 'clue_wheel', 'x': 9, 'y': 12, 'sprite': 'wheel_tracks', 'solid': True}, {'id': 'sp_wolf', 'x': 29, 'y': 8, 'solid': True, 'char': 'npc_wolfboss', 'foe': True, 'face': 'down', 'group': [[0, 0], [-1, -1, 'npc_wolf'], [1, -1, 'npc_wolf']]}, {'id': 'sp_swamp', 'x': 8, 'y': 18, 'solid': True, 'char': 'ow_sera', 'solo': True, 'face': 'down', 'foeChars': ['npc_goblin'], 'group': [[0, 0], [-1, 0, 'npc_goblin'], [1, 0, 'npc_goblin']]}, {'id': 'sp_grix', 'x': 26, 'y': 16, 'solid': True, 'char': 'npc_grix', 'solo': True, 'face': 'down'}], 'outskirts': [{'id': 'sp_smoke', 'x': 39, 'y': 11, 'sprite': 'smoke', 'big': True, 'solid': True}, {'id': 'clue_arrows', 'x': 38, 'y': 13, 'sprite': 'ash_arrows', 'solid': True}], 'ashford': [{'id': 'clue_ledger', 'x': 30, 'y': 13, 'sprite': 'ledger', 'solid': True}], 'road': [{'id': 'sp_bridge', 'x': 12, 'y': 11, 'solid': True, 'char': 'npc_thug', 'foe': True, 'face': 'left', 'group': [[0, 0], [-1, -1], [-2, 0]]}], 'capital': [{'id': 'pages', 'x': 14, 'y': 16, 'sprite': 'pages', 'solid': True}, {'id': 'sp_square', 'x': 13, 'y': 11, 'solid': True, 'char': 'npc_villager_m', 'solo': True, 'face': 'down'}, {'id': 'sp_archive', 'x': 17, 'y': 17, 'sprite': 'archive_door', 'solid': True, 'big': True}, {'id': 'sp_relief', 'x': 37, 'y': 10, 'solid': True, 'char': 'npc_guard', 'solo': True, 'face': 'down'}, {'id': 'sp_tower', 'x': 17, 'y': 4, 'sprite': 'stairs', 'big': True, 'solid': True}, {'id': 'clue_poster', 'x': 16, 'y': 7, 'sprite': 'poster', 'solid': True}]}
+EXTRA_ANCHORS = {'forest': [{'id': 'sp_bandage', 'x': 6, 'y': 11, 'sprite': 'bandage', 'solid': True}, {'id': 'clue_wheel', 'x': 9, 'y': 12, 'sprite': 'wheel_tracks', 'solid': True}, {'id': 'sp_wolf', 'x': 29, 'y': 8, 'solid': True, 'char': 'npc_wolfboss', 'foe': True, 'face': 'down', 'group': [[0, 0], [-1, -1, 'npc_wolf'], [1, -1, 'npc_wolf']]}, {'id': 'sp_swamp', 'x': 8, 'y': 18, 'solid': True, 'char': 'ow_sera', 'solo': True, 'face': 'down', 'foeChars': ['npc_goblin'], 'group': [[0, 0], [-1, 0, 'npc_goblin'], [1, 0, 'npc_goblin']]}, {'id': 'sp_grix', 'x': 26, 'y': 16, 'solid': True, 'char': 'npc_grix', 'solo': True, 'face': 'down'}], 'outskirts': [{'id': 'sp_smoke', 'x': 39, 'y': 11, 'sprite': 'smoke', 'big': True, 'solid': True}, {'id': 'clue_arrows', 'x': 38, 'y': 13, 'sprite': 'ash_arrows', 'solid': True}], 'ashford': [{'id': 'clue_ledger', 'x': 30, 'y': 13, 'sprite': 'ledger', 'solid': True}], 'road': [{'id': 'sp_bridge', 'x': 12, 'y': 11, 'solid': True, 'char': 'npc_thug', 'foe': True, 'face': 'left', 'group': [[0, 0], [-1, -1], [-2, 0]]}], 'capital': [{'id': 'pages', 'x': 12, 'y': 11, 'sprite': 'pages', 'solid': True}, {'id': 'sp_square', 'x': 29, 'y': 22, 'solid': True, 'char': 'npc_villager_m', 'solo': True, 'face': 'down'}, {'id': 'sp_archive', 'x': 15, 'y': 11, 'sprite': 'archive_door', 'solid': True, 'big': True}, {'id': 'sp_relief', 'x': 31, 'y': 37, 'solid': True, 'char': 'npc_guard', 'solo': True, 'face': 'down'}, {'id': 'sp_tower', 'x': 48, 'y': 11, 'sprite': 'stairs', 'big': True, 'solid': True}, {'id': 'clue_poster', 'x': 33, 'y': 38, 'sprite': 'poster', 'solid': True}, {'id': 'pg1', 'x': 18, 'y': 11, 'sprite': 'pages', 'solid': True}, {'id': 'pg2', 'x': 46, 'y': 21, 'sprite': 'pages', 'solid': True}, {'id': 'pg3', 'x': 58, 'y': 21, 'sprite': 'pages', 'solid': True}, {'id': 'ch1', 'x': 8, 'y': 21, 'sprite': 'i_blanket', 'solid': True}, {'id': 'ch2', 'x': 16, 'y': 21, 'sprite': 'i_blanket', 'solid': True}, {'id': 'ch3', 'x': 50, 'y': 19, 'sprite': 'i_blanket', 'solid': True}, {'id': 'ch4', 'x': 8, 'y': 39, 'sprite': 'i_blanket', 'solid': True}, {'id': 'ch5', 'x': 59, 'y': 39, 'sprite': 'i_blanket', 'solid': True}, {'id': 'pk_hoa', 'x': 25, 'y': 14, 'sprite': 'i_bellflower', 'solid': True}, {'id': 'p_thuky', 'x': 46, 'y': 12, 'solid': True, 'char': 'npc_merchant', 'solo': True, 'face': 'down'}, {'id': 'so_no', 'x': 44, 'y': 12, 'sprite': 'ledger', 'solid': True}, {'id': 'g_tao4', 'x': 25, 'y': 6, 'sprite': 'i_appletree', 'solid': True, 'big': True}, {'id': 'n_tuong', 'x': 27, 'y': 25, 'sprite': 'i_stele', 'solid': True}, {'id': 'n_cho', 'x': 43, 'y': 20, 'sprite': 'i_sign', 'solid': True}, {'id': 'hc_cho', 'x': 46, 'y': 24, 'sprite': 'chest', 'solid': True}, {'id': 'n_thu_vien', 'x': 8, 'y': 11, 'sprite': 'i_stele', 'solid': True}, {'id': 'g_capital_tao_1', 'x': 26, 'y': 8, 'sprite': 'i_appletree', 'solid': True, 'big': True}, {'id': 'g_capital_tao_2', 'x': 25, 'y': 12, 'sprite': 'i_appletree', 'solid': True, 'big': True}]}
 
-WORLD_ANCHORS = {'outskirts': {'npcs': [{'id': 'farmer', 'x': 18, 'y': 14, 'face': 'down'}, {'id': 'jessica', 'x': 26, 'y': 14, 'face': 'left'}], 'objects': [{'id': 'ambush', 'x': 27, 'y': 15, 'char': 'npc_goblin', 'trigger': [[22, 13], [22, 14], [22, 15], [22, 16], [23, 13], [23, 14], [23, 15], [23, 16], [24, 13], [24, 14], [24, 15], [24, 16], [25, 13], [25, 14], [25, 15], [25, 16]], 'solid': False}, {'id': 'wheat', 'x': 10, 'y': 6, 'sprite': 'wheat', 'solid': True}, {'id': 'hammer', 'x': 12, 'y': 20, 'sprite': 'hammer', 'solid': True}, {'id': 'mine', 'x': 32, 'y': 7, 'sprite': 'mine', 'big': True, 'solid': True}, {'id': 'field_chest', 'x': 35, 'y': 14, 'sprite': 'chest', 'solid': True}]}, 'forest': {'npcs': [], 'objects': [{'id': 'mushroom', 'x': 7, 'y': 6, 'sprite': 'mushroom', 'solid': True}, {'id': 'herb', 'x': 28, 'y': 18, 'sprite': 'herb', 'solid': True}, {'id': 'forest_chest', 'x': 33, 'y': 7, 'sprite': 'chest', 'solid': True}]}, 'ashford': {'npcs': [{'id': 'mira', 'x': 19, 'y': 9, 'face': 'down'}, {'id': 'borin', 'x': 31, 'y': 11, 'face': 'down'}, {'id': 'lena', 'x': 33, 'y': 19, 'face': 'down'}, {'id': 'sera', 'x': 8, 'y': 12, 'face': 'left'}, {'id': 'rok', 'x': 36, 'y': 12, 'face': 'left'}, {'id': 'villager_m', 'x': 14, 'y': 15, 'face': 'down'}, {'id': 'villager_f', 'x': 25, 'y': 13, 'face': 'down'}, {'id': 'kid', 'x': 23, 'y': 17, 'face': 'down'}], 'objects': [{'id': 'board', 'x': 19, 'y': 12, 'area': [[18, 11], [18, 12], [19, 11], [19, 12], [20, 11], [20, 12]]}, {'id': 'well', 'x': 5, 'y': 12, 'area': [[4, 10], [4, 11], [4, 12], [4, 13], [5, 10], [5, 11], [5, 12], [5, 13], [6, 10], [6, 11], [6, 12], [6, 13]]}, {'id': 'sq_chest', 'x': 13, 'y': 9, 'sprite': 'chest', 'solid': True}, {'id': 'well_chest', 'x': 7, 'y': 10, 'sprite': 'chest', 'solid': True}]}, 'road': {'npcs': [{'id': 'guard', 'x': 27, 'y': 12, 'face': 'left'}, {'id': 'merchant', 'x': 33, 'y': 7, 'face': 'down'}], 'objects': [{'id': 'bridge_chest', 'x': 8, 'y': 4, 'sprite': 'chest', 'solid': True}]}, 'capital': {'npcs': [{'id': 'corvin', 'x': 8, 'y': 16, 'face': 'down'}, {'id': 'elise', 'x': 28, 'y': 9, 'face': 'down'}, {'id': 'nun', 'x': 13, 'y': 8, 'face': 'down'}, {'id': 'villager_m2', 'x': 23, 'y': 18, 'face': 'left'}, {'id': 'merchant2', 'x': 19, 'y': 15, 'face': 'down'}], 'objects': [{'id': 'gate_board', 'x': 25, 'y': 18, 'sprite': 'board', 'big': True, 'solid': True}, {'id': 'market_chest', 'x': 29, 'y': 16, 'sprite': 'chest', 'solid': True}, {'id': 'pages', 'x': 11, 'y': 16, 'sprite': 'pages', 'solid': True}, {'id': 'crypt', 'x': 16, 'y': 9, 'sprite': 'mine', 'solid': True}]}, 'sylvaren': {'npcs': [{'id': 'aeris', 'x': 31, 'y': 9, 'face': 'down'}, {'id': 'elfmerchant', 'x': 24, 'y': 7, 'face': 'down'}, {'id': 'elfkid', 'x': 11, 'y': 9, 'face': 'down'}], 'objects': [{'id': 'moonwell', 'x': 12, 'y': 7, 'area': [[8, 5], [8, 6], [9, 5], [9, 6], [10, 5], [10, 6], [11, 5], [11, 6], [12, 5], [12, 6], [13, 5], [13, 6], [14, 5], [14, 6], [15, 5], [15, 6], [16, 5], [16, 6]]}, {'id': 'syl_chest', 'x': 5, 'y': 19, 'sprite': 'chest', 'solid': True}, {'id': 'ruin_stone', 'x': 20, 'y': 13, 'sprite': 'pages', 'solid': True}, {'id': 'shroom_glow', 'x': 34, 'y': 18, 'sprite': 'mushroom', 'solid': True}]}, 'lunaria': {'npcs': [{'id': 'oren', 'x': 21, 'y': 6, 'face': 'down'}, {'id': 'lun_guard', 'x': 32, 'y': 8, 'face': 'down'}, {'id': 'elfkid2', 'x': 9, 'y': 15, 'face': 'down'}], 'objects': [{'id': 'moon_fountain', 'x': 21, 'y': 14, 'area': [[19, 14], [20, 14], [21, 14], [22, 14], [23, 14], [24, 14]]}, {'id': 'lun_chest', 'x': 40, 'y': 20, 'sprite': 'chest', 'solid': True}, {'id': 'star_tome', 'x': 33, 'y': 9, 'sprite': 'pages', 'solid': True}, {'id': 'lun_board', 'x': 16, 'y': 12, 'sprite': 'board', 'big': True, 'solid': True}]}, 'tavern_in': {'npcs': [{'id': 'bard', 'x': 11, 'y': 6, 'face': 'left'}, {'id': 'hank', 'x': 4, 'y': 5, 'face': 'left'}], 'objects': [{'id': 'tavern_counter', 'x': 11, 'y': 3, 'area': [[8, 3], [9, 3], [10, 3], [11, 3], [12, 3], [13, 3]], 'solid': True}, {'id': 'tavern_chest', 'x': 13, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'forge_in': {'npcs': [{'id': 'mae', 'x': 4, 'y': 5, 'face': 'right'}], 'objects': [{'id': 'forge_anvil', 'x': 7, 'y': 4, 'area': [[6, 3], [6, 4], [7, 3], [7, 4], [8, 3], [8, 4]], 'solid': True}, {'id': 'forge_chest', 'x': 12, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'mira_in': {'npcs': [{'id': 'ella', 'x': 6, 'y': 5, 'face': 'down'}], 'objects': [{'id': 'mira_shelf', 'x': 7, 'y': 2, 'area': [[4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2]], 'solid': True}, {'id': 'mira_chest', 'x': 10, 'y': 7, 'sprite': 'chest', 'solid': True}]}}
+WORLD_ANCHORS = {'outskirts': {'npcs': [{'id': 'farmer', 'x': 18, 'y': 14, 'face': 'down'}, {'id': 'jessica', 'x': 26, 'y': 14, 'face': 'left'}], 'objects': [{'id': 'ambush', 'x': 27, 'y': 15, 'char': 'npc_goblin', 'trigger': [[22, 13], [22, 14], [22, 15], [22, 16], [23, 13], [23, 14], [23, 15], [23, 16], [24, 13], [24, 14], [24, 15], [24, 16], [25, 13], [25, 14], [25, 15], [25, 16]], 'solid': False}, {'id': 'wheat', 'x': 10, 'y': 6, 'sprite': 'wheat', 'solid': True}, {'id': 'hammer', 'x': 12, 'y': 20, 'sprite': 'hammer', 'solid': True}, {'id': 'mine', 'x': 32, 'y': 7, 'sprite': 'mine', 'big': True, 'solid': True}, {'id': 'field_chest', 'x': 35, 'y': 14, 'sprite': 'chest', 'solid': True}]}, 'forest': {'npcs': [], 'objects': [{'id': 'mushroom', 'x': 7, 'y': 6, 'sprite': 'mushroom', 'solid': True}, {'id': 'herb', 'x': 28, 'y': 18, 'sprite': 'herb', 'solid': True}, {'id': 'forest_chest', 'x': 33, 'y': 7, 'sprite': 'chest', 'solid': True}]}, 'ashford': {'npcs': [{'id': 'mira', 'x': 19, 'y': 9, 'face': 'down'}, {'id': 'borin', 'x': 31, 'y': 11, 'face': 'down'}, {'id': 'lena', 'x': 33, 'y': 19, 'face': 'down'}, {'id': 'sera', 'x': 8, 'y': 12, 'face': 'left'}, {'id': 'rok', 'x': 36, 'y': 12, 'face': 'left'}, {'id': 'villager_m', 'x': 14, 'y': 15, 'face': 'down'}, {'id': 'villager_f', 'x': 25, 'y': 13, 'face': 'down'}, {'id': 'kid', 'x': 23, 'y': 17, 'face': 'down'}], 'objects': [{'id': 'board', 'x': 19, 'y': 12, 'area': [[18, 11], [18, 12], [19, 11], [19, 12], [20, 11], [20, 12]]}, {'id': 'well', 'x': 5, 'y': 12, 'area': [[4, 10], [4, 11], [4, 12], [4, 13], [5, 10], [5, 11], [5, 12], [5, 13], [6, 10], [6, 11], [6, 12], [6, 13]]}, {'id': 'sq_chest', 'x': 13, 'y': 9, 'sprite': 'chest', 'solid': True}, {'id': 'well_chest', 'x': 7, 'y': 10, 'sprite': 'chest', 'solid': True}]}, 'road': {'npcs': [{'id': 'guard', 'x': 27, 'y': 12, 'face': 'left'}, {'id': 'merchant', 'x': 33, 'y': 7, 'face': 'down'}], 'objects': [{'id': 'bridge_chest', 'x': 8, 'y': 4, 'sprite': 'chest', 'solid': True}]}, 'capital': {'npcs': [{'id': 'corvin', 'x': 10, 'y': 11, 'face': 'down'}, {'id': 'elise', 'x': 42, 'y': 12, 'face': 'down'}, {'id': 'nun', 'x': 10, 'y': 21, 'face': 'down'}, {'id': 'villager_m2', 'x': 40, 'y': 37, 'face': 'left'}, {'id': 'merchant2', 'x': 30, 'y': 20, 'face': 'down'}], 'objects': [{'id': 'gate_board', 'x': 40, 'y': 39, 'sprite': 'board', 'big': True, 'solid': True}, {'id': 'market_chest', 'x': 44, 'y': 25, 'sprite': 'chest', 'solid': True}, {'id': 'crypt', 'x': 21, 'y': 18, 'sprite': 'mine', 'solid': True}, {'id': 'jump_capital_step1', 'x': 6, 'y': 11, 'sprite': 'chest', 'solid': True, 'optional': True}, {'id': 'jump_capital_step2', 'x': 50, 'y': 11, 'sprite': 'chest', 'solid': True, 'optional': True}]}, 'sylvaren': {'npcs': [{'id': 'aeris', 'x': 31, 'y': 9, 'face': 'down'}, {'id': 'elfmerchant', 'x': 24, 'y': 7, 'face': 'down'}, {'id': 'elfkid', 'x': 11, 'y': 9, 'face': 'down'}], 'objects': [{'id': 'moonwell', 'x': 12, 'y': 7, 'area': [[8, 5], [8, 6], [9, 5], [9, 6], [10, 5], [10, 6], [11, 5], [11, 6], [12, 5], [12, 6], [13, 5], [13, 6], [14, 5], [14, 6], [15, 5], [15, 6], [16, 5], [16, 6]]}, {'id': 'syl_chest', 'x': 5, 'y': 19, 'sprite': 'chest', 'solid': True}, {'id': 'ruin_stone', 'x': 20, 'y': 13, 'sprite': 'pages', 'solid': True}, {'id': 'shroom_glow', 'x': 34, 'y': 18, 'sprite': 'mushroom', 'solid': True}]}, 'lunaria': {'npcs': [{'id': 'oren', 'x': 21, 'y': 6, 'face': 'down'}, {'id': 'lun_guard', 'x': 32, 'y': 8, 'face': 'down'}, {'id': 'elfkid2', 'x': 9, 'y': 15, 'face': 'down'}], 'objects': [{'id': 'moon_fountain', 'x': 21, 'y': 14, 'area': [[19, 14], [20, 14], [21, 14], [22, 14], [23, 14], [24, 14]]}, {'id': 'lun_chest', 'x': 40, 'y': 20, 'sprite': 'chest', 'solid': True}, {'id': 'star_tome', 'x': 33, 'y': 9, 'sprite': 'pages', 'solid': True}, {'id': 'lun_board', 'x': 16, 'y': 12, 'sprite': 'board', 'big': True, 'solid': True}]}, 'tavern_in': {'npcs': [{'id': 'bard', 'x': 11, 'y': 6, 'face': 'left'}, {'id': 'hank', 'x': 4, 'y': 5, 'face': 'left'}], 'objects': [{'id': 'tavern_counter', 'x': 11, 'y': 3, 'area': [[8, 3], [9, 3], [10, 3], [11, 3], [12, 3], [13, 3]], 'solid': True}, {'id': 'tavern_chest', 'x': 13, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'forge_in': {'npcs': [{'id': 'mae', 'x': 4, 'y': 5, 'face': 'right'}], 'objects': [{'id': 'forge_anvil', 'x': 7, 'y': 4, 'area': [[6, 3], [6, 4], [7, 3], [7, 4], [8, 3], [8, 4]], 'solid': True}, {'id': 'forge_chest', 'x': 12, 'y': 8, 'sprite': 'chest', 'solid': True}]}, 'mira_in': {'npcs': [{'id': 'ella', 'x': 6, 'y': 5, 'face': 'down'}], 'objects': [{'id': 'mira_shelf', 'x': 7, 'y': 2, 'area': [[4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2]], 'solid': True}, {'id': 'mira_chest', 'x': 10, 'y': 7, 'sprite': 'chest', 'solid': True}]}}
 
 def apply_world(out):
+    # Valoria owns its hand-designed grid, anchors and jump-free streets.
+    from build_capital import city
+    out['capital'], capital_extra, _ = city()
     import copy
-    for sid, anchors in WORLD_ANCHORS.items(): out[sid].update(copy.deepcopy(anchors))
+    for sid, anchors in WORLD_ANCHORS.items():
+        if sid != 'capital': out[sid].update(copy.deepcopy(anchors))
     # Đọc hình 3D chỉ để tính lưới; không sửa lớp vẽ.
     import subprocess
     js = "import {TERRAIN,footprint,bridgeCells} from './tools/world_audit.mjs'; console.log(JSON.stringify(Object.fromEntries(Object.keys(TERRAIN).map(id=>[id,{terrain:TERRAIN[id],foot:[...footprint(id)],bridge:[...bridgeCells(id)]}]))));"
     art = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', js], text=True, encoding='utf-8'))
     for sid, m in out.items():
-        if m.get('interior') or sid=='ashford': continue
+        if m.get('interior') or sid in ('ashford','capital'): continue
         a = art[sid]; foot = set(a['foot']); bridges = set(a['bridge'])
         m['grid'] = [''.join('#' if f'{x},{y}' in foot or (t in 'tbw' and f'{x},{y}' not in bridges) else '.' if t in 'gpsfd' or f'{x},{y}' in bridges else '#' for x,t in enumerate(row)) for y,row in enumerate(a['terrain'])]
     for y in [11,12]:
@@ -387,18 +391,19 @@ def apply_world(out):
             out[src]['exits']=[v for v in out[src]['exits'] if v['scene']!=dst]
             for k,r in zip(ls,rs): out[src]['exits'].append(dict(edge=e,a=k,b=k,scene=dst,at=cell(out[dst],opposite[e],r,1),face=e))
     link('outskirts','forest','right',[11,12])
-    link('capital','sylvaren','right',[13,14])
+    link('capital','sylvaren','right',[20,21],[13,14])
     link('sylvaren','lunaria','right',[13,14],[11,12])
-    out['road']['exits']=[e for e in out['road']['exits'] if e['scene']!='capital']+[dict(tiles=[[42,11]],scene='capital',at=[21,17],face='up')]
-    out['capital']['exits']=[e for e in out['capital']['exits'] if e['scene']!='road']+[dict(tiles=[[21,18]],scene='road',at=[41,11],face='left')]
+    out['road']['exits']=[e for e in out['road']['exits'] if e['scene']!='capital']+[dict(tiles=[[42,11]],scene='capital',at=[35,42],face='up')]
+    out['capital']['exits']=[e for e in out['capital']['exits'] if e['scene']!='road']+[dict(tiles=[[35,43]],scene='road',at=[41,11],face='left')]
     # Dời vật động sang ô trống gần nhất; giữ vùng tương tác công trình.
     xp='src/world/mapsExtra.js'
     text=open(xp,encoding='utf-8').read()
     extra=copy.deepcopy(EXTRA_ANCHORS)
+    extra['capital']=capital_extra
     for sid,m in out.items():
         if m.get('interior'): continue
         seen=component_world(m)
-        if sid=='ashford': continue
+        if sid in ('ashford','capital'): continue
         taken={tuple(m['spawn'])}
         for src in out.values():
             for e in src['exits']:
@@ -422,6 +427,7 @@ def apply_world(out):
 def add_jump_sites(out,extra):
     dirs=[(1,0),(-1,0),(0,1),(0,-1)]
     for sid,m in out.items():
+        if sid=='capital': continue
         h=[['0']*m['cols'] for _ in range(m['rows'])]; gaps=set(); sites=[]; stones=[]
         m['heights']=[''.join(r) for r in h]; m['gaps']=[]; m['stones']=[]; m['jumpSites']=[]
         if m.get('interior'): continue
@@ -538,8 +544,6 @@ OPS = {
     'lunaria': [('block', 0, 0, 42, 23), ('walk', 0, 11, 17, 12), ('walk', 16, 8, 27, 15), ('walk', 20, 5, 22, 8), ('walk', 26, 7, 33, 9), ('walk', 31, 6, 33, 9),
                 ('walk', 26, 12, 42, 14), ('walk', 30, 14, 41, 21), ('walk', 20, 14, 22, 23), ('walk', 3, 14, 15, 16), ('walk', 2, 14, 4, 21), ('walk', 6, 21, 21, 22),
                 ('walk', 15, 19, 22, 22), ('block', 18, 9, 25, 14), ('block', 32, 14, 34, 16), ('block', 37, 14, 40, 16), ('block', 31, 17, 35, 19), ('block', 37, 17, 41, 19), ('block', 35, 12, 38, 16)],
-    'capital': [('block', 0, 0, 5, 23), ('block', 0, 19, 42, 23), ('block', 18, 0, 38, 7), ('block', 37, 0, 42, 8),
-                ('block', 36, 14, 42, 18), ('block', 34, 16, 36, 18), ('walk', 20, 17, 23, 20)],
 }
 
 # npcs: id -> (x, y, hướng) · objects: id, x, y, sprite (ô trong items.webp) hoặc area (vật vẽ sẵn trên nền), trigger (đi vào là kích hoạt)
@@ -587,7 +591,7 @@ LAYOUT = {
         'npcs': {'guard': (27, 12, 'left'), 'merchant': (32, 8, 'down')},
         'objects': [{'id': 'bridge_chest', 'x': 8, 'y': 4, 'sprite': 'chest'}],
         'exits': [{'edge': 'left', 'a': 0, 'b': 23, 'scene': 'ashford', 'at': [20, 22], 'face': 'up'},
-                  {'edge': 'right', 'a': 0, 'b': 23, 'scene': 'capital', 'at': [21, 18], 'face': 'up'}],
+                  {'edge': 'right', 'a': 0, 'b': 23, 'scene': 'capital', 'at': [35, 42], 'face': 'up'}],
     },
     'sylvaren': {
         'spawn': [2, 13],
@@ -596,7 +600,7 @@ LAYOUT = {
                     {'id': 'syl_chest', 'x': 5, 'y': 19, 'sprite': 'chest'},
                     {'id': 'ruin_stone', 'x': 20, 'y': 13, 'sprite': 'pages'},
                     {'id': 'shroom_glow', 'x': 34, 'y': 18, 'sprite': 'mushroom'}],
-        'exits': [{'edge': 'left', 'a': 0, 'b': 23, 'scene': 'capital', 'at': [41, 13], 'face': 'left'},
+        'exits': [{'edge': 'left', 'a': 0, 'b': 23, 'scene': 'capital', 'at': [70, 20], 'face': 'left'},
                   {'edge': 'right', 'a': 0, 'b': 23, 'scene': 'lunaria', 'at': [1, 11], 'face': 'right'}],
     },
     'lunaria': {
@@ -608,17 +612,7 @@ LAYOUT = {
                     {'id': 'lun_board', 'x': 16, 'y': 12, 'sprite': 'board', 'big': True}],
         'exits': [{'edge': 'left', 'a': 0, 'b': 23, 'scene': 'sylvaren', 'at': [41, 14], 'face': 'left'}],
     },
-    'capital': {
-        'spawn': [21, 17],
-        'npcs': {'corvin': (8, 16, 'down'), 'elise': (28, 9, 'down'), 'nun': (13, 8, 'down'), 'villager_m2': (23, 18, 'left'),
-                 'merchant2': (19, 15, 'down')},
-        'objects': [{'id': 'gate_board', 'x': 25, 'y': 17, 'sprite': 'board', 'big': True},
-                    {'id': 'market_chest', 'x': 31, 'y': 16, 'sprite': 'chest'},
-                    {'id': 'pages', 'x': 11, 'y': 17, 'sprite': 'pages'},
-                    {'id': 'crypt', 'x': 16, 'y': 9, 'sprite': 'mine'}],
-        'exits': [{'tiles': [[20, 20], [21, 20], [22, 20], [23, 20]], 'scene': 'road', 'at': [41, 11], 'face': 'left'},
-                  {'edge': 'right', 'a': 0, 'b': 23, 'scene': 'sylvaren', 'at': [1, 13], 'face': 'right'}],
-    },
+    'capital': {'spawn': [35, 42], 'npcs': {'corvin': (10, 11, 'down'), 'elise': (42, 12, 'down'), 'nun': (10, 21, 'down'), 'villager_m2': (40, 37, 'left'), 'merchant2': (30, 20, 'down')}, 'objects': [{'id': 'gate_board', 'x': 40, 'y': 39, 'sprite': 'board', 'big': True, 'solid': True}, {'id': 'market_chest', 'x': 44, 'y': 25, 'sprite': 'chest', 'solid': True}, {'id': 'crypt', 'x': 21, 'y': 18, 'sprite': 'mine', 'solid': True}, {'id': 'jump_capital_step1', 'x': 6, 'y': 11, 'sprite': 'chest', 'solid': True, 'optional': True}, {'id': 'jump_capital_step2', 'x': 50, 'y': 11, 'sprite': 'chest', 'solid': True, 'optional': True}], 'exits': [{'edge': 'right', 'a': 20, 'b': 20, 'scene': 'sylvaren', 'at': [1, 13], 'face': 'right'}, {'edge': 'right', 'a': 21, 'b': 21, 'scene': 'sylvaren', 'at': [1, 14], 'face': 'right'}, {'tiles': [[35, 43]], 'scene': 'road', 'at': [41, 11], 'face': 'left'}]},
 }
 
 # 🏠 TRONG NHÀ: tranh phòng (Codex) 1536x1024 -> 1440x960 = 15 x 10 ô 96px, lưới vẽ tay theo tranh
@@ -679,6 +673,10 @@ os.makedirs('src/assets/maps', exist_ok=True)
 os.makedirs('src/world', exist_ok=True)
 out = {}
 for scene, m in SRC.items():
+    if scene == 'capital':
+        from build_capital import city
+        out[scene] = city()[0]
+        continue
     data = json.load(open(f'{ART}/{m}.json'))
     grid = [list(r) for r in data['grid']]
     for op, x1, y1, x2, y2 in OPS[scene]:

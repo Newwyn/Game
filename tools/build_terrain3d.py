@@ -46,6 +46,10 @@ def main():
     maps = load_maps()
     out = {}
     for mid, m in maps.items():
+        if mid == 'capital':
+            from build_capital import city
+            out[mid] = city()[2]
+            continue
         if m.get('interior'):   # trong nhà: vẽ tranh phẳng, không dựng 3D
             continue
         im = Image.open(f"src/assets/maps/{m['image']}.webp").convert('RGB')

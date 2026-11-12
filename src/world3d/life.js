@@ -708,8 +708,8 @@ const REGION_CRITTERS = {
         ['squirrel', 2.5, 16.5], ['duck', 11.5, 8.5], ['duck', 20.5, 14.5],
     ],
     capital: [
-        ['pigeon', 18.5, 11.2], ['pigeon', 18.9, 11.5], ['pigeon', 23.5, 11.2], ['pigeon', 23.8, 11.6],
-        ['pigeon', 22.5, 7.4], ['pigeon', 30.5, 7.4], ['cat', 30.5, 13.5], ['dog', 15.5, 19.4],
+        ['pigeon', 30.5, 21.5], ['pigeon', 31.5, 22.5], ['pigeon', 41.5, 20.5], ['pigeon', 43.5, 21.5],
+        ['pigeon', 40.5, 12.5], ['pigeon', 46.5, 11.5], ['cat', 56.5, 21.5], ['dog', 36.5, 38.5],
     ],
     sylvaren: [
         ['glowButterfly', 14.5, 10.2], ['glowButterfly', 25.5, 10.2], ['glowButterfly', 17.5, 16.2],
