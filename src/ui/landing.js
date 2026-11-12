@@ -10,7 +10,7 @@ import { loadState } from './loading.js';
 const WAIT_ALL = new URLSearchParams(location.search).get('waitLoad') === '1';
 import '../styles/landing.css';
 
-const MAP = import.meta.glob('../assets/maps/capital.webp', { eager: true, import: 'default' });
+const MAP = import.meta.glob('../assets/ui/landing_city.webp', { eager: true, import: 'default' });   // tranh thành cũ (bản đồ Valoria mới dùng sơ đồ khác cho bản đồ nhỏ)
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
 const LINEUP = ['archer', 'priest', 'warrior', 'assassin', 'mage'];   // giữa = to nhất
 const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* chế độ riêng tư */ } } };

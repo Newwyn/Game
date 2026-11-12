@@ -459,7 +459,7 @@ export const BUILD = {
         ctx.roofPerches?.push([x, 3.0 * sy + 1.4, z]);
     },
     /** Nhà Làng Trung Cổ vừa khít một khung x0..x1 × z0..z1 (thay cho nhà khối cũ ở cả bản đồ lẫn cảnh chiến đấu): tự chọn dáng mái gần nhất rồi co giãn cho khít */
-    vhouseFit(ctx, { x0, z0, x1, z1, wall = 'plaster', h = 2.0, door = true }) {
+    vhouseFit(ctx, { x0, z0, x1, z1, wall = 'plaster', h = 2.0, door = true, tall = false }) {
         const W = x1 - x0, D = z1 - z0, want = Math.log(W / D);
         let best = null;
         for (const [w, d, turn] of [[2, 2, 0], [2, 3, 0], [3, 4, 0], [2, 3, 1], [3, 4, 1]]) {
@@ -468,7 +468,7 @@ export const BUILD = {
         }
         const kx = W / best.mx, kz = D / best.mz;   // co giãn theo trục THẾ GIỚI -> đổi về trục của nhà nếu nhà xoay
         BUILD.vhouse(ctx, { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: best.w, d: best.d, turn: best.turn, wall, door,
-            sx: best.turn ? kz : kx, sz: best.turn ? kx : kz, sy: Math.max(0.5, Math.min(0.8, h / 3.1)) });
+            sx: best.turn ? kz : kx, sz: best.turn ? kx : kz, sy: Math.max(0.5, Math.min(tall ? 1.15 : 0.8, h / 3.1)) });
     },
     /** THÁP đá mái ngói nhọn (bộ Village): mỗi tầng là một vòng tường đá 2×2 mảng, trên cùng là mái tháp */
     vtower(ctx, x, z, { r = 1.1, h = 3.4, roof = true } = {}) {
@@ -699,7 +699,7 @@ export const BUILD = {
     },
     /** Đoạn tường thành trắng (lâu đài / kinh thành) */
     castleWall(ctx, a, b, h = 1.7) {
-        if (PAINT && ctx.props) return BUILD.dwall(ctx, a, b, { s: Math.max(0.6, h / 4), door: false, deco: false });   // cảnh chiến đấu: tường đá bộ hầm ngục
+        if (PAINT) return BUILD.dwall(ctx, a, b, { s: ctx.props ? Math.max(0.6, h / 4) : Math.max(0.42, h / 4), door: false, deco: false });   // tường đá bộ hầm ngục (cả bản đồ lẫn cảnh chiến đấu)
         const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz), rot = Math.atan2(-dz, dx);
         const w = mesh(ctx, new THREE.BoxGeometry(L + 1.1, h, 1.1), lam(0xe9e5dc), (a[0] + b[0]) / 2, h / 2, (a[1] + b[1]) / 2, rot);
         w.receiveShadow = true;
@@ -713,7 +713,7 @@ export const BUILD = {
     },
     /** Tháp tròn mái xanh nhọn */
     tower(ctx, x, z, { r = 1.1, h = 3.4, roof = 0x3f6fc6, wall = 0xe8e4dc } = {}) {
-        if (PAINT && ctx.props) return BUILD.vtower(ctx, x, z, { r: r * 1.15, h, roof: roof !== null });   // cảnh chiến đấu: tháp đá mái ngói bộ Village
+        if (PAINT) return BUILD.vtower(ctx, x, z, { r: r * (ctx.props ? 1.15 : 1), h, roof: roof !== null });   // tháp đá mái ngói bộ Village (cả bản đồ lẫn cảnh chiến đấu)
         mesh(ctx, new THREE.CylinderGeometry(r, r * 1.05, h, 14), lam(wall, { flatShading: false }), x, h / 2, z);
         mesh(ctx, new THREE.CylinderGeometry(r * 1.12, r * 1.12, 0.3, 14), lam(0xd8d2c6), x, h + 0.15, z);
         if (roof != null) mesh(ctx, new THREE.ConeGeometry(r * 1.2, r * 2.2, 14), lam(roof), x, h + 0.3 + r * 1.1, z);
@@ -726,6 +726,14 @@ export const BUILD = {
     },
     /** Khối nhà lớn (cung điện / thư viện / nhà thờ): thân + mái */
     hall(ctx, { x0, z0, x1, z1, h = 3, wall = 0xe8e4dc, roof = 0x3f6fc6, roofH = 1.6, windows = 0x2b3a55, door = null, doorColor = 0x5a3a1e }) {
+        if (PAINT && !ctx.props) {   // (12/11/2026) bản đồ: công trình lớn (cung điện, nhà thờ, thư viện) = dãy nhà đá mái ngói liền nhau + 2 tháp hai đầu, thay cho khối hộp trơn
+            const W = x1 - x0, D = z1 - z0, n = Math.max(1, Math.round(W / (D * 1.25))), seg = W / n;
+            for (let i = 0; i < n; i++) BUILD.vhouseFit(ctx, { x0: x0 + i * seg, z0: z0 + (i % 2 ? 0.25 : 0), x1: x0 + (i + 1) * seg, z1, wall: 'brick', h: Math.max(2.2, h * 0.8), door: door != null && i === Math.floor(n / 2), tall: true });
+            const r = Math.min(1.3, D * 0.2);
+            BUILD.vtower(ctx, x0 + r * 0.6, z0 + r * 0.8, { r, h: h + 2.2, roof: true }); BUILD.vtower(ctx, x1 - r * 0.6, z0 + r * 0.8, { r, h: h + 2.2, roof: true });
+            ctx.cover(x0, z0, x1, z1);
+            return;
+        }
         const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, w = x1 - x0, d = z1 - z0;
         mesh(ctx, new THREE.BoxGeometry(w, h, d), lam(wall), cx, h / 2, cz);
         const roofGeo = new THREE.CylinderGeometry(0.01, 0.5, 1, 4, 1); roofGeo.rotateY(Math.PI / 4);
@@ -747,6 +755,7 @@ export const BUILD = {
     },
     /** Tháp nhọn nhà thờ */
     spire(ctx, x, z, { w = 1.4, h = 5, roofH = 2.6, wall = 0xb8b2a6, roof = 0x5f6670 } = {}) {
+        if (PAINT && !ctx.props) return BUILD.vtower(ctx, x, z, { r: w * 0.6, h: h + 1, roof: true });   // bản đồ: tháp đá mái ngói nhọn
         mesh(ctx, new THREE.BoxGeometry(w, h, w), lam(wall), x, h / 2, z);
         mesh(ctx, new THREE.ConeGeometry(w * 0.78, roofH, 4), lam(roof), x, h + roofH / 2, z, Math.PI / 4);
         mesh(ctx, new THREE.BoxGeometry(0.4, 1.1, 0.05), lam(0x2b3a55), x, h * 0.7, z + w / 2 + 0.01);
