@@ -39,7 +39,7 @@ export function footprint(id) {
             for(let y=Math.floor(p[1]);y<p[3];y++) for(let x=Math.floor(p[0]);x<p[2];x++)
                 if(x+.5>=p[0] && x+.5<p[2] && y+.5>=p[1] && y+.5<p[3]) put(x,y);
         } else if(type==='model') put(p[1],p[2]);
-        else if(!['plaza','clear','mist','rails','stoneBridge'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
+        else if(!['plaza','clear','mist','rails','stoneBridge','label'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
     }
     return cells;
 }

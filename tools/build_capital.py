@@ -244,6 +244,9 @@ def layout():
         items.append(['model','custom/town_bridge_stone',x,31,
                       dict(s=2/3,sz=2,sy=.25,r=math.pi/2,y=-.30,cover=[x-3,29,x+3,33])])
         detail.append(['model','custom/town_planter_a',x+.5,31.5,dict(s=.4,y=.1)])
+    # Floating name plates so players can find the landmarks.
+    items += [['label',42,7,'Cung điện Valoria',dict(y=6.4)],['label',8,16.5,'Nhà thờ lớn',dict(y=6.6)],
+              ['label',8,7,'Thư khố Hoàng gia',dict(y=5.2)],['label',36,22,'Chợ trung tâm',dict(y=3.6)]]
     items += PROPS
     return items,detail
 

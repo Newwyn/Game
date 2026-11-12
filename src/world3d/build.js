@@ -291,7 +291,7 @@ export async function buildScene(id, map, terrain, layout) {
             const tt = T(x, z); if (tt !== 's' && tt !== 'g' && tt !== 'p') continue;
             if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => street(x + dx, z + dz))) continue;
             const h = ((x * 73856093) ^ (z * 19349663)) >>> 0, r = (h % 1000) / 1000;
-            if (r > 0.78) continue;
+            if (id === 'capital' || r > 0.3) continue;   // (12/11) người chơi: quá nhiều đồ trên đường -> thưa hẳn; Valoria dùng sơ đồ đồ đạc riêng
             const cx = x + 0.5, cz = z + 0.5, rot = ((h >> 8) % 628) / 100, q = (h >> 4) % 16, T2 = 'custom/town_';
             // quay mặt đồ vật về phía đường
             const side = [[0, 1], [1, 0], [0, -1], [-1, 0]].find(([dx, dz]) => street(x + dx, z + dz)) ?? [0, 1], face = Math.atan2(side[0], side[1]);
@@ -423,8 +423,7 @@ export const BUILD = {
                 const tx = Math.cos(ry), tz = -Math.sin(ry), ox = Math.sin(ry), oz = Math.cos(ry), hk = Math.abs(Math.round(x * 5 + z * 11));
                 putC('town_lamp_wall', lx + tx * 0.86, 1.75, lz + tz * 0.86, ry, along);
                 if (hk % 3 !== 1) putC(['town_sign_inn', 'town_sign_smith', 'town_sign_shop'][hk % 3 === 0 ? (hk >> 2) % 3 : 2], lx - tx * 0.86, 1.9, lz - tz * 0.86, ry, along);
-                putC(hk % 2 ? 'town_flowerpots' : 'town_planter_a', lx - tx * 1.25 + ox * 0.5, 0, lz - tz * 1.25 + oz * 0.5, ry, along, 0.9);
-                if (hk % 4 === 0) putC('town_bench', lx + tx * 1.9 + ox * 0.45, 0, lz + tz * 1.9 + oz * 0.45, ry, along, 0.9);
+                // (12/11) chậu hoa / ghế trước cửa thò ra lòng đường làm người chơi tưởng là vật cản -> bỏ; chỉ còn thứ gắn trên tường
             }
             else if (kind === 'win') { put(Wn + 'Window_Wide_Round', lx, 0, lz, ry, along); put('Window_Wide_Round1', lx, 0, lz, ry, along); put('WindowShutters_Wide_Round_Open', lx, 0, lz, ry, along); }
             else put(Wn + plain, lx, 0, lz, ry, along);
@@ -442,8 +441,10 @@ export const BUILD = {
             seg(turn ? (door && j === dj ? 'door' : 'win') : (j % 2 ? 'plain' : 'win'), -w, lz, F - Math.PI / 2, 'z');
         }
         for (const [cx, cz] of [[w, d], [-w, d], [w, -d], [-w, -d]]) put(wall === 'brick' ? 'Corner_Exterior_Brick' : 'Corner_Exterior_Wood', cx, 0, cz, 0);
-        put(`Roof_RoundTiles_${w * 2}x${d * 2}`, 0, 3.0, 0, 0);
-        put(`Roof_Front_Brick${w * 2}`, 0, 3.0, d, F); put(`Roof_Front_Brick${w * 2}`, 0, 3.0, -d, F + Math.PI);
+        const flat = ctx.props ? 1 : 0.72;   // bản đồ nhìn từ trên xuống: mái thấp bớt để đỡ che lối đi (cảnh chiến đấu giữ nguyên)
+        const putR = (name, lx, ly, lz, ry) => B.put(P + name, x + (lx * sx * c + lz * sz * sn), ly * sy, z + (-lx * sx * sn + lz * sz * c), ry + rot, sx, sy * flat, sz);
+        putR(`Roof_RoundTiles_${w * 2}x${d * 2}`, 0, 3.0, 0, 0);
+        putR(`Roof_Front_Brick${w * 2}`, 0, 3.0, d, F); putR(`Roof_Front_Brick${w * 2}`, 0, 3.0, -d, F + Math.PI);
         // dây leo bò trên một mảng tường bên
         put('Prop_Vine1', w + 0.02, 0, -d + 1, F + Math.PI / 2, 'z');
         // lòng nhà: khối tối ấm bên trong để nhìn qua cửa sổ thấy "trong nhà" chứ không xuyên ra trời
@@ -508,6 +509,20 @@ export const BUILD = {
             if (i % 2 === 1 && i !== midI && name !== 'wall_shelves') { const [bx, bz] = at(t, 0.12 * s); B.put(P + banners[(i >> 1) % banners.length], bx, 0.1 * s, bz, rot, s); }
         }
         const [ex, ez] = at(t0 + (n - 0.5) * step, 0.25 * s); B.put(P + 'pillar', ex, 0, ez, rot, s);
+    },
+    /** Bảng tên nổi trên công trình chính (Cung điện, Nhà thờ lớn…): tấm chữ luôn quay về máy quay, để người chơi biết đâu là đâu */
+    label(ctx, x, z, text, { y = 4.6, color = '#fde68a' } = {}) {
+        if (typeof document === 'undefined') return;
+        const cv = document.createElement('canvas'), g = cv.getContext('2d');
+        g.font = '800 44px Outfit, sans-serif'; const w = Math.ceil(g.measureText(text).width) + 56;
+        cv.width = w; cv.height = 76;
+        g.fillStyle = 'rgba(15,23,42,0.86)'; g.beginPath(); g.roundRect(2, 2, w - 4, 72, 20); g.fill();
+        g.strokeStyle = 'rgba(251,191,36,0.85)'; g.lineWidth = 3; g.stroke();
+        g.font = '800 44px Outfit, sans-serif'; g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, 40);
+        const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, fog: false, transparent: true }));
+        sp.position.set(x, y, z); sp.scale.set(w / 76 * 0.6, 0.6, 1); sp.material.opacity = 0.9; sp.renderOrder = 4; sp.frustumCulled = false;
+        ctx.group.add(sp);
     },
     /** Dọn vùng: không tự rải cây / bụi / cỏ trong khung này */
     clear(ctx, x0, z0, x1, z1) { ctx.cover(x0, z0, x1, z1); },

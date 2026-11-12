@@ -529,28 +529,38 @@ function cloudTexture(seed) {
  * Trả về hàm cập nhật (t) để đưa vào danh sách anim.
  */
 export function paintMapClouds(group, cols, rows) {
+    // (12/11/2026, lần 2) người chơi thấy mây ra HÌNH VUÔNG (tấm phẳng lộ mép) -> mỗi đám mây giờ là một chùm đốm tròn mềm, mép tan dần, không còn tấm chữ nhật nào
     const random = mulberry(31337), clouds = [];
-    const count = Math.max(5, Math.round((cols * rows) / 190));
+    const dot = document.createElement('canvas'); dot.width = dot.height = 128;
+    const dg = dot.getContext('2d'), rg = dg.createRadialGradient(64, 64, 0, 64, 64, 64);
+    rg.addColorStop(0, 'rgba(255,255,255,0.95)'); rg.addColorStop(0.45, 'rgba(255,255,255,0.6)'); rg.addColorStop(0.8, 'rgba(255,255,255,0.15)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    dg.fillStyle = rg; dg.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(dot);
+    const count = Math.max(4, Math.round((cols * rows) / 260));
     for (let i = 0; i < count; i++) {
-        const mat = new THREE.MeshBasicMaterial({ map: cloudTexture(500 + (i % 4)), transparent: true, depthWrite: false, depthTest: false, fog: false, opacity: 0 });
-        const w = 6.5 + random() * 5, mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.5), mat);
-        mesh.rotation.x = -Math.PI / 2 + 0.5;   // nằm nghiêng về phía máy quay
-        mesh.renderOrder = 6; mesh.frustumCulled = false;
-        group.add(mesh);
-        clouds.push({ mesh, mat, x0: random() * (cols + 30) - 15, z: random() * (rows + 10) - 5, y: 5.2 + random() * 1.6, v: 0.16 + random() * 0.14, max: 0.5 + random() * 0.2 });
+        const mat = new THREE.SpriteMaterial({ map: tex, color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, fog: false, opacity: 0 });
+        const g = new THREE.Group(), n = 5 + Math.floor(random() * 4), w = 3.2 + random() * 2.4;
+        for (let k = 0; k < n; k++) {
+            const sp = new THREE.Sprite(mat), u = (k + 0.5) / n - 0.5, sz = (1.6 + random() * 1.5) * (1 - Math.abs(u) * 0.8);
+            sp.position.set(u * w * 2, (random() - 0.3) * 0.5 + (1 - Math.abs(u) * 2) * 0.35, (random() - 0.5) * 0.8); sp.scale.set(sz * 1.5, sz, 1); sp.renderOrder = 6;
+            g.add(sp);
+        }
+        g.traverse(o => { o.frustumCulled = false; });
+        group.add(g);
+        clouds.push({ g, mat, x0: random() * (cols + 30) - 15, z: random() * (rows + 10) - 5, y: 5.2 + random() * 1.6, v: 0.16 + random() * 0.14, max: 0.34 + random() * 0.14 });
     }
     const span = cols + 30;
     return (t) => {
         const cam = uCamPos.value, hero = uHeroPos.value;
         for (const c of clouds) {
             const x = ((c.x0 + t * c.v) % span + span) % span - 15;
-            c.mesh.position.set(x, c.y, c.z);
+            c.g.position.set(x, c.y, c.z);
             // điểm trên mặt đất mà đám mây che (theo tia nhìn của máy quay) — gần nhân vật thì mờ hẳn
             const k = c.y / Math.max(0.5, cam.y - c.y);
             const gx = x + (x - cam.x) * k, gz = c.z + (c.z - cam.z) * k;
             const d = Math.hypot(gx - hero.x, gz - hero.z);
-            const edge = Math.min(1, Math.min(x + 15, span - 15 - x) / 4);   // hiện / tan dần ở hai mép hành trình
-            c.mat.opacity = c.max * Math.min(1, Math.max(0, (d - 4.2) / 4)) * Math.max(0, edge);
+            const edge = Math.min(1, Math.min(x + 15, span - 15 - x) / 4);
+            c.mat.opacity = c.max * Math.min(1, Math.max(0, (d - 6) / 4)) * Math.max(0, edge);
         }
     };
 }

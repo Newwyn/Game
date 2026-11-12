@@ -77,7 +77,7 @@ const DETAIL_GLSL = `
  *  - occlude = true: khoét vòng tròn dither mềm mép quanh nhân vật khi vật che khuất camera
  *  - cloud = true: bóng mây nhẹ trôi chậm trên bề mặt
  */
-export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, detail = false } = {}) {
+export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, detail = false, fadeTo = 0.5, fadeR = 2.3 } = {}) {
     if (mat.userData?._patched) return mat;
     mat.userData = { ...(mat.userData ?? {}), _patched: true };
     mat.onBeforeCompile = (sh) => {
@@ -116,11 +116,11 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
               //      MỘT hình tròn cố định quanh người, mép gọn; trong vòng vật che còn 50%, có viền sáng mảnh cho rõ hình vòng
               // (12/11, lần 3) người chơi: KHÔNG có viền vòng, chỉ là vùng tròn mờ dịu kiểu blur: giữa còn 50%, ra mép tan dần
               float dist = length(cp - ch * tProj) / tProj;
-              float rOuter = 2.3;
+              float rOuter = ${fadeR.toFixed(2)};
               if (dist < rOuter) {
                 float k = uSeeThrough * smoothstep(0.985, 0.9, tProj);
                 float inside = 1.0 - smoothstep(rOuter * 0.45, rOuter, dist);
-                gl_FragColor.a *= mix(1.0, 0.5, inside * k);
+                gl_FragColor.a *= mix(1.0, ${fadeTo.toFixed(2)}, inside * k);
               }
             }
           }` : ''}
@@ -129,7 +129,7 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
           gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
     };
     if (occlude && SEE_SMOOTH) mat.transparent = true;   // cần cho độ trong thật quanh nhân vật (vẫn ghi độ sâu như vật đặc)
-    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}_${PAINT}_${detail ? 1 : 0}`;
+    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}_${PAINT}_${detail ? 1 : 0}_${fadeTo}_${fadeR}`;
     return mat;
 }
 
@@ -154,7 +154,9 @@ function fixMaterial(kit, mat) {
         if (m.map) { m.map.colorSpace = THREE.SRGBColorSpace; m.map.anisotropy = 4; }
         if (kit === 'village') m.side = THREE.DoubleSide;
         if (m.transparent || m.alphaTest > 0) { m.transparent = false; m.alphaTest = 0.5; m.side = THREE.DoubleSide; }
-        patchMaterial(m, { sway: kit === 'qnature' && /leav|leaf|grass|flower/i.test(m.name) ? 0.05 : 0, occlude: true, cloud: true, detail: false });
+        // (12/11) người chơi: đi trong góc hẹp bị mái che, không thấy đường và vật cản -> MÁI NGÓI quanh nhân vật mờ gần hết (15%), vòng rộng hơn; tường vẫn mờ 50%
+        const roof = kit === 'village' && /RoundTiles/i.test(m.name);
+        patchMaterial(m, { sway: kit === 'qnature' && /leav|leaf|grass|flower/i.test(m.name) ? 0.05 : 0, occlude: true, cloud: true, detail: false, ...(roof ? { fadeTo: 0.15, fadeR: 3.4 } : {}) });
         mats.set(key, m);
         return m;
     }
