@@ -871,7 +871,7 @@ def check(name,path):
     indices=np.frombuffer(data[28+length:],dtype='<u4',count=doc['accessors'][3]['count'],offset=view['byteOffset'])
     arrays=tuple(a[indices] for a in arrays)
     p,n,c=arrays; lo=p.min(0); hi=p.max(0); eps=2e-6
-    assert len(p)//3<=6000,(name,len(p)//3)
+    assert len(p)//3<=(6000 if name in FLOORS or name in WALLS or name=='chandelier' else 9000),(name,len(p)//3)
     if name in FLOORS:
         limit=np.array(FLOORS[name])/2-.04
         assert np.all(lo[[0,2]]>=-limit-eps) and np.all(hi[[0,2]]<=limit+eps),(name,lo,hi,limit)
@@ -938,21 +938,41 @@ def scenes(assets):
 
 
 def main():
+    import palace_grand as grand
     TEAM.mkdir(exist_ok=True); OUT.mkdir(exist_ok=True,parents=True)
-    protected={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in OUT.glob('*.glb') if p.name not in ('palace_throne.glb','palace_cloth_of_state.glb')}
+    protected={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in OUT.glob('*.glb') if p.stem.removeprefix('palace_') not in grand.GRAND_NAMES}
+    baseline=json.loads((TEAM/'palace_original_hashes.json').read_text())
+    assert len(baseline)==37
+    scratch=TEAM/'palace_legacy_regenerated'; scratch.mkdir(exist_ok=True)
+    proof={}
     rows=[]; assets={}
-    for i,name in enumerate([*FLOORS,*(n for n in WALLS if n!='cloth_of_state'),'chandelier','cloth_of_state']):
-        m=floor_model(seed=900+i,kind=name) if name in FLOORS else wall_model(name) if name in WALLS else chandelier()
-        path=OUT/f'palace_{name}.glb'
+    legacy=[*FLOORS,*(n for n in WALLS if n!='cloth_of_state'),'chandelier','cloth_of_state']
+    for i,name in enumerate([*legacy,*grand.GRAND_NAMES]):
+        is_new=name in grand.GRAND_NAMES
+        m=grand.build(name,1900+i) if is_new else floor_model(seed=900+i,kind=name) if name in FLOORS else wall_model(name) if name in WALLS else chandelier()
+        path=(OUT if is_new else scratch)/f'palace_{name}.glb'
         with m: export_glb(path,'palace_'+name)
         compact_glb(path)
         print(name,flush=True); arrays=check(name,path); assets[name]=arrays
+        if is_new: grand.check_grand(name,arrays)
+        else:
+            original=OUT/path.name
+            before=baseline[path.name]
+            regenerated=hashlib.sha256(path.read_bytes()).hexdigest()
+            after=hashlib.sha256(original.read_bytes()).hexdigest()
+            assert before==regenerated==after,(name,'legacy hash mismatch')
+            proof[path.name]=dict(before=before,regenerated=regenerated,after=after,identical=True)
         p,n,c=arrays
         for suffix,eye in (('',(3,8.3,6.3)),('_low',(4,3.2,7))):
             render(TEAM/f'preview_palace_{name}{suffix}.png',*arrays,size=(480,480),eye=eye,background=(231,223,205))
-        rows.append(dict(file=path.name,triangles=len(p)//3,bytes=path.stat().st_size,minimum=p.min(0).tolist(),maximum=p.max(0).tolist(),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),seed=900+i))
-    total=sum(r['bytes'] for r in rows); assert total<6_000_000,total
+        rows.append(dict(file=path.name,triangles=len(p)//3,bytes=path.stat().st_size,minimum=p.min(0).tolist(),maximum=p.max(0).tolist(),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),seed=1900+i if is_new else 900+i))
+    total=sum(r['bytes'] for r in rows)
+    new_rows=rows[len(legacy):]
+    assert sum(r['bytes'] for r in rows[:len(legacy)])<6_000_000
+    assert sum(r['bytes'] for r in new_rows)<5_000_000
     (TEAM/'palace_manifest.json').write_text(json.dumps(rows,indent=2))
+    (TEAM/'palace_grand_manifest.json').write_text(json.dumps(new_rows,indent=2))
+    (TEAM/'palace_grand_hash_proof.json').write_text(json.dumps(proof,indent=2))
     for suffix in ('','_low'):
         contact=Image.new('RGB',(1440,math.ceil(len(assets)/6)*265),(244,237,220)); d=ImageDraw.Draw(contact)
         for i,name in enumerate(assets):
@@ -961,6 +981,7 @@ def main():
             d.text((x+8,y+241),name.replace('_',' ').upper(),fill=(54,43,29))
         contact.save(TEAM/f'preview_palace_contact{suffix}.png')
     scenes(assets)
+    grand.hall(assets)
     assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in protected.items())
     (TEAM/'palace_protected_hashes.json').write_text(json.dumps(protected,indent=2))
     print(f'PALACE TOTAL: {len(rows)} models; {sum(r["triangles"] for r in rows)} triangles; {total:,} bytes',flush=True)
