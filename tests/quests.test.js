@@ -26,7 +26,7 @@ test('dữ liệu: 18 phụ · 7 nhánh · 10 ẩn; thưởng đúng khung; mọ
     const by = (t) => Q.QUESTS.filter(q => q.type === t);
     assert.equal(by('side').length, 18);   // 15 việc + 2 việc trao dụng cụ + củi cho bếp quán
     assert.equal(by('branch').length, 7);
-    assert.equal(by('hidden').length, 10);
+    assert.equal(by('hidden').length, 12);   // 10 + 2 nhiệm vụ ẩn trong cung điện (13/11/2026)
     assert.equal(new Set(Q.QUESTS.map(q => q.id)).size, Q.QUESTS.length);
     const allNpc = new Set(Object.values(W.SCENES).flatMap(s => s.npcs)), allObj = new Map(Object.values(W.SCENES).flatMap(s => s.objects).map(o => [o.id, o]));
     const items = new Set([...allObj.values()].filter(o => o.item).map(o => o.item));
@@ -268,7 +268,7 @@ test('ẩn: không lộ trước khi kích hoạt; tự kích hoạt ở hành �
     const pr = fresh();
     const hidden = () => W.worldState(pr, NOW).qlog.list.filter(q => q.type === 'hidden');
     assert.deepEqual(hidden(), []);
-    assert.deepEqual(W.worldState(pr, NOW).qlog.hidden, { found: 0, total: 10 });
+    assert.deepEqual(W.worldState(pr, NOW).qlog.hidden, { found: 0, total: 12 });
     for (const s of Object.values(W.worldState(pr, NOW).scenes)) {
         for (const n of s.npcs) assert.notEqual(n.mk, 'hidden');
         for (const o of s.objects) assert.notEqual(o.mk, 'hidden');
@@ -285,7 +285,7 @@ test('ẩn: không lộ trước khi kích hoạt; tự kích hoạt ở hành �
     assert.equal(pr.wallet.diamond, d0 + 80);
     act(pr, 'outskirts', 'bu_nhin'); act(pr, 'outskirts', 'bu_nhin'); act(pr, 'outskirts', 'bu_nhin');
     assert.equal(pr.wallet.diamond, d0 + 80);
-    assert.deepEqual(W.worldState(pr, NOW).qlog.hidden, { found: 1, total: 10 });
+    assert.deepEqual(W.worldState(pr, NOW).qlog.hidden, { found: 1, total: 12 });
     // cho gà ăn ở 3 máng khác nhau (không dùng giờ thật) -> danh hiệu
     act(pr, 'ashford', 'ga1'); act(pr, 'ashford', 'ga1'); act(pr, 'ashford', 'ga2');
     assert.equal(Q.stateOf(pr, 'h_ga'), 'active');
@@ -456,7 +456,7 @@ test('bản đồ: mọi vật nhặt / điểm tới / người của nhiệm v
         const reached = flood(m, m.spawn, solid);
         const h = (x, y) => m.heights?.[y]?.[x] ?? '0';
         for (const q of list) {
-            const o = pos.get(q.id);
+            const o = pos.get(q.id) ?? m.objects.find(x => x.id === q.id);   // phòng cung điện: vị trí nằm ngay trong bản vẽ phòng
             assert.ok(o, `${id}/${q.id} chưa có vị trí trong mapsExtra.js`);
             assert.equal(m.grid[o.y][o.x], '.', `${id}/${q.id}`);
             const near = N4.some(([dx, dy]) => reached.has(key(o.x + dx, o.y + dy)) && h(o.x + dx, o.y + dy) === h(o.x, o.y));

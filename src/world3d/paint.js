@@ -62,7 +62,10 @@ const OCCLUDE = `
       if (dist < rOuter) {
         float k = uSeeThrough * smoothstep(0.985, 0.9, tProj);
         float inside = 1.0 - smoothstep(rOuter * 0.45, rOuter, dist);
-        gl_FragColor.a *= mix(1.0, 0.5, inside * k);
+        // (13/11) tán cây chỉ mờ 50% và vẫn ghi độ sâu -> nhân vật đứng sau cây vẫn bị che ("kẹt cái cây"). Lõi vòng tròn bỏ hẳn điểm ảnh, mép mờ dần.
+        float f = inside * k;
+        if (f > 0.6) discard;
+        gl_FragColor.a *= mix(1.0, 0.25, f / 0.6);
       }
     }
   }`;
@@ -265,7 +268,7 @@ export function paintTrees(group, spots) {
         put(core, coreMat, mats, true);
         put(trunk, woodMat, mats, true).receiveShadow = true;
         const nearMats = mats.filter((_, i) => list[i][3] !== false);
-        if (nearMats.length) put(leaves, leafMat, nearMats, false).renderOrder = 2;
+        if (nearMats.length) { const lv = put(leaves, leafMat, nearMats, false); lv.renderOrder = 2; lv.userData.noAO = true; }   // (13/11) tấm lá trong suốt bị lớp tối góc coi là vật đặc -> vệt tối góc cạnh quanh tán cây
         if (type === 'apple') {   // táo đỏ lấp ló trên tán
             const ball = new THREE.IcosahedronGeometry(0.045, 1), pts = [];
             const ar = mulberry(77 + ki);

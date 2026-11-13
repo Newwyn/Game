@@ -44,12 +44,13 @@ export function footprint(id) {
         } else if (type === 'roomBox' && !p[0].floor) {
             const b=p[0];
             for(let y=Math.floor(b.z0);y<Math.ceil(b.z1);y++) for(let x=Math.floor(b.x0);x<Math.ceil(b.x1);x++) put(x,y);
+        } else if(type==='model' && p[3]?.free) {   // đồ treo tường / treo trần / thảm phẳng: không chặn lối đi
         } else if(type==='model') {
             const cover=MAPS[id]?.interior3d ? p[3]?.cover : null;
             if(cover) for(let y=Math.floor(cover[1]);y<Math.ceil(cover[3]);y++) for(let x=Math.floor(cover[0]);x<Math.ceil(cover[2]);x++) put(x,y);
             else put(p[1],p[2]);
         }
-        else if(!['plaza','clear','mist','rails','stoneBridge','label'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
+        else if(!['plaza','clear','mist','rails','stoneBridge','label','roomFloor','glassWindow','painting','throne'].includes(type) && typeof p[0]==='number' && typeof p[1]==='number') put(p[0],p[1]);
     }
     return cells;
 }

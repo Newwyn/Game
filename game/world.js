@@ -165,7 +165,7 @@ Object.assign(SCENES, {
     },
     palace_in: {
         area: 'capital', name: 'Cung điện Valoria — Sảnh ngai', interior: true, interior3d: true,
-        npcs: ['palace_guard_left', 'palace_guard_right'],
+        npcs: ['queen_elise', 'palace_guard_left', 'palace_guard_right'],
         objects: [
             { id: 'palace_note', type: 'note', label: 'Chiếu chỉ hoàng gia', lines: ['Cổng thành phải mở cho dân tìm nơi trú ẩn. Không được thu thêm phí lương thực trong những ngày khó khăn.', 'Dấu son hoàng gia còn mới. Bên dưới là danh sách các kho cứu tế.'] },
             { id: 'palace_chest', type: 'chest', reward: { gold: 250 } },
@@ -178,6 +178,49 @@ Object.assign(SCENES, {
             { id: 'archive_note', type: 'note', label: 'Biên niên sử và bản đồ cũ', lines: ['Bản đồ ghi lại những con đường nối Valoria với các vùng đất phía đông.', 'Một dòng chú thích đã phai: “Khi bảy vị Thánh cùng giữ lời thề, ngọn lửa sẽ không lụi tắt.”'] },
             { id: 'archive_chest', type: 'chest', reward: { gold: 200 } },
         ],
+    },
+    // (13/11/2026) cung điện có thêm 6 phòng đi được — bản vẽ ở tools/palace_rooms.py
+    palace_dining: {
+        area: 'capital', name: 'Cung điện — Phòng ăn hoàng gia', interior: true, interior3d: true,
+        npcs: ['palace_cook'],
+        objects: [
+            { id: 'palace_dining_note', type: 'note', label: 'Thực đơn tối nay', lines: ['Súp bí đỏ. Gà nướng mật ong. Bánh táo.', 'Bên dưới có dòng viết tay: “Bớt một nửa phần thịt, đem sang nhà cứu tế. — Elise”'] },
+            { id: 'palace_dining_chest', type: 'chest', reward: { gold: 180 } },
+        ],
+    },
+    palace_council: {
+        area: 'capital', name: 'Cung điện — Phòng hội đồng', interior: true, interior3d: true,
+        npcs: ['palace_scribe'],
+        objects: [
+            { id: 'palace_council_note', type: 'note', label: 'Biên bản họp dang dở', lines: ['“Bộ chỉ huy xin thêm lương cho biên giới phía đông. Công chúa hỏi số lương cũ đã đi đâu. Chưa ai trả lời.”', 'Trang sau bị gấp lại, mực còn chưa khô.'] },
+            { id: 'palace_council_chest', type: 'chest', reward: { gold: 220 } },
+        ],
+    },
+    palace_gallery: {
+        area: 'capital', name: 'Cung điện — Hành lang tranh (tầng 2)', interior: true, interior3d: true,
+        npcs: ['palace_painter'],
+        objects: [
+            { id: 'palace_gallery_note', type: 'note', label: 'Bảng đồng dưới bức chân dung', lines: ['“Aldric Đệ Nhị, vua xứ Valoria. Vẽ vào năm thứ mười hai trị vì.”', 'Hai bên là chân dung cố hoàng hậu và công chúa Elise lúc mười tám tuổi.'] },
+        ],
+    },
+    palace_elise: {
+        area: 'capital', name: 'Cung điện — Phòng công chúa Elise', interior: true, interior3d: true,
+        npcs: ['palace_maid'],
+        objects: [
+            { id: 'palace_elise_note', type: 'note', label: 'Cuốn sổ trên bàn viết', lines: ['Toàn là con số: bao nhiêu bao bột, bao nhiêu chăn, khu nào còn thiếu.', 'Trang cuối chỉ có một dòng: “Mẹ ơi, con làm vậy có đúng không?”'] },
+        ],
+    },
+    palace_king: {
+        area: 'capital', name: 'Cung điện — Tẩm cung nhà vua (tầng 3)', interior: true, interior3d: true,
+        npcs: ['king_aldric', 'palace_physician', 'palace_guard_king'],
+        objects: [
+            { id: 'palace_king_note', type: 'note', label: 'Lá thư viết dở', lines: ['“Elise, cha đã ký quá nhiều tờ giấy mà không đọc kỹ…”', 'Lá thư dừng ở đó. Cây bút lông vẫn nằm trong lọ mực.'] },
+        ],
+    },
+    palace_balcony: {
+        area: 'capital', name: 'Cung điện — Ban công thượng uyển', interior: true, interior3d: true,
+        npcs: ['palace_guard_balcony'],
+        objects: [],
     },
 });
 // ---------- ĐIỂM TRUYỆN + ĐIỀU TRA (chương 1) ----------
@@ -292,6 +335,16 @@ const NPCS = {
     sister_anna: { name: 'Sơ Anna', title: 'Người giữ Ngọn Lửa Thánh', art: 'npc_nun' },
     palace_guard_left: { name: 'Vệ binh hoàng cung', title: 'Gác sảnh ngai', art: 'npc_guard' },
     palace_guard_right: { name: 'Vệ binh hoàng cung', title: 'Gác sảnh ngai', art: 'npc_guard' },
+    // (13/11) nhà vua ở Tẩm cung cho tới khi xong Chương 1 (ông mất tối hôm đó — game/story.js ending); sau đó Elise là nữ vương, đứng ở Sảnh ngai
+    king_aldric: { name: 'Vua Aldric II', title: 'Quốc vương Valoria', art: 'npc_king', showWhen: { until: 'c1-20' } },
+    queen_elise: { name: 'Nữ vương Elise', title: 'Valoria', art: 'npc_elise', showWhen: { from: 'c1-20' } },
+    palace_cook: { name: 'Bà Hilda', title: 'Bếp trưởng hoàng gia', art: 'npc_villager_f' },
+    palace_scribe: { name: 'Ông Bertram', title: 'Quan thư lại', art: 'npc_villager_m' },
+    palace_painter: { name: 'Họa sĩ Marcel', title: 'Họa sĩ cung đình', art: 'npc_bard' },
+    palace_maid: { name: 'Chị Mina', title: 'Hầu cận của công chúa', art: 'npc_villager_f' },
+    palace_physician: { name: 'Ngự y Aldous', title: 'Thầy thuốc hoàng gia', art: 'npc_merchant' },
+    palace_guard_king: { name: 'Vệ binh hoàng cung', title: 'Gác tẩm cung', art: 'npc_guard' },
+    palace_guard_balcony: { name: 'Vệ binh hoàng cung', title: 'Gác ban công', art: 'npc_guard' },
     mira: { name: 'Bà Mira', title: 'Trưởng làng', art: 'npc_mira' },
     borin: { name: 'Bác Borin', title: 'Thợ rèn', art: 'npc_borin' },
     lena: { name: 'Cô Lena', title: 'Chủ quán', art: 'npc_lena' },
@@ -505,8 +558,17 @@ function npcDialog(pr, id) {
         merchant2: ['Táo đỏ, lê vàng! Kinh thành dạo này lính tráng nhiều quá, khách cũng ngại ra chợ.'],
         nun: ['Phe hòa bình vẫn cầu nguyện mỗi ngày. Chiến tranh chẳng đem lại điều gì tốt đẹp.'],
         sister_anna: ['Cứ vào nghỉ một lát nhé. Ngọn Lửa Thánh luôn sáng vì những người còn cần được chở che.', 'Sera từng cầu nguyện ở đây trước mỗi chuyến đi. Em ấy tin rằng một hiệp sĩ phải biết đưa tay ra giúp người khác trước khi rút kiếm.'],
-        palace_guard_left: ['Mời bạn đi theo thảm đỏ. Xin giữ yên lặng trong sảnh ngai.'],
-        palace_guard_right: ['Công chúa Elise vẫn ở ngoài tiền sảnh để nghe dân trình bày. Bạn có thể tìm cô ấy ở đó.'],
+        palace_guard_left: cleared(pr, 20) ? ['Nữ vương đang tiếp dân. Mời bạn đi theo thảm đỏ.'] : ['Ngai để trống mấy tháng nay rồi. Bệ hạ nghỉ trên tầng ba.', 'Mời bạn đi theo thảm đỏ. Xin giữ yên lặng trong sảnh ngai.'],
+        palace_guard_right: cleared(pr, 20) ? ['Hôm lễ đăng quang không có yến tiệc. Tiền đó nữ vương để dành cứu trợ.'] : ['Công chúa Elise vẫn ở ngoài tiền sảnh để nghe dân trình bày. Bạn có thể tìm cô ấy ở đó.'],
+        king_aldric: cleared(pr, 18) ? ['Hôm ở đại sảnh, ta đã nghe đủ. Lẽ ra ta phải hỏi sớm hơn.', 'Con bé Elise cứng đầu giống mẹ nó. May mà giống.'] : ['Lại có khách à. Ngồi đi, đừng đứng. Dạo này ta ngước lên lâu là chóng mặt.', 'Ngự y bảo ta nghỉ. Mà nằm hoài thì giấy tờ nó chất lên tận trần.', 'Cái đèn cạnh giường là quà dâng hồi đầu năm. Đẹp thì có đẹp, mà ta thấy nó chẳng ấm chút nào.'],
+        queen_elise: ['Ngai này cha tôi ngồi ba mươi năm. Tôi thì vẫn chưa quen.', 'Mỗi lưỡi kiếm sau lưng ghế là một người đã ngã. Ngồi lên rồi tôi mới hiểu vì sao ông hay im lặng.', '{Ten}, đi đường giữ sức nhé. Lúc nào về thì ghé, bếp vẫn còn bánh táo.'],
+        palace_cook: cleared(pr, 20) ? ['Nữ vương vẫn ăn đứng, vừa ăn vừa đọc sổ. Lên ngôi rồi cũng không sửa được.', 'Đói thì nói nhé, bếp lúc nào cũng còn bánh táo.'] : ['Bàn dài vậy chứ dạo này bệ hạ toàn ăn trên lầu. Công chúa thì ăn đứng, vừa ăn vừa đọc sổ.', 'Đói thì nói nhé, bếp lúc nào cũng còn bánh táo.'],
+        palace_scribe: ['Phòng này họp từ sáng tới tối. Tôi chép biên bản mỏi cả tay mà chưa thấy ai quyết được chuyện gì.', 'Bản đồ trên bàn xin đừng đụng vào. Mấy lá cờ nhỏ đó cắm sai một chỗ là cãi nhau cả buổi.'],
+        palace_painter: ['Bức chính giữa là bệ hạ. Tôi vẽ ba tháng, riêng bộ râu mất hết một tháng.', 'Cố hoàng hậu thì tôi vẽ theo trí nhớ. Công chúa giống mẹ lắm, nhất là đôi mắt.'],
+        palace_maid: ['Phòng công chúa đó, mà cô ấy có mấy khi về ngủ đâu. Toàn ngủ gục ở nhà cứu tế.', 'Cây đàn hạc kia là của cố hoàng hậu để lại. Lâu rồi không ai gảy.'],
+        palace_physician: cleared(pr, 20) ? ['Căn phòng vẫn để nguyên như lúc người còn. Nữ vương dặn vậy.', 'Sáng nào tôi cũng lên đây. Quen chân rồi.'] : ['Bệ hạ vừa uống thuốc xong. Xin nói nhỏ thôi.', 'Tôi bắt mạch không ra bệnh gì. Vậy mà người cứ yếu dần từ đầu năm tới giờ.'],
+        palace_guard_king: cleared(pr, 20) ? ['Tẩm cung của tiên vương. Xin giữ yên lặng.'] : ['Tẩm cung của bệ hạ. Bạn được công chúa cho phép thì mới lên được tới đây đó.'],
+        palace_guard_balcony: ['Đứng đây thấy được cả kinh thành. Sáng sớm sương tan là đẹp nhất.', 'Tối tới thì tôi đếm đèn ngoài chợ cho đỡ buồn ngủ.'],
         villager_m2: cleared(pr, 20) ? ['Nữ vương công khai hồ sơ rồi… hóa ra lương cứu trợ bị đem đi chuẩn bị chiến tranh.'] : ['Có lệnh của bộ chỉ huy: ai thấy người Elf thì phải báo ngay. Lạ thật…'],
         elfmerchant: ['Thảo dược rừng Sylvaren chữa được cả vết bỏng lửa thần đấy!', 'Dạo này rừng bệnh, thảo dược héo hết cả…'],
         elfkid: clearedId(pr, 'c2-05') ? ['Treant Già ngủ yên rồi! Cảm ơn {anh}!'] : ['{Anh} là người tộc Người à? Lần đầu em thấy đó!', 'Đừng lại gần cây cổ thụ có tim xanh nhé, nó dữ lắm.'],

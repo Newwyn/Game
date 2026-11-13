@@ -40,6 +40,8 @@ const GradeShader = {
 // ---------- GIỜ TRONG NGÀY (12/11/2026, ý tưởng từ Painted Valley + thêm ban đêm) ----------
 //   Một ngày trong game = 24 phút thật: sáng -> trưa -> chiều vàng -> hoàng hôn -> đêm -> rạng sáng.
 //   Ép giờ để xem thử: ?hour=noon | gold | sunset | night | dawn ; tắt hẳn: ?hour=off
+const DAY_INDOOR = { tint: [1, 1, 1], light: 1, night: 0 };
+const BACKDROPS = import.meta.glob('../assets/world3d/backdrops/*.webp', { query: '?url', import: 'default', eager: true });
 const HOUR = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('hour') : null;
 const DAY_KEYS = [   // [mốc 0..1, màu nhân vào khung hình, độ sáng đèn]
     [0.00, [1.00, 1.00, 1.00], 1.00],    // sáng
@@ -88,7 +90,8 @@ export function createView(host) {
     const sprites = new THREE.Group(); scene.add(sprites);   // nhân vật / đồ vật tranh 2D — ẩn khi tính tối góc
 
     // ---------- hậu kỳ ----------
-    class VisPass extends Pass { constructor(v) { super(); this.v = v; this.needsSwap = false; } render() { sprites.visible = this.v; } }
+    class VisPass extends Pass { constructor(v) { super(); this.v = v; this.needsSwap = false; } render() { sprites.visible = this.v; for (const o of aoHide) o.visible = this.v; } }
+    let aoHide = [];   // quầng sáng đèn / nến + tấm lá cây của cảnh đang mở (userData.noAO): ẩn khi tính tối góc, nếu không lớp tối góc coi cả TẤM là vật đặc -> ô / vệt tối góc cạnh
     let composer, gtao, bloom, hts, vts, paint = null, grade = null, quality = null;
     function buildComposer(q) {
         composer?.dispose?.();
@@ -123,12 +126,18 @@ export function createView(host) {
         sun.shadow.radius = q === 'high' ? 4 : 1.5;
         buildComposer(q);
     }
+    let backdrop = null;
+    function fitBackdrop() {   // phủ kín khung hình, giữ tỉ lệ tranh (cắt bớt mép thừa)
+        const im = backdrop?.image; if (!im) return;
+        const va = host.clientWidth / Math.max(1, host.clientHeight), ia = im.width / im.height;
+        if (va > ia) { backdrop.repeat.set(1, ia / va); backdrop.offset.set(0, (1 - ia / va) / 2); } else { backdrop.repeat.set(va / ia, 1); backdrop.offset.set((1 - va / ia) / 2, 0); }
+    }
     function resize() {
         const w = host.clientWidth, h = host.clientHeight;
         if (!w || !h) return;
         renderer.setSize(w, h); composer?.setSize(w, h);
         if (paint) renderer.getDrawingBufferSize(paint.uniforms.uRes.value);
-        camera.aspect = w / h; camera.updateProjectionMatrix();
+        camera.aspect = w / h; camera.updateProjectionMatrix(); fitBackdrop();
         if (hts) { hts.uniforms.h.value = 2.4 / w; vts.uniforms.v.value = 2.4 / h; hts.uniforms.r.value = vts.uniforms.r.value = 0.5; }
     }
 
@@ -143,14 +152,19 @@ export function createView(host) {
             const built = await cache.get(id);
             if (mapId !== id) return;
             if (cur) scene.remove(cur.group);
-            cur = built; scene.add(cur.group);
+            cur = built; scene.add(cur.group); aoHide = []; cur.group.traverse(o => { if (o.userData.noAO) aoHide.push(o); });
             const st = LAYOUTS[id]?.style ?? {};
             const sky = new THREE.Color(st.sky ?? 0xc9d9b0);
-            scene.background = sky;
+            const bdUrl = st.backdrop && BACKDROPS[`../assets/world3d/backdrops/${st.backdrop}.webp`];
+            if (bdUrl) {   // cảnh tĩnh (tranh vẽ) phủ kín nền — ban công nhìn ra thành phố
+                backdrop = new THREE.TextureLoader().load(bdUrl, () => fitBackdrop()); backdrop.colorSpace = THREE.SRGBColorSpace;
+                scene.background = backdrop;
+            } else { backdrop = null; scene.background = sky; }
             const [fc, fn, ff] = st.fog ?? [0xc9d2a8, 30, 62];
             scene.fog = new THREE.Fog(fc, fn, ff);
             sun.color.setHex(st.sun ?? 0xffd29a); sun.intensity = st.sunI ?? 2.4;
             hemi.intensity = st.hemi ?? 1.0;
+            [camK, camLead] = st.cam ?? [1, 0];
             snapCam = true; perf.reset();
         })();
         await building;
@@ -194,8 +208,8 @@ export function createView(host) {
         const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.025;
         const g = new THREE.Group(); g.add(sp, sh); if (bits) g.add(bits); sprites.add(g);
         a = { g, sp, sh, tex, url, seen: 0, dz, bits };
-        if (key === 'me') {   // bóng mờ của nhân vật chính: vẫn thấy khi bị nhà / tường / cây che
-            a.ghost = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4, depthTest: false, depthWrite: false, transparent: true, opacity: 0.42 }));
+        if (!dz) {   // bóng mờ: vẫn thấy khi bị nhà / tường / cây che. (13/11) không chỉ nhân vật chính mà cả NPC — người chơi: "ở đó có NPC mà không thấy"
+            a.ghost = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4, depthTest: false, depthWrite: false, transparent: true, opacity: key === 'me' ? 0.42 : 0.34 }));
             a.ghost.center.set(0.5, 0.03); a.ghost.renderOrder = 20; g.add(a.ghost);
         }
         actors.set(key, a);
@@ -228,6 +242,7 @@ export function createView(host) {
 
     // ---------- mỗi khung hình ----------
     const camWant = new THREE.Vector3(), camLook = new THREE.Vector3();
+    let camK = 1, camLead = 0;   // style.cam = [lùi xa gấp mấy lần, nhìn lệch về phía bắc mấy ô] — phòng lớn (sảnh ngai) cần thấy cả ngai lẫn tường sau
     let last = performance.now(), t = 0, seeAlpha = 1;
     /**
      * state: { focus:{x,z}, actors:[{key, url, meta, x, z, lift, face, col, hidden}], items:[{key, url, meta, cell, x, z, size, bob}],
@@ -237,7 +252,8 @@ export function createView(host) {
         const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt; uTime.value = t;
         frameNo++;
         if (!cur) return;
-        if (grade) { const d = dayAt(Date.now()); grade.uniforms.uDay.value.set(d.tint[0], d.tint[1], d.tint[2]); setNight(d.night); }
+        // (13/11) trong nhà (phòng 3D) không nhuộm theo giờ: ban đêm cả phòng xanh tối thui, thảm đỏ / tranh mất màu
+        if (grade) { const d = MAPS[mapId]?.interior3d ? DAY_INDOOR : dayAt(Date.now()); grade.uniforms.uDay.value.set(d.tint[0], d.tint[1], d.tint[2]); setNight(d.night); }
         let meX = state.focus.x, meZ = state.focus.z, meLift = 0;
         const mapHeights = MAPS[mapId]?.heights;
         // nhân vật (h: độ cao bậc 0..2, nâng nhân vật + bóng dưới chân lên h * 0.45 ô; lúc nhảy bóng nhỏ lại)
@@ -300,9 +316,9 @@ export function createView(host) {
         // máy quay chéo bám nhân vật (giữ trong khoảng bản đồ để không lộ quá nhiều phần ngoài)
         const m = MAPS[mapId];
         const fx = Math.max(7, Math.min(m.cols - 7, state.focus.x)), fz = Math.max(3, Math.min(m.rows - 2, state.focus.z));
-        camWant.set(fx, 15.5, fz + 14.2);
+        camWant.set(fx, 15.5 * camK, fz - camLead + 14.2 * camK);
         if (snapCam) { camera.position.copy(camWant); snapCam = false; } else camera.position.lerp(camWant, 1 - Math.exp(-dt * 5));
-        camLook.set(camera.position.x, 0.6, camera.position.z - 14.2);
+        camLook.set(camera.position.x, 0.6, camera.position.z - 14.2 * camK);
         camera.lookAt(camLook);
         // cập nhật vị trí nhân vật & camera cho shader nhìn xuyên vật che (occlusion fade ~0,2 giây)
         const seeOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('seeThrough') === 'off';
@@ -355,5 +371,8 @@ export function createView(host) {
     /** chụp ảnh khung 3D (chỉ để kiểm tra khi chạy thử) */
     const snapshot = (q = 0.85) => { composer.render(); return renderer.domElement.toDataURL('image/jpeg', q); };
     setQuality('high');
-    return { setMap, frame, pick, setQuality, setAuto, resize, snapshot, get building() { return building; }, get mapId() { return mapId; }, canvas: renderer.domElement };
+    const hsv = new THREE.Vector3();
+    /** Vị trí nhân vật trên màn hình (px, tính trong khung vẽ) — để đặt thanh thể lực ngay cạnh nhân vật */
+    function heroScreen() { hsv.copy(uHeroPos.value).project(camera); const el = renderer.domElement; return { x: (hsv.x * 0.5 + 0.5) * el.clientWidth, y: (-hsv.y * 0.5 + 0.5) * el.clientHeight, el }; }
+    return { setMap, frame, pick, setQuality, setAuto, resize, snapshot, heroScreen, get building() { return building; }, get mapId() { return mapId; }, canvas: renderer.domElement };
 }

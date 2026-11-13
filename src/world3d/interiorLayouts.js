@@ -8,9 +8,9 @@ export const INTERIOR_LAYOUTS = {
         35,
         70
       ],
-      "sun": 16759928,
-      "sunI": 0.85,
-      "hemi": 0.65,
+      "sun": 16765088,
+      "sunI": 0.9,
+      "hemi": 0.72,
       "ground": {
         "s": [
           0.08,
@@ -21,19 +21,29 @@ export const INTERIOR_LAYOUTS = {
     },
     "items": [
       [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 15,
+          "z1": 22,
+          "kind": "stone"
+        }
+      ],
+      [
         "dwall",
         [
-          0.5,
+          0,
           0.5
         ],
         [
-          14.5,
+          15,
           0.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
-          "deco": true,
+          "deco": false,
           "shelves": false
         }
       ],
@@ -48,7 +58,7 @@ export const INTERIOR_LAYOUTS = {
           20.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
           "deco": false
         }
@@ -64,9 +74,45 @@ export const INTERIOR_LAYOUTS = {
           20.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
           "deco": false
+        }
+      ],
+      [
+        "glassWindow",
+        3.5,
+        0.915,
+        {
+          "y": 1.65,
+          "w": 1.0,
+          "h": 2.0,
+          "kind": "holy",
+          "pool": 3.4
+        }
+      ],
+      [
+        "glassWindow",
+        7.5,
+        0.915,
+        {
+          "y": 1.65,
+          "w": 1.15,
+          "h": 2.3,
+          "kind": "holy",
+          "pool": 0
+        }
+      ],
+      [
+        "glassWindow",
+        11.5,
+        0.915,
+        {
+          "y": 1.65,
+          "w": 1.0,
+          "h": 2.0,
+          "kind": "holy",
+          "pool": 3.4
         }
       ],
       [
@@ -131,9 +177,11 @@ export const INTERIOR_LAYOUTS = {
         4.5,
         7.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
+          "y": 0,
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -142,9 +190,11 @@ export const INTERIOR_LAYOUTS = {
         10.5,
         7.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
+          "y": 0,
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -167,12 +217,38 @@ export const INTERIOR_LAYOUTS = {
       [
         "roomBox",
         {
-          "x0": 7.04,
+          "x0": 6.88,
           "z0": 9,
-          "x1": 7.96,
-          "z1": 10,
-          "height": 0.015,
+          "x1": 8.120000000000001,
+          "z1": 22,
+          "height": 0.06,
           "color": 9250359,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 6.88,
+          "z0": 9,
+          "x1": 6.9799999999999995,
+          "z1": 22,
+          "height": 0.07,
+          "color": 14264634,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 8.02,
+          "z0": 9,
+          "x1": 8.12,
+          "z1": 22,
+          "height": 0.07,
+          "color": 14264634,
           "y": 0,
           "floor": true
         }
@@ -195,40 +271,16 @@ export const INTERIOR_LAYOUTS = {
         }
       ],
       [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 10,
-          "x1": 7.96,
-          "z1": 11,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
         "model",
         "dungeon/pillar_decorated",
         4.5,
         11.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 11,
-          "x1": 7.96,
-          "z1": 12,
-          "height": 0.015,
-          "color": 9250359,
           "y": 0,
-          "floor": true
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -237,9 +289,11 @@ export const INTERIOR_LAYOUTS = {
         10.5,
         11.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
+          "y": 0,
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -260,19 +314,6 @@ export const INTERIOR_LAYOUTS = {
         }
       ],
       [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 12,
-          "x1": 7.96,
-          "z1": 13,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
         "model",
         "custom/town_bench",
         11.5,
@@ -290,40 +331,16 @@ export const INTERIOR_LAYOUTS = {
         }
       ],
       [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 13,
-          "x1": 7.96,
-          "z1": 14,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
         "model",
         "dungeon/pillar_decorated",
         4.5,
         14.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 14,
-          "x1": 7.96,
-          "z1": 15,
-          "height": 0.015,
-          "color": 9250359,
           "y": 0,
-          "floor": true
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -332,9 +349,11 @@ export const INTERIOR_LAYOUTS = {
         10.5,
         14.5,
         {
-          "s": 0.42,
+          "s": 0.44,
           "r": 0,
-          "y": 0
+          "y": 0,
+          "sy": 0.74,
+          "sz": 0.44
         }
       ],
       [
@@ -355,19 +374,6 @@ export const INTERIOR_LAYOUTS = {
         }
       ],
       [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 15,
-          "x1": 7.96,
-          "z1": 16,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
         "model",
         "custom/town_bench",
         11.5,
@@ -382,71 +388,6 @@ export const INTERIOR_LAYOUTS = {
             13,
             16
           ]
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 16,
-          "x1": 7.96,
-          "z1": 17,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 17,
-          "x1": 7.96,
-          "z1": 18,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 18,
-          "x1": 7.96,
-          "z1": 19,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 19,
-          "x1": 7.96,
-          "z1": 20,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 7.04,
-          "z0": 20,
-          "x1": 7.96,
-          "z1": 21,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
         }
       ],
       [
@@ -540,9 +481,9 @@ export const INTERIOR_LAYOUTS = {
         4.5,
         0.5,
         {
-          "s": 0.5,
+          "s": 0.72,
           "r": 0,
-          "y": 0.25
+          "y": 0.1
         }
       ],
       [
@@ -551,574 +492,315 @@ export const INTERIOR_LAYOUTS = {
         10.5,
         0.5,
         {
-          "s": 0.5,
+          "s": 0.72,
           "r": 0,
-          "y": 0.25
+          "y": 0.1
         }
       ],
       [
         "model",
-        "dungeon/torch_mounted",
+        "dungeon/banner_patternA_red",
         0.5,
-        3.5,
+        4.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        14.5,
-        3.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        0.5,
-        7.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        14.5,
-        7.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        0.5,
-        11.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        14.5,
-        11.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        0.5,
-        15.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        14.5,
-        15.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        0.5,
-        19.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
-        14.5,
-        19.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ]
-    ],
-    "detailItems": []
-  },
-  "palace_in": {
-    "style": {
-      "sky": 1052179,
-      "fog": [
-        1052179,
-        35,
-        70
-      ],
-      "sun": 16759928,
-      "sunI": 0.85,
-      "hemi": 0.65,
-      "ground": {
-        "s": [
-          0.08,
-          0.12,
-          0.27
-        ]
-      }
-    },
-    "items": [
-      [
-        "dwall",
-        [
-          0.5,
-          0.5
-        ],
-        [
-          20.5,
-          0.5
-        ],
-        {
-          "s": 0.5,
-          "door": false,
-          "deco": true,
-          "shelves": false
-        }
-      ],
-      [
-        "dwall",
-        [
-          0.5,
-          0.5
-        ],
-        [
-          0.5,
-          14.5
-        ],
-        {
-          "s": 0.5,
-          "door": false,
-          "deco": false
-        }
-      ],
-      [
-        "dwall",
-        [
-          20.5,
-          0.5
-        ],
-        [
-          20.5,
-          14.5
-        ],
-        {
-          "s": 0.5,
-          "door": false,
-          "deco": false
-        }
-      ],
-      [
-        "model",
-        "dungeon/pillar_decorated",
-        5.5,
-        5.5,
-        {
-          "s": 0.42,
-          "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 5,
-          "x1": 10.96,
-          "z1": 6,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "model",
-        "dungeon/pillar_decorated",
-        15.5,
-        5.5,
-        {
-          "s": 0.42,
-          "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 6,
-          "x1": 10.96,
-          "z1": 7,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "model",
-        "dungeon/table_long_decorated_A",
-        3.5,
-        7.5,
-        {
-          "s": 0.45,
+          "s": 0.72,
           "r": 1.57079632679,
-          "y": 0,
+          "y": 0.1,
           "cover": [
-            2,
-            7,
-            5,
-            8
+            0,
+            4,
+            1,
+            5
           ]
         }
       ],
       [
         "model",
-        "dungeon/candle_triple",
-        3.5,
-        7.5,
+        "dungeon/banner_patternA_red",
+        14.5,
+        4.5,
         {
-          "s": 0.3,
-          "r": 0,
-          "y": 0.6
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 7,
-          "x1": 10.96,
-          "z1": 8,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
+          "s": 0.72,
+          "r": -1.57079632679,
+          "y": 0.1,
+          "cover": [
+            14,
+            4,
+            15,
+            5
+          ]
         }
       ],
       [
         "model",
-        "dungeon/table_long_decorated_A",
-        17.5,
-        7.5,
+        "dungeon/banner_patternA_red",
+        0.5,
+        8.5,
         {
-          "s": 0.45,
+          "s": 0.72,
           "r": 1.57079632679,
-          "y": 0,
+          "y": 0.1,
           "cover": [
+            0,
+            8,
+            1,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/banner_patternA_red",
+        14.5,
+        8.5,
+        {
+          "s": 0.72,
+          "r": -1.57079632679,
+          "y": 0.1,
+          "cover": [
+            14,
+            8,
+            15,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/banner_patternA_red",
+        0.5,
+        12.5,
+        {
+          "s": 0.72,
+          "r": 1.57079632679,
+          "y": 0.1,
+          "cover": [
+            0,
+            12,
+            1,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/banner_patternA_red",
+        14.5,
+        12.5,
+        {
+          "s": 0.72,
+          "r": -1.57079632679,
+          "y": 0.1,
+          "cover": [
+            14,
+            12,
+            15,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/banner_patternA_red",
+        0.5,
+        16.5,
+        {
+          "s": 0.72,
+          "r": 1.57079632679,
+          "y": 0.1,
+          "cover": [
+            0,
             16,
-            7,
-            19,
-            8
+            1,
+            17
           ]
         }
       ],
       [
         "model",
-        "dungeon/candle_triple",
-        17.5,
-        7.5,
-        {
-          "s": 0.3,
-          "r": 0,
-          "y": 0.6
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 8,
-          "x1": 10.96,
-          "z1": 9,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "model",
-        "dungeon/pillar_decorated",
-        5.5,
-        9.5,
-        {
-          "s": 0.42,
-          "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 9,
-          "x1": 10.96,
-          "z1": 10,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "model",
-        "dungeon/pillar_decorated",
-        15.5,
-        9.5,
-        {
-          "s": 0.42,
-          "r": 0,
-          "y": 0
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 10,
-          "x1": 10.96,
-          "z1": 11,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 11,
-          "x1": 10.96,
-          "z1": 12,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 12,
-          "x1": 10.96,
-          "z1": 13,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 13,
-          "x1": 10.96,
-          "z1": 14,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 10.04,
-          "z0": 14,
-          "x1": 10.96,
-          "z1": 15,
-          "height": 0.015,
-          "color": 9250359,
-          "y": 0,
-          "floor": true
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 8.0,
-          "z0": 2,
-          "x1": 13.0,
-          "z1": 4,
-          "height": 0.25,
-          "color": 6905946,
-          "y": 0,
-          "floor": false
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 9.85,
-          "z0": 2.4,
-          "x1": 11.15,
-          "z1": 3.6,
-          "height": 0.5,
-          "color": 11833928,
-          "y": 0.25,
-          "floor": false
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 9.85,
-          "z0": 2.3,
-          "x1": 11.15,
-          "z1": 2.55,
-          "height": 1.8,
-          "color": 9250359,
-          "y": 0.25,
-          "floor": false
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 9.8,
-          "z0": 2.5,
-          "x1": 10.0,
-          "z1": 3.6,
-          "height": 0.9,
-          "color": 11833928,
-          "y": 0.25,
-          "floor": false
-        }
-      ],
-      [
-        "roomBox",
-        {
-          "x0": 11.0,
-          "z0": 2.5,
-          "x1": 11.2,
-          "z1": 3.6,
-          "height": 0.9,
-          "color": 11833928,
-          "y": 0.25,
-          "floor": false
-        }
-      ],
-      [
-        "model",
         "dungeon/banner_patternA_red",
-        7.5,
-        0.5,
+        14.5,
+        16.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 0.25
-        }
-      ],
-      [
-        "model",
-        "dungeon/banner_patternA_red",
-        13.5,
-        0.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 0.25
+          "s": 0.72,
+          "r": -1.57079632679,
+          "y": 0.1,
+          "cover": [
+            14,
+            16,
+            15,
+            17
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        0.5,
-        3.5,
+        0.53,
+        2.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        20.5,
-        3.5,
+        14.47,
+        2.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            2,
+            15,
+            3
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        0.5,
-        7.5,
+        0.53,
+        6.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        20.5,
-        7.5,
+        14.47,
+        6.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            6,
+            15,
+            7
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        0.5,
-        11.5,
+        0.53,
+        10.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            10,
+            1,
+            11
+          ]
         }
       ],
       [
         "model",
         "dungeon/torch_mounted",
-        20.5,
-        11.5,
+        14.47,
+        10.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            10,
+            15,
+            11
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        0.53,
+        14.5,
+        {
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            14,
+            1,
+            15
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        14.47,
+        14.5,
+        {
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            14,
+            15,
+            15
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        0.53,
+        18.5,
+        {
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            18,
+            1,
+            19
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        14.47,
+        18.5,
+        {
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            18,
+            15,
+            19
+          ]
         }
       ]
     ],
@@ -1132,9 +814,9 @@ export const INTERIOR_LAYOUTS = {
         35,
         70
       ],
-      "sun": 16759928,
-      "sunI": 0.85,
-      "hemi": 0.65,
+      "sun": 16763274,
+      "sunI": 0.95,
+      "hemi": 0.78,
       "ground": {
         "s": [
           0.08,
@@ -1145,17 +827,27 @@ export const INTERIOR_LAYOUTS = {
     },
     "items": [
       [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 15,
+          "z1": 12,
+          "kind": "wood"
+        }
+      ],
+      [
         "dwall",
         [
-          0.5,
+          0,
           0.5
         ],
         [
-          14.5,
+          15,
           0.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
           "deco": true,
           "shelves": true
@@ -1172,7 +864,7 @@ export const INTERIOR_LAYOUTS = {
           10.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
           "deco": false
         }
@@ -1188,7 +880,7 @@ export const INTERIOR_LAYOUTS = {
           10.5
         ],
         {
-          "s": 0.5,
+          "s": 0.75,
           "door": false,
           "deco": false
         }
@@ -1506,45 +1198,6687 @@ export const INTERIOR_LAYOUTS = {
       [
         "model",
         "dungeon/torch_mounted",
+        0.53,
+        2.5,
+        {
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        14.47,
+        2.5,
+        {
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            2,
+            15,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        0.53,
+        6.5,
+        {
+          "s": 0.75,
+          "r": 1.57079632679,
+          "y": 1.6,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "dungeon/torch_mounted",
+        14.47,
+        6.5,
+        {
+          "s": 0.75,
+          "r": -1.57079632679,
+          "y": 1.6,
+          "cover": [
+            14,
+            6,
+            15,
+            7
+          ]
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 3.4,
+          "z0": 3.5,
+          "x1": 6.6,
+          "z1": 7.5,
+          "height": 0.06,
+          "color": 3099243,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 8.4,
+          "z0": 3.5,
+          "x1": 11.600000000000001,
+          "z1": 7.5,
+          "height": 0.06,
+          "color": 3099243,
+          "y": 0,
+          "floor": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_in": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16769200,
+      "sunI": 1.05,
+      "hemi": 0.85,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      },
+      "cam": [
+        1.4,
+        4
+      ]
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 27,
+          "z1": 23,
+          "kind": "marble"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        16.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        19.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            18,
+            0,
+            21,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        22.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            21,
+            0,
+            24,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        25.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            24,
+            0,
+            27,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            16,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        18,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            18,
+            0,
+            19,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        21,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            21,
+            0,
+            22,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        24,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            24,
+            0,
+            25,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        27,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            26,
+            0,
+            27,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        11,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            10,
+            1,
+            12
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        14,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            13,
+            1,
+            15
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        17,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            16,
+            1,
+            18
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        20,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            19,
+            1,
+            21
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
         0.5,
         3.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
         }
       ],
       [
         "model",
-        "dungeon/torch_mounted",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        12.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            12,
+            1,
+            13
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        15.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            15,
+            1,
+            16
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        18.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            18,
+            1,
+            19
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        21.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            21,
+            1,
+            22
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            1,
+            27,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            4,
+            27,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            7,
+            27,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        11,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            10,
+            27,
+            12
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        14,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            13,
+            27,
+            15
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        17,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            16,
+            27,
+            18
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        26.5,
+        20,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            19,
+            27,
+            21
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        3.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            3,
+            27,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        6.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            6,
+            27,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            9,
+            27,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        12.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            12,
+            27,
+            13
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        15.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            15,
+            27,
+            16
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        18.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            18,
+            27,
+            19
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        26.5,
+        21.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            21,
+            27,
+            22
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_stairs_up",
+        3.5,
+        2.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            2,
+            1,
+            5,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_dais_grand",
+        13.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            1,
+            18,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_throne_grand",
+        13.5,
+        2.75,
+        {
+          "s": 1.25,
+          "r": 0,
+          "y": 0.9,
+          "cover": [
+            9,
+            1,
+            18,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chest_treasure",
+        10.6,
+        2.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.9,
+          "cover": [
+            9,
+            1,
+            18,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chest_treasure",
+        16.4,
+        2.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.9,
+          "cover": [
+            9,
+            1,
+            18,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_stairs_up",
+        23.5,
+        2.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            22,
+            1,
+            25,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_statue_knight",
+        7.0,
+        3.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            2,
+            8,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_statue_knight",
+        20.0,
+        3.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            2,
+            21,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_brazier",
+        8.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            8,
+            6,
+            9,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_statue_lion",
+        10.5,
+        7.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            10,
+            6,
+            11,
+            8
+          ]
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 12.88,
+          "z0": 6,
+          "x1": 14.120000000000001,
+          "z1": 23,
+          "height": 0.06,
+          "color": 9250359,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 12.88,
+          "z0": 6,
+          "x1": 12.98,
+          "z1": 23,
+          "height": 0.07,
+          "color": 14264634,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 14.02,
+          "z0": 6,
+          "x1": 14.12,
+          "z1": 23,
+          "height": 0.07,
+          "color": 14264634,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_statue_lion",
+        16.5,
+        7.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            16,
+            6,
+            17,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_brazier",
+        18.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            18,
+            6,
+            19,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        7.5,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            8,
+            8,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        19.5,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            8,
+            20,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_torchere",
+        1.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            9,
+            2,
+            10
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_torchere",
+        25.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            25,
+            9,
+            26,
+            10
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        7.5,
+        10.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            10,
+            8,
+            11
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        19.5,
+        10.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            10,
+            20,
+            11
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_torchere",
+        1.5,
+        12.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            12,
+            2,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        7.5,
+        12.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            12,
+            8,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        19.5,
+        12.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            12,
+            20,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_torchere",
+        25.5,
+        12.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            25,
+            12,
+            26,
+            13
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        7.5,
+        14.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            14,
+            8,
+            15
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        19.5,
+        14.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            14,
+            20,
+            15
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        7.5,
+        16.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            16,
+            8,
+            17
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_column_grand",
+        19.5,
+        16.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            19,
+            16,
+            20,
+            17
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_cloth_of_state_grand",
+        13.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.15,
+          "cover": [
+            13,
+            0,
+            14,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        10.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.5,
+          "cover": [
+            10,
+            0,
+            11,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        16.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.5,
+          "cover": [
+            16,
+            0,
+            17,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        7.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.35,
+          "cover": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        19.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.35,
+          "cover": [
+            19,
+            0,
+            20,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        1.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.4,
+          "cover": [
+            1,
+            0,
+            2,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        25.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.4,
+          "cover": [
+            25,
+            0,
+            26,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        0.805,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0.35,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0.5,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        0.805,
+        11,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            11,
+            1,
+            12
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        0.805,
+        14,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0.5,
+          "cover": [
+            0,
+            14,
+            1,
+            15
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        0.805,
+        17,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0.35,
+          "cover": [
+            0,
+            17,
+            1,
+            18
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        20,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            20,
+            1,
+            21
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        26.195,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.9,
+          "cover": [
+            26,
+            2,
+            27,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        26.195,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.35,
+          "cover": [
+            26,
+            5,
+            27,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        26.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.5,
+          "cover": [
+            26,
+            8,
+            27,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        26.195,
+        11,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            26,
+            11,
+            27,
+            12
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_grand",
+        26.195,
+        14,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.5,
+          "cover": [
+            26,
+            14,
+            27,
+            15
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_grand",
+        26.195,
+        17,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.35,
+          "cover": [
+            26,
+            17,
+            27,
+            18
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        26.195,
+        20,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.9,
+          "cover": [
+            26,
+            20,
+            27,
+            21
+          ],
+          "free": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_dining": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16767400,
+      "sunI": 1.0,
+      "hemi": 0.82,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      }
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 18,
+          "z1": 11,
+          "kind": "wood"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        16.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            16,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        18,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            17,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            1,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            4,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            7,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        3.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            3,
+            18,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        6.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            6,
+            18,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            9,
+            18,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_vase_floor",
+        1.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            1,
+            2,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_fireplace",
+        7.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            1,
+            9,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_vase_floor",
+        16.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            16,
+            1,
+            17,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        3.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            4,
+            4,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        5.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            5,
+            4,
+            6,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        7.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            4,
+            8,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        9.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            4,
+            10,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        11.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            11,
+            4,
+            12,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        13.5,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            13,
+            4,
+            14,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_dining_table",
+        6.0,
+        6.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            5,
+            9,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_dining_table",
+        12.0,
+        6.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            5,
+            15,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        3.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            3,
+            7,
+            4,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        5.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            5,
+            7,
+            6,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        7.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            7,
+            7,
+            8,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        9.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            9,
+            7,
+            10,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        11.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            11,
+            7,
+            12,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        13.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            13,
+            7,
+            14,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_candelabra",
+        1.5,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            8,
+            2,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        1.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            1,
+            0,
+            2,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        13.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            13,
+            0,
+            14,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        16.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.9,
+          "cover": [
+            16,
+            0,
+            17,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        0.805,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0.7,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        17.195,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.2,
+          "cover": [
+            17,
+            2,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        17.195,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.2,
+          "cover": [
+            17,
+            5,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        17.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            8,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        4.5,
+        0.805,
+        {
+          "s": 1.4,
+          "r": 0,
+          "y": 1.25,
+          "cover": [
+            4,
+            0,
+            5,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "stilllife",
+        4.5,
+        0.854,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        10.5,
+        0.805,
+        {
+          "s": 1.4,
+          "r": 0,
+          "y": 1.25,
+          "cover": [
+            10,
+            0,
+            11,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "hunt",
+        10.5,
+        0.854,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chandelier",
+        6,
+        6,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chandelier",
+        12,
+        6,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "free": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_council": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16768174,
+      "sunI": 0.98,
+      "hemi": 0.8,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      }
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 18,
+          "z1": 11,
+          "kind": "stone"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        16.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            16,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        18,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            17,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            1,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            4,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            7,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        3.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            3,
+            18,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        6.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            6,
+            18,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            9,
+            18,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_armor_stand",
+        1.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            1,
+            2,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bookcase",
+        4.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            1,
+            6,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bookcase",
+        13.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            1,
+            15,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_armor_stand",
+        16.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            16,
+            1,
+            17,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        8.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            8,
+            3,
+            9,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_council_table",
+        8.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            4,
+            10,
+            7
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        6.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            6,
+            5,
+            7,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        10.5,
+        5.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            10,
+            5,
+            11,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_globe_stand",
+        14.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            14,
+            5,
+            15,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chair",
+        8.5,
+        7.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            8,
+            7,
+            9,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_desk",
+        5.0,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            4,
+            8,
+            6,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        10.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.2,
+          "cover": [
+            10,
+            0,
+            11,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_weapon_rack",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.6,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        0.805,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.2,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        17.195,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.7,
+          "cover": [
+            17,
+            2,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_weapon_rack",
+        17.195,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.6,
+          "cover": [
+            17,
+            5,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        17.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.7,
+          "cover": [
+            17,
+            8,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        7.5,
+        0.805,
+        {
+          "s": 1.4,
+          "r": 0,
+          "y": 1.25,
+          "cover": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "castle",
+        7.5,
+        0.854,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_rug_blue",
+        8.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.035,
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_chandelier",
+        8.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "free": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_gallery": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16770752,
+      "sunI": 1.05,
+      "hemi": 0.88,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      }
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 21,
+          "z1": 11,
+          "kind": "marble"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        16.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        19.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            18,
+            0,
+            21,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            16,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        18,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            18,
+            0,
+            19,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        21,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            20,
+            0,
+            21,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        20.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            1,
+            21,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        20.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            4,
+            21,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        20.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            7,
+            21,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        20.5,
+        3.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            3,
+            21,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        20.5,
+        6.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            6,
+            21,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        20.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            9,
+            21,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_candelabra",
+        1.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            1,
+            2,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bust_pedestal",
+        3.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            1,
+            4,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bust_pedestal",
+        6.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            1,
+            7,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bust_pedestal",
+        12.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            1,
+            13,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bust_pedestal",
+        15.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            1,
+            16,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_stairs_up",
+        18.5,
+        2.0,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            17,
+            1,
+            20,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bench_cushion",
+        7.0,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            5,
+            8,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bench_cushion",
+        14.0,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            13,
+            5,
+            15,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_stairwell_down",
+        10.5,
+        9.0,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            9,
+            8,
+            12,
+            10
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        1.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.9,
+          "cover": [
+            1,
+            0,
+            2,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        20.195,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.7,
+          "cover": [
+            20,
+            2,
+            21,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        20.195,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.7,
+          "cover": [
+            20,
+            5,
+            21,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        20.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            20,
+            8,
+            21,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        4.5,
+        0.805,
+        {
+          "s": 1.4,
+          "r": 0,
+          "y": 1.25,
+          "cover": [
+            4,
+            0,
+            5,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "castle",
+        4.5,
+        0.854,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_portrait",
+        7.5,
+        0.805,
+        {
+          "s": 1.6,
+          "r": 0,
+          "y": 1.0,
+          "cover": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "queen",
+        7.5,
+        0.861,
+        {
+          "y": 2.12,
+          "w": 1.2160000000000002,
+          "h": 1.8559999999999999,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_portrait",
+        10.5,
+        0.805,
+        {
+          "s": 1.6,
+          "r": 0,
+          "y": 1.0,
+          "cover": [
+            10,
+            0,
+            11,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "king",
+        10.5,
+        0.861,
+        {
+          "y": 2.12,
+          "w": 1.2160000000000002,
+          "h": 1.8559999999999999,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_portrait",
+        13.5,
+        0.805,
+        {
+          "s": 1.6,
+          "r": 0,
+          "y": 1.0,
+          "cover": [
+            13,
+            0,
+            14,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "princess",
+        13.5,
+        0.861,
+        {
+          "y": 2.12,
+          "w": 1.2160000000000002,
+          "h": 1.8559999999999999,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        0.805,
+        5,
+        {
+          "s": 1.4,
+          "r": 1.5708,
+          "y": 1.25,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "hunt",
+        0.854,
+        5,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": 1.5708
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 1,
+          "z0": 5.88,
+          "x1": 20,
+          "z1": 7.12,
+          "height": 0.06,
+          "color": 9250359,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 1,
+          "z0": 5.88,
+          "x1": 20,
+          "z1": 5.9799999999999995,
+          "height": 0.07,
+          "color": 14264634,
+          "y": 0,
+          "floor": true
+        }
+      ],
+      [
+        "roomBox",
+        {
+          "x0": 1,
+          "z0": 7.02,
+          "x1": 20,
+          "z1": 7.119999999999999,
+          "height": 0.07,
+          "color": 14264634,
+          "y": 0,
+          "floor": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_elise": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16770256,
+      "sunI": 1.02,
+      "hemi": 0.88,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      }
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 15,
+          "z1": 11,
+          "kind": "wood"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            14,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        14.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            1,
+            15,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        14.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            4,
+            15,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        14.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            7,
+            15,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
         14.5,
         3.5,
         {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            3,
+            15,
+            4
+          ],
+          "free": true
         }
       ],
       [
         "model",
-        "dungeon/torch_mounted",
-        0.5,
-        7.5,
-        {
-          "s": 0.5,
-          "r": 0,
-          "y": 1.1
-        }
-      ],
-      [
-        "model",
-        "dungeon/torch_mounted",
+        "custom/palace_wall_royal_pilaster",
         14.5,
-        7.5,
+        6.5,
         {
-          "s": 0.5,
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            6,
+            15,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        14.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            9,
+            15,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bed_princess",
+        4.5,
+        2.5,
+        {
+          "s": 1,
           "r": 0,
-          "y": 1.1
+          "y": 0,
+          "cover": [
+            3,
+            1,
+            6,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_vanity",
+        10.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            1,
+            12,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_harp",
+        13.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            13,
+            1,
+            14,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_side_table",
+        7.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            3,
+            8,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wardrobe",
+        1.5,
+        5.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            1,
+            4,
+            2,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_armchair",
+        6.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            5,
+            7,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_desk",
+        3.0,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            2,
+            8,
+            4,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        1.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            1,
+            0,
+            2,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        7.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        14.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            14,
+            8,
+            15,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_portrait",
+        14.195,
+        2,
+        {
+          "s": 1.6,
+          "r": -1.5708,
+          "y": 1.0,
+          "cover": [
+            14,
+            2,
+            15,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "queen",
+        14.139,
+        2,
+        {
+          "y": 2.12,
+          "w": 1.2160000000000002,
+          "h": 1.8559999999999999,
+          "r": -1.5708
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        14.195,
+        5,
+        {
+          "s": 1.4,
+          "r": -1.5708,
+          "y": 1.25,
+          "cover": [
+            14,
+            5,
+            15,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "castle",
+        14.146,
+        5,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": -1.5708
+        }
+      ],
+      [
+        "model",
+        "custom/palace_rug_blue",
+        9.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.035,
+          "free": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_king": {
+    "style": {
+      "sky": 1052179,
+      "fog": [
+        1052179,
+        45,
+        90
+      ],
+      "sun": 16765600,
+      "sunI": 0.95,
+      "hemi": 0.78,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      }
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 18,
+          "z1": 11,
+          "kind": "wood"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        1.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            3,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        4.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            6,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        7.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            9,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        10.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            12,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        13.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            15,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        16.5,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            0,
+            0,
+            1,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        3,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            0,
+            4,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        6,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            6,
+            0,
+            7,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        9,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            0,
+            10,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        12,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            12,
+            0,
+            13,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        15,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            15,
+            0,
+            16,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        18,
+        0.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            17,
+            0,
+            18,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            1,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            4,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        17.5,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            7,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        3.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            3,
+            18,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        6.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            6,
+            18,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        17.5,
+        9.5,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0,
+          "cover": [
+            17,
+            9,
+            18,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_fireplace",
+        4.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            1,
+            6,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bed_royal",
+        10.5,
+        2.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            1,
+            12,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_side_table",
+        14.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            14,
+            1,
+            15,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_vase_floor",
+        16.5,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            16,
+            1,
+            17,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_armchair",
+        3.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            3,
+            3,
+            4,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_armchair",
+        5.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            5,
+            3,
+            6,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wardrobe",
+        1.5,
+        7.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            1,
+            6,
+            2,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_desk",
+        4.0,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            8,
+            5,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_stairwell_down",
+        12.5,
+        9.0,
+        {
+          "s": 1,
+          "r": 3.14159,
+          "y": 0,
+          "cover": [
+            11,
+            8,
+            14,
+            10
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        1.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            1,
+            0,
+            2,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        13.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.7,
+          "cover": [
+            13,
+            0,
+            14,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        16.5,
+        0.805,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 1.2,
+          "cover": [
+            16,
+            0,
+            17,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_banner_royal",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.2,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_window_drapes",
+        17.195,
+        2,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 0.7,
+          "cover": [
+            17,
+            2,
+            18,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        17.195,
+        8,
+        {
+          "s": 1,
+          "r": -1.5708,
+          "y": 1.9,
+          "cover": [
+            17,
+            8,
+            18,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_portrait",
+        7.5,
+        0.805,
+        {
+          "s": 1.6,
+          "r": 0,
+          "y": 1.0,
+          "cover": [
+            7,
+            0,
+            8,
+            1
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "queen",
+        7.5,
+        0.861,
+        {
+          "y": 2.12,
+          "w": 1.2160000000000002,
+          "h": 1.8559999999999999,
+          "r": 0
+        }
+      ],
+      [
+        "model",
+        "custom/palace_frame_landscape",
+        17.195,
+        5,
+        {
+          "s": 1.4,
+          "r": -1.5708,
+          "y": 1.25,
+          "cover": [
+            17,
+            5,
+            18,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "painting",
+        "hunt",
+        17.146,
+        5,
+        {
+          "y": 2.16,
+          "w": 2.268,
+          "h": 1.428,
+          "r": -1.5708
+        }
+      ],
+      [
+        "model",
+        "custom/palace_rug_red",
+        6.5,
+        5.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0.035,
+          "free": true
+        }
+      ]
+    ],
+    "detailItems": []
+  },
+  "palace_balcony": {
+    "style": {
+      "sky": 10406890,
+      "fog": [
+        10406890,
+        45,
+        90
+      ],
+      "sun": 16773848,
+      "sunI": 1.6,
+      "hemi": 1.1,
+      "ground": {
+        "s": [
+          0.08,
+          0.12,
+          0.27
+        ]
+      },
+      "backdrop": "balcony_view"
+    },
+    "items": [
+      [
+        "roomFloor",
+        {
+          "x0": 0,
+          "z0": 0,
+          "x1": 12,
+          "z1": 11,
+          "kind": "stone"
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            1,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            4,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal",
+        0.5,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            7,
+            1,
+            9
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        3.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            3,
+            1,
+            4
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        6.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            6,
+            1,
+            7
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_wall_royal_pilaster",
+        0.5,
+        9.5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            9,
+            1,
+            10
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        2.0,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            1,
+            3,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        4.0,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            3,
+            1,
+            5,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        6.0,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            5,
+            1,
+            7,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        8.0,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            1,
+            9,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        10.0,
+        1.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            1,
+            11,
+            2
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_planter_topiary",
+        1.5,
+        2.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            2,
+            2,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_planter_topiary",
+        9.5,
+        2.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            2,
+            10,
+            3
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        10.5,
+        3.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            10,
+            2,
+            11,
+            4
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_bench_cushion",
+        8.0,
+        4.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            7,
+            4,
+            9,
+            5
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        10.5,
+        5.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            10,
+            4,
+            11,
+            6
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        10.5,
+        7.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            10,
+            6,
+            11,
+            8
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_planter_topiary",
+        1.5,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            1,
+            8,
+            2,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_planter_topiary",
+        9.5,
+        8.5,
+        {
+          "s": 1,
+          "r": 0,
+          "y": 0,
+          "cover": [
+            9,
+            8,
+            10,
+            9
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_balustrade",
+        10.5,
+        9.0,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            10,
+            8,
+            11,
+            10
+          ]
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        2,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            2,
+            1,
+            3
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_door_double",
+        0.805,
+        5,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 0,
+          "cover": [
+            0,
+            5,
+            1,
+            6
+          ],
+          "free": true
+        }
+      ],
+      [
+        "model",
+        "custom/palace_sconce",
+        0.805,
+        8,
+        {
+          "s": 1,
+          "r": 1.5708,
+          "y": 1.9,
+          "cover": [
+            0,
+            8,
+            1,
+            9
+          ],
+          "free": true
         }
       ]
     ],

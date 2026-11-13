@@ -23,6 +23,25 @@ const ITEM_NAMES = {
 //   person: người đứng yên (hiện khi nhiệm vụ cần tới, hoặc always) · gather: vật nhặt hằng ngày (mọc lại lúc 05:00)
 //   dailyBoard: bảng "việc hôm nay" · jump: phải NHẢY mới tới (không tính vào kiểm tra đi bộ)
 const QUEST_OBJECTS = {
+    // (13/11/2026) cung điện Valoria — vị trí nằm ngay trong bản vẽ phòng (tools/palace_rooms.py), không ở mapsExtra.js
+    palace_in: [
+        { id: 'ngai_kiem', type: 'spot', always: true, label: 'Tấm bảng dưới chân ngai', lines: ['Tấm bảng đồng dưới chân ngai: “Mỗi lưỡi kiếm ở đây từng thuộc về một người ngã xuống khi giữ cổng thành. Ai ngồi lên ngai này phải nhớ đủ tên họ.”', 'Nhìn kỹ thì trên từng lưỡi kiếm đều khắc một cái tên nhỏ xíu.'] },
+    ],
+    palace_council: [
+        { id: 'kiem_vo_danh', type: 'spot', always: true, label: 'Thanh kiếm treo riêng', lines: ['Một thanh kiếm cũ treo riêng một góc, lưỡi nhẵn, không khắc gì.', 'Tấm thẻ gỗ bên dưới ghi: “Của người lính cãi lệnh để cứu dân làng Ashford. Tên đã bị xoá khỏi sổ. Kiếm thì còn đây.”'] },
+    ],
+    palace_dining: [
+        { id: 'nhac1', type: 'spot', always: true, label: 'Trang nhạc cũ', lines: ['Một trang nhạc chép tay kẹp dưới chân nến. Nét mực đã ngả nâu.'] },
+    ],
+    palace_gallery: [
+        { id: 'nhac2', type: 'spot', always: true, label: 'Trang nhạc cũ', lines: ['Trang nhạc thứ hai nằm khuất sau chân tượng. Góc giấy có chữ ký “Liora”.'] },
+    ],
+    palace_balcony: [
+        { id: 'nhac3', type: 'spot', always: true, label: 'Trang nhạc cũ', lines: ['Trang nhạc cuối bị gió thổi kẹt vào chân lan can. Đầu trang ghi: “Cho Elise, khi con ngủ không được.”'] },
+    ],
+    palace_king: [
+        { id: 'den_ho_menh', type: 'spot', always: true, label: 'Đèn Hộ Mệnh', lines: ['Một cây đèn đồng chạm trổ tinh xảo đặt cạnh giường. Thẻ quà ghi: “Đèn Hộ Mệnh — kính dâng bệ hạ.”', 'Lửa đèn cháy đều, nhưng đưa tay lại gần thì không thấy ấm.'] },
+    ],
     ashford: [
         { id: 'daily_board', type: 'dailyBoard', label: 'Bảng việc hôm nay' },
         { id: 'pk_meo', type: 'pickup', item: 'q_meo', quest: 's_meo', label: 'Mèo mướp trong thùng gỗ', jump: true },
@@ -323,6 +342,23 @@ const QUESTS = [
         intro: npc('Hầm mộ hoàng gia sập một phần. Bia tên của các đời vua còn ở dưới đó.', 'Tôi không muốn phụ vương nằm xuống mà không có tổ tiên bên cạnh. Corvin biết lối vào.'),
         outro: npc('Bia tên đã về đủ. Người gác mộ cũng được nghỉ rồi.', 'Đây là đồ trong kho hoàng gia. Người xứng đáng thì nên được mặc nó.') },
 
+    // ---------------- ẨN trong cung điện (13/11/2026) ----------------
+    { id: 'h_ngai', type: 'hidden', name: 'Ngai của những người đã ngã', scene: 'palace_in',
+        desc: 'Chiếc ngai trong cung không đúc bằng vàng. Nó được rèn từ kiếm, và mỗi thanh có một cái tên.',
+        steps: [
+            { id: 'xem', text: 'Xem tấm bảng dưới chân ngai kiếm ở Sảnh ngai', goal: { type: 'interact', obj: 'ngai_kiem', n: 1 } },
+            { id: 'hoi', text: 'Hỏi họa sĩ Marcel ở Hành lang tranh về chiếc ngai', goal: { type: 'talk', who: ['palace_painter'] }, say: { palace_painter: ['À, cái ngai. Vị vua đầu tiên cho rèn nó sau trận giữ cổng thành, từ kiếm của những người không về.', 'Ông ấy bảo vua nào muốn gây chiến thì cứ ngồi lên đó mà đếm tên trước đã.', 'Có một thanh không khắc tên nên người ta không dám gắn lên ngai. Nó treo ở Phòng hội đồng, sát tường phía đông.'] } },
+            { id: 'kiem', text: 'Tìm thanh kiếm không khắc tên trong Phòng hội đồng', goal: { type: 'interact', obj: 'kiem_vo_danh', n: 1 } },
+        ],
+        reward: { diamond: 120, title: 'Người nhớ tên' },
+        outro: [sys('{Cau} đứng nhìn thanh kiếm một lúc. Ở Ashford có một tấm bia bị đục mất tên, và vẫn có người đặt hoa.')] },
+    { id: 'h_dan', type: 'hidden', name: 'Khúc nhạc của mẹ', scene: 'palace_elise',
+        desc: 'Cây đàn hạc trong phòng công chúa đã lâu không ai gảy. Bản nhạc của nó thất lạc mỗi nơi một tờ.',
+        steps: [
+            { id: 'tim', text: 'Tìm 3 trang nhạc cũ trong cung điện: Phòng ăn, Hành lang tranh, Ban công', goal: { type: 'interact', objs: ['nhac1', 'nhac2', 'nhac3'] } },
+            { id: 'dua', text: 'Kể với chị Mina trong Phòng công chúa Elise', goal: { type: 'talk', who: ['palace_maid'] }, say: { palace_maid: ['Ba trang này… là bài hoàng hậu Liora hay đàn ru công chúa.', 'Từ ngày bà mất, không ai tìm ra bản nhạc. Hóa ra nó bay mỗi nơi một tờ.', 'Để tôi đặt lên giá đàn. Biết đâu có hôm công chúa về phòng, cô ấy sẽ thấy.', 'Chị Mina gảy thử mấy nốt đầu. Tiếng đàn hạc vang khắp tầng hai, lần đầu sau nhiều năm.'] } },
+        ],
+        reward: { diamond: 120, title: 'Người giữ khúc nhạc' } },
     // ---------------- ẨN (10) — không có dấu, tự kích hoạt khi làm đúng việc đầu tiên, KHÔNG dùng giờ thật ----------------
     { id: 'h_leo', type: 'hidden', name: 'Kẻ leo trèo', scene: 'ashford',
         desc: 'Có những cái rương đặt ở chỗ chỉ nhảy mới tới.',

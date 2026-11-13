@@ -5,7 +5,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { proto, loadModels, addSway, patchMaterial, uHeroPos } from './assets.js';
+import { proto, loadModels, addSway, patchMaterial, uHeroPos, uCamPos } from './assets.js';
 import { PAINT, paintTrees, paintGrass, paintMapClouds, paintWater, paintSeeds, treeStyleOf } from './paint.js';
 import { EXTRA_BUILD, buildJumpFeatures, buildRegionLife } from './life.js';
 
@@ -41,6 +41,8 @@ class Batch {
     constructor(indoor = false) { this.list = new Map(); this.trees = []; this.lights = []; this.indoor = indoor; }
     put(key, x, y, z, rot = 0, sx = 1, sy = sx, sz = sx, near = true) {
         if (this.indoor && /^dungeon\/(torch_|candle_)/.test(key)) this.lights.push([x, y + .7 * sy, z, sx]);
+        const pl = this.indoor && /^custom\/palace_(sconce|candelabra|chandelier|fireplace|brazier|torchere)$/.exec(key);   // đèn / lò sưởi của bộ đồ cung điện cũng toả quầng sáng
+        if (pl) { const [dy, sc] = { sconce: [.55, .5], candelabra: [1.75, .6], chandelier: [2.85, .8], fireplace: [.6, .95], brazier: [1.45, 1.0], torchere: [2.45, .7] }[pl[1]]; this.lights.push([x, y + dy * sy, z, sc]); }
         if (PAINT && (key === 'town/lantern' || key === 'graveyard/lightpost-single')) this.lights.push([x, y + 1.25 * sy, z, sx]);
         if (PAINT && key === 'custom/town_lamp_post') this.lights.push([x, y + 2.6 * sy, z, sx * 1.6]);
         if (PAINT && key === 'custom/town_lamp_wall') this.lights.push([x, y + 0.4 * sy, z, sx * 1.2]);
@@ -54,10 +56,13 @@ class Batch {
         if (this.trees.length) paintTrees(group, this.trees);
         const glow = this.indoor ? nightGlowMat().clone() : nightGlowMat();
         if (this.indoor) { glow.opacity = .8; glow.visible = true; }
-        for (const [x, y, z, sc] of this.lights) { const sp = new THREE.Sprite(glow); sp.position.set(x, y, z); sp.scale.setScalar(2.6 * sc); sp.renderOrder = 7; group.add(sp); }
+        // (13/11) quầng sáng gom vào nhóm 'noAO': lớp tối góc (GTAO) coi tấm quầng là vật thật nên vẽ ra Ô VUÔNG TỐI quanh mỗi ngọn nến -> view.js ẩn nhóm này khi tính tối góc
+        const glows = new THREE.Group(); glows.userData.noAO = true; group.add(glows);
+        for (const [x, y, z, sc] of this.lights) { const sp = new THREE.Sprite(glow); sp.position.set(x, y, z); sp.scale.setScalar(2.6 * sc); sp.renderOrder = 7; glows.add(sp); }
         for (const [key, mats] of this.list) for (const p of proto(key)) {
             // Indoor copies must not alter the shared outdoor model materials.
             const mat = this.indoor ? patchMaterial(p.mat.clone(), { sway: 0, occlude: true, cloud: false }) : p.mat;
+            if (this.indoor && mat.map && mat.emissive) { mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.24; }   // (13/11) tường đá trong nhà tối như mực -> tự sáng nhẹ theo chính màu của nó
             const im = new THREE.InstancedMesh(p.geo, mat, mats.length);
             mats.forEach((m, k) => im.setMatrixAt(k, m));
             im.castShadow = im.receiveShadow = true;
@@ -72,7 +77,8 @@ const MAT = new Map();
 const lam = (hex, opts = {}) => {
     const k = hex + JSON.stringify(opts);
     if (!MAT.has(k)) {
-        const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0, flatShading: true, ...opts });
+        const { occlude: _o, cloud: _c, detail: _d, ...matOpts } = opts;   // 3 khoá này dành cho patchMaterial, không phải của vật liệu
+        const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9, metalness: 0, flatShading: true, ...matOpts });
         patchMaterial(m, { sway: 0, occlude: opts.occlude !== false, cloud: opts.cloud !== false, detail: !!PAINT && opts.detail !== false });
         MAT.set(k, m);
     }
@@ -364,8 +370,125 @@ const along = (a, b, step, f) => {   // rải đều dọc đoạn a->b
     for (let i = 0; i <= n; i++) f(a[0] + dx * i / n, a[1] + dz * i / n, Math.atan2(-dz, dx), L / n);
 };
 
+// ---------- hoa văn sàn trong nhà (vẽ bằng canvas, 256px = 2×2 ô) ----------
+const PAINTINGS = import.meta.glob('../assets/world3d/paintings/*.webp', { query: '?url', import: 'default', eager: true });
+const FLOOR_TEX = new Map();
+function floorTexture(kind) {
+    if (FLOOR_TEX.has(kind)) return FLOOR_TEX.get(kind);
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d'); let sd = 12345 + kind.length * 77;
+    const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
+    if (kind === 'marble') {   // đá hoa ô cờ kem / vàng nâu, góc ô có viên nhỏ sẫm — sảnh ngai
+        for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+            const base = (i + j) % 2 ? '#d9c39a' : '#efe4cb';
+            g.fillStyle = base; g.fillRect(i * 128, j * 128, 128, 128);
+            for (let k = 0; k < 5; k++) {   // vân đá
+                g.strokeStyle = shade(base, 0.9 + r() * 0.06); g.lineWidth = 1 + r() * 2; g.beginPath();
+                let x = i * 128 + r() * 128, y = j * 128 + r() * 128; g.moveTo(x, y);
+                for (let q = 0; q < 4; q++) { x += (r() - 0.5) * 70; y += (r() - 0.5) * 70; g.lineTo(Math.max(i * 128 + 3, Math.min(i * 128 + 125, x)), Math.max(j * 128 + 3, Math.min(j * 128 + 125, y))); }
+                g.stroke();
+            }
+        }
+        g.strokeStyle = '#8f7a55'; g.lineWidth = 3;
+        for (let k = 0; k <= 2; k++) { g.beginPath(); g.moveTo(k * 128, 0); g.lineTo(k * 128, 256); g.stroke(); g.beginPath(); g.moveTo(0, k * 128); g.lineTo(256, k * 128); g.stroke(); }
+        g.fillStyle = '#7b4b2a';
+        for (let j = 0; j <= 2; j++) for (let i = 0; i <= 2; i++) { g.save(); g.translate(i * 128, j * 128); g.rotate(Math.PI / 4); g.fillRect(-11, -11, 22, 22); g.restore(); }
+    } else if (kind === 'wood') {   // ván gỗ dài — thư khố
+        for (let j = 0; j < 8; j++) {
+            let x = -r() * 90;
+            while (x < 256) {
+                const w = 70 + r() * 80, base = ['#74583f', '#806247', '#6a4f38', '#7a5d43'][Math.floor(r() * 4)];
+                g.fillStyle = shade(base, 0.94 + r() * 0.12); g.fillRect(x, j * 32, w, 32);
+                g.strokeStyle = shade(base, 0.82); g.lineWidth = 1;
+                for (let q = 0; q < 3; q++) { const yy = j * 32 + 5 + r() * 22; g.beginPath(); g.moveTo(x + 4, yy); g.lineTo(x + w - 4, yy + (r() - 0.5) * 4); g.stroke(); }
+                g.fillStyle = '#3f2a1a'; g.fillRect(x + w - 2, j * 32, 2, 32);
+                x += w;
+            }
+            g.fillStyle = '#3f2a1a'; g.fillRect(0, j * 32, 256, 2);
+        }
+    } else {   // đá phiến xám xanh xếp so le — nhà thờ
+        for (let j = 0; j < 4; j++) for (let i = -1; i < 2; i++) {
+            const x = i * 128 + (j % 2 ? 64 : 0), y = j * 64, base = ['#8d8c96', '#7f7e89', '#9a98a1', '#85848f'][Math.floor(r() * 4)];
+            g.fillStyle = shade(base, 0.95 + r() * 0.1); g.fillRect(x, y, 128, 64);
+            for (let q = 0; q < 14; q++) { g.fillStyle = shade(base, 0.86 + r() * 0.24); g.fillRect(x + r() * 120, y + r() * 58, 3 + r() * 5, 2 + r() * 3); }
+            g.strokeStyle = '#55535d'; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, 125, 61);
+        }
+    }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    FLOOR_TEX.set(kind, t); return t;
+}
+const GLASS_TEX = new Map();
+function glassTexture(kind) {   // cửa kính màu vòm nhọn
+    if (GLASS_TEX.has(kind)) return GLASS_TEX.get(kind);
+    const c = document.createElement('canvas'); c.width = 96; c.height = 192;
+    const g = c.getContext('2d'); let sd = 999 + kind.length * 31;
+    const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    const pal = kind === 'gold' ? ['#ffe9a8', '#ffd36b', '#ffc04d', '#fff3cf', '#f6a64a'] : ['#6ec3ff', '#3b7fe0', '#ffd56b', '#e0524d', '#8be0a8', '#b58bff', '#ffffff'];
+    const arch = () => { g.beginPath(); g.moveTo(4, 190); g.lineTo(4, 70); g.quadraticCurveTo(4, 20, 48, 3); g.quadraticCurveTo(92, 20, 92, 70); g.lineTo(92, 190); g.closePath(); };
+    g.save(); arch(); g.clip();
+    for (let j = -1; j < 9; j++) for (let i = -1; i < 5; i++) {   // ô trám
+        const cx = i * 24 + (j % 2 ? 12 : 0) + 12, cy = j * 24 + 12;
+        g.fillStyle = pal[Math.floor(r() * pal.length)]; g.beginPath(); g.moveTo(cx, cy - 13); g.lineTo(cx + 13, cy); g.lineTo(cx, cy + 13); g.lineTo(cx - 13, cy); g.closePath(); g.fill();
+        g.strokeStyle = '#2a2233'; g.lineWidth = 2; g.stroke();
+    }
+    g.fillStyle = kind === 'gold' ? '#fff6d8' : '#ffe28a'; g.beginPath(); g.arc(48, 62, 20, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#2a2233'; g.lineWidth = 3; g.stroke();
+    if (kind !== 'gold') { g.fillStyle = '#e0524d'; g.fillRect(44, 46, 8, 32); g.fillRect(36, 54, 24, 8); }   // dấu thánh giá giữa vòng sáng
+    g.restore(); arch(); g.strokeStyle = '#2a2233'; g.lineWidth = 5; g.stroke();
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    GLASS_TEX.set(kind, t); return t;
+}
+
 const VH_FRONT = 0;   // mặt ngoài của mảng tường bộ Village quay về -z (phần bệ / bậu cửa nhô ra phía đó)
 export const BUILD = {
+    /** Sàn lát trong nhà: 'marble' (đá hoa ô cờ) · 'stone' (đá phiến) · 'wood' (ván gỗ) */
+    // (13/11, lần 2) KHÔNG dùng polygonOffset cho sàn: nó kéo mặt sàn ra trước làm NUỐT mất thảm đỏ (người chơi thấy thảm chỉ còn 2 viền vàng). Sàn nâng hẳn lên .02, thảm dày .06.
+    roomFloor(ctx, { x0, z0, x1, z1, kind = 'stone', y = 0.02 }) {
+        if (typeof document === 'undefined') return;
+        const t = floorTexture(kind).clone(); t.needsUpdate = true; t.repeat.set((x1 - x0) / 2, (z1 - z0) / 2);
+        const mat = patchMaterial(new THREE.MeshLambertMaterial({ map: t }), { sway: 0, occlude: false, cloud: false, detail: false });
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), mat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); m.receiveShadow = true; ctx.group.add(m);
+    },
+    /** Ngai vàng: thân + lưng vòm mạ vàng, đệm đỏ, tay vịn có quả cầu — đặt trên bệ */
+    throne(ctx, x, z, { y = 0, s = 1 } = {}) {
+        const g = new THREE.Group();
+        const gold = lam(0xe0b043, { cloud: false, occlude: false, detail: false, roughness: 0.42, metalness: 0.45 }), red = lam(0xa01d33, { cloud: false, occlude: false, detail: false }), wood = lam(0x5d3d1c, { cloud: false, occlude: false, detail: false });
+        const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+        add(new THREE.BoxGeometry(1.7, 0.16, 1.35), wood, 0, 0.08, 0);
+        add(new THREE.BoxGeometry(1.15, 0.5, 0.95), gold, 0, 0.41, 0.05);
+        add(new THREE.BoxGeometry(0.92, 0.14, 0.78), red, 0, 0.72, 0.12);
+        add(new THREE.BoxGeometry(1.15, 1.5, 0.2), gold, 0, 1.4, -0.36);
+        add(new THREE.BoxGeometry(0.82, 1.2, 0.06), red, 0, 1.45, -0.24);
+        add(new THREE.CylinderGeometry(0.575, 0.575, 0.2, 18), gold, 0, 2.15, -0.36).rotation.x = Math.PI / 2;   // vòm tròn trên lưng ghế
+        add(new THREE.CylinderGeometry(0.41, 0.41, 0.06, 18), red, 0, 2.15, -0.24).rotation.x = Math.PI / 2;
+        add(new THREE.SphereGeometry(0.14, 10, 8), gold, 0, 2.84, -0.36);
+        for (const sx of [-1, 1]) {
+            add(new THREE.BoxGeometry(0.18, 0.5, 0.95), gold, sx * 0.66, 0.9, 0.05);
+            add(new THREE.SphereGeometry(0.13, 10, 8), gold, sx * 0.66, 1.2, 0.5);
+            add(new THREE.CylinderGeometry(0.09, 0.11, 0.9, 8), gold, sx * 0.66, 1.9, -0.36);
+            add(new THREE.SphereGeometry(0.12, 10, 8), gold, sx * 0.66, 2.42, -0.36);
+        }
+        g.position.set(x, y, z); g.scale.setScalar(s); ctx.group.add(g);
+    },
+    /** Cửa kính màu trên tường sau (mặt quay về +z) + vệt nắng màu đổ xuống sàn */
+    glassWindow(ctx, x, z, { y = 1.6, w = 1.0, h = 2.0, kind = 'holy', pool = 3.2 } = {}) {
+        if (typeof document === 'undefined') return;
+        const tex = glassTexture(kind);
+        const win = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, toneMapped: false }));
+        win.position.set(x, y, z); win.renderOrder = 2; ctx.group.add(win);
+        if (pool > 0) {
+            const lp = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.5, pool), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+            lp.rotation.x = Math.PI / 2; lp.position.set(x, 0.075, z + 0.5 + pool / 2); lp.renderOrder = 3; ctx.group.add(lp);
+        }
+    },
+    /** Tranh treo tường (ảnh trong src/assets/world3d/paintings) — tấm phẳng nằm trong lòng khung tranh, r = góc quay theo tường */
+    painting(ctx, name, x, z, { y = 1.8, w = 0.76, h = 1.16, r = 0 } = {}) {
+        const url = PAINTINGS[`../assets/world3d/paintings/${name}.webp`];
+        if (!url || typeof document === 'undefined') { if (!url) console.warn('[world3d] thiếu tranh', name); return; }
+        const tex = new THREE.TextureLoader().load(url); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55 }));
+        m.position.set(x, y, z); m.rotation.y = r; ctx.group.add(m);
+    },
     // Rectangular indoor surfaces: circular plaza geometry cannot form an aisle or dais.
     roomBox(ctx, { x0, z0, x1, z1, height, color, y = 0, floor = false }) {
         const mat = lam(color, { cloud: false, occlude: !floor, detail: false });
@@ -543,6 +666,12 @@ export const BUILD = {
         document.fonts?.load?.(FONT, text).then(draw).catch(() => {});
         sp.position.set(x, y, z); sp.renderOrder = 4; sp.frustumCulled = false;
         ctx.group.add(sp);
+        // (13/11) bảng tên từng ĐÈ lên nhân vật khi đứng ngay trước công trình -> bảng nào che vùng quanh nhân vật (theo tia nhìn) thì mờ gần hết
+        ctx.anim.push(() => {
+            const cam = uCamPos.value, hero = uHeroPos.value, k = (y - hero.y) / Math.max(0.5, cam.y - y);
+            const d = Math.hypot(x + (x - cam.x) * k - hero.x, (z + (z - cam.z) * k - hero.z) * 1.3);
+            const want = d < 3.2 ? 0.12 : 0.9; sp.material.opacity += (want - sp.material.opacity) * 0.15;
+        });
     },
     /** Dọn vùng: không tự rải cây / bụi / cỏ trong khung này */
     clear(ctx, x0, z0, x1, z1) { ctx.cover(x0, z0, x1, z1); },

@@ -205,8 +205,10 @@ def city():
                 dict(edge='right',a=21,b=21,scene='sylvaren',at=[1,14],face='right'),
                 dict(tiles=[[35,43]],scene='road',at=[41,11],face='left')]
     from build_interiors import DOORS, room
+    import palace_rooms
+    spawn_of=lambda sid: (palace_rooms.build(sid) if sid in palace_rooms.ROOMS else room(sid))[0]['spawn']
     for sid, tile in DOORS.items():
-        m['exits'].append(dict(tiles=[tile],scene=sid,at=room(sid)[0]['spawn'],face='up',door=True))
+        m['exits'].append(dict(tiles=[tile],scene=sid,at=spawn_of(sid),face='up',door=True))
     seen={tuple(m['spawn'])};queue=deque(seen)
     while queue:
         x,y=queue.popleft()

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Soát cảnh — Legend of Capsules</title>
+<style>
+  body { margin: 0; background: #0b1020; color: #e2e8f0; font: 13px/1.4 "Segoe UI", Arial, sans-serif; }
+  #host { position: fixed; left: -3000px; top: 0; width: 960px; height: 600px; }
+  h1 { font-size: 16px; margin: 10px 12px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 8px; padding: 0 12px 20px; }
+  figure { margin: 0; background: #111827; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+  figure img { display: block; width: 100%; }
+  figcaption { padding: 4px 8px; color: #fde68a; }
+  #status { margin: 0 12px 10px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<!-- (13/11/2026) TRANG SOÁT CẢNH — chỉ dùng khi chạy thử (npm run dev), không vào bản phát hành.
+     Tự dựng từng bản đồ 3D rồi chụp tại nhiều điểm, xếp thành lưới ảnh để soát lỗi hình bằng mắt trong một lần nhìn
+     (thảm bị sàn nuốt, vệt tối, đồ lơ lửng, tường thủng…) thay vì phải đăng nhập rồi đi bộ tới từng chỗ.
+     Dùng: /tools/tour-world.html?maps=palace_in,cathedral_in&q=high&hour=night
+       maps = danh sách id (mặc định: mọi phòng 3D trong nhà) · maps=all: mọi bản đồ · q = high | low · hour = noon | night … · step = khoảng cách giữa các điểm chụp (ô) -->
+<h1>Soát cảnh</h1>
+<div id="status">Đang chuẩn bị…</div>
+<div id="grid"></div>
+<div id="host"></div>
+<script type="module">
+import { createView } from '/src/world3d/view.js';
+import { MAPS } from '/src/world/maps.js';
+
+const q = new URLSearchParams(location.search);
+const want = q.get('maps');
+const ids = want === 'all' ? Object.keys(MAPS).filter(id => !MAPS[id].interior || MAPS[id].interior3d)
+    : want ? want.split(',').filter(id => MAPS[id]) : Object.keys(MAPS).filter(id => MAPS[id].interior3d);
+const quality = q.get('q') === 'low' ? 'low' : 'high';
+const step = Math.max(4, Number(q.get('step')) || 8);
+const status = document.getElementById('status'), grid = document.getElementById('grid');
+const view = createView(document.getElementById('host'));
+view.setQuality(quality); view.setAuto?.(false); view.resize();
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const state = (x, z) => ({ focus: { x: x + 0.5, z: z + 0.5 }, actors: [], items: [], marks: [], route: [], beacon: null });
+window.__tour = { done: false, shots: 0, errors: [] };
+window.addEventListener('error', e => window.__tour.errors.push(String(e.message)));
+
+for (const id of ids) {
+    const m = MAPS[id];
+    status.textContent = `Đang dựng ${id}…`;
+    try { await view.setMap(id); } catch (e) { window.__tour.errors.push(`${id}: ${e.message}`); continue; }
+    // điểm chụp: chỗ vào + lưới điểm đi được cách nhau "step" ô
+    const spots = [m.spawn];
+    for (let z = Math.floor(step / 2); z < m.rows; z += step) for (let x = Math.floor(step / 2); x < m.cols; x += step) {
+        let best = null;   // ô đi được gần điểm lưới nhất
+        for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+            const xx = x + dx, zz = z + dz;
+            if (m.grid?.[zz]?.[xx] === '.' && (!best || Math.abs(dx) + Math.abs(dz) < best[2])) best = [xx, zz, Math.abs(dx) + Math.abs(dz)];
+        }
+        if (best && !spots.some(s => Math.abs(s[0] - best[0]) + Math.abs(s[1] - best[1]) < step / 2)) spots.push([best[0], best[1]]);
+    }
+    for (const [x, z] of spots) {
+        for (let i = 0; i < 24; i++) { view.frame(state(x, z)); await sleep(30); }   // cho máy quay và bóng đổ ổn định, tranh tải xong
+        const fig = document.createElement('figure'), img = new Image();
+        img.src = view.snapshot(0.8);
+        fig.append(img, Object.assign(document.createElement('figcaption'), { textContent: `${id} · (${x}, ${z}) · ${quality}${q.get('hour') ? ' · ' + q.get('hour') : ''}` }));
+        grid.append(fig); window.__tour.shots++;
+    }
+}
+status.textContent = `Xong: ${window.__tour.shots} ảnh, ${ids.length} bản đồ` + (window.__tour.errors.length ? ` · LỖI: ${window.__tour.errors.join(' | ')}` : '');
+window.__tour.done = true;
+</script>
+</body>
+</html>

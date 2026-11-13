@@ -74,6 +74,13 @@ function drawStamina(now) {
     if (stamina.value < staminaSeen || now < staminaFlash) staminaShowUntil = now + 3000;
     staminaSeen = stamina.value;
     bar.classList.toggle('show', now < staminaShowUntil);
+    if (now < staminaShowUntil) {   // (13/11) bám theo nhân vật thật trên màn hình (ở mép bản đồ nhân vật không đứng giữa màn hình)
+        let x = null, y = 0, el = null;
+        if (!flat() && view?.heroScreen) ({ x, y, el } = view.heroScreen());
+        else if (canvas && map) { const c = cam(), k = canvas.clientWidth / (canvas.width || 1); x = (c.px - c.cx) * k; y = (c.py - c.cy) * k - c.S * k * 0.3; el = canvas; }
+        const host = bar.offsetParent;
+        if (x != null && el && host) { const hr = host.getBoundingClientRect(), er = el.getBoundingClientRect(); bar.style.left = `${Math.round(er.left - hr.left + x + 24)}px`; bar.style.top = `${Math.round(er.top - hr.top + y - 34)}px`; }
+    }
     [...bar.children].forEach((el,i)=>el.classList.toggle('filled',i<stamina.value));
 }
 const ROW = { down: 0, left: 1, right: 2, up: 3 };
@@ -701,7 +708,7 @@ function cam() {
     const W = map.cols * S, H = map.rows * S;
     const cx = W <= canvas.width ? (W - canvas.width) / 2 : Math.max(0, Math.min(W - canvas.width, px - canvas.width / 2));
     const cy = H <= canvas.height ? (H - canvas.height) / 2 : Math.max(0, Math.min(H - canvas.height, py - canvas.height / 2));
-    return { cx, cy, S };
+    return { cx, cy, S, px, py };
 }
 const ease = (m) => Math.min(1, m.t / m.dur);
 function drawChar(name, x, y, face, walking, stepN, lift = 0, S) {

@@ -5,6 +5,59 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 13/11/2026 (5) — Dung sau mai nha thay ro nguoi (NPC + nhan vat)
+
+- Nguoi choi (Ashford, canh gieng): "o do co NPC ma blur sao cung khong thay". Nguyen nhan: mai mo nhung van GHI DO SAU nen dat lo ra ma nguoi dung sau van bi che. Sua `assets.js`: loi vong cat quanh nhan vat BO HAN diem anh cua mai (mep van mo dan) -> thay ro nhan vat va NPC dung trong vong.
+- NPC o xa bi mai / tuong che gio cung co **bong mo** nhu nhan vat chinh (`view.js`), de biet cho do co nguoi.
+- **Tan cay va tuong cung mo han ngay truoc nhan vat** (nguoi choi: "van ket cai cay"): `paint.js` OCCLUDE + `assets.js` bo diem anh o loi vong tron, mep mo dan. Da thu dung cho canh gieng Ashford (dung canh tam ghi chep): thay tron nhan vat.
+- Da thu trong game o Ashford: di vao sau day mai phia tay quang truong, thay ro nhan vat va anh Tom; NPC sau mai o xa hien bong mo.
+
+## 13/11/2026 (4) — Sua tham do, ban cong co canh tinh, cung dien co cau chuyen + nha vua + 2 nhiem vu an, trang soat canh
+
+- **Tham do bi san "nuot"** (nguoi choi thay chi con 2 vien vang, phong nao cung bi): do san dung polygonOffset. Bo polygonOffset, san nang len .02, tham day .06. Da soat lai ca ngay / dem, do hoa cao / nhe.
+- **Phong trong nha khong con nhuom theo gio** (ban dem ca phong xanh toi): `view.js` dung `DAY_INDOOR` cho ban do `interior3d`.
+- **Ban cong nhin ra canh tinh**: tranh ve toan canh kinh thanh (Codex ve, `src/assets/world3d/backdrops/balcony_view.webp`) lam nen — `style.backdrop` (view.js, palace_rooms.py).
+- **Cau chuyen cung dien**:
+  - **Vua Aldric II** (hinh moi `npc_king`, Codex ve dang di 4 huong + chan dung) ngoi canh lo suoi o Tam cung, loi doi sau ai 18; **bien mat khi xong ai 20** (ong mat toi hom do). Canh giuong co **Den Ho Menh** xem duoc (goi truoc doan ket).
+  - **Nu vuong Elise** dung o Sanh ngai **sau ai 20**. Truoc do Elise van o ngoai tien sanh nhu cot truyen chinh (khong dat 2 Elise cung luc).
+  - Ve binh, ngu y, bep truong doi loi sau khi vua mat.
+  - 2 nhiem vu an (game/questData1.js): **"Ngai cua nhung nguoi da nga"** (bang duoi chan ngai -> hoi hoa si Marcel -> thanh kiem khong ten o Phong hoi dong, noi voi tam bia vo danh o Ashford) va **"Khuc nhac cua me"** (3 trang nhac o Phong an / Hanh lang tranh / Ban cong -> ke voi chi Mina). Moi cai 120 Kim Cuong + danh hieu.
+- **Trang soat canh** `tools/tour-world.html` (chi dung khi chay thu): tu dung tung ban do, chup tai nhieu diem, xep thanh luoi anh de soat loi hinh. Vi du: `/tools/tour-world.html?maps=palace_in,cathedral_in&q=low&hour=night` (`maps=all`: moi ban do).
+- Bai kiem tra moi `tests/palace_story.test.js` (vua / nu vuong hien dung luc, 2 nhiem vu an, den). Tong 211 bai qua.
+- Da tu thu trong game: noi chuyen voi nha vua (3 cau), mo het chuong 1 roi xuong Sanh ngai thay Nu vuong Elise va vua da vang; soat anh 7 phong (ngay, dem, do hoa nhe).
+- CHUA bam tay: 2 nhiem vu an (moi qua bai test tu dong), mo ruong Phong an / Phong hoi dong, che do 2D cua 7 phong. Bam chuot vao nguoi chi di toi canh, phai bam E (hoac nut A) moi noi chuyen — hanh vi cu, chua doi.
+
+## 13/11/2026 (3) — Sanh ngai hoanh trang: dai sanh 27x23, ngai kiem lon, tuong gam do (Codex)
+
+- Nguoi choi: "can hoanh trang hon, xung quanh cung trang le hon". **Sanh ngai noi rong tu 21x17 len 27x23 o**: be ngai 9x5 nhieu bac, **ngai kiem lon** (quat 60–90 luoi kiem, vong kiem vang sau dau), man do lon co vuong mien treo sau ngai, 2 **tuong hiep si khong lo**, 2 **su tu vang**, 2 lu lua, 2 hang cot cao 4.2, co lon, cua so vom cao, chan nen cao canh cua.
+- **Ca 7 phong cung dien doi sang tuong cung dien** (da hoa + gam do vien vang, cao 4.2, tru op o cho noi) thay cho tuong da xam ham nguc. Tranh / den treo cao hon cho hop tuong moi.
+- **May quay lui xa rieng cho phong lon**: `style.cam = [gap may lan, nhin lech len bac may o]` (view.js) — Sanh ngai dung [1.4, 4] de dung duoi chan be van thay tron ngai va tuong sau.
+- Bo "dai sanh" 12 mon cua Codex: `tools/models/palace_grand.py` (goi tu `make_palace_kit.py`) -> `custom/palace_{wall_royal, wall_royal_pilaster, column_grand, dais_grand, throne_grand, statue_knight, statue_lion, brazier, banner_grand, window_grand, cloth_of_state_grand, torchere}.glb`.
+- Da tu xem trong game: Sanh ngai (di doc tham do len chan be) va Hanh lang tranh voi tuong moi. 207 bai kiem tra qua.
+- CHUA xem lai bang mat sau khi doi tuong: Phong an, Phong hoi dong, Phong Elise, Tam cung, Ban cong (moi qua kiem tra tu dong).
+
+## 13/11/2026 (2) — Cung dien co 3 tang, 7 phong di duoc; bo do 3D cung dien + tranh son dau (Codex)
+
+- **Cung dien gio co 7 phong noi voi nhau bang cua va cau thang that**: Sanh ngai (tang 1) -> cua trai sang **Phong an hoang gia**, cua phai sang **Phong hoi dong**, hai cau thang len **Hanh lang tranh** (tang 2) -> cua sang **Phong cong chua Elise** va **Ban cong thuong uyen**, cau thang len **Tam cung nha vua** (tang 3). Ban ve o `tools/palace_rooms.py` (ban ve ky tu + bang do treo tuong), chay `python tools/build_interiors.py`.
+- **Bo do 3D cung dien 37 mon** (Codex dung bang code, `tools/models/make_palace_kit.py` -> `src/assets/world3d/custom/palace_*.glb`): giuong co man (vua / cong chua), ban tiec dai, ghe, lo suoi, cau thang, tu, ke sach, ban trang diem, dan hac, gia ao giap, tuong ban than, cot da hoa, den chum, khung tranh, cua so rem, cua doi, co hoang gia, lan can, tham...
+- **Ngai vang lam lai theo kieu "ren tu kiem"** (nguoi choi che ngai cu xau; lay cam hung chu khong sao chep): quat luoi kiem xoe sau lung, co kiem vang xen ke, be da; phia sau treo **man do theu su tu vang**. Ngai tu ghep bang khoi cu da bo.
+- **6 buc tranh son dau co dien** (Codex ve, `src/assets/world3d/paintings/`): chan dung nha vua, hoang hau, cong chua, lau dai, canh san, tinh vat — treo trong khung vang o Hanh lang tranh, Phong an, Phong hoi dong, Phong Elise, Tam cung. Kieu moi `painting` trong `build.js`.
+- Moi phong co nguoi de noi chuyen (bep truong, quan thu lai, hoa si, chi hau, ngu y, ve binh) va ghi chu doc duoc; Phong an va Phong hoi dong co ruong.
+- Den chum chi treo tren ban an / ban hop (treo tren loi di thi che mat nhan vat khi nhin tu tren xuong).
+- Da tu thu bang cu bam that: tu Sanh ngai di qua cua sang Phong hoi dong, quay lai, len cau thang toi Hanh lang tranh, len Tam cung, xuong lai, ra Ban cong; xem Phong an va Phong Elise. 207 bai kiem tra qua, ban dung duoc.
+- CHUA lam / chua xem: mo ruong va doc ghi chu trong 6 phong moi (moi kiem bang bai test tu dong); 7 phong o che do 2D; Ban cong con don so (troi xam, chua co canh thanh pho phia xa); bam vao tranh chua phong to duoc.
+
+## 13/11/2026 — Lam dep 3 phong trong Valoria, sua o toi quanh nen / cay, the luc bam theo nhan vat
+
+- **3 phong trong thanh het trong va don dieu**: san lat rieng tung phong (Sanh ngai = da hoa o co, Nha tho = da phien xam, Thu kho = van go), tuong cao gap ruoi, cot cao, tham do vien vang lien mot dai. Sanh ngai co **ngai vang that** (lung vom, dem do, tay vin), 2 ruong vang, 2 duoc dung, co treo hai ben, 3 doi cot. Nha tho co **3 cua kinh mau** + vet nang mau do xuong san. Thu kho co tham xanh duoi ban doc. Kieu moi trong `build.js`: `roomFloor`, `throne`, `glassWindow`. Ban ve o `tools/build_interiors.py`.
+- **Het o vuong toi quanh moi ngon nen / duoc** va **het vet toi goc canh quanh tan cay**: cung mot nguyen nhan — lop "toi goc" (chi co o muc do hoa Cao) coi tam quang sang / tam la trong suot la vat dac. Gio cac tam nay duoc an khi tinh toi goc (`userData.noAO`, `view.js`).
+- **Tuong da trong nha sang hon** (truoc toi nhu muc).
+- **Thanh the luc bam theo nhan vat that tren man hinh** (truoc dat co dinh giua man hinh nen lech khi nhan vat dung sat mep ban do).
+- **Bang ten cong trinh tu mo** khi no de len vung quanh nhan vat. Vong cat mo mai nha rong hon mot chut.
+- Het canh bao "'occlude' is not a property" trong console.
+- Da tu thu bang cu bam that: vao ca 3 phong, mo ruong Thu kho (+200 vang), di ra cua ve lai thanh, nhay xem thanh the luc, di qua cho. 200 bai kiem tra qua, ban dung (vite build) duoc.
+- CHUA xem duoc: hieu ung hien / mo dan cua thanh the luc (cua so thu chay nen nen chuyen dong bi dung); 3 phong o che do 2D; Sanh ngai va Nha tho moi xem truoc khi sua lai do sang tuong.
+
 ## 12/11/2026 (toi 5) — Valoria: vao duoc ben trong, bang Dia diem, mai nha cat mo
 
 - **Vao duoc ben trong 3 cong trinh chinh** (Codex): Nha tho lon (So Anna, sach cau nguyen, ruong), Cung dien — Sanh ngai (2 ve binh, chieu chi, ruong), Thu kho Hoang gia (bien nien su, ruong). Phong 3D that, cua hai chieu. `tools/build_interiors.py`. Da tu di thu vao Nha tho va noi chuyen voi So Anna; CHUA vao thu Cung dien va Thu kho.

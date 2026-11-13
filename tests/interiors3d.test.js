@@ -5,6 +5,7 @@ const THREE = require('three');
 const W = require('../game/world');
 const C = require('../game/campaign');
 const ids = ['cathedral_in', 'palace_in', 'archive_in'];
+const palaceIds = ['palace_dining', 'palace_council', 'palace_gallery', 'palace_elise', 'palace_king', 'palace_balcony'];
 const audit = import('../tools/world_audit.mjs');
 const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
 const fresh = () => {
@@ -46,7 +47,7 @@ for (const id of ids) {
     test(`${id}: notes, NPC dialogue and chest rewards survive save reload`, () => {
         const pr=fresh(), scene=W.SCENES[id];
         const wallet=pr.wallet;
-        for(const n of scene.npcs) assert.ok(W.interact(pr,wallet,id,n).lines.length);
+        for(const n of scene.npcs.filter(n=>!W.NPCS[n].showWhen?.from)) assert.ok(W.interact(pr,wallet,id,n).lines.length);   // người chỉ hiện sau cốt truyện (nữ vương) thì bỏ qua
         const note=scene.objects.find(o=>o.type==='note');
         assert.ok(W.interact(pr,wallet,id,note.id).lines.length);
         const chest=scene.objects.find(o=>o.type==='chest');
@@ -81,8 +82,8 @@ function bounds(key) {
 
 test('interior models fit blocked tiles using their actual GLB bounds', async () => {
     const {MAPS,LAYOUTS,walk}=await audit;
-    for(const id of ids) for(const [kind,key,x,z,o] of LAYOUTS[id].items) {
-        if(kind!=='model') continue;
+    for(const id of [...ids,...palaceIds]) for(const [kind,key,x,z,o] of LAYOUTS[id].items) {
+        if(kind!=='model' || o.free) continue;   // free: treo tường / treo trần / thảm phẳng
         const s=o.s??1;
         const b=bounds(key).applyMatrix4(new THREE.Matrix4().compose(
             new THREE.Vector3(x,o.y??0,z),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),o.r??0),new THREE.Vector3(s,o.sy??s,o.sz??s)));
@@ -98,4 +99,39 @@ test('capital NPCs and story objects stay outside; old village rooms stay flat',
     assert.ok(W.SCENES.capital.objects.some(o=>o.id==='pages'));
     for(const id of ['tavern_in','forge_in','mira_in']) assert.ok(MAPS[id].interior && !MAPS[id].interior3d);
     assert.match(fs.readFileSync('src/ui/world.js','utf8'),/quality === '2d' \|\| \(!!map\?\.interior && !map\?\.interior3d\)/);
+});
+
+// (13/11/2026) 6 phòng mới trong cung điện: nối được với nhau, tới được người / vật, đi qua cửa hai chiều
+for (const id of palaceIds) {
+    test(`${id}: palace room is connected, furnished on blocked tiles and its doors lead back`, async () => {
+        const {MAPS,LAYOUTS,walk,flood,footprint,key} = await audit;
+        const m=MAPS[id], scene=W.SCENES[id];
+        assert.ok(m.interior && m.interior3d && scene.interior3d);
+        const occupied=new Set([...m.npcs,...m.objects].map(o=>key(o.x,o.y)));
+        const reached=flood(m,m.spawn,occupied);
+        assert.deepEqual(m.npcs.map(n=>n.id).sort(),[...scene.npcs].sort());
+        assert.deepEqual(m.objects.map(o=>o.id).sort(),scene.objects.map(o=>o.id).sort());   // vật trong bản vẽ = vật server biết (kể cả vật nhiệm vụ)
+        for(const o of [...m.npcs,...m.objects]) assert.ok(dirs.some(([dx,dy])=>reached.has(key(o.x+dx,o.y+dy))),`${id}/${o.id}`);
+        for(const p of footprint(id)) assert.ok(!walk(m,...p.split(',').map(Number)),`${id} furniture on ${p}`);
+        assert.ok(LAYOUTS[id].items.some(it=>it[0]==='model' && it[1].startsWith('custom/palace_')));
+        for(const e of m.exits) {
+            const other=MAPS[e.scene];
+            for(const t of e.tiles) assert.ok(reached.has(key(...t)),`${id} exit ${t}`);
+            assert.ok(walk(other,...e.at),`${id} -> ${e.scene} lands on a blocked tile`);
+            assert.ok(!other.exits.some(x=>x.tiles.some(t=>t[0]===e.at[0]&&t[1]===e.at[1])),`${id} -> ${e.scene} lands on an exit tile`);
+            const back=other.exits.find(x=>x.scene===id);
+            assert.ok(back,`${e.scene} has no way back to ${id}`);
+            assert.ok(dirs.some(([dx,dy])=>back.tiles.some(t=>t[0]===e.at[0]+dx&&t[1]===e.at[1]+dy)),`${id} -> ${e.scene}: arrival is not next to the way back`);
+        }
+        const pr=fresh();
+        for(const n of scene.npcs.filter(n=>!W.NPCS[n].showWhen?.from)) assert.ok(W.interact(pr,pr.wallet,id,n).lines.length);
+        for(const o of scene.objects.filter(o=>o.type==='note')) assert.ok(W.interact(pr,pr.wallet,id,o.id).lines.length);
+    });
+}
+
+test('palace: every room can be reached from the throne hall', async () => {
+    const {MAPS} = await audit;
+    const seen=new Set(['palace_in']), queue=['palace_in'];
+    while(queue.length) for(const e of MAPS[queue.shift()].exits) if(!seen.has(e.scene)) { seen.add(e.scene); queue.push(e.scene); }
+    for(const id of palaceIds) assert.ok(seen.has(id),id);
 });

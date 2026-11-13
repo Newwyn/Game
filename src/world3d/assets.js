@@ -120,6 +120,7 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
               if (dist < rOuter) {
                 float k = uSeeThrough * smoothstep(0.985, 0.9, tProj);
                 float inside = 1.0 - smoothstep(rOuter * 0.45, rOuter, dist);
+                if (inside * k > 0.85) discard;   // (13/11) lõi ngay trước nhân vật: bỏ hẳn (vật mờ vẫn ghi độ sâu nên che mất người đứng sau)
                 gl_FragColor.a *= mix(1.0, ${fadeTo.toFixed(2)}, inside * k);
               }
             }
@@ -129,7 +130,9 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
             // chiếu mảnh mái theo tia nhìn xuống mặt đất: nếu nó che một điểm trong vòng tròn quanh nhân vật thì cắt mở -> luôn lộ ra MỘT VÒNG MẶT ĐẤT quanh người
             vec3 cr = vWorldPos - uCamPos; float tg = (uHeroPos.y + 0.1 - uCamPos.y) / min(cr.y, -0.001);
             vec2 gp = uCamPos.xz + cr.xz * tg - uHeroPos.xz;
-            float cut = (1.0 - smoothstep(2.6, 3.8, length(gp * vec2(1.0, 1.25)))) * step(1.0, tg);
+            float cut = (1.0 - smoothstep(3.3, 4.8, length(gp * vec2(1.0, 1.2)))) * step(1.0, tg);
+            // (13/11) mái mờ nhưng vẫn GHI ĐỘ SÂU nên người đứng sau (NPC, nhân vật) vẫn bị che dù đất đã lộ -> lõi vòng cắt bỏ hẳn điểm ảnh (không ghi độ sâu), mép vẫn mờ dần
+            if (cut * uSeeThrough > 0.9) discard;
             gl_FragColor.a = min(gl_FragColor.a, mix(1.0, ${fadeTo.toFixed(2)}, cut * uSeeThrough));
           }` : ''}
           ${cloud ? `vec2 cUv = vWorldPos.xz * 0.075 + vec2(uTime * 0.018, uTime * 0.009);
@@ -137,7 +140,7 @@ export function patchMaterial(mat, { sway = 0, occlude = true, cloud = true, det
           gl_FragColor.rgb *= 1.0 - smoothstep(0.15, 0.75, cN) * 0.11;` : ''}`);
     };
     if (occlude && SEE_SMOOTH) mat.transparent = true;   // cần cho độ trong thật quanh nhân vật (vẫn ghi độ sâu như vật đặc)
-    mat.customProgramCacheKey = () => `w3d_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}_${PAINT}_${detail ? 1 : 0}_${fadeTo}_${fadeR}`;
+    mat.customProgramCacheKey = () => `w3d3_${sway.toFixed(3)}_${occlude ? 1 : 0}_${cloud ? 1 : 0}_${PAINT}_${detail ? 1 : 0}_${fadeTo}_${fadeR}`;
     return mat;
 }
 
