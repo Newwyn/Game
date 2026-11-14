@@ -5,6 +5,14 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 14/11/2026 (5) — Sửa theo người chơi thử bản cài: Tool mở trong ứng dụng, vách đá, sương, lúa mì
+
+- **Tool thử trong bản cài nhảy ra trình duyệt** (và không điều khiển được game): `electron/main.cjs` — trang của game (tool.html) giờ mở thành cửa sổ NGAY TRONG ứng dụng (cùng phiên nên kênh BroadcastChannel 'loc-tool' nối được với game); chỉ trang web ngoài mới mở bằng trình duyệt. Đã thử qua cổng gỡ lỗi của ứng dụng: window.open('tool.html') -> cửa sổ "Tool thử" trong ứng dụng, Tool báo "Đã thấy game".
+- **Vách đá khu mỏ "nhấp nhô" lởm chởm** (`build.js` cliff): bỏ cao thấp ngẫu nhiên từng ô + xoay ngẫu nhiên -> cao thấp thoai thoải theo đường lượn; rải cây + bụi thưa trên đỉnh, đá rêu Meshy dưới chân vách.
+- **Sương thành tấm chữ nhật lộ mép** (Rừng Sương…): ảnh sương vẽ tràn tới mép -> `mistTexture()` làm mờ dần về trong suốt hẳn trước khi tới mép.
+- **Lúa mì trong trận ruộng nhìn như que tre**: thay bằng 2 hàng bụi lúa vàng Meshy (cỏ đồng vàng).
+- Bộ cài dựng lại.
+
 ## 14/11/2026 (4) — Sửa lỗi mô hình méo + lựa chọn đồ hoạ trận đấu
 
 - **Sửa lỗi** (người chơi thấy "như bị lỗi đồ hoạ"): sau khi nén meshopt, toạ độ mô hình lưu dạng số nguyên chuẩn hoá; game gộp phép phóng của nút vào hình ngay trên dạng đó nên toạ độ bị kẹt ở ±1 -> cây trong trận thành "cột tre", đống rơm thành cục tròn, nhiều món méo. `src/world3d/assets.js` `toFloat()`: đổi về số thực trước khi gộp. Trang xem mô hình không gộp phép phóng nên không lộ lỗi — lần sau phải soát TRONG GAME sau mỗi lần đổi cách nén.

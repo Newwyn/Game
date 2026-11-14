@@ -281,7 +281,9 @@ const RECIPES = {
         c.put('mist', -8, -6.5, 5); c.put('mist', 9, -6.8, 5); c.put('mist', 0, -9, 7); c.turf(140, { flowers: 0.15 });
     },
     field(c) {
-        for (let x = -20; x <= 20; x += 0.9) for (const z of [-6, -6.9, -7.8]) c.model(c.R() < 0.5 ? 'nature/crops_wheatStageB' : 'nature/crops_wheatStageA', x + c.R() * 0.4, z, 1.7 + c.R() * 0.3, 0);
+        // (14/11/2026) người chơi: lúa mì khối cũ nhìn như que tre -> bụi lúa vàng Meshy (cỏ đồng vàng), 2 hàng so le
+        if (FOREST_EXTRA.has('grass')) { for (const [z, dx] of [[-6.1, 0], [-7.5, 0.85]]) for (let x = -20 + dx; x <= 20; x += 1.7) c.model('meshy/forest_grass', x + c.R() * 0.4, z + (c.R() - 0.5) * 0.3, 1.25 + c.R() * 0.35); }
+        else for (let x = -20; x <= 20; x += 0.9) for (const z of [-6, -6.9, -7.8]) c.model(c.R() < 0.5 ? 'nature/crops_wheatStageB' : 'nature/crops_wheatStageA', x + c.R() * 0.4, z, 1.7 + c.R() * 0.3, 0);
         c.put('fence', [-21, -5.5], [21, -5.5]); c.put('windmill', -11, -10.5); c.put('scarecrow', 4, -7); c.put('haystack', 12, -9.2, 1.1); c.put('haystack', 14, -9.8, 0.9); c.put('haystack', -3, -9.6, 1.0);
         c.put('house', { x0: 7, z0: -13.5, x1: 12, z1: -10.2, door: 9.5, roof: 'brown' }); c.trees(ROUND, -14.5, { step: 5.5, sc: 3.4 }); c.sides(ROUND); c.turf(260, { flowers: 0.22 });
     },

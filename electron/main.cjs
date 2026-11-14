@@ -66,16 +66,28 @@ async function waitForServer(url) {
     throw new Error(`Server did not become ready: ${lastError?.message || 'timeout'}`);
 }
 
+/** Cửa sổ mới (window.open): trang CỦA GAME (vd. app Tool thử tool.html) mở ngay trong ứng dụng — cùng phiên với game nên
+ *  Tool điều khiển được game (kênh BroadcastChannel 'loc-tool'); trang web ngoài mới mở bằng trình duyệt của máy. */
+function openHandler({ url }) {
+    if (gameUrl && url.startsWith(new URL(gameUrl).origin)) {
+        return { action: 'allow', overrideBrowserWindowOptions: {
+            title: 'Legend of Capsules — Tool thử', autoHideMenuBar: true, backgroundColor: '#0b1020', minWidth: 420, minHeight: 480,
+            webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false },
+        } };
+    }
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(console.error);
+    return { action: 'deny' };
+}
+// cửa sổ con (Tool) mở thêm cửa sổ nữa cũng theo cùng luật
+app.on('web-contents-created', (_e, contents) => contents.setWindowOpenHandler(openHandler));
+
 async function start() {
     window = new BrowserWindow({
         width: 560, height: 320, backgroundColor: '#0b1020',
         title: 'Legend of Capsules', autoHideMenuBar: true,
         webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false },
     });
-    window.webContents.setWindowOpenHandler(({ url }) => {
-        if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(console.error);
-        return { action: 'deny' };
-    });
+    window.webContents.setWindowOpenHandler(openHandler);
     window.webContents.on('before-input-event', (event, input) => {
         if (input.type !== 'keyDown') return;
         if (input.key === 'F11') {

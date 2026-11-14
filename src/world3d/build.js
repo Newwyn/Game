@@ -828,10 +828,23 @@ export const BUILD = {
     },
     /** Khối núi đá (mỏ): chồng các khối vách đá */
     cliff(ctx, x0, z0, x1, z1, h = 2) {
+        // (14/11/2026) người chơi: mặt vách "nhấp nhô" lởm chởm -> cao thấp thoai thoải theo đường lượn (không ngẫu nhiên từng ô), không xoay khối
         for (let z = z0; z < z1; z++) for (let x = x0; x < x1; x++) {
-            const hh = h + (ctx.rnd() - 0.5) * 0.6;
-            ctx.B.put('nature/cliff_block_rock', x + 0.5, 0, z + 0.5, Math.floor(ctx.rnd() * 4) * Math.PI / 2, 1, hh, 1);
+            const hh = h + Math.sin(x * 0.55 + z * 0.3) * 0.18 + Math.cos(z * 0.8 - x * 0.2) * 0.12;
+            ctx.B.put('nature/cliff_block_rock', x + 0.5, 0, z + 0.5, 0, 1, hh, 1);
         }
+        // đỉnh vách: cây + bụi thưa (cùng kiểu cây của vùng) -> nhìn như đồi có cây, không lộ mặt ô vuông
+        const H = (x, z) => h + Math.sin(x * 0.55 + z * 0.3) * 0.18 + Math.cos(z * 0.8 - x * 0.2) * 0.12;
+        const trees = ctx.style.trees ?? ['nature/tree_oak'];
+        for (let z = z0 + 0.7; z < z1 - 0.4; z += 1.9) for (let x = x0 + 0.6 + ((z * 1.7) % 1); x < x1 - 0.4; x += 2.1 + ((x * 5.3 + z) % 1) * 0.9) {
+            const k = Math.abs(Math.floor(x * 3.1 + z * 7.7));
+            if (k % 3 === 0) continue;   // chừa vài khoảng trống
+            if (k % 3 === 1) ctx.B.put(trees[k % trees.length], x, H(Math.floor(x), Math.floor(z)), z, (x + z) % 6.28, 2.0 + (k % 5) * 0.15);
+            else ctx.B.put('nature/plant_bushLarge', x, H(Math.floor(x), Math.floor(z)), z, (x * z) % 6.28, 1.6 + (k % 4) * 0.2);
+        }
+        // chân vách phía trước: vài tảng đá rêu (Meshy) che mép khối vuông
+        if (MESHY_ON && MESHY_HAS.has('forest_rock')) for (let x = x0 + 0.6; x < x1 - 0.3; x += 1.7 + ((x * 7.3) % 1) * 0.8)
+            ctx.B.put('meshy/forest_rock', x, 0, z1 - 0.15, (x * 2.1) % 6.28, 0.75 + ((x * 3.7) % 1) * 0.45);
         ctx.cover(x0, z0, x1, z1);
     },
     /** Cửa hầm mỏ: khung gỗ + lòng tối */
@@ -1319,6 +1332,13 @@ function mistTexture() {
         const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
         g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     }
+    // (14/11/2026) người chơi: sương thành TẤM CHỮ NHẬT lộ mép — vệt mây vẽ tràn tới sát mép ảnh -> cắt thẳng ở rìa tấm.
+    //   Giữ lại phần giữa, mờ dần về TRONG SUỐT HẲN trước khi tới mép (hình bầu dục mềm, không còn góc / cạnh)
+    g.globalCompositeOperation = 'destination-in';
+    const fade = g.createRadialGradient(64, 64, 18, 64, 64, 63);
+    fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.55, 'rgba(0,0,0,0.75)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = fade; g.fillRect(0, 0, 128, 128);
+    g.globalCompositeOperation = 'source-over';
     MIST = new THREE.CanvasTexture(c);
     return MIST;
 }
