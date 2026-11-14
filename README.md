@@ -71,3 +71,9 @@ art/             Tranh gốc từng nhân vật + atlas_spec.json
 tools/           build_atlas.py (đóng gói tranh), trang xem thử động tác / cảnh / hiệu ứng
 Claude outputs/  Ảnh & gif xem trước các phiên bản
 ```
+
+## Bản cài đặt Windows
+
+Chạy `npm run dist` để tạo bộ cài Windows. File `.exe` sẽ nằm trong thư mục `release/`.
+Sau khi cài, mở **Legend of Capsules** từ Desktop hoặc Start Menu để chơi một người ngoại tuyến, không cần trình duyệt hay terminal.
+Tiến trình được lưu tại `%APPDATA%\Legend of Capsules\data`.

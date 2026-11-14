@@ -39,6 +39,7 @@ const view = createView(document.getElementById('host'));
 view.setQuality(quality); view.setAuto?.(false); view.resize();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const state = (x, z) => ({ focus: { x: x + 0.5, z: z + 0.5 }, actors: [], items: [], marks: [], route: [], beacon: null });
+const at = q.get('at')?.split(';').map(s => s.split(',').map(Number));   // ?at=x,z;x,z : chỉ chụp ở các ô này
 window.__tour = { done: false, shots: 0, errors: [] };
 window.addEventListener('error', e => window.__tour.errors.push(String(e.message)));
 
@@ -47,8 +48,8 @@ for (const id of ids) {
     status.textContent = `Đang dựng ${id}…`;
     try { await view.setMap(id); } catch (e) { window.__tour.errors.push(`${id}: ${e.message}`); continue; }
     // điểm chụp: chỗ vào + lưới điểm đi được cách nhau "step" ô
-    const spots = [m.spawn];
-    for (let z = Math.floor(step / 2); z < m.rows; z += step) for (let x = Math.floor(step / 2); x < m.cols; x += step) {
+    const spots = at ? at : [m.spawn];
+    if (!at) for (let z = Math.floor(step / 2); z < m.rows; z += step) for (let x = Math.floor(step / 2); x < m.cols; x += step) {
         let best = null;   // ô đi được gần điểm lưới nhất
         for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
             const xx = x + dx, zz = z + dz;

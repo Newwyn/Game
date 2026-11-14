@@ -6,7 +6,7 @@ const scrypt = promisify(crypto.scrypt);
 const TTL = 30 * 86400000;
 const fail = error => ({ ok: false, error });
 
-function createAccounts(file = path.join(__dirname, '..', 'data', 'accounts.json'), now = Date.now) {
+function createAccounts(file = path.join(process.env.LOC_DATA_DIR || path.join(__dirname, '..', 'data'), 'accounts.json'), now = Date.now) {
     let db;
     try { db = JSON.parse(fs.readFileSync(file, 'utf8')); }
     catch (e) { if (e.code !== 'ENOENT') throw e; db = { users: {}, tokens: {} }; }

@@ -256,7 +256,7 @@ function computeStats(def, hero = { level: 1, rank: 0 }) {
 }
 
 // ---------- Lưu tiến trình ra file (giữ qua các lần khởi động lại server) ----------
-const SAVE_FILE = path.join(__dirname, 'data', 'progress.json');
+const SAVE_FILE = path.join(process.env.LOC_DATA_DIR || path.join(__dirname, 'data'), 'progress.json');
 let saveTimer = null;
 function loadAll() {
     try { return JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')); } catch { return {}; }

@@ -602,22 +602,44 @@ export function paintWater(W, H, mask, ox, oz, tint = 0x4f9ab0) {
         fragmentShader: `uniform sampler2D tMask; uniform float uTime; uniform vec4 uBox; uniform vec3 uDeep, uShallow; varying vec3 vWorld;
           #include <fog_pars_fragment>
           float wn(vec2 p) { return sin(p.x * 1.7 + sin(p.y * 1.3 + uTime * 0.35)) * cos(p.y * 2.1 - sin(p.x * 0.9 - uTime * 0.25)); }
+          float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+          float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
+          float fbm(vec2 p) { return vn(p) * 0.55 + vn(p * 2.1 + 3.7) * 0.3 + vn(p * 4.3 - 1.9) * 0.15; }
+          // vân sáng đáy nước (caustic): đường mảnh lượn sóng do 2 lớp nhiễu trôi ngược nhau
+          float caustic(vec2 p) { float a = fbm(p + vec2(uTime * 0.18, uTime * 0.11)), b = fbm(p * 1.3 - vec2(uTime * 0.13, -uTime * 0.07));
+            return pow(1.0 - abs(a - b) * 2.6, 6.0); }
           void main() {
             vec2 uv = (vWorld.xz - uBox.xy) / uBox.zw;
             float m = texture2D(tMask, uv).r;                       // 0 = đất, 1 = giữa vùng nước; ~0,5 = mép bờ
-            vec3 col = mix(uShallow, uDeep, smoothstep(0.55, 1.0, m)) * 1.9;
-            // vệt sáng trời phản chiếu: mảng lớn trôi chậm, cắt gọn như nét cọ
-            float band = wn(vWorld.xz * 0.9 + vec2(uTime * 0.05, 0.0));
-            col = mix(col, vec3(1.55, 1.85, 2.0), smoothstep(0.55, 0.62, band) * 0.32);
-            col = mix(col, uDeep * 1.3, smoothstep(0.5, 0.58, -band) * 0.25);
-            // lấp lánh nắng
-            float gl = wn(vWorld.xz * 5.5 + vec2(uTime * 0.4, uTime * 0.2)) * wn(vWorld.zx * 4.1 - vec2(uTime * 0.3));
-            col += vec3(2.2) * smoothstep(0.72, 0.8, gl);
-            // viền bọt sát bờ, nhấp nhô theo sóng
-            float sh = m + wn(vWorld.xz * 3.0) * 0.035 + sin(uTime * 1.1 + vWorld.x * 2.0 + vWorld.z * 1.7) * 0.02;
-            float foam = smoothstep(0.50, 0.55, sh) * (1.0 - smoothstep(0.60, 0.66, sh));
-            col = mix(col, vec3(2.3), foam * 0.85);
-            gl_FragColor = vec4(col, 0.93);
+            float depth = smoothstep(0.5, 0.95, m);
+            vec2 p = vWorld.xz;
+            // màu nền: sát bờ xanh ngọc ngả cát (thấy đáy), giữa dòng xanh lam đậm; có mảng sẫm/nhạt loang chậm
+            vec3 sand = vec3(0.78, 0.72, 0.5);
+            vec3 col = mix(mix(sand, uShallow, 0.62), uShallow, smoothstep(0.52, 0.66, m));
+            col = mix(col, uDeep, depth * 0.85);
+            col *= 0.86 + fbm(p * 0.35 + vec2(uTime * 0.02, 0.0)) * 0.3;
+            col *= 1.18;
+            // vân sáng đáy chỉ thấy ở chỗ nông
+            col += vec3(0.75, 0.95, 0.9) * caustic(p * 1.6) * (1.0 - depth * 0.7) * 0.4;
+            // vệt trời phản chiếu: sọc mảnh kéo dài theo hướng gió (không còn đốm tròn to)
+            vec2 q = vec2(p.x * 0.55 + p.y * 0.2, p.y * 2.4 - p.x * 0.3);
+            float streak = fbm(q * 1.4 + vec2(uTime * 0.12, uTime * 0.03));
+            col = mix(col, vec3(1.4, 1.7, 1.9), smoothstep(0.66, 0.71, streak) * (1.0 - smoothstep(0.71, 0.77, streak)) * 0.35 * (0.4 + depth));
+            // lăn tăn sóng nhỏ + lấp lánh nắng
+            float rip = fbm(p * 3.2 + vec2(uTime * 0.5, uTime * 0.27)) - fbm(p * 3.6 - vec2(uTime * 0.37, uTime * 0.19));
+            col *= 1.0 + rip * 0.16;
+            float gl = wn(p * 5.5 + vec2(uTime * 0.4, uTime * 0.2)) * wn(p.yx * 4.1 - vec2(uTime * 0.3));
+            col += vec3(1.8) * smoothstep(0.86, 0.9, gl) * (0.3 + depth * 0.7);
+            // bọt sát bờ: dải đứt quãng theo nhiễu + một vệt bọt mờ dạt ra rồi tan
+            float n = fbm(p * 2.6 + vec2(uTime * 0.15));
+            float sh = m + (n - 0.5) * 0.07 + sin(uTime * 1.1 + p.x * 2.0 + p.y * 1.7) * 0.012;
+            float foam = smoothstep(0.50, 0.535, sh) * (1.0 - smoothstep(0.565, 0.62, sh)) * smoothstep(0.3, 0.55, n);
+            float wave = fract(uTime * 0.18 + n * 0.25);
+            float foam2 = smoothstep(0.02, 0.0, abs(sh - (0.56 + wave * 0.08))) * (1.0 - wave) * 0.3 * step(0.5, n);
+            col = mix(col, vec3(2.25), clamp(foam * 0.9 + foam2, 0.0, 1.0));
+            float a = mix(0.8, 0.96, depth);                       // sát bờ trong hơn một chút
+            gl_FragColor = vec4(col, a);
             #include <fog_fragment>
           }`,
     });

@@ -5,6 +5,47 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 14/11/2026 (4) — Sửa lỗi mô hình méo + lựa chọn đồ hoạ trận đấu
+
+- **Sửa lỗi** (người chơi thấy "như bị lỗi đồ hoạ"): sau khi nén meshopt, toạ độ mô hình lưu dạng số nguyên chuẩn hoá; game gộp phép phóng của nút vào hình ngay trên dạng đó nên toạ độ bị kẹt ở ±1 -> cây trong trận thành "cột tre", đống rơm thành cục tròn, nhiều món méo. `src/world3d/assets.js` `toFloat()`: đổi về số thực trước khi gộp. Trang xem mô hình không gộp phép phóng nên không lộ lỗi — lần sau phải soát TRONG GAME sau mỗi lần đổi cách nén.
+- **Cài đặt -> ⚔️ Đồ hoạ trận đấu: 🤖 Tự động (mặc định) / ✨ Đẹp / ⚡ Nhẹ** — Tự động: `src/core/gpu.js` `createFpsWatch` đo khung hình/giây trong trận (cửa sổ 3 giây, bỏ qua 2,5 giây sau khi vào trận / bị khựng / tab ẩn), dưới 40 thì hạ độ nét 1 -> 0,85 -> 0,7 và báo "⚡ Máy hơi chậm… đã tự giảm đồ hoạ trận cho mượt" (nhớ trong lần chơi; xuống 0,7 thì trận sau bớt cả bụi cỏ). Bài kiểm tra `tests/gfx-auto.test.js`. Chế độ "🤖 Tự động" của bản đồ (đã có từ trước) giữ nguyên.
+- Phần Đẹp / Nhẹ (`src/ui/heroPanel.js`, `src/core/gpu.js` `battleGfx()`, lưu `localStorage gfx_battle`): Nhẹ vẽ 70% điểm ảnh (đổi ngay) + bớt một nửa bụi / hoa / cỏ nhỏ và 65% lá cỏ (sau khi tải lại game). Cạnh đó vẫn có "🗺️ Đồ hoạ bản đồ" (Tự động / Đẹp / Nhẹ / Phẳng 2D) như cũ.
+- Đã bấm thử thật: chọn Nhẹ -> nút sáng, khung vẽ trận còn 713×592 (70%); chọn lại Đẹp -> 1019×846. 211/211 bài qua. Đã vào trận rừng sau khi sửa: cây sồi, bạch dương, gốc cây, đá rêu đúng hình.
+- Bộ cài dựng lại sau khi sửa (`release/Legend of Capsules Setup 1.0.0.exe`).
+
+## 14/11/2026 (3) — Bộ cài Windows + làm nhẹ mô hình Meshy (đỡ lag)
+
+- **Bộ cài Windows** (Codex viết phần chính, Claude dựng + sửa): `electron/main.cjs` mở máy chủ game ngay trong ứng dụng (cổng trống, chỉ trong máy nên Windows không hỏi tường lửa), hiện game trong cửa sổ riêng, F11 toàn màn hình, F5 tải lại; tiến trình lưu ở `%APPDATA%\Legend of Capsules\data` (biến `LOC_DATA_DIR` trong `progression.js`, `game/accounts.js`; bản web giữ nguyên `data/`). Dựng: `npm run dist` -> `release/Legend of Capsules Setup 1.0.0.exe`; chạy thử không cần cài: `npm run app`. Biểu tượng tạm: chân dung sát thủ (`build/icon.png`).
+- Ghi chú dựng trên máy này: công cụ đóng gói cần gói `winCodeSign` giải nén sẵn ở `%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0` (Windows chặn tạo liên kết của bản macOS trong gói) — đã giải nén tay.
+- **Làm nhẹ 23 mô hình hay lặp lại** bằng Meshy (giảm mặt, Meshy tô lại hình dán nên nhìn như cũ): cây sồi / bạch dương / cây non / dương xỉ / bụi hoa / hoa dại / cỏ ~6 nghìn mặt; đá / đá cuội / gốc cây / khúc gỗ / nấm / thùng / ghế / cờ / biển chỉ đường ~3 nghìn; cột đèn / xe hoa / bồn hoa / sạp / giếng / tượng / cây cắt tỉa ~6–10 nghìn. Công trình riêng giữ ~30 nghìn. Bản 30 nghìn cũ cất ở `art/battle3d/meshy/*_raw30k.glb`. Thư mục mô hình: 46 MB -> 27 MB.
+- Kinh thành: mọi mô hình Meshy có khung chỗ đứng `cover` (bài kiểm tra không cần đọc cỡ trong file đã nén).
+- **Làm nhẹ thêm 18 món `prop_*`** (tài khoản Meshy thứ hai): rơm, bao tải, củi, thùng, cột mốc, cột cổ ngữ, cột đá, đuốc, bảng tin, quặng, pha lê ~3 nghìn mặt; bù nhìn, đèn lồng tiên, xe kéo, xe goòng, lều, lửa trại, giá vũ khí ~8–10 nghìn. Nấm sáng vốn đã ~10 nghìn. Kho thóc, cửa hầm mỏ, cổng trăng giữ ~30 nghìn (ít cái, nổi bật). Thư mục mô hình còn 25 MB (ban đầu 114 MB).
+- CHƯA: đo khung hình/giây thật trên máy GT 1030 (trình duyệt của Claude bị giới hạn 1 khung/giây khi cửa sổ không hiện).
+
+## 14/11/2026 (2) — Thêm 41 mô hình Meshy: thay hết đồ vẽ bằng code ngoài bản đồ + nước mới + nén nhẹ
+
+- **19 món đợt 1** (tài khoản Meshy cũ, đã dùng hết lượt): khúc gỗ, nấm, cờ hiệu, sạp chợ, giếng, cây cắt tỉa, tượng hiệp sĩ, biển chỉ đường, bồn hoa (lần này có màu) · công trình riêng: điện thờ trăng + nhà cây của tiên (Lunaria), tháp canh, cối xay gió, nhà chợ có tháp đồng hồ.
+- **22 món đợt 2** (tài khoản mới) để KHÔNG còn khối vẽ bằng code: đống rơm, bù nhìn, bảng thông báo, cửa hầm mỏ, xe goòng, đống quặng, kho thóc, cột mốc, đuốc đường, giá vũ khí, đèn lồng tiên, cột đá cổ ngữ, cụm pha lê, cổng vòm trăng, nấm phát sáng, bao tải, thùng gỗ, đống củi, xe kéo, lều, lửa trại, cột đá đền. Hình mẫu Codex vẽ: `art/battle3d/prop_*.png`.
+- **Tự thay ở mọi nơi** (`src/world3d/meshy.js` + các hàm dựng trong `build.js`, `life.js`): giếng, cối xay, tháp canh, cờ, rơm, bù nhìn, bảng tin, hầm mỏ, xe goòng, quặng, kho thóc, cột mốc, đuốc (vẫn có ánh lửa), giá vũ khí, tượng, cây cắt tỉa, ghế đá, cờ hoàng gia, đèn lồng tiên (vẫn toả sáng), cột cổ ngữ, pha lê (vẫn sáng), cổng trăng, lửa trại (vẫn bập bùng), bao tải, củi; lều / xe kéo / thùng / cột / lửa trại kiểu Kenney cũng tự đổi. Món nào chưa có file thì giữ kiểu cũ. `?meshy=0` để so.
+- **Bản đồ thế giới**: Lunaria — điện thờ trăng + 4 nhà cây tiên (dọn cây che trước cửa); kinh thành — nhà chợ cạnh chợ lớn, quán trọ, lò rèn, 5 sạp Meshy xen sạp cũ, đài phun nước sư tử, 2 giếng, tượng, cây cắt tỉa, bồn hoa (`tools/build_capital.py`).
+- **Cảnh đánh nhau**: chợ có sạp Meshy + nhà chợ phía sau; đền trăng dùng điện thờ tiên; làng tiên làm lại (cây Meshy, phông rừng vẽ tay, nhà cây tiên, đèn lồng, pha lê, nấm sáng); cây khối Kenney ở mọi cảnh tự đổi thành cây sồi / bạch dương Meshy; rừng sương / trại / trạm gác / phế tích có phông rừng vẽ tay.
+- **Nước mới** (`paint.js` paintWater): sát bờ xanh ngọc thấy đáy cát + vân sáng đáy, giữa dòng xanh đậm dần, vệt trời phản chiếu mảnh, bọt bờ đứt quãng; suối có đá nhảy liền một dải với sông (hết kẻ ô vuông + vạch trắng).
+- **Nén nhẹ**: `node tools/meshy_pack.mjs` nén hình khối (meshopt) + ảnh dán (công trình 1024, đồ nhỏ 512), bỏ ảnh kim loại/nhám game không dùng: 114 MB -> 46 MB. `tools/meshy_get.sh` vẫn tải bản gốc vào `art/battle3d/meshy/` (không đẩy GitHub).
+- Trang soát mô hình: `/tools/meshy-viewer.html?only=prop_` (chụp từng mô hình).
+- Kiểm tra: 211/211 bài qua; soát bản đồ không thêm lỗi; đã vào trận xem chợ, đền trăng, làng tiên, ruộng; chụp bản đồ Lunaria, kinh thành, ngoại ô.
+- CHƯA: vào trận xem lại trại lính / trạm gác / làng / giếng / đồng cỏ / đường / quảng trường sau đợt 2 (máy đang chậm do Chrome chạy nặng); chế độ đồ hoạ nhẹ; đồ trong nhà (ngai vàng, tranh…) và gà vẫn kiểu cũ.
+
+## 14/11/2026 — Nền trận + bản đồ thế giới dùng mô hình Meshy (tranh Codex / Antigravity vẽ -> Meshy dựng 3D)
+
+- **Cách làm**: Codex (hết lượt thì Antigravity) vẽ từng món trên nền trắng -> đẩy hình mẫu lên GitHub (`art/battle3d/`) -> Meshy dựng 3D (35 lượt/món) -> Meshy giảm còn ~30 nghìn mặt (không tốn lượt) -> `bash tools/meshy_get.sh <tên> '<link>'` thu ảnh dán về 1024 webp -> `src/assets/world3d/meshy/<tên>.glb`, dùng bằng khoá `meshy/<tên>` (assets.js tự đặt chân xuống đất, quy về cao 1 ô).
+- **Món đã có (17)**: rừng — cây sồi, bạch dương, cây non, đá rêu, đá cuội có hoa, gốc cây nấm, dương xỉ, bụi hoa, hoa dại, bụi cỏ · thành — đài phun nước sư tử, cột đèn treo giỏ hoa, thùng gỗ, xe hoa, ghế băng · công trình — nhà thờ lớn, cung điện, quán trọ, lò rèn, nhà trưởng làng.
+- **Phông tranh vẽ sau sân đấu** (`src/assets/battle3d/*_backdrop.webp`, trượt chậm theo máy quay): rừng, phố trong thành (quảng trường / chợ / cổng / lâu đài), đồng cỏ (đồng cỏ / ruộng / đường), làng (làng / giếng). **Mặt sân vẽ tay** lát liền: cỏ rừng, đá lát.
+- **Sân rừng & quảng trường rải dày** nhiều lớp (3 hàng cây, bụi rậm, viền sân, hai bên, cụm thấp mép sân). Các nền dùng phông bỏ bớt hàng cây khối xa che phông.
+- **Thay đồ khối cũ chung** (`src/world3d/build.js` MESHY_SUB): đá, gốc cây, khúc gỗ, bụi, nấm, thùng, ghế, đèn, biển chỉ đường kiểu Kenney tự đổi sang bản Meshy ở mọi trận và bản đồ thế giới. Tắt để so: `?meshy=0`.
+- **Công trình riêng trên bản đồ**: làng Ashford — nhà bà Mira, lò rèn bác Borin, quán cô Lena; kinh thành — nhà thờ lớn, cung điện (thay khối nhà chung + tháp nhọn ghép tạm). Chân nhà vẫn đúng ô cũ (bài kiểm tra / soát bản đồ hiểu khung `cover` của công trình Meshy).
+- Sửa: vật liệu Meshy trùng tên 'BakedMaterial' làm cây sồi lấy nhầm hình lá dương xỉ -> phân biệt theo từng vật liệu.
+- CHƯA: thư khố (đang giảm mặt), khúc gỗ / nấm / cột cờ / sạp chợ / giếng / chậu cây / tượng / biển chỉ đường / bồn hoa (Meshy chưa lấy được), soát lúc đang đánh ở các nền mới, chế độ đồ hoạ nhẹ.
+
 ## 13/11/2026 (5) — Dung sau mai nha thay ro nguoi (NPC + nhan vat)
 
 - Nguoi choi (Ashford, canh gieng): "o do co NPC ma blur sao cung khong thay". Nguyen nhan: mai mo nhung van GHI DO SAU nen dat lo ra ma nguoi dung sau van bi che. Sua `assets.js`: loi vong cat quanh nhan vat BO HAN diem anh cua mai (mep van mo dan) -> thay ro nhan vat va NPC dung trong vong.

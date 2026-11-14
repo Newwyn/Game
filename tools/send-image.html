@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>Gửi ảnh</title></head>
+<body style="font:14px system-ui;background:#222;color:#eee">
+<p id="s">Đang gửi ảnh…</p>
+<script type="module">
+// Chỉ dùng khi làm game: trang Meshy mở trang này (window.open) để nhận ảnh trên máy (Meshy chặn đọc file từ localhost).
+//   /tools/send-image.html?f=art/battle3d/tree.png  -> gửi Blob ảnh về cửa sổ đã mở trang này rồi tự đóng
+const f = new URLSearchParams(location.search).get('f');
+const s = document.getElementById('s');
+try {
+    const b = await fetch('/' + f).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); });
+    window.opener.postMessage({ kind: 'send-image', name: f.split('/').pop(), blob: b }, '*');
+    s.textContent = 'Đã gửi ' + f;
+    setTimeout(() => window.close(), 400);
+} catch (e) { s.textContent = 'Lỗi: ' + e.message; }
+</script>
+</body>
+</html>

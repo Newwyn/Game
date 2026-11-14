@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { proto, loadModels, addSway, patchMaterial, uHeroPos, uCamPos } from './assets.js';
+import { MESHY_HAS, MESHY_ON, meshyPut } from './meshy.js';
 import { PAINT, paintTrees, paintGrass, paintMapClouds, paintWater, paintSeeds, treeStyleOf } from './paint.js';
 import { EXTRA_BUILD, buildJumpFeatures, buildRegionLife } from './life.js';
 
@@ -36,6 +37,51 @@ function nightGlowMat() {
 /** k: 0 (ban ngày) .. 1 (đêm) */
 export function setNight(k) { if (nightMat) { nightMat.opacity = Math.min(1, k * 1.5); nightMat.visible = k > 0.02; } }
 
+// ---------- (14/11/2026) THAY ĐỒ KHỐI CŨ BẰNG MÔ HÌNH MESHY (dựng từ tranh Codex vẽ — art/battle3d) ----------
+//   Dùng chung cho bản đồ thế giới lẫn sân đấu: món cũ nào có bản Meshy thì tự đổi (cỡ theo chiều cao món cũ x hệ số).
+//   Chỉ thay đồ THƯA (đá, gốc cây, bụi, nấm, khúc gỗ, thùng, ghế, đèn, biển chỉ đường): cỏ / hoa rải dày giữ bản nhẹ cho máy chạy nổi.
+//   Tắt để so: thêm ?meshy=0 vào địa chỉ trang.
+// [mẫu tên món cũ, [món Meshy...], chiều cao món cũ khi s = 1 (ô), hệ số cỡ]
+const MESHY_SUB = [
+    [/^nature\/(rock|stone)_(large|tall)/, ['forest_rock'], null, 1.15],
+    [/^nature\/(rock|stone)_small/, ['forest_pebbles', 'forest_rock'], null, 1.3],
+    [/^nature\/stump_/, ['forest_stump'], null, 1.25],
+    [/^nature\/log(_large)?$/, ['forest_log'], null, 1.3],
+    [/^nature\/plant_bush/, ['forest_flowerbush', 'forest_fern'], null, 1.15],
+    [/^nature\/mushroom_/, ['forest_mushrooms'], null, 1.2],
+    [/^survival\/barrel/, ['town_barrels'], null, 1.15],
+    [/^survival\/box/, ['prop_crates'], null, 1.9],
+    [/^survival\/tent-canvas$/, ['prop_tent'], null, 1.15],
+    [/^town\/cart$/, ['prop_cart'], null, 1.0],
+    [/^(graveyard\/(column|pillar)-large|nature\/statue_column)$/, ['prop_column'], null, 1.0],
+    [/^(survival\/campfire-pit|nature\/campfire_stones)$/, ['prop_campfire'], null, 4.5],
+    [/^(survival\/campfire-stand|nature\/campfire_logs)$/, [], null, 1],   // lửa trại Meshy đã có củi + lửa -> bỏ món phụ
+    [/^survival\/resource-wood$/, ['prop_woodpile'], null, 2.2],
+    [/^graveyard\/bench$/, ['town_bench'], null, 1.0],
+    [/^(town\/lantern|graveyard\/lightpost-single|custom\/town_lamp_post)$/, ['town_lamp'], null, 1.0],
+    [/^(survival\/signpost(-single)?|nature\/sign)$/, ['town_signpost'], null, 1.6],
+];
+const OLD_H = { 'nature/rock_largeA': .26, 'nature/rock_largeB': .43, 'nature/rock_largeC': .32, 'nature/rock_tallA': 1, 'nature/rock_tallB': .88, 'nature/stone_largeA': .26, 'nature/stone_tallA': 1,
+    'nature/rock_smallA': .19, 'nature/rock_smallC': .12, 'nature/rock_smallFlatA': .06, 'nature/stone_smallA': .19, 'nature/stone_smallC': .12,
+    'nature/stump_old': .27, 'nature/stump_round': .21, 'nature/log': .17, 'nature/log_large': .42,
+    'nature/plant_bush': .24, 'nature/plant_bushDetailed': .36, 'nature/plant_bushLarge': .24, 'nature/plant_bushLargeTriangle': .17, 'nature/plant_bushSmall': .21,
+    'nature/mushroom_red': .2, 'nature/mushroom_redGroup': .25, 'nature/mushroom_tan': .15, 'nature/mushroom_tanGroup': .25, 'nature/mushroom_tanTall': .25,
+    'survival/barrel': .34, 'survival/box': .25, 'survival/box-large': .25, 'survival/tent-canvas': .49, 'town/cart': .54, 'graveyard/column-large': 1.13, 'graveyard/pillar-large': 1.13, 'nature/statue_column': 1, 'survival/campfire-pit': .09, 'nature/campfire_stones': .08, 'survival/resource-wood': .25, 'graveyard/bench': .53,
+    'town/lantern': 1.56, 'graveyard/lightpost-single': 1.27, 'custom/town_lamp_post': 2.98, 'survival/signpost': .46, 'survival/signpost-single': .46, 'nature/sign': .41 };
+/** món cũ -> [khoá Meshy, tỉ lệ đều] hoặc null */
+function meshySub(key, x, z, sy) {
+    if (!MESHY_ON) return null;
+    for (const [re, list, , k] of MESHY_SUB) {
+        if (!re.test(key)) continue;
+        if (!list.length) return MESHY_HAS.has('prop_campfire') ? 'skip' : null;   // món phụ đã gộp vào mô hình Meshy
+        const avail = list.filter(n => MESHY_HAS.has(n));
+        if (!avail.length) return null;
+        const pick = avail[Math.abs(Math.floor(x * 7.31 + z * 3.17)) % avail.length];   // cố định theo chỗ đặt (không đổi mỗi lần dựng)
+        return ['meshy/' + pick, (OLD_H[key] ?? 0.3) * sy * k];
+    }
+    return null;
+}
+
 /** Gom đặt mô hình -> InstancedMesh */
 class Batch {
     constructor(indoor = false) { this.list = new Map(); this.trees = []; this.lights = []; this.indoor = indoor; }
@@ -47,6 +93,9 @@ class Batch {
         if (PAINT && key === 'custom/town_lamp_post') this.lights.push([x, y + 2.6 * sy, z, sx * 1.6]);
         if (PAINT && key === 'custom/town_lamp_wall') this.lights.push([x, y + 0.4 * sy, z, sx * 1.2]);
         if (PAINT && /^nature\/tree_/.test(key)) { this.trees.push([x, z, sx * 0.95, near, ...treeStyleOf(key)]); return; }   // tranh vẽ: chỉ MỘT kiểu cây
+        const sub = meshySub(key, x, z, sy);
+        if (sub === 'skip') return;
+        if (sub) { key = sub[0]; sx = sy = sz = sub[1]; }
         const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(Y, rot), new THREE.Vector3(sx, sy, sz));
         if (!this.list.has(key)) this.list.set(key, []);
         this.list.get(key).push(m);
@@ -232,7 +281,15 @@ export async function buildScene(id, map, terrain, layout) {
     if (tileType.includes('w')) {
         water = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ color: style.water ?? 0x4f9ab0, transparent: true, opacity: 0.84, roughness: 0.1, metalness: 0.05, normalMap: waterNormals(), normalScale: new THREE.Vector2(0.55, 0.55) }));
         if (PAINT) {   // nước kiểu tranh vẽ: mặt nạ ô nước (làm mượt) -> biết chỗ nào sát bờ để vẽ bọt, chỗ nào sâu
-            const mk = new Uint8Array(W * H); tileType.forEach((tt, i) => { mk[i] = tt === 'w' ? 255 : 0; });
+            // suối có đá nhảy (ô khe nối với nước + ô đá nổi) cũng là nước liền một dải -> không còn từng ô vuông kẻ vạch
+            const wet = new Set((map.stones ?? []).map(([x, y]) => `${x},${y}`)), q = [];
+            for (const [gx, gz] of map.gaps ?? []) if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => T(gx + dx, gz + dz) === 'w')) { wet.add(`${gx},${gz}`); q.push([gx, gz]); }
+            while (q.length) { const [gx, gz] = q.shift(); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nk = `${gx + dx},${gz + dz}`; if (gapSet.has(nk) && !wet.has(nk)) { wet.add(nk); q.push([gx + dx, gz + dz]); } } }
+            const mk = new Uint8Array(W * H);
+            tileType.forEach((tt, i) => { const x = (i % W) - M, z = Math.floor(i / W) - M; mk[i] = tt === 'w' || wet.has(`${x},${z}`) ? 255 : 0; });
+            // làm mờ mặt nạ (2 ô) -> nước nông dần từ bờ ra giữa dòng; mép bờ vẫn ở mức ~0,5 nên viền bọt không lệch
+            const blur = (src, dx, dz) => { const out = new Uint8Array(W * H); for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) { let s = 0, n = 0; for (let k = -1; k <= 1; k++) { const xx = x + k * dx, zz = z + k * dz; if (xx < 0 || zz < 0 || xx >= W || zz >= H) continue; s += src[xx + zz * W]; n++; } out[x + z * W] = s / n; } return out; };
+            mk.set(blur(blur(mk, 1, 0), 0, 1));
             water.material = paintWater(W, H, mk, -M, -M, style.water ?? 0x4f9ab0);
         }
         water.rotation.x = -Math.PI / 2; water.position.set(cols / 2, -0.32, rows / 2); water.receiveShadow = true;
@@ -705,6 +762,7 @@ export const BUILD = {
     },
     /** Giếng đá có mái gỗ + mặt nước lấp lánh */
     well(ctx, x, z) {
+        if (meshyPut(ctx, 'town_well', x, z, 2.3, 0, [x - 1.2, z - 1.2, x + 1.2, z + 1.2])) return;   // (14/11) giếng Meshy
         if (PAINT) {   // (12/11/2026) giếng làng trung cổ do Codex dựng bằng code (tools/models/make_well.py): thành đá xếp, cột gỗ, trục quay, xô, mái ngói
             ctx.B.put('custom/well', x, 0, z, 0, 0.82); ctx.cover(x - 1.2, z - 1.2, x + 1.2, z + 1.2); return;
         }
@@ -739,6 +797,7 @@ export const BUILD = {
     },
     /** Bảng thông báo / bảng ải */
     board(ctx, x, z, s = 1) {
+        if (meshyPut(ctx, 'prop_noticeboard', x, z, 2.1 * s, 0, [x - 1, z - 0.5, x + 1, z + 0.5])) return;   // (14/11) Meshy
         [-0.75, 0.75].forEach(dx => mesh(ctx, new THREE.BoxGeometry(0.14, 1.5 * s, 0.14), lam(0x5a3a1e), x + dx * s, 0.75 * s, z));
         mesh(ctx, new THREE.BoxGeometry(1.8 * s, 1.0 * s, 0.12), lam(0x8a5a2e), x, 1.15 * s, z);
         mesh(ctx, new THREE.BoxGeometry(2.0 * s, 0.12, 0.3), lam(0x6e4522), x, 1.72 * s, z);
@@ -747,12 +806,14 @@ export const BUILD = {
     },
     /** Đống rơm (vòm thấp) */
     haystack(ctx, x, z, r = 0.8) {
+        if (meshyPut(ctx, 'prop_haystack', x, z, r * 1.5, (x * 7 + z * 3) % 6.28, [x - r, z - r, x + r, z + r])) return;   // (14/11) Meshy
         const m = mesh(ctx, new THREE.IcosahedronGeometry(r, 1), lam(0xe0b440), x, r * 0.35, z, ctx.rnd() * 6);
         m.scale.set(1, 0.85, 1);
         ctx.cover(x - r, z - r, x + r, z + r);
     },
     /** Cối xay gió: thân gỗ + mái nhọn + cánh quạt quay */
     windmill(ctx, x, z) {
+        if (meshyPut(ctx, 'bld_windmill', x, z, 6.2, 0, [x - 1.5, z - 1.5, x + 1.5, z + 1.5])) return;   // (14/11) cối xay gió Meshy
         mesh(ctx, new THREE.CylinderGeometry(1.0, 1.45, 3.4, 8), lam(0xa8743f), x, 1.7, z);
         mesh(ctx, new THREE.ConeGeometry(1.25, 1.3, 8), lam(0x7d5230), x, 4.05, z);
         mesh(ctx, new THREE.BoxGeometry(0.8, 1.1, 0.1), lam(0x3a2414), x, 0.55, z + 1.38);
@@ -775,6 +836,7 @@ export const BUILD = {
     },
     /** Cửa hầm mỏ: khung gỗ + lòng tối */
     mineEntrance(ctx, x, z) {
+        if (meshyPut(ctx, 'prop_mineentrance', x, z - 0.5, 2.6, 0)) return;   // (14/11) Meshy
         mesh(ctx, new THREE.BoxGeometry(1.8, 1.9, 0.6), lam(0x0d0a08), x, 0.95, z);
         [-1.0, 1.0].forEach(dx => mesh(ctx, new THREE.BoxGeometry(0.28, 2.2, 0.35), lam(0x6a4526), x + dx, 1.1, z + 0.2));
         mesh(ctx, new THREE.BoxGeometry(2.6, 0.3, 0.4), lam(0x7d5230), x, 2.25, z + 0.2);
@@ -802,6 +864,7 @@ export const BUILD = {
     tent(ctx, x, z, s = 4, r = 0) { ctx.B.put('survival/tent-canvas', x, 0, z, r, s); ctx.cover(x - s * 0.3, z - s * 0.3, x + s * 0.3, z + s * 0.3); },
     /** Tháp canh gỗ */
     watchtower(ctx, x, z) {
+        if (meshyPut(ctx, 'bld_watchtower', x, z, 5.4, 0, [x - 1, z - 1, x + 1, z + 1])) return;   // (14/11) tháp canh Meshy
         [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]].forEach(([dx, dz]) => mesh(ctx, new THREE.BoxGeometry(0.2, 3.4, 0.2), lam(0x5e3e26), x + dx, 1.7, z + dz));
         mesh(ctx, new THREE.BoxGeometry(2.1, 0.18, 2.1), lam(0x7d5230), x, 3.4, z);
         mesh(ctx, new THREE.BoxGeometry(2.1, 0.7, 2.1), lam(0x8a5a2e), x, 3.85, z);
@@ -818,6 +881,7 @@ export const BUILD = {
     },
     /** Cờ hiệu (cột + lá cờ đỏ) */
     banner(ctx, x, z, color = 0xc0392b) {
+        if (meshyPut(ctx, 'town_banner', x, z, 2.5, 0, null)) return;   // (14/11) cờ hiệu Meshy
         mesh(ctx, new THREE.BoxGeometry(0.1, 1.9, 0.1), lam(0x5e3e26), x, 0.95, z);
         mesh(ctx, new THREE.BoxGeometry(0.75, 0.9, 0.05), lam(color), x, 1.35, z + 0.08);
         mesh(ctx, new THREE.BoxGeometry(0.3, 0.3, 0.06), lam(0xf1c40f), x, 1.4, z + 0.12);
@@ -835,6 +899,7 @@ export const BUILD = {
     anvil(ctx, x, z) { ctx.B.put('survival/workbench-anvil', x, 0, z, 0.4, 2.6); },
     /** Bù nhìn */
     scarecrow(ctx, x, z) {
+        if (meshyPut(ctx, 'prop_scarecrow', x, z, 2.3, 0)) return;   // (14/11) Meshy
         mesh(ctx, new THREE.BoxGeometry(0.12, 1.8, 0.12), lam(0x6a4526), x, 0.9, z);
         mesh(ctx, new THREE.BoxGeometry(1.2, 0.1, 0.1), lam(0x6a4526), x, 1.3, z);
         mesh(ctx, new THREE.BoxGeometry(0.6, 0.7, 0.3), lam(0x8a6a3a), x, 1.15, z);
@@ -843,6 +908,7 @@ export const BUILD = {
     },
     /** Nấm phát sáng xanh (Rừng Sương) */
     glowShroom(ctx, x, z, s = 1) {
+        if (MESHY_HAS.has('prop_glowshroom') && MESHY_ON) { meshyPut(ctx, 'prop_glowshroom', x, z, 0.75 * s, (x + z) % 6.28); const l = new THREE.PointLight(0x5fd4ff, 0.9, 3.0, 2); l.position.set(x, 0.6 * s, z); ctx.group.add(l); ctx.anim.push((t) => { l.intensity = 0.8 + Math.sin(t * 2 + x) * 0.3; }); return; }   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); ctx.group.add(g);
         const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.32, 6), lam(0xdff4f2)); stem.position.y = 0.16;
         const cap = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3fb6f0, emissive: 0x1a8fd8, emissiveIntensity: 0.55, roughness: 0.5 }));
@@ -976,6 +1042,7 @@ export const BUILD = {
     },
     /** Bao tải ngũ cốc / bột mì */
     sack(ctx, x, z, n = 2) {
+        if (meshyPut(ctx, 'prop_sacks', x, z, 0.75, (x * 3 + z) % 6.28)) return;   // (14/11) Meshy
         const g = new THREE.SphereGeometry(0.24, 7, 6);
         const knot = new THREE.ConeGeometry(0.1, 0.12, 5);
         const mat = lam(0xc8ad7f), rope = lam(0x7a5832);
@@ -990,6 +1057,7 @@ export const BUILD = {
     },
     /** Đống củi xếp bên tường nhà */
     woodpile(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'prop_woodpile', x, z, 1.0, r)) return;   // (14/11) Meshy
         ctx.B.put('nature/log_stack', x, 0, z, r, 1.85);
         ctx.B.put('nature/stump_round', x + Math.cos(r) * 0.55, 0, z - Math.sin(r) * 0.55, r, 1.45);
         ctx.cover(x - 0.6, z - 0.6, x + 0.6, z + 0.6);

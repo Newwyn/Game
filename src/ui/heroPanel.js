@@ -5,7 +5,8 @@ import { unlockText } from './modeMenu.js';
 //   Dữ liệu: server 'heroPanelOpen' -> 'heroPanel' (server.js heroPanelPayload) · đổi skin 'setSkin' · mua 'buyItem' · dùng bình EXP 'heroUseItem'
 // ============================================================
 import { socket } from '../net/socket.js';
-import { softwareGL } from '../core/gpu.js';
+import { softwareGL, battleGfx, battlePixelRatio } from '../core/gpu.js';
+import { renderer } from '../core/scene.js';
 import '../styles/heropanel.css';
 import { icon } from './icons.js';
 import { itemIcon } from './itemIcons.js';
@@ -235,6 +236,7 @@ function settingsHTML() {
     return `<div class="hp-settings">
         ${row('🗺️ Đồ hoạ bản đồ', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ'], ['2d', '🗺️ Phẳng 2D']], q, 'data-hp-q',
             softwareGL() ? '⚠️ Trình duyệt đang vẽ bằng phần mềm (chưa dùng card đồ hoạ) — nên dùng Phẳng 2D. Bật “Tăng tốc phần cứng” trong cài đặt trình duyệt rồi mở lại để chơi 3D.' : 'Tự động: đẹp nhất mà máy vẫn mượt')}
+        ${row('⚔️ Đồ hoạ trận đấu', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ']], battleGfx(), 'data-hp-bq', 'Tự động: đo độ mượt vài giây đầu trận, máy chậm thì tự giảm độ nét. Nhẹ: vẽ ít điểm ảnh hơn, bớt bụi cỏ nhỏ — cho máy yếu. Độ nét đổi ngay; bụi cỏ đổi sau khi tải lại game (F5).')}
         ${row('🌾 Gặp quái ở cỏ cao', [['on', 'Bật'], ['off', 'Tắt']], wild ? 'on' : 'off', 'data-hp-wild', 'Ruộng lúa, bãi cỏ rừng, cỏ ven đường · không tốn thể lực')}
         ${row('💬 Tốc độ chữ hội thoại', [['slow', 'Chậm'], ['normal', 'Vừa'], ['fast', 'Nhanh'], ['instant', 'Hiện ngay']], speed, 'data-hp-speed')}
         <div class="hp-set"><b>🔊 Âm thanh</b><small>Nhạc nền và tiếng động sẽ có ở bản sau.</small></div>
@@ -257,6 +259,7 @@ function onClick(e) {
     const qq = q('[data-hp-q]'); if (qq) { actions.setQuality?.(qq.dataset.hpQ); return render(); }
     const w = q('[data-hp-wild]'); if (w) { actions.setWild?.(w.dataset.hpWild === 'on'); return render(); }
     const sp = q('[data-hp-speed]'); if (sp) { LS.set('st_speed', sp.dataset.hpSpeed); return render(); }
+    const bq = q('[data-hp-bq]'); if (bq) { try { localStorage.setItem('gfx_battle', bq.dataset.hpBq); } catch {} renderer.setPixelRatio(battlePixelRatio()); renderer.setSize(window.innerWidth, window.innerHeight); return render(); }
 }
 
 export function setupHeroPanel() {

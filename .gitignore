@@ -8,8 +8,12 @@ yarn-error.log*
 .vscode/
 *.log
 dist/
+release/
 __pycache__/
 *.pyc
 
 # tiến trình người chơi (level / bậc / vật phẩm) — dữ liệu chạy thử, không đưa lên git
 data/
+
+# bản gốc tải từ Meshy (~1,5 GB: *_raw.glb, *_raw30k.glb) — quá lớn cho GitHub, giữ trên máy; mô hình dùng trong game nằm ở src/assets/world3d/meshy
+art/battle3d/meshy/

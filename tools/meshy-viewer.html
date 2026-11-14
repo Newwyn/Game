@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>Xem mô hình Meshy</title>
+<style>body{margin:0;background:#2b2f38;color:#ddd;font:12px system-ui}#g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;padding:6px}.c{background:#3a404c;border-radius:6px;text-align:center}.c img{width:100%;display:block}</style></head>
+<body>
+<!-- Chỉ dùng khi làm game: /tools/meshy-viewer.html?only=bld_,town_  -> chụp từng mô hình trong src/assets/world3d/meshy (nhìn chéo 3/4) để soát lỗi -->
+<div id="g"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+const files = import.meta.glob('/src/assets/world3d/meshy/*.glb', { query: '?url', import: 'default', eager: true });
+const only = new URLSearchParams(location.search).get('only')?.split(',');
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(360, 360); r.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x3a404c);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 2.2)); const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(3, 5, 4); scene.add(d);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+for (const [path, url] of Object.entries(files)) {
+    const name = path.split('/').pop().replace('.glb', '');
+    if (only && !only.some(o => name.startsWith(o))) continue;
+    const g = (await loader.loadAsync(url)).scene;
+    const box = new THREE.Box3().setFromObject(g), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    g.position.sub(c); scene.add(g);
+    const R = size.length() * 0.5; cam.position.set(R * 2.2, R * 1.5, R * 2.6); cam.lookAt(0, 0, 0);
+    r.render(scene, cam);
+    const div = document.createElement('div'); div.className = 'c';
+    div.innerHTML = `<img src="${r.domElement.toDataURL()}"><div>${name} · ${size.x.toFixed(2)}×${size.y.toFixed(2)}×${size.z.toFixed(2)}</div>`;
+    document.getElementById('g').appendChild(div);
+    scene.remove(g);
+}
+document.title += ' — xong';
+</script>
+</body>
+</html>

@@ -23,6 +23,7 @@ const WD = require('./game/world.js');   // Bản đồ thế giới: màn ngang
 
 const app = express();
 const server = http.createServer(app);
+if (typeof module !== 'undefined') module.exports = server; // Desktop startup errors; tests also run this in a VM.
 const io = new Server(server);
 const PORT = process.env.npm_lifecycle_event === 'dev' ? 3000 : (process.env.PORT || 3000);   // npm run dev: vite (5173) chuyển socket sang 3000
 
@@ -6820,7 +6821,8 @@ function checkPrologue(room) {
     io.to(room.id).emit('prologueEnd', {});
 }
 
-server.listen(PORT, () => {
+// Bản cài trên máy (electron/main.cjs) đặt LOC_HOST=127.0.0.1: chỉ mở trong máy -> Windows không hỏi tường lửa
+server.listen(PORT, process.env.LOC_HOST || undefined, () => {
     console.log(`Legend of Capsules is running at http://localhost:${PORT}`);
 });
 

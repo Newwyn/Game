@@ -2,7 +2,8 @@
 // Bản đồ 3D — đồ trang trí đặc trưng 7 vùng, hiệu ứng sức sống (chim, thú nhỏ, bóng cây, nước, hạt bay) & vẽ ô nhảy
 // ============================================================
 import * as THREE from 'three';
-import { uTime, uHeroPos, uQuality, patchMaterial } from './assets.js';
+import { MESHY_HAS, MESHY_ON, meshyPut } from './meshy.js';
+import { uTime, uHeroPos, uQuality, patchMaterial, PAINT } from './assets.js';
 
 const Y = new THREE.Vector3(0, 1, 0);
 
@@ -54,6 +55,7 @@ function canopyShadowTexture() {
 export const EXTRA_BUILD = {
     /** Kho thóc nhỏ kê sàn gỗ cao (Outskirts) */
     granary(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'prop_granary', x, z, 3.2, r, [x - 1.2, z - 1.2, x + 1.2, z + 1.2])) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
         [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]].forEach(([dx, dz]) => {
@@ -68,6 +70,7 @@ export const EXTRA_BUILD = {
     },
     /** Xe goòng chở quặng ở mỏ đá (Outskirts) */
     mineCart(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'prop_minecart', x, z, 1.0, r)) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
         add(new THREE.BoxGeometry(0.85, 0.48, 0.62), ctx.lam(0x4a4e54), 0, 0.38, 0);
@@ -86,6 +89,7 @@ export const EXTRA_BUILD = {
     },
     /** Đống quặng lấp lánh ở mỏ đá (Outskirts) */
     orePile(ctx, x, z, color = 0xd4a038) {
+        if (meshyPut(ctx, 'prop_orepile', x, z, 0.85, (x + z) % 6.28)) return;   // (14/11) Meshy
         const rockMat = ctx.lam(0x6e6b64);
         const oreMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.22, roughness: 0.45, flatShading: true });
         patchMaterial(oreMat, { sway: 0, occlude: true, cloud: true });
@@ -197,6 +201,7 @@ export const EXTRA_BUILD = {
 
     /** Cột mốc đá ven Đường Vương Đạo */
     milestone(ctx, x, z) {
+        if (meshyPut(ctx, 'prop_milestone', x, z, 1.1, 0)) return;   // (14/11) Meshy
         mesh(ctx, new THREE.BoxGeometry(0.52, 0.18, 0.52), ctx.lam(0x8a857a), x, 0.09, z);
         mesh(ctx, new THREE.BoxGeometry(0.36, 0.82, 0.28), ctx.lam(0xb5afa2), x, 0.56, z);
         mesh(ctx, new THREE.CylinderGeometry(0.18, 0.18, 0.28, 8), ctx.lam(0xb5afa2), x, 0.97, z).rotation.x = Math.PI / 2;
@@ -205,6 +210,7 @@ export const EXTRA_BUILD = {
     },
     /** Xe hàng hỏng ven đường (Đường Vương Đạo) */
     brokenCart(ctx, x, z, r = 0.35) {
+        if (meshyPut(ctx, 'prop_cart', x, z, 1.1, r)) return;   // (14/11) Meshy
         ctx.B.put('town/cart', x, 0.05, z, r, 1.25);
         ctx.B.put('town/wheel', x + 0.85, 0.08, z + 0.35, r + 0.8, 1.2);
         ctx.B.put('survival/box', x - 0.65, 0, z + 0.45, 0.4, 2.0);
@@ -217,6 +223,7 @@ export const EXTRA_BUILD = {
     },
     /** Lửa trại đang cháy bập bùng + khói ấm (Đường Vương Đạo) */
     campfireLit(ctx, x, z) {
+        if (MESHY_ON && MESHY_HAS.has('prop_campfire')) { meshyPut(ctx, 'prop_campfire', x, z, 1.0, 0); const l = new THREE.PointLight(0xff9a40, 1.4, 6, 2); l.position.set(x, 0.8, z); ctx.group.add(l); ctx.anim.push((t) => { l.intensity = 1.3 + Math.sin(t * 11) * 0.2 + Math.sin(t * 7.3) * 0.15; }); return; }   // (14/11) Meshy
         ctx.B.put('nature/campfire_stones', x, 0, z, 0, 1.9);
         ctx.B.put('nature/campfire_logs', x, 0.04, z, 0.4, 1.85);
         const fMat1 = new THREE.MeshBasicMaterial({ color: 0xff6b1a });
@@ -238,6 +245,7 @@ export const EXTRA_BUILD = {
     },
     /** Đuốc lửa ven đường / đầu cầu (Đường Vương Đạo) */
     roadTorch(ctx, x, z) {
+        if (MESHY_ON && MESHY_HAS.has('prop_torch')) { meshyPut(ctx, 'prop_torch', x, z, 2.0, 0); const l = new THREE.PointLight(0xffa040, 1.1, 5, 2); l.position.set(x, 2.0, z); ctx.group.add(l); ctx.anim.push((t) => { l.intensity = 1 + Math.sin(t * 9 + x) * 0.15; }); return; }   // (14/11) Meshy
         mesh(ctx, new THREE.CylinderGeometry(0.06, 0.08, 1.55, 6), ctx.lam(0x5a3a1e), x, 0.77, z);
         mesh(ctx, new THREE.CylinderGeometry(0.14, 0.09, 0.16, 6), ctx.lam(0x3a3d42), x, 1.55, z);
         const flame = mesh(ctx, new THREE.ConeGeometry(0.12, 0.32, 5), new THREE.MeshBasicMaterial({ color: 0xffaa2b }), x, 1.74, z);
@@ -249,6 +257,7 @@ export const EXTRA_BUILD = {
     },
     /** Giá giáo mác & khiên ở trạm gác (Đường Vương Đạo) */
     weaponRack(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'prop_weaponrack', x, z, 1.6, r)) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const wood = ctx.lam(0x6a4526), steel = ctx.lam(0xb8c2cc), shield = ctx.lam(0xc0392b), gold = ctx.lam(0xf1c40f);
         const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
@@ -264,6 +273,7 @@ export const EXTRA_BUILD = {
 
     /** Tượng hiệp sĩ trên bệ đá cẩm thạch (Kinh thành Valoria) */
     statue(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'town_statue', x, z, 2.4, r)) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const stone = ctx.lam(0xdcd6c8), marble = ctx.lam(0xede9df), gold = ctx.lam(0xd4af37);
         const add = (geo, mat, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
@@ -281,6 +291,7 @@ export const EXTRA_BUILD = {
     },
     /** Chậu cây cắt tỉa hoàng gia (Kinh thành Valoria) */
     topiary(ctx, x, z, shape = 'sphere') {
+        if (meshyPut(ctx, 'town_topiary', x, z, 1.5, 0)) return;   // (14/11) Meshy
         ctx.B.put('nature/pot_large', x, 0, z, 0, 1.55);
         const leafMat = ctx.lam(0x3b8c3b);
         if (shape === 'cone') {
@@ -293,6 +304,7 @@ export const EXTRA_BUILD = {
     },
     /** Ghế đá chạm khắc (Kinh thành / Vùng Elf) */
     stoneBench(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'town_bench', x, z, 0.9, r)) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const mat = ctx.lam(0xd8d2c5);
         const add = (geo, px, py, pz) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
@@ -304,6 +316,7 @@ export const EXTRA_BUILD = {
     },
     /** Cờ phướn hoàng gia đung đưa nhẹ theo gió (Kinh thành) */
     royalBanner(ctx, x, z, color = 0x3f6fc6) {
+        if (meshyPut(ctx, 'town_banner', x, z, 2.6, 0)) return;   // (14/11) Meshy
         mesh(ctx, new THREE.CylinderGeometry(0.06, 0.07, 2.5, 6), ctx.lam(0x5a3e28), x, 1.25, z);
         mesh(ctx, new THREE.BoxGeometry(0.75, 0.07, 0.07), ctx.lam(0xd4af37), x, 2.42, z);
         const piv = new THREE.Group(); piv.position.set(x, 2.4, z + 0.06); ctx.group.add(piv);
@@ -317,6 +330,7 @@ export const EXTRA_BUILD = {
 
     /** Đèn lồng treo phát sáng kiểu Elf (Sylvaren / Lunaria) */
     elfLantern(ctx, x, z, color = 0x7ef9ff) {
+        if (MESHY_ON && MESHY_HAS.has('prop_elflantern')) { meshyPut(ctx, 'prop_elflantern', x, z, 2.2, 0); const l = new THREE.PointLight(color, 0.8, 4, 2); l.position.set(x, 1.8, z); ctx.group.add(l); return; }   // (14/11) Meshy
         const wood = ctx.lam(0x6e5544), gold = ctx.lam(0xd8c398);
         mesh(ctx, new THREE.CylinderGeometry(0.06, 0.09, 2.15, 6), wood, x, 1.07, z);
         const arm = mesh(ctx, new THREE.BoxGeometry(0.62, 0.07, 0.07), wood, x + 0.26, 2.12, z);
@@ -347,6 +361,7 @@ export const EXTRA_BUILD = {
     },
     /** Cột đá khắc cổ ngữ phát sáng (Sylvaren / Lunaria) */
     runePillar(ctx, x, z, color = 0x6ee7ff) {
+        if (meshyPut(ctx, 'prop_runepillar', x, z, 2.2, (x * 2 + z) % 6.28)) return;   // (14/11) Meshy
         ctx.B.put('nature/statue_obelisk', x, 0, z, 0, 1.85);
         const runeMat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.85, roughness: 0.3 });
         patchMaterial(runeMat, { sway: 0, occlude: true, cloud: false });
@@ -359,6 +374,7 @@ export const EXTRA_BUILD = {
     },
     /** Cụm pha lê phát sáng (Sylvaren / Lunaria) */
     crystalCluster(ctx, x, z, color = 0x64dfdf, s = 1) {
+        if (MESHY_ON && MESHY_HAS.has('prop_crystal')) { meshyPut(ctx, 'prop_crystal', x, z, 1.2 * s, (x + z * 2) % 6.28); const l = new THREE.PointLight(color, 0.7, 3.5, 2); l.position.set(x, 0.9 * s, z); ctx.group.add(l); return; }   // (14/11) Meshy
         const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.55, roughness: 0.2, flatShading: true });
         patchMaterial(mat, { sway: 0, occlude: true, cloud: false });
         const shards = [
@@ -378,6 +394,7 @@ export const EXTRA_BUILD = {
     },
     /** Cổng vòm đá cổ ngữ Elf (Sylvaren / Lunaria) */
     moonArch(ctx, x, z, r = 0) {
+        if (meshyPut(ctx, 'prop_moonarch', x, z, 3.8, r)) return;   // (14/11) Meshy
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; ctx.group.add(g);
         const stone = ctx.lam(0xe4ddd3), glow = new THREE.MeshStandardMaterial({ color: 0x8ef9ff, emissive: 0x56cfe1, emissiveIntensity: 0.75 });
         patchMaterial(glow, { sway: 0, occlude: true, cloud: false });
@@ -467,7 +484,9 @@ export function buildJumpFeatures(ctx, map, terrain, H_AT, gapSet, stoneSet) {
                     mesh(ctx, new THREE.BoxGeometry(sx, 0.28, sz), bankMat, cx + dx * 0.44, -0.1, cz + dz * 0.44);
                 }
             }
-            if (isStream) {
+            if (isStream && PAINT) {
+                // nước kiểu tranh vẽ đã phủ cả lòng suối (build.js) -> không đặt tấm nước + vạch bọt riêng từng ô
+            } else if (isStream) {
                 const wPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.96), streamMat);
                 wPlane.rotation.x = -Math.PI / 2;
                 wPlane.position.set(cx, -0.26, cz);
@@ -508,7 +527,7 @@ export function buildJumpFeatures(ctx, map, terrain, H_AT, gapSet, stoneSet) {
         const list = [];
         map.stones.forEach(([sx, sz], i) => {
             const cx = sx + 0.5, cz = sz + 0.5;
-            if (T(sx, sz) !== 'w') {
+            if (T(sx, sz) !== 'w' && !PAINT) {
                 const wp = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.02), wPatchMat);
                 wp.rotation.x = -Math.PI / 2; wp.position.set(cx, -0.31, cz);
                 ctx.group.add(wp);

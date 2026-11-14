@@ -58,6 +58,7 @@ test('Valoria buildings and props have reserved ground', async () => {
             const glb=JSON.parse(file.subarray(20,20+file.readUInt32LE(12)).toString());
             const bounds=glb.accessors[0],s=opt.s??1;
             if(name.endsWith('bridge_stone')) continue;
+            if(name.startsWith('meshy/') && opt.cover) { cover(...opt.cover); continue; }   // mô hình Meshy: cỡ gốc tuỳ ý (game tự quy về cao 1 ô) -> dùng khung cover
             cover(x+bounds.min[0]*s,y+bounds.min[2]*(opt.sz??s),x+bounds.max[0]*s,y+bounds.max[2]*(opt.sz??s));
         }
     }
@@ -107,8 +108,9 @@ test('Valoria has dense terraces and visible, varied street furniture', async ()
         assert.equal(m.grid[Math.floor(y)][Math.floor(x)],'#',`hidden prop ${name} ${cell}`);
         assert.ok(!occupied.has(cell),`prop inside house ${name} ${cell}`);
     }
-    assert.equal(props.filter(i=>i[1]==='custom/well').length,2);
-    assert.ok(props.filter(i=>i[1].includes('town_stall_')).length>=10);
+    // (14/11/2026) giếng / sạp có thể là mô hình Meshy (meshy/town_well, meshy/town_stall)
+    assert.equal(props.filter(i=>/^(custom\/well|meshy\/town_well)$/.test(i[1])).length,2);
+    assert.ok(props.filter(i=>/town_stall/.test(i[1])).length>=10);
     // North and south market rows leave at least two uninterrupted aisle rows.
     for(const y of [20,21]) for(let x=25;x<48;x++) assert.equal(m.grid[y][x],'.');
     for(const [,name,x,y,opt] of CAPITAL_ITEMS.filter(i=>i[1]==='custom/town_bridge_stone')) {

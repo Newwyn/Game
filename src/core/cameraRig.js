@@ -7,6 +7,25 @@
 import { settings } from './settings.js';
 import * as THREE from 'three';
 import { camera, renderer, scene, keepShaders } from './scene.js';
+import { battleAutoLower, battlePixelRatio, createFpsWatch } from './gpu.js';
+
+// ---------- (14/11/2026) Đồ hoạ trận "Tự động": đo khung hình/giây (trung bình 3 giây, bỏ qua lúc mới vào trận / bị khựng / tab ẩn),
+//   dưới 40 khung/giây thì hạ độ nét 1 bậc (gpu.js battleAutoLower) + báo nhỏ trên màn hình ----------
+function autoNotice(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    d.style.cssText = 'position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:60;padding:8px 14px;border-radius:10px;background:rgba(15,20,35,.88);color:#ffe9a8;font:600 13px system-ui;pointer-events:none;transition:opacity .6s';
+    document.body.appendChild(d);
+    setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 700); }, 3200);
+}
+const perf = createFpsWatch((fps) => {
+    if (!battleAutoLower()) return false;
+    renderer.setPixelRatio(battlePixelRatio()); renderer.setSize(window.innerWidth, window.innerHeight);
+    autoNotice(`⚡ Máy hơi chậm (${Math.round(fps)} khung/giây) — đã tự giảm đồ hoạ trận cho mượt`);
+    return true;
+});
+if (import.meta.env?.DEV) window.__battlePerf = perf;   // chỉ khi chạy thử: xem số đo
+const samplePerf = (now) => perf.sample(now, document.hidden);
 
 export const CAMERA_MODES = {
     combat:  { pitchDeg: 14, fov: 38, lookHeight: 1.3, minDist: 13, maxDist: 30, margin: 4 },
@@ -147,6 +166,7 @@ export const cameraRig = {
         camera.position.x += ox; camera.position.y += oy;
         renderer.render(scene, camera);
         keepShaders();
+        samplePerf(performance.now());
         camera.position.x -= ox; camera.position.y -= oy;
     },
 };

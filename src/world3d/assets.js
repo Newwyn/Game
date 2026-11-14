@@ -5,6 +5,7 @@
 // ============================================================
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 const URLS = import.meta.glob('../assets/world3d/**/*.glb', { query: '?url', import: 'default', eager: true });   // chỉ là đường dẫn, mô hình tải khi cần
 export const uTime = { value: 0 };   // thời gian chung cho cỏ cây lay gió
@@ -148,15 +149,15 @@ export function addSway(mat, amp) {
     return patchMaterial(mat, { sway: amp, occlude: true, cloud: true });
 }
 
-const RICH_KITS = new Set(['village', 'qnature', 'dungeon']);
-const loader = new GLTFLoader();
+const RICH_KITS = new Set(['village', 'qnature', 'dungeon', 'meshy']);   // meshy (14/11/2026): mô hình Meshy dựng từ tranh Codex vẽ — art/battle3d
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);   // mô hình Meshy đã nén meshopt (tools/meshy_pack.mjs)
 const protos = new Map();      // khoá 'bộ/tên' -> parts gốc
 const variants = new Map();    // 'bộ/tên@biến thể' -> parts
 const mats = new Map();        // 'bộ:tên vật liệu' -> material đã chỉnh
 const loading = new Map();
 
 function fixMaterial(kit, mat, roofPart = false) {
-    const key = kit + ':' + mat.name + (roofPart ? ':roof' : '');
+    const key = kit + ':' + (kit === 'meshy' ? mat.uuid : mat.name) + (roofPart ? ':roof' : '');   // Meshy: mọi mô hình đều tên 'BakedMaterial' -> phân biệt theo từng vật liệu
     if (mats.has(key)) return mats.get(key);
     const m = mat.clone();
     m.metalness = 0; m.roughness = 0.9;
@@ -180,6 +181,21 @@ function fixMaterial(kit, mat, roofPart = false) {
     return m;
 }
 
+/** Mô hình nén meshopt (tools/meshy_pack.mjs) lưu toạ độ dạng SỐ NGUYÊN chuẩn hoá (KHR_mesh_quantization) + phép phóng ở nút.
+ *  Phải đổi về số thực TRƯỚC khi gộp phép phóng vào hình (applyMatrix4), nếu không toạ độ vượt [-1, 1] bị kẹt lại
+ *  -> mô hình méo thành cột sọc (lỗi 14/11/2026: cây trong trận thành "cột tre", đống rơm thành cục tròn). */
+function toFloat(geo) {
+    for (const name of Object.keys(geo.attributes)) {
+        const a = geo.attributes[name];
+        if (!a.isInterleavedBufferAttribute && !a.normalized && a.array instanceof Float32Array) continue;
+        const n = a.count, s = a.itemSize, arr = new Float32Array(n * s);
+        const get = [a.getX, a.getY, a.getZ, a.getW];
+        for (let i = 0; i < n; i++) for (let j = 0; j < s; j++) arr[i * s + j] = get[j].call(a, i);
+        geo.setAttribute(name, new THREE.BufferAttribute(arr, s));
+    }
+    return geo;
+}
+
 async function loadOne(key) {
     if (protos.has(key)) return;
     if (!loading.has(key)) {
@@ -191,9 +207,14 @@ async function loadOne(key) {
             const kit = key.split('/')[0], parts = [];
             g.scene.traverse(o => {
                 if (!o.isMesh) return;
-                const geo = o.geometry.clone(); geo.applyMatrix4(o.matrixWorld);
+                const geo = toFloat(o.geometry.clone()); geo.applyMatrix4(o.matrixWorld);
                 parts.push({ geo, mat: fixMaterial(kit, o.material, /\/(Roof_|Prop_Chimney)/.test(key)) });   // mọi mảnh của mô hình MÁI (ngói, xà gỗ, đầu hồi) + ống khói: cùng cắt mở quanh nhân vật
             });
+            if (kit === 'meshy' && parts.length) {   // Meshy: cỡ / gốc tuỳ ý -> chân chạm đất, tâm giữa, cao đúng 1 ô (tham số s = chiều cao tính bằng ô)
+                const box = new THREE.Box3(); for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); }
+                const k = 1 / Math.max(1e-6, box.max.y - box.min.y), cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2;
+                for (const p of parts) { p.geo.translate(-cx, -box.min.y, -cz); p.geo.scale(k, k, k); p.geo.computeBoundingSphere(); }
+            }
             protos.set(key, parts);
         })().catch(e => { console.warn('[world3d] lỗi nạp', key, e); protos.set(key, []); }));
     }

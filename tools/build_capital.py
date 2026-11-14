@@ -119,16 +119,20 @@ def prop(name,x,z,s=.48,r=0,**opts):
     assert (int(x),int(y)) not in protected|doors,(name,x,y)
     assert plan[int(y)][int(x)] not in 'HWwB',(name,x,y)
     plan[int(y)][int(x)]='D'
+    if name.startswith('meshy/') and 'cover' not in opts:   # mô hình Meshy: khung chỗ đứng = các ô D đã giữ (sạp 2x2, đài phun nước 3x3, còn lại 1 ô)
+        half=1.5 if 'fountain' in name else 1.0 if 'stall' in name else .5
+        opts['cover']=[x-half,y-half,x+half,y+half]
     PROPS.append(['model',name if '/' in name else 'custom/town_'+name,x,y,dict(s=s,r=r,**opts)])
 # Ten stalls, two rows, six clear tiles between their inner edges.
 for y in (17,26):
     for i,x in enumerate((26,30,38,42,46)):
         for yy in (y,y+1):
             for xx in (x,x+1): plan[yy][xx]='D'
-        prop('stall_'+('fruit','bread','cloth','fish')[i%4],x+1,y+1,.62)
+        if i%2==0: prop('meshy/town_stall',x+1,y+1,1.7)   # (14/11) xen sạp Meshy với sạp cũ
+        else: prop('stall_'+('fruit','bread','cloth','fish')[i%4],x+1,y+1,.62)
 for yy in range(23,26):
     for xx in range(38,41): plan[yy][xx]='D'
-prop('fountain',39.5,24.5,.8)
+prop('meshy/town_fountain',39.5,24.5,2.2)   # (14/11) đài phun nước sư tử (Meshy)
 # Quays: one tile deep, interrupted only at the six-tile bridge decks.
 for y in (29,32):
     for x in range(2,70):
@@ -140,9 +144,10 @@ for x in (9,19,31,41,66):
 for x,y in ((30,35),(55,39)):
     
     if plan[y][x] in 'sgt':
-        protected.discard((x,y)); prop('custom/well',x+.5,y+.5,.45)
+        protected.discard((x,y)); prop('meshy/town_well',x+.5,y+.5,1.35)
 for x,y in ((27,23),(45,23),(38,39)):
-    prop('statue' if x==27 else 'noticeboard',x+.5,y+.5,.42)
+    if x==27: prop('meshy/town_statue',x+.5,y+.5,1.9)
+    else: prop('noticeboard',x+.5,y+.5,.42)
 # Lamps mark both avenues at six tile intervals, with trees between them.
 for y in (19,23):
     for x in range(5,70,6):
@@ -164,7 +169,9 @@ for y in (3,10,11,14,15,18,19,23,27,34,37,39,40):
         elif y>=34: kinds=['woodpile','laundry','haybale','barrels','flowerpots','sacks']
         else: kinds=['barrels','crates','sacks','planter_a','bench','lamp_post']
         name=kinds[(x//2+y)%len(kinds)]
-        prop(name,x+.5,y+.5,.22 if name=='laundry' else .38)
+        MESHY_PROP={'statue':('meshy/town_statue',1.5),'planter_a':('meshy/town_topiary',.85),'planter_b':('meshy/town_planter',.5)}
+        if name in MESHY_PROP: prop(*((MESHY_PROP[name][0],x+.5,y+.5,MESHY_PROP[name][1])))
+        else: prop(name,x+.5,y+.5,.22 if name=='laundry' else .38)
 for x,y in ((32,40),(42,36),(68,19),(24,24)):
     if plan[y][x] in 'sgt': prop('cart_goods' if x%2==0 else 'cart_hay',x+.5,y+.5,.35)
 for x,y in ((30,17),(42,17),(33,11),(38,35)):
@@ -224,8 +231,17 @@ STYLE = dict(trees=['nature/tree_oak','nature/tree_default'], sky=0xc8d4df,
 
 def layout():
     items=[];detail=[]
+    # (14/11/2026) công trình riêng = mô hình Meshy dựng từ tranh (art/battle3d/bld_*.png); s = chiều cao (ô)
+    LANDMARK={(4,13):('meshy/bld_cathedral',8.0),(32,4):('meshy/bld_palace',8.8),(4,4):('meshy/bld_archive',6.0)}
+    # nhà dãy đặc biệt: nhà chợ cạnh chợ lớn, quán trọ, lò rèn khu phường hội (cùng khung 3 ô, chỉ đổi hình)
+    HOUSE_LM={(48,16):('meshy/bld_markethall',3.4),(48,24):('meshy/bld_tavern',3.7),(66,12):('meshy/bld_smithy',3.0)}
     for kind, source in BUILDINGS:
         b=source.copy()
+        lm=(LANDMARK if kind=='hall' else HOUSE_LM if kind=='house' else {}).get((b.get('x0'),b.get('z0')))
+        if lm:
+            cx,cz=(b['x0']+b['x1'])/2,(b['z0']+b['z1'])/2
+            items.append(['model',lm[0],cx,cz,dict(s=lm[1],r=0,cover=[b['x0'],b['z0'],b['x1'],b['z1']])])
+            continue
         if kind=='hall':
             b.update(wall=0xe3d6b6,roof=0x626a76,h=4 if b['x0']==32 else 3.5,roofH=1.6)
         items.append([kind,b])
@@ -244,8 +260,7 @@ def layout():
             x=end
     for x,y in [(1,1),(71,1),(1,43),(71,43),(32.5,43),(39.5,43),(71,18),(71,25)]:
         items.append(['vtower',x,y,dict(r=.9,h=4.2)])
-    items += [['spire',8,15,dict(w=2,h=7)],['spire',10,15,dict(w=2,h=6)],
-              ['spire',42,6,dict(w=2,h=6.5)],['vtower',33.5,5.5,dict(r=1.3,h=5)],
+    items += [['vtower',33.5,5.5,dict(r=1.3,h=5)],
               ['vtower',50.5,5.5,dict(r=1.3,h=5)]]
     # Six-tile bridge decks widen around a visible planter traffic island.
     # The model anchor and planter share that blocked tile; all passage cells
@@ -290,7 +305,7 @@ def render(m,extra):
         X,Y=int(x*S),int(y*S)
         if 'stall' in name:
             d.rectangle((X-14,Y-12,X+14,Y+12),fill='#6f4430',outline='#4d4339')
-            for k in range(7):d.rectangle((X-14+k*4,Y-12,X-11+k*4,Y+4),fill='#e4c98d' if k%2 else {'fruit':'#9d5142','bread':'#b38c46','cloth':'#786080','fish':'#507d95'}[name.rsplit('_',1)[1]])
+            for k in range(7):d.rectangle((X-14+k*4,Y-12,X-11+k*4,Y+4),fill='#e4c98d' if k%2 else {'fruit':'#9d5142','bread':'#b38c46','cloth':'#786080','fish':'#507d95'}.get(name.rsplit('_',1)[1],'#b0413a'))
         elif 'fountain' in name:
             d.ellipse((X-20,Y-20,X+20,Y+20),fill='#e1d8c0',outline='#77776f',width=3)
             d.ellipse((X-15,Y-15,X+15,Y+15),fill='#739daa');d.ellipse((X-5,Y-5,X+5,Y+5),fill='#e4ddc7')

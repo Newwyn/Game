@@ -14,6 +14,18 @@ import { PAINT } from '../world3d/assets.js';   // demo: sân đấu dựng bằ
 import PAINTED from '../assets/battle/battle_bg.json';
 const BG_URL = import.meta.glob('../assets/battle/*.webp', { eager: true, import: 'default' });   // chỉ là đường dẫn, tải khi cần
 const loader = new THREE.TextureLoader();
+// (14/11/2026) mặt sân vẽ tay (Codex, ô lát liền): src/assets/battle3d/<bộ>_ground.webp — dùng cho cảnh 3D cùng bộ phông
+const GROUND3D_URL = import.meta.glob('../assets/battle3d/*_ground.webp', { eager: true, import: 'default' });
+const GROUND3D_OF = { forest: 'forest', square: 'town', market: 'town', castle: 'town', gate: 'town', well: 'town', meadow: 'forest', field: 'forest' };
+function ground3d(key) {
+    const url = GROUND3D_URL[`../assets/battle3d/${GROUND3D_OF[key]}_ground.webp`];
+    if (!url) return null;
+    const t = loader.load(url);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+    const n = GROUND3D_OF[key] === 'town' ? 2 : 1;   // đá lát: viên nhỏ hơn (lặp dày gấp đôi) cho vừa cỡ nhân vật
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(22 * n, 14 * n);   // 1 ô ảnh ≈ 10 đơn vị sân
+    return t;
+}
 
 // Server ARENA_BOUNDS: x +/-48, z +/-13. Every solid prop stays beyond it.
 const cache = new Map();
@@ -185,7 +197,7 @@ export function createTheme(key, weak = false) {
         const { rear, foreground } = createModelScene(key), root = new THREE.Group();
         root.add(rear, foreground); root.visible = false;
         root.traverse(o => { o.userData.persistent = true; });   // không bị dọn khi vào trận mới
-        return { key, root, foreground, map: groundTexture(profile), profile, background: new THREE.Color(profile.sky),
+        return { key, root, foreground, map: ground3d(key) ?? groundTexture(profile), profile, background: new THREE.Color(profile.sky),
             fog: new THREE.Fog(profile.sky, Math.max(profile.near, 34), Math.max(profile.far, 96)), metrics: { buildMs: +(performance.now() - start).toFixed(2), model3d: true } };
     }
     if (PAINTED[key] && typeof document !== 'undefined') return createPainted(key, profile, start);
