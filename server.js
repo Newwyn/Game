@@ -448,6 +448,43 @@ const CLASS_DEFS = {
             { name: 'Giáp Độc', type: 'goblin_ward', talent: 2, threshold: 0.5, cooldown: 20000, duration: 8000, radius: 3.5, stun: 1000, burstStacks: 2, hitStacks: 1, levels: { drain: [0.3, 0.4] }, desc: 'Máu dưới 50%: giáp độc = 100% máu đã mất (8s) · ai đánh Grix dính Độc · sát thương Độc hồi máu {drain%} · giáp nổ: +2 tầng Độc + choáng 1s quanh mình · hồi 20s' },
         ]
     },
+    // Nyx (Hư Không) — class PHÙ THỦY, tộc Goblin: pháp sư thuần sát thương, chiêu lớn NIỆM LÂU (4–5 giây) đổi lại rất mạnh.
+    //   Niệm kiểu "kênh": bấm là bắt đầu ngay (castTime 0), Nyx đứng niệm hết `channel` ms (= lock); các đợt sát thương rơi TRONG lúc niệm.
+    //   Bị choáng lúc niệm (khi chưa có Vỏ Hư Không) hoặc gục -> các đợt chưa rơi bị huỷ. Luật trận: castVoidSkill / processVoid.
+    voidmage: {
+        name: 'Nyx', title: 'Hư Không', className: 'Phù Thủy', emoji: '🌌', color: '#6d28d9', dmgType: 'magic',
+        classGroup: 'mage', race: 'goblin',
+        maxHp: 900, maxMp: 5000, pAtk: 0, mAtk: 230, pDef: 35, mDef: 80,
+        crit: 150, critDmg: 500, acc: 1000, dodge: 110, pen: 100, block: 0, lifesteal: 0, threat: 100,
+        mpAtk: 200, mpSec: 130, atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01,
+        autoHitFrame: 2, autoImpact: 400,   // ms: giơ gậy + tia Hư Không nhỏ bay tới
+        skills: [
+            // Ma Đạn Tinh Tú: chùm 5 tia tím bay vòng tới 1 mục tiêu (ưu tiên anh hùng địch nhiều Orb nhất, không có thì mục tiêu đang đánh).
+            //   Trúng: ×2.2 + đốt ngẫu nhiên 1–2 Orb. 0,4s sau cú trúng Mana Burst nổ 9 nhịp (cách nhau 65ms), mỗi nhịp ×0.12 lên mục tiêu + đối thủ trong bán kính 3
+            { name: 'Ma Đạn Tinh Tú', orbCost: 1, cooldown: 7000, castTime: 0, type: 'void_missiles', castRange: 14, multiplier: 2.2,
+              burnMin: 1, burnMax: 2, burstHits: 9, burstDelay: 400, burstGap: 65, burstMultiplier: 0.12, burstRadius: 3, impact: 600, lock: 700 },
+            // Sao Rơi: niệm 5s — từ giây thứ 3 có 4 đợt sao (3,0 / 3,5 / 4,0 / 4,5s), mỗi đợt ×0.9 trong bán kính 5.5 + choáng 0,5s; đợt 2 và 4 chắc chắn chí mạng.
+            //   Vùng rơi = chỗ đông đối thủ nhất, chọn lúc đợt đầu sắp rơi (giây thứ 3)
+            { name: 'Sao Rơi', orbCost: 2, cooldown: 16000, castTime: 0, type: 'void_starfall', castRange: 18, channel: 5000,
+              waveTimes: [3000, 3500, 4000, 4500], tickMultiplier: 0.9, radius: 5.5, stun: 500, critWaves: [2, 4], impact: 0, lock: 5000 },
+            // Hố Đen: niệm 4s — hố đen mở ở chỗ đông đối thủ nhất, suốt 4s hút đối thủ trong bán kính 8 về tâm (3 ô / giây; miễn khống chế thì không bị hút).
+            //   Xúc tu bóng tối quất 3 đợt (1,2 / 2,4 / 3,6s), mỗi đợt ×1.1 trong bán kính 4 quanh tâm — chiêu mặt đất: không trúng mục tiêu đang bay
+            { name: 'Hố Đen', orbCost: 3, cooldown: 24000, castTime: 0, type: 'void_blackhole', castRange: 16, channel: 4000,
+              pullRadius: 8, pullSpeed: 3, lashTimes: [1200, 2400, 3600], tickMultiplier: 1.1, lashRadius: 4, impact: 0, lock: 4000 },
+        ],
+        passives: [
+            // Thiên phú 1 — Xói Mòn Hư Không: mỗi ĐỢT chiêu trúng (cú trúng Ma Đạn, mỗi đợt sao, mỗi đợt xúc tu — 9 nhịp Mana Burst KHÔNG tính)
+            //   -> mục tiêu −thủ phép, cộng dồn 5 lần, giữ 8s · đối thủ gục: +8% M.ATK (tối đa 5 lần) · đồng minh gục: +15% chí mạng, +30% sát thương chí mạng
+            //   (tối đa 3 lần). Triệu hồi của cả 2 phe không tính
+            { name: 'Xói Mòn Hư Không', type: 'void_erosion', talent: 1, maxStacks: 5, duration: 8000, killMAtk: 0.08, killMax: 5,
+              allyCrit: 150, allyCritDmg: 300, allyMax: 3, levels: { value: [0.06, 0.08, 0.10] },
+              desc: 'Mỗi đợt chiêu trúng (Ma Đạn, mỗi đợt Sao Rơi, mỗi đợt xúc tu): mục tiêu −{value%} thủ phép, cộng dồn 5 lần, giữ 8s · mỗi đối thủ gục: +8% M.ATK (tối đa 5 lần, tới hết trận) · mỗi đồng minh gục: +15% tỉ lệ chí mạng và +30% sát thương chí mạng (tối đa 3 lần) · triệu hồi không tính' },
+            // Thiên phú 2 — Vỏ Hư Không: lúc niệm Sao Rơi / Hố Đen có quả cầu đen bọc: miễn khống chế (không bị ngắt niệm) + giảm sát thương nhận.
+            //   Mượn Mạng (1 lần mỗi trận): nhận đòn chí tử -> rơi vào cổng Hư Không `vanish` ms (không ai đánh được, không hành động) rồi trở lại hàng sau
+            { name: 'Vỏ Hư Không', type: 'void_shell', talent: 2, vanish: 3000, levels: { value: [0.30, 0.45], revive: [0.30, 0.50] },
+              desc: 'Đang niệm Sao Rơi / Hố Đen: quả cầu Hư Không bọc lấy Nyx — miễn khống chế (không bị ngắt niệm), nhận ít hơn {value%} sát thương · Mượn Mạng (1 lần mỗi trận): nhận đòn chí tử thì rơi vào cổng Hư Không 3s (không ai đánh được), rồi trở lại hàng sau với {revive%} máu' },
+        ]
+    },
     // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 25s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
     //   tính thắng thua) nhưng không có thẻ HUD, không được hồi sinh. Chỉ số tính theo pháp sư lúc gọi (xem summonGolem).
     //   Cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
@@ -695,7 +732,7 @@ const CLASS_DEFS = {
 
 // We will use 1 Assassins if TEST_MODE is active
 // Elarion ('elementalist'): đang dùng HÌNH TẠM (chờ tranh — art/elarion/PROMPTS.md)
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage'];
 
 // ============================================================
 // GAME STATE
@@ -759,6 +796,8 @@ function applyProgress(member, hero) {
 const MONSTER_SQUAD = [['monster_tank', 25, 0], ['monster_archer', 30, -3], ['monster_supporter', 30, 3]];
 const monsterRankFor = (L) => (L >= 60 ? 3 : L > 40 ? 2 : L > 20 ? 1 : 0);
 const _mScale = {};
+// Sức quái tính theo mức tăng trung bình của 11 anh hùng GỐC — anh hùng thêm sau (Nyx, Leon...) không làm lệch độ khó các ải đã cân
+const MONSTER_SCALE_HEROES = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner'];
 function monsterScale(level) {
     const L = Math.max(1, Math.min(P.MAX_LEVEL, level | 0));
     if (_mScale[L]) return _mScale[L];
@@ -766,7 +805,7 @@ function monsterScale(level) {
     const out = {};
     for (const [k, list] of Object.entries(keys)) {
         let sum = 0, n = 0;
-        for (const id of SQUAD_ORDER) {
+        for (const id of MONSTER_SCALE_HEROES) {
             const d = CLASS_DEFS[id];
             const a = P.computeStats(d, { level: 1, rank: 0 }), b = P.computeStats(d, { level: L, rank: monsterRankFor(L) });
             const v0 = Math.max(...list.map(x => a[x] ?? 0)), v1 = Math.max(...list.map(x => b[x] ?? 0));
@@ -1312,6 +1351,10 @@ function getEffectiveStats(member, now) {
             // Cột Lửa Phá Ma: giảm M.DEF theo số lần trúng
             stats.mDef = Math.floor(stats.mDef * (1 - Math.min(ef.maxStacks ?? 5, ef.stacks) * (ef.per ?? 0.05)));
         }
+        if (ef.type === 'void_erosion' && ef.stacks) {
+            // Xói Mòn Hư Không (Nyx): −thủ phép theo số tầng
+            stats.mDef = Math.floor(stats.mDef * (1 - Math.min(ef.maxStacks ?? 5, ef.stacks) * (ef.per ?? 0)));
+        }
         if (ef.type === 'windspirit') {
             // Thần Phong Giáng Thế: +tốc đánh, +P.ATK
             stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.atkSpeedUp ?? 0.3)));
@@ -1359,6 +1402,14 @@ function getEffectiveStats(member, now) {
             stats.atkSpeed = Math.floor(stats.atkSpeed * 0.9);
         }
     });
+
+    // Xói Mòn Hư Không (Nyx, thiên phú 1): mỗi đối thủ gục +M.ATK · mỗi đồng minh gục +tỉ lệ chí mạng, +sát thương chí mạng (tới hết trận)
+    const erosion = (member.voidKills || member.voidAllies) ? talentOf(member, 'void_erosion') : null;
+    if (erosion) {
+        stats.mAtk = Math.floor(stats.mAtk * (1 + (member.voidKills ?? 0) * erosion.killMAtk));
+        stats.crit += (member.voidAllies ?? 0) * erosion.allyCrit;
+        stats.critDmg += (member.voidAllies ?? 0) * erosion.allyCritDmg;
+    }
 
     // Ý Chí Thép (Rok + người được nối dây): máu thấp -> tăng chặn đòn (Rok còn dây: ×2)
     const iw = ironWillOf(member);
@@ -1466,7 +1517,8 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Kỹ năng đánh DƯỚI ĐẤT (ground) không trúng mục tiêu đang bay (VD Lyra khi có Vệ Thần Gió)
     if (opts.ground && isAirborne(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical };
     // Đang bị Thần Chết phán quyết (trên không) / vừa hồi sinh (Thiên Thần Hộ Mệnh, 2s): miễn mọi sát thương
-    if (isJudged(target, now) || hasReviveGuard(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, immune: true };
+    //   Nyx đang trong cổng Hư Không (Mượn Mạng): cũng miễn mọi sát thương
+    if (isJudged(target, now) || hasReviveGuard(target, now) || isVanished(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, immune: true };
     // TÀNG HÌNH (mọi kỹ năng tàng hình): chỉ trúng đòn DIỆN RỘNG (AOE); đòn đơn mục tiêu trượt
     if (!opts.aoe && isStealthed(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, stealthMiss: true };
     // Hơi Nước Bỏng (Elarion): kẻ đứng trong mây đánh trượt thêm
@@ -1545,6 +1597,9 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Thành Trì: giảm sát thương nhận
     const fort = target.statusEffects?.find(ef => ef.type === 'fortress' && ef.endTime > now);
     if (fort) damage *= 1 - (fort.reduce ?? 0.3);
+    // Vỏ Hư Không (Nyx, thiên phú 2): đang niệm Sao Rơi / Hố Đen -> nhận ít sát thương hơn
+    const shell = voidShell(target, now);
+    if (shell) damage *= 1 - (shell.value ?? 0);
     // Thánh Niệm: đồng đội của Tu Sĩ +sát thương (vật lý hay phép theo từng người)
     const bless = attacker.statusEffects?.find(ef => ef.type === 'pray_blessing' && ef.endTime > now);
     if (bless) damage *= 1 + (bless.dmgUp ?? 0);
@@ -1613,6 +1668,7 @@ function isStealthed(m, now) {
 function canBeTargeted(m, now) {
     if (!m.alive) return false;
     if (isJudged(m, now)) return false;   // đang bị Thần Chết nhấc lên không trung
+    if (isVanished(m, now)) return false; // Nyx đang trong cổng Hư Không (Mượn Mạng)
     if (m.hp - (m.pendingDmg || 0) <= 0 && !reaperForm(m, now)) return false; // đã trúng đòn chí tử đang bay tới -> bỏ qua, đánh con khác (Đêm Tử Thần: không chết)
     const stealthInfo = m.statusEffects.find(ef => ef.type === 'stealth');
     return !(stealthInfo && stealthInfo.endTime > now);
@@ -2731,6 +2787,8 @@ function startBattleLoop(roomId) {
                 // Rok: dây liên kết + Ý Chí Thép (hồi máu theo giây) · Ignar: Giáp Lửa hết -> nổ choáng
                 processIronWill(roomId, playerId, memberIndex, now);
                 processFireWard(roomId, playerId, memberIndex, opponentId, now);
+                // Nyx: Hố Đen hút đối thủ về tâm · Vỏ Hư Không gỡ khống chế lúc niệm · đang trong cổng Hư Không (Mượn Mạng): không hành động
+                if (processVoid(room, playerId, memberIndex, opponentId, now)) return;
                 // Đang bị Thần Chết phán quyết: lơ lửng, không làm gì, không nhận hiệu ứng mới
                 if (processJudged(member, now)) return;
 
@@ -2781,6 +2839,7 @@ function startBattleLoop(roomId) {
                     if (isDancing(member, now)) endDances(roomId, playerId, memberIndex, opponentId, now, 'stun');   // Nerissa: dừng mọi điệu múa
                     if (rainOf(member, now)) endRain(room, playerId, memberIndex, 'stun');   // Elarion: ngắt mưa giông
                     if (beamOf(member, now)) endBeam(room, playerId, memberIndex, 'stun');   // Elarion: ngắt SolarBeam
+                    if (voidChannel(member, now)) endVoidChannel(room, playerId, memberIndex, 'stun');   // Nyx: ngắt niệm Sao Rơi / Hố Đen (các đợt chưa rơi bị huỷ)
                     member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'goblin_float');
                     member.state = 'stunned';
                     member.castingSkillId = null;
@@ -2923,7 +2982,7 @@ function startBattleLoop(roomId) {
                     const hasEnoughMana = canUse(skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
-                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ
+                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen tự chọn chỗ đông đối thủ nhất, niệm tại chỗ
                         const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now);
                         
                         const dx = target ? target.x - member.x : 0;
@@ -3229,6 +3288,18 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         // bình + vạc rơi vào địch ngẫu nhiên khắp bản đồ -> không cần tìm cụm: vạc (3 đợt, mạnh hơn) trước, rồi bình
         if (ready(1) && spare(2)) return 1;
         if (ready(0) && spare(1)) return 0;
+        return -1;
+    }
+
+    if (member.classId === 'voidmage') {
+        // Nyx: Hố Đen khi có từ 2 đối thủ (hoặc có trùm) -> niệm xong thì Sao Rơi dội vào cụm vừa gom -> Ma Đạn khi không phải để dành Orb.
+        //   Để dành: Hố Đen đang sẵn sàng / sắp hồi xong (≤ 5 giây) mà đã có từ 2 Orb -> không tiêu vào Sao Rơi, Ma Đạn chỉ bắn khi bắn xong vẫn còn đủ 3 Orb
+        if (voidChannel(member, now) || isVanished(member, now)) return -1;
+        const many = targetable.length >= 2 || targetable.some(e => e.boss);
+        if (ready(2) && many) return 2;
+        const holeSoon = many && cdLeft(2) <= 5000;
+        if (ready(1) && !holeSoon) return 1;
+        if (ready(0) && !(holeSoon && orbs >= 2 && orbs < 4)) return 0;
         return -1;
     }
 
@@ -3589,6 +3660,9 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         });
     } else if (skillDef.type === 'sylva_call' || skillDef.type === 'sylva_bear' || skillDef.type === 'sylva_deer') {
         castSylvaSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, extra);
+    } else if (skillDef.type?.startsWith('void_')) {
+        // ---- Nyx: Ma Đạn Tinh Tú · Sao Rơi · Hố Đen ----
+        castVoidSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
     } else if (skillDef.type === 'goblin_flask') {
         extra.flasks = goblinFlasks(room, member, opponentData.squad, skillDef, now);
         for (const flask of extra.flasks)
@@ -4075,16 +4149,19 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
     if (dmg > 0) later(delay, () => onHitTaken(target));
     if (oppData.debugGodMode || !(dmg > 0)) { if (after) later(delay, after); return false; }
     target.pendingDmg = (target.pendingDmg || 0) + dmg;
-    const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now());
+    const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now())
+        && !voidLifeReady(target);   // Nyx còn Mượn Mạng: đòn này không hạ gục được
     later(delay, () => {
         target.pendingDmg = Math.max(0, (target.pendingDmg || 0) - dmg);
         const tt = curRoom?.clock ?? Date.now();
-        if (target.alive && !oppData.debugGodMode && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt)) {
+        if (target.alive && !oppData.debugGodMode && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt) && !isVanished(target, tt)) {
             if (damageJudgmentShield(target, dmg, !!hit?.cc)) { after?.(); return; }
             const vulnerable = target.statusEffects.some(e => e.type === 'judgment_broken' && e.endTime > tt);
             let hp = target.hp - Math.round(dmg * (vulnerable ? 1 + JUDGMENT.vulnerability : 1));
             // Đêm Tử Thần: Zerith không thể chết (máu tối thiểu 1)
             if (hp <= 0 && reaperUndying(target)) hp = 1;
+            // Mượn Mạng (Nyx, thiên phú 2): đòn chí tử đầu tiên trong trận -> rơi vào cổng Hư Không thay vì gục
+            if (hp <= 0 && voidCheatDeath(curRoom, locate(target)?.pid, target, tt)) { after?.(); return; }
             target.hp = Math.max(0, hp);
             if (target.hp === 0) killMember(target, oppData.squad);
             else afterHpLoss(target);
@@ -4479,6 +4556,8 @@ function reaperUndying(m) {
 function killMember(target, squad) {
     cancelJudgment(target);
     if (enterSecondForm(target)) return;   // trùm 2 dạng (Valdric): gục lần đầu -> sống lại dạng 2
+    // Mượn Mạng (Nyx): đường chết KHÔNG qua dealDamage (Thần Chết phán quyết, đòn nổ Phán Quyết của trùm, tool hạ gục) cũng được cứu 1 lần
+    if (voidCheatDeath(curRoom, locate(target)?.pid, target, curRoom?.clock ?? Date.now())) return;
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
     target.wardOn = false;   // Giáp Lửa mất theo
@@ -4487,6 +4566,17 @@ function killMember(target, squad) {
         const at = locate(target);
         if (at && curRoom) { endBeam(curRoom, at.pid, at.idx, 'dead'); endRain(curRoom, at.pid, at.idx, 'dead'); }
     }
+    // Nyx gục: tắt kênh niệm (Sao Rơi / Hố Đen) — các đợt chưa rơi bị huỷ
+    if (target.statusEffects.some(ef => ef.type === 'void_channel')) {
+        const at = locate(target);
+        if (at && curRoom) endVoidChannel(curRoom, at.pid, at.idx, 'death');
+    }
+    if (target.voidReturnAt != null) {   // (tool hạ gục lúc Nyx đang trong cổng Hư Không) bỏ trạng thái biến mất
+        target.voidReturnAt = null; _voidKeep.delete(target);
+        target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'void_vanish');
+    }
+    // Xói Mòn Hư Không (Nyx): anh hùng / quái gục (triệu hồi không tính) -> Nyx phe kia +M.ATK, Nyx cùng phe +chí mạng
+    if (!target.summon && curRoom) { const at = locate(target); if (at) voidOnDeath(curRoom, at.pid, target); }
     breakRokLink(target, squad);
     onDancerDeathHooks(target, squad);
     onAllyDeath(target, squad);
@@ -4649,6 +4739,7 @@ function giantForm(m, now) {
 function ccImmune(m, now) {
     if (m?.ult) return true;
     if (m?.summon && !takesDebuffs(m)) return true;   // triệu hồi KHÔNG nhận debuff (Golem): không dính khống chế
+    if (voidShell(m, now) || isVanished(m, now)) return true;   // Nyx có Vỏ Hư Không đang niệm Sao Rơi / Hố Đen (không bị ngắt niệm) · Nyx đang trong cổng Hư Không
     const g = giantForm(m, now);
     return !!g && now < (g.immuneUntil ?? 0);
 }
@@ -4974,7 +5065,7 @@ function processJudgment(room, pid, idx, oppId, now) {
         m.ult = null; m.bossCasts = 0; m.actionUntil = now; m.state = 'idle';
         const team = room.players[oppId], effects = [], diff = judgmentDifficulty(room.stage?.diff);
         team.squad.forEach((e, i) => {
-            if (!e.alive || e.summon) return;
+            if (!e.alive || e.summon || isVanished(e, now)) return;   // (Nyx đang trong cổng Hư Không: không ai đánh được)
             const damage = team.debugGodMode || socketGod(team) ? 0 : Math.min(e.hp, blastDamage(e.maxHp, diff));
             e.hp = Math.max(0, e.hp - damage);
             if (e.hp === 0) killMember(e, team.squad);
@@ -5291,7 +5382,7 @@ function checkJudgement(target) {
     if (!target?.alive || !curRoom) return;
     const now = curRoom.clock ?? Date.now();
     if (target.ult || isJudged(target, now) || reaperForm(target, now)) return;
-    if (hasReviveGuard(target, now)) return;   // 2 giây bất tử sau hồi sinh (Sera) kháng luôn phán quyết
+    if (hasReviveGuard(target, now) || isVanished(target, now)) return;   // 2 giây bất tử sau hồi sinh (Sera) kháng luôn phán quyết · Nyx trong cổng Hư Không: không ai đụng tới
     const mark = target.statusEffects.find(ef => ef.type === 'death_mark' && ef.endTime > now);
     if (target.ult || !mark || target.hp / target.maxHp >= mark.execute) return;
     const tAt = locate(target);
@@ -5761,7 +5852,7 @@ function putEffect(m, ef) {
     m.statusEffects = m.statusEffects.filter(x => x.type !== ef.type);
     m.statusEffects.push(ef);
 }
-const foesOf = (opp, now) => opp.squad.map((e, i) => ({ e, i })).filter(o => o.e.alive && !isJudged(o.e, now));
+const foesOf = (opp, now) => opp.squad.map((e, i) => ({ e, i })).filter(o => o.e.alive && !isJudged(o.e, now) && !isVanished(o.e, now));
 const distXZ = (a, x, z) => Math.hypot(a.x - x, (a.z || 0) - z);
 
 /** Giáp Băng Sét: ai đánh trúng pháp sư (khi còn hiệu lực) bị sét giật + choáng — mỗi người tối đa 1 lần / counterEvery */
@@ -6756,6 +6847,261 @@ function elemAiPick(room, pid, idx, oppId, now) {
     if (want.key === m.spell && now >= (m.skillCooldowns[1] ?? 0)) return;
     const g = m.gems.find(x => x.el === todo[0]);
     if (g) pickGem(room, pid, idx, g.id, now);
+}
+
+// ============================================================
+// HƯ KHÔNG (Nyx, `voidmage`) — pháp sư niệm lâu
+//   Niệm kiểu "kênh": hiệu ứng `void_channel { skill, endTime, x, z, id }` nằm trên Nyx, Nyx đứng niệm (actionUntil = hết kênh).
+//   Các đợt sát thương hẹn bằng later(): mỗi đợt chỉ chạy khi Nyx còn sống và đúng kênh đó (id) còn chạy
+//   -> bị ngắt (choáng khi chưa có Vỏ Hư Không / gục / Mượn Mạng) là mọi đợt chưa rơi tự huỷ.
+//   Máy khách nhận sự kiện 'voidFx' { casterId, casterIdx, kind, ... } — kind: missiles · burst · burstTick · channel · starWave ·
+//   hole · lash · channelEnd · vanish · return · erode.
+//   Hiệu ứng trạng thái mới: `void_channel` (trên Nyx: đang niệm) · `void_erosion { stacks, per, maxStacks }` (trên đối thủ: −thủ phép) ·
+//   `void_vanish` (trên Nyx: đang trong cổng Hư Không). Trường trên Nyx: voidKills / voidAllies (cộng dồn thiên phú 1), voidLifeUsed
+//   (Mượn Mạng đã dùng), voidReturnAt / voidReturnHp (giờ trở lại + phần máu khi trở lại).
+// ============================================================
+const emitVoid = (roomId, data) => io.to(roomId).emit('voidFx', data);
+/** Kênh niệm (Sao Rơi / Hố Đen) ĐANG CHẠY của Nyx, hoặc undefined */
+const voidChannel = (m, now) => m?.statusEffects?.find(e => e.type === 'void_channel' && e.endTime > now);
+/** Vỏ Hư Không đang bọc Nyx (có thiên phú 2 + đang niệm Sao Rơi / Hố Đen): trả về thiên phú đó, không thì null */
+function voidShell(m, now) {
+    return m?.classId === 'voidmage' && voidChannel(m, now) ? talentOf(m, 'void_shell') : null;
+}
+const VOID_SHELL_CC = new Set(['stun', 'knockup', 'knocked', 'grabbed', 'frozen', 'taunted']);   // khống chế bị Vỏ Hư Không gỡ
+/**
+ * Nyx đang ở trong cổng Hư Không (Mượn Mạng): không ai nhắm / đánh được, không hành động.
+ * Tính tới lúc processVoid đưa Nyx trở lại (voidReturnAt bị xoá) chứ không chỉ tới hết giờ của hiệu ứng `void_vanish`:
+ * trong nhịp vừa hết giờ, đối thủ được xử lý trước Nyx không kịp đánh vào chỗ cũ.
+ */
+function isVanished(m, now) {
+    return m?.classId === 'voidmage' && (m.voidReturnAt != null || !!m.statusEffects?.some(ef => ef.type === 'void_vanish' && ef.endTime > now));
+}
+/** Nyx còn Mượn Mạng chưa dùng: đòn chí tử kế tiếp không hạ gục được */
+const voidLifeReady = (m) => !m.voidLifeUsed && !!talentOf(m, 'void_shell');
+const _voidKeep = new WeakMap();   // Nyx đang trong cổng Hư Không -> các hiệu ứng có từ lúc vào cổng (hiệu ứng bất lợi dính thêm sau đó bị bỏ)
+const VOID_RETURN_EDGE = 4;        // trở lại cách mép sân phe mình 4 ô
+/** Hiệu ứng bất lợi (đúng những thứ Tu Sĩ giải được + khống chế): Nyx trong cổng Hư Không không dính thêm */
+const voidHarmful = (ef) => !!ef.debuff || DEBUFFS.includes(ef.type) || VOID_SHELL_CC.has(ef.type);
+/**
+ * Thiên phú 2 — Mượn Mạng (1 lần mỗi trận): Nyx sắp nhận đòn chí tử -> rơi vào cổng Hư Không `vanish` ms thay vì gục.
+ * Chiêu đang niệm dở bị huỷ; hiệu ứng bất lợi đang dính được gỡ (trừ dấu không giải được như Ấn Tử), hiệu ứng có lợi giữ nguyên.
+ * Trả về true nếu đã cứu (người gọi không trừ máu / không cho gục nữa).
+ */
+function voidCheatDeath(room, pid, m, now) {
+    const t = m?.alive && !m.voidLifeUsed ? talentOf(m, 'void_shell') : null;
+    const idx = t ? (room?.players?.[pid]?.squad.indexOf(m) ?? -1) : -1;
+    if (idx < 0) return false;
+    m.voidLifeUsed = true;
+    endVoidChannel(room, pid, idx, 'vanish');
+    m.hp = 1; m.pendingDmg = 0;
+    m.queuedSkills = []; m.castingSkillId = null; m.actionUntil = 0; m.state = 'vanished';
+    cleanse(m, 'all');
+    m.statusEffects = m.statusEffects.filter(ef => ef.type !== 'judged' && (ef.noCleanse || !VOID_SHELL_CC.has(ef.type)));
+    m.statusEffects.push({ type: 'void_vanish', endTime: now + t.vanish, duration: t.vanish, noCleanse: true });
+    _voidKeep.set(m, new Set(m.statusEffects));
+    m.voidReturnAt = now + t.vanish; m.voidReturnHp = t.revive;
+    emitVoid(room.id, { casterId: pid, casterIdx: idx, kind: 'vanish', duration: t.vanish });
+    return true;
+}
+/** Hết giờ trong cổng Hư Không: Nyx hiện lại ở hàng sau phe mình (sát mép sân phía mình) với `voidReturnHp` phần máu tối đa */
+function voidReturn(room, pid, idx, now) {
+    const m = room.players[pid].squad[idx];
+    m.voidReturnAt = null; _voidKeep.delete(m);
+    m.statusEffects = m.statusEffects.filter(ef => ef.type !== 'void_vanish');
+    if (!m.alive) return;
+    m.x = m.side === 'left' ? ARENA_BOUNDS.minX + VOID_RETURN_EDGE : ARENA_BOUNDS.maxX - VOID_RETURN_EDGE;
+    clampToArena(m);
+    m.hp = Math.max(m.hp, Math.round(m.maxHp * (m.voidReturnHp ?? 0)));
+    m.pendingDmg = 0; m.state = 'idle'; m.targetIndex = -1; m.lockedTargetIndex = -1; m.actionUntil = 0;
+    m.lastAttackTime = now;
+    emitVoid(room.id, { casterId: pid, casterIdx: idx, kind: 'return', x: m.x, z: m.z || 0, hp: m.hp });
+}
+/** Bắt đầu kênh niệm `skill` ('starfall' | 'blackhole'); `at` = tâm vùng (Sao Rơi chọn sau, lúc đợt đầu sắp rơi) */
+function startVoidChannel(room, pid, idx, skill, sk, now, at = null) {
+    const m = room.players[pid].squad[idx];
+    if (m.statusEffects.some(e => e.type === 'void_channel')) endVoidChannel(room, pid, idx, 'done');   // (không xảy ra trong trận thật: đang niệm thì bị khoá động tác)
+    const ch = { type: 'void_channel', skill, id: (room.voidSeq = (room.voidSeq ?? 0) + 1), endTime: now + sk.channel, duration: sk.channel,
+        x: at?.x ?? null, z: at?.z ?? null };
+    m.statusEffects.push(ch);
+    emitVoid(room.id, { casterId: pid, casterIdx: idx, kind: 'channel', skill, duration: sk.channel, shell: !!talentOf(m, 'void_shell') });
+    // niệm đủ giờ -> kết thúc bình thường (processVoid cũng kiểm tra lại mỗi nhịp, phòng khi danh sách việc hẹn bị xoá)
+    later(sk.channel, () => { if (m.statusEffects.find(e => e.type === 'void_channel') === ch) endVoidChannel(room, pid, idx, 'done'); });
+    return ch;
+}
+/**
+ * Kết thúc kênh niệm của Nyx. reason: 'done' (niệm đủ) · 'stun' · 'death' · 'vanish'.
+ * Bị ngắt (khác 'done'): hồi chiêu tính lại từ lúc bị ngắt (như chiêu đang gồng bị choáng), bỏ khoá động tác để hết choáng là đánh tiếp.
+ */
+function endVoidChannel(room, pid, idx, reason) {
+    const team = room?.players?.[pid], m = team?.squad[idx];
+    const ch = m?.statusEffects?.find(e => e.type === 'void_channel');
+    if (!ch) return false;
+    m.statusEffects = m.statusEffects.filter(e => e !== ch);
+    if (reason !== 'done') {
+        const now = room.clock ?? Date.now();
+        const si = skillsOf(m).findIndex(sk => sk.type === `void_${ch.skill}`);
+        if (si >= 0 && !team.debugNoMana) m.skillCooldowns[si] = now + skillsOf(m)[si].cooldown;
+        m.actionUntil = Math.min(m.actionUntil ?? 0, now);
+    }
+    emitVoid(room.id, { casterId: pid, casterIdx: idx, kind: 'channelEnd', reason });
+    return true;
+}
+/**
+ * Thiên phú 1 — Xói Mòn Hư Không: 1 ĐỢT chiêu của Nyx vừa trúng `enemy` -> +1 tầng giảm thủ phép (tối đa maxStacks, làm mới thời gian).
+ * Trả về số tầng sau khi cộng (0 = không có thiên phú / mục tiêu không nhận debuff).
+ */
+function voidErode(nyx, enemy, now) {
+    const t = talentOf(nyx, 'void_erosion');
+    if (!t || !enemy?.alive || !takesDebuffs(enemy)) return 0;
+    let ef = enemy.statusEffects.find(e => e.type === 'void_erosion' && e.endTime > now);
+    if (!ef) {
+        enemy.statusEffects = enemy.statusEffects.filter(e => e.type !== 'void_erosion');
+        ef = { type: 'void_erosion', stacks: 0, per: t.value, maxStacks: t.maxStacks, debuff: true };
+        enemy.statusEffects.push(ef);
+    }
+    ef.per = Math.max(ef.per, t.value); ef.maxStacks = t.maxStacks;
+    ef.stacks = Math.min(t.maxStacks, ef.stacks + 1);
+    ef.endTime = now + t.duration; ef.duration = t.duration;
+    const from = locate(nyx), to = locate(enemy);
+    if (from && to && curRoom?.id) emitVoid(curRoom.id, { casterId: from.pid, casterIdx: from.idx, kind: 'erode', targetId: to.pid, targetIndex: to.idx, stacks: ef.stacks });
+    return ef.stacks;
+}
+/** Thiên phú 1 — Xói Mòn Hư Không: `dead` (anh hùng / quái, không phải triệu hồi) của phe `deadPid` vừa gục -> cộng dồn cho mọi Nyx có thiên phú */
+function voidOnDeath(room, deadPid, dead) {
+    if (!room?.players || dead.summon) return;
+    for (const [pid, team] of Object.entries(room.players)) for (const m of team.squad) {
+        const t = m !== dead && m.classId === 'voidmage' ? talentOf(m, 'void_erosion') : null;
+        if (!t) continue;
+        if (pid === deadPid) m.voidAllies = Math.min(t.allyMax, (m.voidAllies ?? 0) + 1);   // đồng minh gục: +tỉ lệ chí mạng, +sát thương chí mạng
+        else m.voidKills = Math.min(t.killMax, (m.voidKills ?? 0) + 1);                      // đối thủ gục: +M.ATK
+    }
+}
+/** Kỹ năng của Nyx (executeSkill) */
+function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
+    const team = room.players[pid], opp = room.players[oppId];
+    const m = team.squad[idx];
+    const base = { casterId: pid, casterIdx: idx };
+    // đợt hẹn trước chỉ chạy khi Nyx còn sống, đúng kênh này còn chạy và Nyx không đang bị choáng
+    //   (vừa dính choáng mà chưa có Vỏ Hư Không: vòng lặp trận sẽ ngắt kênh ngay trong nhịp này — đợt tới giờ đúng nhịp đó cũng không rơi)
+    const stunned = (t) => m.statusEffects.some(ef => ef.type === 'stun' && ef.endTime > t) && !voidShell(m, t);
+    const live = (ch, t) => m.alive && !room.winner && voidChannel(m, t) === ch && !stunned(t);
+    if (sk.type === 'void_missiles') {
+        // ---- Ma Đạn Tinh Tú: 5 tia bay vòng tới 1 mục tiêu — trúng ×multiplier + đốt 1–2 Orb, rồi Mana Burst nổ `burstHits` nhịp ----
+        // mục tiêu: anh hùng địch nhiều Orb nhất (đang có ít nhất 1 Orb, đứng trong tầm chiêu); không ai có Orb thì mục tiêu đang đánh
+        const inReach = (e) => Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= sk.castRange;
+        const rich = opp.squad.filter(e => SQUAD_ORDER.includes(e.classId) && canBeTargeted(e, now) && e.mp >= ORB_COST && inReach(e))
+            .sort((a, b) => b.mp - a.mp)[0];
+        const cur = opp.squad[m.targetIndex];
+        const target = rich ?? ((cur?.alive && canBeTargeted(cur, now)) ? cur : findBestTarget(m, opp.squad, now));
+        if (!target) return;
+        const ti = opp.squad.indexOf(target);
+        emitVoid(room.id, { ...base, kind: 'missiles', targetId: oppId, targetIndex: ti, flight: sk.impact });
+        const spot = { x: target.x, z: target.z || 0 };   // tâm Mana Burst = chỗ mục tiêu đứng lúc tia tới nơi
+        later(sk.impact, () => {
+            const t = room.clock;
+            if (room.winner) return;
+            spot.x = target.x; spot.z = target.z || 0;
+            const hit = [];
+            let orbLost = 0;
+            if (target.alive) {
+                const eff = hitTarget(m, target, ti, opp, sk.multiplier, t);
+                if (!eff.isMiss) voidErode(m, target, t);   // Xói Mòn: cú trúng tính 1 đợt (9 nhịp Mana Burst không tính)
+                if (!eff.isMiss && !opp.debugNoMana) {
+                    // đốt ngẫu nhiên burnMin..burnMax Orb (quái / mục tiêu hết Orb: không có gì để đốt)
+                    const n = sk.burnMin + Math.floor(Math.random() * (sk.burnMax - sk.burnMin + 1));
+                    const lost = Math.min(target.mp ?? 0, n * ORB_COST);
+                    target.mp -= lost; orbLost = lost / ORB_COST;
+                }
+                hit.push(eff);
+            }
+            emitVoid(room.id, { ...base, kind: 'burst', targetId: oppId, targetIndex: ti, x: spot.x, z: spot.z, orbLost, effects: hit });
+        });
+        // Mana Burst: nhịp n nổ sau cú trúng burstDelay + (n − 1) × burstGap — lên mục tiêu + đối thủ trong bán kính burstRadius quanh chỗ trúng
+        for (let n = 1; n <= sk.burstHits; n++) later(sk.impact + sk.burstDelay + (n - 1) * sk.burstGap, () => {
+            const t = room.clock;
+            if (room.winner) return;
+            const hits = foesOf(opp, t).filter(o => o.e === target || distXZ(o.e, spot.x, spot.z) <= sk.burstRadius)
+                .map(o => hitTarget(m, o.e, o.i, opp, sk.burstMultiplier, t, { aoe: true, noBlock: true }));
+            emitVoid(room.id, { ...base, targetId: oppId, kind: 'burstTick', n, effects: hits });
+        });
+    } else if (sk.type === 'void_starfall') {
+        // ---- Sao Rơi: niệm `channel` ms; các đợt sao rơi ở waveTimes (tính từ lúc bắt đầu niệm) ----
+        const ch = startVoidChannel(room, pid, idx, 'starfall', sk, now);
+        sk.waveTimes.forEach((at, k) => later(at, () => {
+            const t = room.clock;
+            if (!live(ch, t)) return;
+            // vùng rơi = chỗ đông đối thủ nhất, chọn lúc đợt đầu sắp rơi (chưa có ai chọn được thì đợt sau chọn lại)
+            if (ch.x == null) {
+                const c = bestCluster(m, opp.squad, sk.castRange, sk.radius, t);
+                if (!c) return;
+                ch.x = c.x; ch.z = c.z;
+            }
+            const n = k + 1;
+            const hits = foesOf(opp, t).filter(o => distXZ(o.e, ch.x, ch.z) <= sk.radius).map(o => {
+                const eff = hitTarget(m, o.e, o.i, opp, sk.tickMultiplier, t, { cc: !!sk.stun, aoe: true, noBlock: true, forceCrit: sk.critWaves.includes(n) });
+                if (!eff.isMiss && o.e.alive) { applyStun(o.e, sk.stun, t); voidErode(m, o.e, t); }
+                return eff;
+            });
+            emitVoid(room.id, { ...base, targetId: oppId, kind: 'starWave', n, x: ch.x, z: ch.z, radius: sk.radius, effects: hits });
+        }));
+    } else if (sk.type === 'void_blackhole') {
+        // ---- Hố Đen: mở ở chỗ đông đối thủ nhất (đếm theo bán kính hút), hút suốt lúc niệm (processVoid), xúc tu quất ở lashTimes ----
+        const c = bestCluster(m, opp.squad, sk.castRange, sk.pullRadius, now);
+        if (!c) { m.actionUntil = now; return; }   // không còn ai chọn được: không niệm
+        const ch = startVoidChannel(room, pid, idx, 'blackhole', sk, now, c);
+        ch.pullRadius = sk.pullRadius; ch.pullSpeed = sk.pullSpeed; ch.last = now;
+        emitVoid(room.id, { ...base, kind: 'hole', x: ch.x, z: ch.z, radius: sk.pullRadius, duration: sk.channel });
+        sk.lashTimes.forEach((at, k) => later(at, () => {
+            const t = room.clock;
+            if (!live(ch, t)) return;
+            // chiêu mặt đất: mục tiêu đang bay không trúng xúc tu
+            const hits = foesOf(opp, t).filter(o => !isAirborne(o.e, t) && distXZ(o.e, ch.x, ch.z) <= sk.lashRadius)
+                .map(o => {
+                    const eff = hitTarget(m, o.e, o.i, opp, sk.tickMultiplier, t, { aoe: true, noBlock: true, ground: true });
+                    if (!eff.isMiss) voidErode(m, o.e, t);
+                    return eff;
+                });
+            emitVoid(room.id, { ...base, targetId: oppId, kind: 'lash', n: k + 1, x: ch.x, z: ch.z, radius: sk.lashRadius, effects: hits });
+        }));
+    }
+}
+/**
+ * Mỗi nhịp cho Nyx: Hố Đen hút đối thủ về tâm (pullSpeed ô / giây trận; đối thủ miễn khống chế không bị hút) · kênh hết giờ thì kết thúc ·
+ * Vỏ Hư Không gỡ khống chế · Mượn Mạng: giữ Nyx trong cổng Hư Không rồi đưa trở lại.
+ * Trả về true khi Nyx không được hành động trong nhịp này (đang trong cổng Hư Không).
+ */
+function processVoid(room, pid, idx, oppId, now) {
+    const m = room.players[pid]?.squad[idx];
+    if (!m || m.classId !== 'voidmage' || !m.alive) return false;
+    // Mượn Mạng: đang trong cổng Hư Không -> không hành động, hiệu ứng mới dính vào bị bỏ; đủ giờ thì trở lại
+    if (m.voidReturnAt != null) {
+        if (now < m.voidReturnAt) {
+            const keep = _voidKeep.get(m);
+            const fresh = (ef) => !keep?.has(ef) && voidHarmful(ef);   // hiệu ứng bất lợi dính thêm lúc đang trong cổng
+            if (m.statusEffects.some(fresh)) m.statusEffects = m.statusEffects.filter(ef => !fresh(ef));
+            m.state = 'vanished';
+            return true;
+        }
+        voidReturn(room, pid, idx, now);
+    }
+    const ch = m.statusEffects.find(e => e.type === 'void_channel');
+    if (!ch) return false;
+    if (now >= ch.endTime) { endVoidChannel(room, pid, idx, 'done'); return false; }   // (thường đã kết thúc bằng việc hẹn giờ — đây là lưới an toàn)
+    // Vỏ Hư Không: đang niệm thì miễn khống chế — gỡ choáng / hất tung / đẩy lùi / túm / đóng băng / khiêu khích vừa dính (không bị ngắt niệm)
+    if (voidShell(m, now) && m.statusEffects.some(e => VOID_SHELL_CC.has(e.type))) m.statusEffects = m.statusEffects.filter(e => !VOID_SHELL_CC.has(e.type));
+    const opp = room.players[oppId];
+    if (ch.skill === 'blackhole' && opp) {
+        const step = ch.pullSpeed * Math.max(0, now - ch.last) / 1000;
+        ch.last = now;
+        if (step > 0) for (const { e } of foesOf(opp, now)) {
+            const dx = ch.x - e.x, dz = ch.z - (e.z || 0), d = Math.hypot(dx, dz);
+            if (d > ch.pullRadius || d < 0.001 || ccImmune(e, now)) continue;
+            const k = Math.min(1, step / d);   // không vọt qua tâm
+            e.x += dx * k; e.z = (e.z || 0) + dz * k;
+            clampToArena(e);
+        }
+    }
+    return false;
 }
 
 function broadcastState(roomId) {
