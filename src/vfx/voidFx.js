@@ -166,7 +166,8 @@ export function endVoidChannel(casterId, casterIdx, casterView = null) {
 // 3. KN2: SAO RƠI — `starWave` (star-fall)
 // ------------------------------------------------------------
 /** `starWave`: 1 đợt sao rơi trên vùng (x, z, radius); 4 đợt cách nhau 0,5s nên dùng đợt ngắn (~0,85s) */
-export function spawnVoidStarWave(x, z, { n = 1, radius = 5.5 } = {}) {
+export function spawnVoidStarWave(x, z, { n = 1, radius = 5.5, aimed = false } = {}) {
+    if (aimed) return null;   // sao của đợt này đã được thả trước từ `starAim`
     const scale = Math.max(0.85, (radius ?? 5.5) / 3.2);
     return spawnPixelFx('arcane/star-fall', {
         pos: { x: x ?? 0, z: z ?? 0 },
@@ -177,11 +178,27 @@ export function spawnVoidStarWave(x, z, { n = 1, radius = 5.5 } = {}) {
     });
 }
 
+const STAR_FALL_FIRST_HIT = 390;   // ms: ngôi sao đầu của hiệu ứng star-fall chạm đất sau khi hiệu ứng bắt đầu
+/** `starAim`: máy chủ báo trước vùng rơi `lead` ms -> thả sao sao cho ngôi sao ĐẦU của mỗi đợt chạm đất đúng lúc đợt đó gây sát thương */
+export function aimVoidStars(casterId, casterIdx, x, z, { radius = 5.5, lead = 450, waves = [0, 500, 1000, 1500] } = {}) {
+    const key = casterKey(casterId, casterIdx);
+    const state = activeChannels.get(key);
+    if (state) state.starsAimed = true;
+    const scale = Math.max(0.85, (radius ?? 5.5) / 3.2);
+    (waves ?? []).forEach((w, k) => gameTimeout(() => {
+        if (state && (state.stopped || activeChannels.get(key) !== state)) return;   // niệm bị ngắt: thôi không thả sao nữa
+        spawnPixelFx('arcane/star-fall', { pos: { x: x ?? 0, z: z ?? 0 }, palette: 'arcane', scale, maxLife: 0.95, seed: (k + 1) * 7 + 13 });
+    }, Math.max(0, (lead ?? 0) + w - STAR_FALL_FIRST_HIT)));
+}
+/** Lần niệm hiện tại của Nyx đã được báo trước vùng sao rơi / lịch xúc tu chưa (để `starWave` / `lash` khỏi thả hiệu ứng lần nữa) */
+export const voidAimed = (casterId, casterIdx, what) => !!activeChannels.get(casterKey(casterId, casterIdx))?.[what];
+
 // ------------------------------------------------------------
 // 4. KN3: HỐ ĐEN — `hole` (black-hole) & `lash` (shadow-tendrils)
 // ------------------------------------------------------------
 /** `hole`: hố đen lặp trong `duration` ms tại (x, z), phóng theo `radius` */
-export function spawnVoidHole(casterId, casterIdx, x, z, { radius = 8, duration = 4000 } = {}) {
+const TENDRIL_LEAD = 300;   // ms: xúc tu trồi lên trước cú quất chừng này
+export function spawnVoidHole(casterId, casterIdx, x, z, { radius = 8, duration = 4000, lashTimes = null, lashRadius = 4 } = {}) {
     const key = casterKey(casterId, casterIdx);
     const state = activeChannels.get(key);
     const durSec = Math.max(0.3, (duration ?? 4000) / 1000);
@@ -198,6 +215,14 @@ export function spawnVoidHole(casterId, casterIdx, x, z, { radius = 8, duration 
         until: () => !!state?.stopped,
     });
     if (state) state.holeLayer = layer;
+    // máy chủ gửi kèm lịch quất -> cho xúc tu trồi lên sớm TENDRIL_LEAD ms để cú quất khớp lúc gây sát thương
+    if (state && Array.isArray(lashTimes)) {
+        state.lashAimed = true;
+        lashTimes.forEach((t, k) => gameTimeout(() => {
+            if (state.stopped || activeChannels.get(key) !== state) return;
+            spawnVoidLash(x, z, { n: k + 1, radius: lashRadius });
+        }, Math.max(0, t - TENDRIL_LEAD)));
+    }
     return layer;
 }
 

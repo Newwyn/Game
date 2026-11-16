@@ -323,7 +323,7 @@ test('void_blackhole: đối thủ cách tâm 6 bị kéo lại gần tâm hơn 
         cast(2)`);
     assert.equal(h.run('isAirborne(foes[1], room.clock) && ccImmune(foes[4], room.clock)'), true);
     assert.deepEqual(h.fx('channel'), [{ casterId: 'p1', casterIdx: 0, kind: 'channel', skill: 'blackhole', duration: 4000, shell: false }]);
-    assert.deepEqual(h.fx('hole'), [{ casterId: 'p1', casterIdx: 0, kind: 'hole', x: 10, z: 0, radius: 8, duration: 4000 }]);
+    assert.deepEqual(h.fx('hole'), [{ casterId: 'p1', casterIdx: 0, kind: 'hole', x: 10, z: 0, radius: 8, duration: 4000, lashTimes: [1200, 2400, 3600], lashRadius: 4 }]);
     assert.equal(h.run('nyx.actionUntil - T0'), 4000);
     assert.equal(h.run('nyx.skillCooldowns[2] - T0'), 4000 + 24000);
     // hút 3 ô mỗi giây
@@ -858,9 +858,24 @@ test('void_shell: đúng nhịp hết giờ trong cổng, đối thủ được 
     assert.equal(h.run('her.hp >= Math.round(her.maxHp * 0.3)'), true);
 });
 
+test('void_shell: trở lại sau lưng đồng đội đứng sau cùng 3 ô; đồng đội đã gục hoặc quân triệu hồi không tính; không còn ai thì ở mép sân', () => {
+    const h = harness();
+    arena(h, { level: 60, rank: 3, allies: ['warrior', 'priest'], foes: [['c1_wolf', 30, 0]] });
+    h.run("var rok = team.find(m => m.classId === 'warrior'), sera = team.find(m => m.classId === 'priest'); rok.x = 12; rok.z = 0; sera.x = -6; sera.z = 1; nyx.x = 2; nyx.z = 2;");
+    h.run('killMember(nyx, team); at(3000)');
+    assert.deepEqual(json(h, '[nyx.alive, nyx.x, nyx.z]'), [true, -9, 2]);   // sau lưng Seraphine (x = -6) 3 ô
+    assert.equal(h.fx('return')[0].x, -9);
+
+    const h2 = harness();
+    arena(h2, { level: 60, rank: 3, allies: ['warrior'], foes: [['c1_wolf', 30, 0]] });
+    h2.run("var rok = team.find(m => m.classId === 'warrior'); rok.x = 12; rok.alive = false; rok.hp = 0; nyx.x = 2; nyx.z = -1;");
+    h2.run('killMember(nyx, team); at(3000)');
+    assert.deepEqual(json(h2, '[nyx.alive, nyx.x, nyx.z]'), [true, -44, -1]);   // đồng đội đã gục -> về mép sân phía mình
+});
+
 // Bảng sự kiện voidFx (hợp đồng với máy khách): kind -> các trường phải có (ngoài casterId, casterIdx)
 const VOID_FX = { missiles: ['targetId', 'targetIndex', 'flight'], burst: ['targetId', 'targetIndex', 'x', 'z', 'orbLost', 'effects'], burstTick: ['n', 'effects'],
-    channel: ['skill', 'duration', 'shell'], starWave: ['n', 'x', 'z', 'radius', 'effects'], hole: ['x', 'z', 'radius', 'duration'], lash: ['n', 'x', 'z', 'radius', 'effects'],
+    channel: ['skill', 'duration', 'shell'], starAim: ['x', 'z', 'radius', 'lead', 'waves'], starWave: ['n', 'x', 'z', 'radius', 'effects'], hole: ['x', 'z', 'radius', 'duration', 'lashTimes', 'lashRadius'], lash: ['n', 'x', 'z', 'radius', 'effects'],
     channelEnd: ['reason'], vanish: ['duration'], return: ['x', 'z', 'hp'], erode: ['targetId', 'targetIndex', 'stacks'] };
 
 test('trận AUTO thật có Nyx (hạt giống cố định): chạy hết không lỗi, trạng thái luôn hợp lệ, mọi sự kiện voidFx đúng bảng', () => {

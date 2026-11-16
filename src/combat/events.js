@@ -81,7 +81,7 @@ import {
 } from '../vfx/sylvaFx.js';
 import {
     spawnVoidMissiles, spawnVoidBurst, startVoidChannel, endVoidChannel,
-    spawnVoidStarWave, spawnVoidHole, spawnVoidLash,
+    spawnVoidStarWave, spawnVoidHole, spawnVoidLash, aimVoidStars, voidAimed,
     spawnVoidVanish, spawnVoidReturn, spawnVoidErode,
 } from '../vfx/voidFx.js';
 import {
@@ -2801,10 +2801,15 @@ function onVoidFx(d) {
             });
             break;
         }
+        case 'starAim': {
+            aimVoidStars(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, { radius: d.radius ?? 5.5, lead: d.lead ?? 450, waves: d.waves });
+            break;
+        }
         case 'starWave': {
             spawnVoidStarWave(d.x ?? 0, d.z ?? 0, {
                 n: d.n ?? 1,
                 radius: d.radius ?? 5.5,
+                aimed: voidAimed(d.casterId, d.casterIdx, 'starsAimed'),
             });
             showEffects(d.effects);
             cameraRig.shake((d.n === 2 || d.n === 4) ? 0.22 : 0.14, 150);
@@ -2814,12 +2819,14 @@ function onVoidFx(d) {
             spawnVoidHole(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, {
                 radius: d.radius ?? 8,
                 duration: d.duration ?? 4000,
+                lashTimes: d.lashTimes ?? null,
+                lashRadius: d.lashRadius ?? 4,
             });
             cameraRig.shake(0.16, 180);
             break;
         }
         case 'lash': {
-            spawnVoidLash(d.x ?? 0, d.z ?? 0, {
+            if (!voidAimed(d.casterId, d.casterIdx, 'lashAimed')) spawnVoidLash(d.x ?? 0, d.z ?? 0, {
                 n: d.n ?? 1,
                 radius: d.radius ?? 4,
             });

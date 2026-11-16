@@ -466,7 +466,7 @@ const CLASS_DEFS = {
             // Sao Rơi: niệm 5s — từ giây thứ 3 có 4 đợt sao (3,0 / 3,5 / 4,0 / 4,5s), mỗi đợt ×0.9 trong bán kính 5.5 + choáng 0,5s; đợt 2 và 4 chắc chắn chí mạng.
             //   Vùng rơi = chỗ đông đối thủ nhất, chọn lúc đợt đầu sắp rơi (giây thứ 3)
             { name: 'Sao Rơi', orbCost: 2, cooldown: 16000, castTime: 0, type: 'void_starfall', castRange: 18, channel: 5000,
-              waveTimes: [3000, 3500, 4000, 4500], tickMultiplier: 0.9, radius: 5.5, stun: 500, critWaves: [2, 4], impact: 0, lock: 5000 },
+              waveTimes: [3000, 3500, 4000, 4500], aimLead: 450, tickMultiplier: 0.9, radius: 5.5, stun: 500, critWaves: [2, 4], impact: 0, lock: 5000 },
             // Hố Đen: niệm 4s — hố đen mở ở chỗ đông đối thủ nhất, suốt 4s hút đối thủ trong bán kính 8 về tâm (3 ô / giây; miễn khống chế thì không bị hút).
             //   Xúc tu bóng tối quất 3 đợt (1,2 / 2,4 / 3,6s), mỗi đợt ×1.1 trong bán kính 4 quanh tâm — chiêu mặt đất: không trúng mục tiêu đang bay
             { name: 'Hố Đen', orbCost: 3, cooldown: 24000, castTime: 0, type: 'void_blackhole', castRange: 16, channel: 4000,
@@ -6909,7 +6909,12 @@ function voidReturn(room, pid, idx, now) {
     m.voidReturnAt = null; _voidKeep.delete(m);
     m.statusEffects = m.statusEffects.filter(ef => ef.type !== 'void_vanish');
     if (!m.alive) return;
-    m.x = m.side === 'left' ? ARENA_BOUNDS.minX + VOID_RETURN_EDGE : ARENA_BOUNDS.maxX - VOID_RETURN_EDGE;
+    // trở lại ở HÀNG SAU của đội: sau lưng đồng đội đứng sau cùng 3 ô (để camera không phải lùi ra tận mép sân);
+    //   không còn đồng đội nào thì cách mép sân phía mình VOID_RETURN_EDGE
+    const back = m.side === 'left' ? -1 : 1;
+    const mates = room.players[pid].squad.filter(a => a !== m && a.alive && !a.summon && !isVanished(a, now));
+    m.x = mates.length ? (back < 0 ? Math.min(...mates.map(a => a.x)) : Math.max(...mates.map(a => a.x))) + back * 3
+        : (m.side === 'left' ? ARENA_BOUNDS.minX + VOID_RETURN_EDGE : ARENA_BOUNDS.maxX - VOID_RETURN_EDGE);
     clampToArena(m);
     m.hp = Math.max(m.hp, Math.round(m.maxHp * (m.voidReturnHp ?? 0)));
     m.pendingDmg = 0; m.state = 'idle'; m.targetIndex = -1; m.lockedTargetIndex = -1; m.actionUntil = 0;
@@ -7027,6 +7032,15 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     } else if (sk.type === 'void_starfall') {
         // ---- Sao Rơi: niệm `channel` ms; các đợt sao rơi ở waveTimes (tính từ lúc bắt đầu niệm) ----
         const ch = startVoidChannel(room, pid, idx, 'starfall', sk, now);
+        // ngắm trước `aimLead` ms ("lúc đợt đầu sắp rơi") và báo máy khách `starAim` để sao chạm đất ĐÚNG lúc từng đợt gây sát thương
+        later(sk.waveTimes[0] - (sk.aimLead ?? 0), () => {
+            const t = room.clock;
+            if (!live(ch, t)) return;
+            const c = bestCluster(m, opp.squad, sk.castRange, sk.radius, t);
+            if (!c) return;
+            ch.x = c.x; ch.z = c.z;
+            emitVoid(room.id, { ...base, kind: 'starAim', x: ch.x, z: ch.z, radius: sk.radius, lead: sk.aimLead ?? 0, waves: sk.waveTimes.map(w => w - sk.waveTimes[0]) });
+        });
         sk.waveTimes.forEach((at, k) => later(at, () => {
             const t = room.clock;
             if (!live(ch, t)) return;
@@ -7050,7 +7064,7 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
         if (!c) { m.actionUntil = now; return; }   // không còn ai chọn được: không niệm
         const ch = startVoidChannel(room, pid, idx, 'blackhole', sk, now, c);
         ch.pullRadius = sk.pullRadius; ch.pullSpeed = sk.pullSpeed; ch.last = now;
-        emitVoid(room.id, { ...base, kind: 'hole', x: ch.x, z: ch.z, radius: sk.pullRadius, duration: sk.channel });
+        emitVoid(room.id, { ...base, kind: 'hole', x: ch.x, z: ch.z, radius: sk.pullRadius, duration: sk.channel, lashTimes: sk.lashTimes, lashRadius: sk.lashRadius });
         sk.lashTimes.forEach((at, k) => later(at, () => {
             const t = room.clock;
             if (!live(ch, t)) return;
