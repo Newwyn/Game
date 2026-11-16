@@ -49,6 +49,26 @@ const SETS = {
       ]],
     ],
   },
+  nyx: {
+    pal: 'arcane',
+    groups: [
+      ['Kỹ năng 1–2 & Thiên phú (arcane)', [
+        ['Ma Đạn', 'arcane/arcane-missiles', 'Chùm 5 tia tím bay vòng tới mục tiêu'],
+        ['Ấn Chú Nổ', 'arcane/mana-burst', 'Nổ năng lượng + 9 ấn chú nổ lần lượt'],
+        ['Tụ Phép', 'arcane/spell-charge', 'Năng lượng xoáy vào lòng bàn tay khi niệm'],
+        ['Sao Rơi', 'arcane/star-fall', 'Sao băng rơi chéo xuống vùng mục tiêu'],
+        ['Cổng Hư Không', 'arcane/portal', 'Cổng xoáy khi Mượn Mạng biến mất'],
+        ['Hiện Thân', 'arcane/blink-in', 'Hiện lại ở hàng sau'],
+      ]],
+      ['Kỹ năng 3 & Vỏ Hư Không / Quân Tượng (shadow)', [
+        ['Hố Đen', 'shadow/black-hole', 'Đĩa bồi tụ xoay quanh hố đen'],
+        ['Xúc Tu Bóng Tối', 'shadow/shadow-tendrils', 'Xúc tu quất từ vũng bóng tối'],
+        ['Vỏ Hư Không', 'shadow/void-orb', 'Quả cầu đen bọc lấy Nyx khi niệm'],
+        ['Hút Hồn', 'shadow/soul-drain', 'Tượng hút Orb / máu đối thủ'],
+        ['Trói Buộc', 'shadow/grasping-hands', 'Bàn tay bóng tối trói mục tiêu'],
+      ]],
+    ],
+  },
 };
 const set = SETS[new URLSearchParams(location.search).get('set') ?? 'lyra2'];
 const palSel = document.getElementById('pal');
