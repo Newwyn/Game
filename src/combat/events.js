@@ -79,6 +79,20 @@ import {
     spawnSpiritDeer, spawnDeerTick, endSpiritDeer,
     spawnLeafShield, spawnForestMight, ensureSummonTag,
 } from '../vfx/sylvaFx.js';
+import {
+    spawnVoidMissiles, spawnVoidBurst, startVoidChannel, endVoidChannel,
+    spawnVoidStarWave, spawnVoidHole, spawnVoidLash,
+    spawnVoidVanish, spawnVoidReturn, spawnVoidErode,
+} from '../vfx/voidFx.js';
+import {
+    spawnChessFlick, spawnBishopBolt, spawnQueenBolt, spawnChessCast,
+    spawnChessSummon, spawnChessCommand, spawnPawnSlash, spawnChessCastle,
+    spawnKnightJump, spawnKnightFork, startBishopDrain, endBishopDrain,
+    spawnBishopBind, spawnKingCrown, startKingJudge, spawnKingJudgeSlam,
+    spawnQueenOrb, tickQueenOrb, removeQueenOrb, spawnQueenDance,
+    updateChessBoard, spawnPawnPromote, spawnChessSacrifice, spawnCheckmate,
+    clearChessFx,
+} from '../vfx/chessFx.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
 
@@ -327,6 +341,24 @@ function onAutoAttack(data) {
         return;
     }
 
+    // Leon (Kỳ Vương): búng quân cờ ánh sáng · Tượng: tia phép tím · Hậu: tia sáng trắng-vàng
+    if (atkClass === 'chessmaster' || atkClass === 'chess_bishop' || atkClass === 'chess_queen') {
+        const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
+            const target = getView(data.targetId, data.targetIndex);
+            if (!target) return;
+            const fn = atkClass === 'chess_bishop' ? spawnBishopBolt : atkClass === 'chess_queen' ? spawnQueenBolt : spawnChessFlick;
+            const pal = atkClass === 'chess_bishop' ? 'arcane' : 'gold';
+            fn(chestOf(attackerView, 1.15), chestOf(target, 0.95), { duration: 0.22, onHit: () => {
+                showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
+                if (!data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, palette: pal, scale: 0.8 });
+            } });
+        };
+        if (attackerView.isBusy) { fire(); return; }
+        attackerView.playAction('attack', { onHit: fire });
+        return;
+    }
+
     // Xạ Thủ: nhả tên tại khoảnh khắc ra đòn, sát thương hiện khi mũi tên tới nơi
     if (attacker.squad?.[data.attackerIndex]?.classId === 'archer') {
         const fire = () => {
@@ -343,12 +375,14 @@ function onAutoAttack(data) {
         return;
     }
 
-    // Quái ĐÁNH XA (Goblin Ném Bom, Mật Thám, quái phép…): ném / bắn 1 vật bay tới mục tiêu rồi mới trúng
+    // Quái ĐÁNH XA (Goblin Ném Bom, Mật Thám, quái phép…) + Nyx (voidmage: tia Hư Không tím nhỏ): ném / bắn 1 vật bay tới mục tiêu rồi mới trúng
     //   (trước 11/2026 chỉ có vệt chém hiện trên mục tiêu -> không thấy quả bom bay ra và nổ)
     {
         const m = attacker.squad[data.attackerIndex], def = game.classDefs?.[m?.classId];
-        if (def?.range === 'ranged' && !m?.summon) {
-            const bomb = def.art === 'trapper';
+        if ((def?.range === 'ranged' || m?.classId === 'voidmage') && !m?.summon) {
+            const bomb = def?.art === 'trapper';
+            const isVoid = m?.classId === 'voidmage';
+            const col = isVoid ? '#a855f7' : (def?.color ?? '#facc15');
             const throwIt = () => {
                 const target = getView(data.targetId, data.targetIndex);
                 if (!target) return;
@@ -356,7 +390,7 @@ function onAutoAttack(data) {
                 const dir = attackerView.facingLeft ? -1 : 1, T = bomb ? 0.42 : 0.24;
                 const from = new THREE.Vector3(attackerView.position.x + dir * 0.7, 1.5, attackerView.position.z);
                 const c = chestOf(target, bomb ? 0.5 : 0.95), to = new THREE.Vector3(c.x, c.y, c.z);
-                const mesh = new THREE.Mesh(new THREE.SphereGeometry(bomb ? 0.26 : 0.16, 10, 8), new THREE.MeshBasicMaterial({ color: bomb ? 0x1f2937 : (def.color ?? '#facc15') }));
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(bomb ? 0.26 : 0.16, 10, 8), new THREE.MeshBasicMaterial({ color: bomb ? 0x1f2937 : col }));
                 if (bomb) {   // quả bom đen + ngòi lửa, bay vòng cung
                     const fuse = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffb020 }));
                     fuse.position.set(0.12, 0.24, 0); mesh.add(fuse);
@@ -364,17 +398,17 @@ function onAutoAttack(data) {
                     const arc = () => { t += 1 / 60; if (t < T && mesh.parent) { mesh.position.y += Math.cos((t / T) * Math.PI) * 0.09; mesh.rotation.z += 0.3; requestAnimationFrame(arc); } };
                     requestAnimationFrame(arc);
                 }
-                spawnProjectile(from, to, def.color ?? '#facc15', T, mesh);
+                spawnProjectile(from, to, col, T, mesh);
                 gameTimeout(() => {
                     showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                     if (data.dodged) return;
                     if (bomb) { spawnPixelFx('explosions/small-explosion', { pos: target.position, scale: data.isCrit ? 0.55 : 0.42, maxLife: 1.2 }); cameraRig.shake(0.1, 110); }
-                    else spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: dir < 0, palette: rampOfColor(def.color), scale: 0.8 });
+                    else spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: dir < 0, palette: isVoid ? 'arcane' : rampOfColor(def?.color), scale: 0.8 });
                     target.flashHit();
                 }, T * 1000);
             };
             if (attackerView.isBusy) { throwIt(); return; }
-            attackerView.playAction('attack', { hitFrame: def.autoHitFrame, onHit: throwIt });
+            attackerView.playAction('attack', { hitFrame: def?.autoHitFrame, onHit: throwIt });
             return;
         }
     }
@@ -672,6 +706,27 @@ function onSkillExecuted(data) {
         case 'sylva_deer': {
             caster.playAction?.({ sylva_call: 'call', sylva_bear: 'bear', sylva_deer: 'deer' }[data.type] ?? 'attack');
             spawnSylvaCast(caster, data.type);   // vòng phép rừng dưới chân + lá cuốn quanh gậy
+            break;
+        }
+        case 'void_missiles': {
+            if (!caster.playAction?.('missiles')) caster.playAction?.('attack');
+            caster.flashMagicCircle?.(0.6);
+            break;
+        }
+        case 'void_starfall':
+        case 'void_blackhole': {
+            if (!caster.playAction?.('charge', { hold: true })) caster.playAction?.('cast', { hold: true });
+            caster.flashMagicCircle?.(data.type === 'void_starfall' ? 5 : 4);
+            break;
+        }
+        case 'chess_guard':
+        case 'chess_strike':
+        case 'chess_royal': {
+            const act = { chess_guard: 'guard', chess_strike: 'strike', chess_royal: 'royal' }[data.type] ?? 'attack';
+            if (!caster.playAction?.(act)) caster.playAction?.('attack');
+            caster.flashMagicCircle?.(0.75);
+            spawnChessCast(caster, data.type);
+            if (data.effects?.length) data.effects.forEach(processHit);
             break;
         }
         case 'aoe_damage':
@@ -2203,6 +2258,7 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('waiting', (data) => hooks.onWaiting?.(data));
 
     socket.on('battleStart', (data) => {
+        clearChessFx();
         buildBattleScene(data);
         Object.values(game.views ?? {}).flat().forEach(v => { if (v?.member?.summon) ensureSummonTag(v); });
         hooks.onBattleStart?.(data);
@@ -2291,9 +2347,11 @@ export function registerCombatEvents(hooks = {}) {
             showDamage: (view, e) => showHit(view, { ...e, isCrit: true }),
         });
     });
-    socket.on('battleEnd', clearBossUlt);
-    socket.on('mainMenu', clearBossUlt);
+    socket.on('battleEnd', () => { clearBossUlt(); clearChessFx(); });
+    socket.on('mainMenu', () => { clearBossUlt(); clearChessFx(); });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
+    socket.on('voidFx', (d) => onVoidFx(d));
+    socket.on('chessFx', (d) => onChessFx(d));
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
@@ -2698,4 +2756,287 @@ function onSylvaFx(d, waited = 0) {
     }
 }
 
-export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onFireHits, onFireGod, onCastStart };
+/** Sự kiện riêng của Nyx (Hư Không, voidmage): Ma Đạn Tinh Tú, Sao Rơi, Hố Đen, Xói Mòn Hư Không, Vỏ Hư Không */
+function onVoidFx(d) {
+    if (!d || typeof d.kind !== 'string') return;
+    const caster = d.casterId != null && d.casterIdx != null ? getView(d.casterId, d.casterIdx) : null;
+    const opponentId = opponentIdOf(d.casterId);
+    const foeId = d.targetId ?? opponentId;
+    const showEffects = (effects) => {
+        (effects ?? []).forEach(e => {
+            const t = getView(e.targetId ?? foeId, e.targetIndex);
+            if (t) showHit(t, e, { fx: false });
+        });
+    };
+
+    switch (d.kind) {
+        case 'missiles': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            spawnVoidMissiles(caster, target, {
+                flight: d.flight ?? 600,
+                toPos: d.x != null ? { x: d.x, z: d.z ?? 0 } : null,
+            });
+            break;
+        }
+        case 'burst': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            const pos = {
+                x: d.x ?? target?.position.x ?? caster?.position.x ?? 0,
+                z: d.z ?? target?.position.z ?? caster?.position.z ?? 0,
+            };
+            spawnVoidBurst(pos, { orbLost: d.orbLost ?? 0 });
+            showEffects(d.effects);
+            cameraRig.shake(0.14, 140);
+            break;
+        }
+        case 'burstTick': {
+            showEffects(d.effects);
+            break;
+        }
+        case 'channel': {
+            startVoidChannel(d.casterId, d.casterIdx, caster, {
+                skill: d.skill ?? 'starfall',
+                duration: d.duration ?? (d.skill === 'blackhole' ? 4000 : 5000),
+                shell: !!d.shell,
+            });
+            break;
+        }
+        case 'starWave': {
+            spawnVoidStarWave(d.x ?? 0, d.z ?? 0, {
+                n: d.n ?? 1,
+                radius: d.radius ?? 5.5,
+            });
+            showEffects(d.effects);
+            cameraRig.shake((d.n === 2 || d.n === 4) ? 0.22 : 0.14, 150);
+            break;
+        }
+        case 'hole': {
+            spawnVoidHole(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, {
+                radius: d.radius ?? 8,
+                duration: d.duration ?? 4000,
+            });
+            cameraRig.shake(0.16, 180);
+            break;
+        }
+        case 'lash': {
+            spawnVoidLash(d.x ?? 0, d.z ?? 0, {
+                n: d.n ?? 1,
+                radius: d.radius ?? 4,
+            });
+            showEffects(d.effects);
+            cameraRig.shake(0.18, 160);
+            break;
+        }
+        case 'channelEnd': {
+            endVoidChannel(d.casterId, d.casterIdx, caster);
+            break;
+        }
+        case 'vanish': {
+            spawnVoidVanish(d.casterId, d.casterIdx, caster, {
+                duration: d.duration ?? 3000,
+            });
+            break;
+        }
+        case 'return': {
+            spawnVoidReturn(d.casterId, d.casterIdx, caster, {
+                x: d.x,
+                z: d.z,
+            });
+            if (caster && d.hp > 0) spawnDamageNumber(caster.position, d.hp, 'heal');
+            cameraRig.shake(0.12, 140);
+            break;
+        }
+        case 'erode': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            if (target) spawnVoidErode(target, { stacks: d.stacks ?? 1 });
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+/** Sự kiện riêng của Leon (Kỳ Vương, chessmaster) và 6 quân cờ ánh sáng */
+function onChessFx(d) {
+    if (!d || typeof d.kind !== 'string') return;
+    const caster = d.casterId != null && d.casterIdx != null ? getView(d.casterId, d.casterIdx) : null;
+    const summon = d.casterId != null && d.summonIdx != null ? getView(d.casterId, d.summonIdx) : null;
+    const opponentId = opponentIdOf(d.casterId);
+    const foeId = d.targetId ?? opponentId;
+    const showEffects = (effects) => {
+        (effects ?? []).forEach(e => {
+            const t = getView(e.targetId ?? foeId, e.targetIndex);
+            if (t) showHit(t, e, { fx: false });
+        });
+    };
+
+    switch (d.kind) {
+        case 'summon': {
+            spawnChessSummon(d.x ?? summon?.position?.x ?? caster?.position?.x ?? 0, d.z ?? summon?.position?.z ?? caster?.position?.z ?? 0, {
+                piece: d.piece ?? 'pawn',
+            });
+            cameraRig.shake((d.piece === 'king' || d.piece === 'queen') ? 0.18 : 0.1, 140);
+            break;
+        }
+        case 'command': {
+            spawnChessCommand(summon ?? caster, {
+                wing: d.wing ?? 'guard',
+                piece: d.piece ?? 'pawn',
+                fallbackPos: caster?.position ?? { x: d.x ?? 0, z: d.z ?? 0 },
+            });
+            break;
+        }
+        case 'pawnSlash': {
+            summon?.playAction?.('slash');
+            const targets = (d.effects ?? []).map(e => getView(e.targetId ?? foeId, e.targetIndex)).filter(Boolean);
+            spawnPawnSlash(summon, targets, { fallbackPos: summon?.position ?? caster?.position });
+            showEffects(d.effects);
+            break;
+        }
+        case 'castle': {
+            const ally = d.casterId != null && d.allyIdx != null ? getView(d.casterId, d.allyIdx) : null;
+            spawnChessCastle(summon, ally, { fallbackPos: summon?.position ?? caster?.position });
+            cameraRig.shake(0.14, 140);
+            break;
+        }
+        case 'knightJump': {
+            spawnKnightJump(summon, { x: d.x, z: d.z });
+            showEffects(d.effects);
+            cameraRig.shake(0.12, 130);
+            break;
+        }
+        case 'fork': {
+            summon?.playAction?.('skill');
+            const pulled = (d.pulled ?? []).map(p => ({
+                ...p,
+                view: getView(foeId, p.targetIndex),
+            }));
+            spawnKnightFork(summon ?? caster, pulled);
+            showEffects(d.effects);
+            cameraRig.shake(0.16, 150);
+            break;
+        }
+        case 'drain': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            startBishopDrain(d.casterId, d.summonIdx, summon, target, {
+                mode: d.mode ?? 'orb',
+                duration: d.duration ?? 4000,
+                fallbackPos: summon?.position ?? caster?.position,
+            });
+            break;
+        }
+        case 'drainEnd': {
+            endBishopDrain(d.casterId, d.summonIdx, summon);
+            break;
+        }
+        case 'bind': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            spawnBishopBind(target, {
+                duration: d.duration ?? 2000,
+                bishopView: summon,
+                fallbackPos: target?.position ?? summon?.position ?? caster?.position,
+            });
+            break;
+        }
+        case 'crown': {
+            const targets = (d.targets ?? []).map(idx => getView(d.casterId, idx)).filter(Boolean);
+            spawnKingCrown(targets.length ? targets : (caster ? [caster] : []), {
+                duration: d.duration ?? 8000,
+                kingView: summon,
+            });
+            break;
+        }
+        case 'judgeStart': {
+            startKingJudge(d.casterId, d.summonIdx, summon, {
+                duration: d.duration ?? 3000,
+            });
+            break;
+        }
+        case 'judgeSlam': {
+            spawnKingJudgeSlam(d.casterId, d.summonIdx, summon, {
+                x: d.x,
+                z: d.z,
+            });
+            showEffects(d.effects);
+            cameraRig.shake(0.24, 210);
+            break;
+        }
+        case 'orb': {
+            spawnQueenOrb(d.id, d.x ?? 0, d.z ?? 0, {
+                duration: d.duration ?? 10000,
+            });
+            break;
+        }
+        case 'orbTick': {
+            tickQueenOrb(d.id);
+            showEffects(d.effects);
+            break;
+        }
+        case 'orbGone': {
+            removeQueenOrb(d.id);
+            break;
+        }
+        case 'dance': {
+            spawnQueenDance(summon ?? caster, {
+                recalled: d.recalled ?? [],
+                shots: d.shots ?? [],
+                getTargetView: (idx) => getView(foeId, idx),
+                fallbackPos: summon?.position ?? caster?.position,
+            });
+            gameTimeout(() => {
+                showEffects(d.effects);
+                (d.shots ?? []).forEach(s => {
+                    if (s.effect) {
+                        const t = getView(foeId, s.targetIndex ?? s.effect.targetIndex);
+                        if (t) showHit(t, s.effect, { fx: false });
+                    }
+                });
+                cameraRig.shake(0.18, 160);
+            }, 950);
+            break;
+        }
+        case 'board': {
+            updateChessBoard(d.casterId, {
+                king: !!d.king,
+                queen: !!d.queen,
+            });
+            break;
+        }
+        case 'promote': {
+            const fromView = d.casterId != null && (d.from ?? d.summonIdx) != null ? getView(d.casterId, d.from ?? d.summonIdx) : null;
+            spawnPawnPromote(fromView ?? summon ?? caster, {
+                to: d.to ?? 'queen',
+                fallbackPos: summon?.position ?? caster?.position,
+            });
+            cameraRig.shake(0.18, 180);
+            break;
+        }
+        case 'sacrifice': {
+            const squad = game.roomData?.players?.[d.casterId]?.squad ?? [];
+            const allies = squad.map((m, i) => (m?.alive ? getView(d.casterId, i) : null)).filter(Boolean);
+            spawnChessSacrifice(allies, { casterView: caster });
+            break;
+        }
+        case 'checkmate': {
+            const kingView = d.casterId != null && d.kingIdx != null ? getView(d.casterId, d.kingIdx) : null;
+            const queenView = d.casterId != null && d.queenIdx != null ? getView(d.casterId, d.queenIdx) : null;
+            const foeSquad = game.roomData?.players?.[foeId]?.squad ?? [];
+            const enemyViews = foeSquad.map((m, i) => (m?.alive ? getView(foeId, i) : null)).filter(Boolean);
+            spawnCheckmate({
+                kingView,
+                queenView,
+                enemyViews,
+                lift: d.lift ?? 1500,
+                onImpact: () => {
+                    showEffects(d.effects);
+                    cameraRig.shake(0.35, 300);
+                },
+            });
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onVoidFx, onChessFx, onFireHits, onFireGod, onCastStart };

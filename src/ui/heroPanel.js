@@ -17,7 +17,7 @@ const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, imp
 const ATLAS = import.meta.glob('../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const ATLAS_META = import.meta.glob('../characters/sprite/*Sprite{,_s,_ss}.json', { eager: true, import: 'default' });
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon' };
 
 // mô tả ngắn 3 kỹ năng (số liệu ở cấp kỹ năng 1)
 const SKILL_DESC = {
@@ -32,6 +32,8 @@ const SKILL_DESC = {
     alchemist: ['Ném bình độc văng tung toé lên kẻ địch.', 'Tạo đầm lầy thối rữa: quái đứng trong bị trúng độc, chậm lại.', 'Kích nổ toàn bộ độc trên người kẻ địch, sát thương lớn.'],
     summoner: ['Gọi Sói và Đại Bàng chiến đấu cùng 18 giây.', 'Gọi Gấu Hộ Vệ ủi xuyên hàng quái, hất tung + choáng.', 'Gọi Thần Hươu 10 giây: hồi máu đồng đội mỗi giây, thú triệu hồi mạnh hơn.'],
     wrestler: ['Túm quái quật xuống đất (180% công), choáng 1 giây, chấn động quái gần đó.', 'Bật cao dậm đất: hất tung quái xung quanh, Brakk nhận khiên 25% máu.', 'Hoá Khổng Lồ 10 giây: +50% máu, +40% thủ, 5 giây đầu miễn mọi hiệu ứng xấu.'],
+    voidmage: ['Phóng chùm 5 tia Hư Không đốt 1–2 Orb của mục tiêu, sau đó nổ 9 ấn chú gây sát thương lan.', 'Niệm 5 giây gọi 4 đợt sao rơi xuống chỗ đông địch nhất, gây choáng 0,5 giây; đợt 2 và 4 chắc chắn chí mạng.', 'Niệm 4 giây mở hố đen hút kẻ địch về tâm, xúc tu bóng tối quất 3 đợt sát thương diện rộng.'],
+    chessmaster: ['Cánh Thủ: gọi Tốt (1 Orb) rồi gọi Xe (2 Orb); đủ cả hai thì ra lệnh Nước Cờ Thủ luân phiên Giữ Lối và Nhập Thành.', 'Cánh Công: gọi Mã (1 Orb) rồi gọi Tượng (2 Orb); đủ cả hai thì ra lệnh Nước Cờ Công luân phiên Chiếu Đôi và Trói Buộc.', 'Quân Chúa: mở khi một cánh từng đủ 2 quân để gọi Vua hoặc Hậu (3 Orb), dùng tuyệt kỹ riêng, hoặc hợp kích Chiếu Tướng khi có cả hai.'],
 };
 const STAT_ROWS = [
     ['maxHp', 'Máu tối đa'], ['pAtk', 'Công vật lý'], ['mAtk', 'Công phép'], ['pDef', 'Thủ vật lý'], ['mDef', 'Thủ phép'],

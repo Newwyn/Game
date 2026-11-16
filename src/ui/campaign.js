@@ -53,6 +53,8 @@ const HERO_NAMES = {
     elementalist: { name: 'Elarion', emoji: '🔮', title: 'Phù Thủy' },
     alchemist: { name: 'Grix', emoji: '🧪', title: 'Phù Thủy' },
     summoner: { name: 'Sylva', emoji: '🦌', title: 'Triệu Hồi Sư' },
+    voidmage: { name: 'Nyx', emoji: '🌌', title: 'Phù Thủy' },
+    chessmaster: { name: 'Leon', emoji: '♟️', title: 'Kỳ Thủ' },
 };
 
 /** Dữ liệu mặc định 20 ải + 5 nhánh Chương 1 (theo CHUONG_1_TOC_NGUOI.md) */

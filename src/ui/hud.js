@@ -112,6 +112,9 @@ function fillCardInfo(card, member, def, i) {
     def.skills.forEach((sk, s) => {
         const btn = $(`btn-${i}-${s}`);
         if (!btn) return;
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
         const ic = btn.querySelector('.skill-icon');
         if (ic) ic.textContent = sk.name;
         // hình kỹ năng (vẽ bằng AI) nằm dưới chữ; thiếu hình thì giữ kiểu chữ cũ
@@ -123,6 +126,16 @@ function fillCardInfo(card, member, def, i) {
         if (cost) cost.textContent = costLabel(sk);
         btn.title = `${sk.name} — ${costLabel(sk)}${sk.minOrbs ? ' (đốt dần tới khi hết)' : ''}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'}${sk.active ? ' sau khi múa xong' : ''} (click để ra lệnh)`;
     });
+}
+
+// Nút kỹ năng đang khoá (Leon nút 3 khi chưa đủ thế cờ): chặn click hoàn toàn
+if (typeof window !== 'undefined') {
+    window.addEventListener('click', (e) => {
+        if (e.target?.closest?.('.skill-btn.locked')) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+        }
+    }, true);
 }
 
 /** Elarion: 3 ô Ngọc Nguyên Tố đang giữ trên thẻ (Hỏa / Băng / Lôi) */
@@ -252,17 +265,37 @@ function updateMemberCard(member, i, now, ctx = {}) {
     if (!def) return;
     fillCardInfo(card, member, def, i);
     const elem = member.classId === 'elementalist';
+    const chess = member.classId === 'chessmaster';
     if (elem) { updateGemSlots(card, member); updateGemTray(card, member, i, now); }
     updateCardAuto(card, member, i, ctx.teamAuto);
     for (let s = 0; s < 3; s++) {
         const btn = $(`btn-${i}-${s}`);
         if (!btn) continue;
-        // kỹ năng theo bậc (server gửi) — Elarion: nút KN2 đổi theo phép đang giữ
+        // kỹ năng theo bậc (server gửi) — Elarion: nút KN2 đổi theo phép đang giữ · Leon: 3 nút đổi theo thế cờ
         const sk = member.skills?.[s] ?? def.skills[s];
-        if (elem) {
+        const locked = !!(chess && sk.locked);
+        if (elem || chess) {
             const ic = btn.querySelector('.skill-icon');
-            const nm = s === 1 && !member.spell ? 'Chưa ghép phép' : sk.name;
+            const nm = elem && s === 1 && !member.spell ? 'Chưa ghép phép' : sk.name;
             if (ic && ic.textContent !== nm) ic.textContent = nm;
+        }
+        if (chess) {
+            const artKey = sk.icon ? `../assets/skills/${sk.icon}.webp` : `../assets/skills/${member.classId}_${s}.webp`;
+            const art = SKILL_ART[artKey];
+            let bg = btn.querySelector('.sk-art');
+            if (art) {
+                if (!bg) { bg = document.createElement('span'); bg.className = 'sk-art'; btn.prepend(bg); }
+                const bgUrl = `url(${art})`;
+                if (bg.style.backgroundImage !== bgUrl) bg.style.backgroundImage = bgUrl;
+                btn.classList.add('has-art');
+            } else {
+                bg?.remove();
+                btn.classList.remove('has-art');
+            }
+            const titleTxt = locked
+                ? `${sk.name} — đang khoá`
+                : `${sk.name} — ${costLabel(sk)}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'} (click để ra lệnh)`;
+            if (btn.title !== titleTxt) btn.title = titleTxt;
         }
         // Zerith: lướt lần 2 lúc Đêm Tử Thần miễn phí (hiệu ứng reaper_echo)
         const free = sk.type === 'reaper_dash' && member.statusEffects?.some(e => e.type === 'reaper_echo' && e.endTime > now);
@@ -272,7 +305,7 @@ function updateMemberCard(member, i, now, ctx = {}) {
         const costEl = btn.querySelector('.cost');
         const hpc = sk.hpCost ? ` +${Math.round(sk.hpCost * 100)}%♥` : '';   // Brakk: tốn thêm % máu
         const costTxt = free ? 'MIỄN PHÍ' : elem && s === 0 ? `${cost} orb · ${member.held?.length ?? 0}/3`
-            : elem && s === 1 && !member.spell ? '—' : sk.orbCost ? `${cost} orb${discount ? ' ↓' : ''}${hpc}` : costLabel(sk);
+            : (elem && s === 1 && !member.spell) || locked ? '—' : sk.orbCost ? `${cost} orb${discount ? ' ↓' : ''}${hpc}` : costLabel(sk);
         if (costEl && costEl.textContent !== costTxt) costEl.textContent = costTxt;
         btn.classList.toggle('free', !!free);
         const queueIdx = member.queuedSkills.indexOf(s);
@@ -304,15 +337,15 @@ function updateMemberCard(member, i, now, ctx = {}) {
             if (isQueued) qNum.textContent = queueIdx + 1;
         }
 
-        let cls = 'skill-btn' + (s === 2 ? ' ultimate' : '') + (free ? ' free' : '');
-        if (!member.alive) {
+        let cls = 'skill-btn' + (s === 2 ? ' ultimate' : '') + (free ? ' free' : '') + (locked ? ' locked' : '');
+        if (!member.alive || locked) {
             cls += ' disabled';
         } else {
             const need = Math.max(cost, free ? 0 : (sk.minOrbs ?? 0));
             // Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép
             let usable = !elem || (s === 0 ? (member.held?.length ?? 0) >= 3 : s === 1 ? !!member.spell : true);
             // chưa có đối thủ trong tầm đánh -> chưa dùng được (bấm vẫn xếp hàng chờ); không hiện nhãn chú thích
-            if (!foeNear(member, ctx.oppSquad)) usable = false;
+            if (!chess && !foeNear(member, ctx.oppSquad)) usable = false;
             const isReady = !act && usable && member.mp >= need * ORB_COST && now > member.skillCooldowns[s];
             if (isReady) cls += ' ready';
             if (isQueued) cls += ' queued';
@@ -320,6 +353,9 @@ function updateMemberCard(member, i, now, ctx = {}) {
             else if (!isReady && !isQueued) cls += ' disabled';
         }
         btn.className = cls;
+        if (btn.disabled !== locked) btn.disabled = locked;
+        btn.style.opacity = locked ? '0.4' : '';
+        btn.style.cursor = locked ? 'not-allowed' : '';
     }
 }
 
@@ -479,6 +515,18 @@ function effectInfo(ef, m) {
         case 'leaf_shield': return ef.dormant
             ? ['🍃', '#4ade80', 'Khiên Lá', 'Đang có khiên khác dày hơn hứng đòn']
             : ['🍃', '#4ade80', 'Khiên Lá', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0} · +${pc(ef.dmgUp ?? 0.2)}% sát thương · +${pc(ef.atkSpeedUp ?? 0.25)}% tốc đánh`];
+        // ---- Nyx (Hư Không) & Leon (Kỳ Vương) ----
+        case 'void_channel': return ['🌌', '#a855f7', 'Niệm Hư Không', 'Đang niệm phép Hư Không'];
+        case 'void_erosion': return ['🔻', '#c084fc', `Xói Mòn Hư Không (${ef.stacks ?? 1})`, `−${pc((ef.stacks ?? 1) * (ef.per ?? 0.06))}% M.DEF`, true];
+        case 'void_vanish': return ['🌀', '#6d28d9', 'Mượn Mạng', 'Đang ẩn trong cổng Hư Không: không thể bị nhắm hay nhận sát thương'];
+        case 'chess_pawn_shield': return ['♟️', '#fef08a', 'Khiên Bắt Chéo', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
+        case 'chess_castle': return ['♜', '#facc15', 'Khiên Nhập Thành', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
+        case 'chess_castle_guard': return ['🏰', '#fde047', 'Nhập Thành Bảo Hộ', `−${pc(ef.value ?? 0.25)}% sát thương nhận vào`];
+        case 'chess_drain': return ['♝', '#c084fc', 'Hút Hồn', 'Tượng đang hút năng lượng / sinh lực đối thủ'];
+        case 'chess_bound': return ['⛓️', '#a855f7', 'Trói Buộc', `−${pc(ef.value ?? 0.30)}% P.DEF & M.DEF`, true];
+        case 'chess_crown': return ['👑', '#facc15', 'Vương Miện', `+${pc((ef.defUp ?? 0.15) * (ef.x2 ? 2 : 1))}% P.DEF & M.DEF · Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
+        case 'chess_judging': return ['⚔️', '#fde047', 'Phán Quyết', 'Vua đang giơ kiếm tích sát thương, miễn ngắt niệm'];
+        case 'chess_sacrifice': return ['🛡️', '#fef08a', 'Thí Quân', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }

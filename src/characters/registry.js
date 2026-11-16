@@ -20,6 +20,7 @@ import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
 import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
 import { GRIX_SPRITE } from './sprite/grixSprite.js';
 import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
+import { LEON_SPRITE } from './sprite/leonSprite.js';
 import { WOLF_SPRITE, EAGLE_SPRITE, BEAR_SPRITE } from './sprite/sylvaPetSprites.js';
 import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
 import { ELARION_SPRITE } from './sprite/elarionSprite.js';
@@ -425,6 +426,80 @@ const SYLVA_EAGLE = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize
     sprite: EAGLE_SPRITE, spriteParam: 'sylvaPet', anims: PET_ANIMS };
 const SYLVA_BEAR = { rig: GOLEM_RIG, clips: golemClips, height: 2.55, shadowSize: 2.2, locomotion: GOLEM_LOCOMOTION, circleTint: 0x84cc16,
     sprite: BEAR_SPRITE, spriteParam: 'sylvaPet', anims: PET_ANIMS };
+// Nyx (Hư Không) — Phù Thủy Hư Không tộc Goblin
+// HÌNH TẠM — chờ tranh art/nyx
+const VOIDMAGE = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.3,
+    shadowSize: 1.25,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: true,
+    tint: 0xc4b5fd,
+    ghostTint: 0xa855f7,
+    circleTint: 0x6d28d9,
+    anims: {
+        attack:    { clip: 'attack', hitTime: 0.25 },   // đòn thường: tia Hư Không nhỏ
+        missiles:  { clip: 'palm',   hitTime: 0.2 },    // Ma Đạn Tinh Tú
+        starfall:  { clip: 'summon', hitTime: 0.35 },   // Sao Rơi
+        blackhole: { clip: 'bolt',   hitTime: 0.25 },   // Hố Đen
+        charge:    { clip: 'charge' },                  // niệm kênh (giữ)
+        cast:      { clip: 'charge' },
+    },
+};
+
+// Leon (Kỳ Vương) — Kỳ Thủ triệu hồi quân cờ: tranh sprite bậc SSS (art/leon/sprite), khung xương ẩn mượn của Ignar
+const CHESSMASTER = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.7,
+    shadowSize: 1.4,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: false,            // mat ve san trong tranh
+    ghostTint: 0xfacc15,
+    circleTint: 0xeab308,
+    sprite: LEON_SPRITE,
+    spriteParam: 'leon',
+    spriteIdleParam: 'leonIdle',
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.25 },
+        guard:  { clip: 'summon', hitTime: 0.35 },
+        strike: { clip: 'bolt',   hitTime: 0.25 },
+        royal:  { clip: 'palm',   hitTime: 0.2 },
+        charge: { clip: 'charge' },
+        cast:   { clip: 'charge' },
+    },
+};
+
+const CHESS_PIECE_ANIMS = {
+    attack: { clip: 'attack', hitTime: 0.3 },
+    skill:  { clip: 'aura',   hitTime: 0.35 },
+    slash:  { clip: 'attack', hitTime: 0.25 },
+    leap:   { clip: 'summon' },
+    cast:   { clip: 'charge' },
+    charge: { clip: 'charge' },
+    slam:   { clip: 'aura',   hitTime: 0.35 },
+    summon: { clip: 'summon' },
+};
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_PAWN = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize: 1.2, locomotion: GOLEM_LOCOMOTION, tint: 0xfef9c3, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_ROOK = { rig: GOLEM_RIG, clips: golemClips, height: 2.6, shadowSize: 2.0, locomotion: GOLEM_LOCOMOTION, tint: 0xfde047, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_KNIGHT = { rig: GOLEM_RIG, clips: golemClips, height: 2.2, shadowSize: 1.6, locomotion: GOLEM_LOCOMOTION, tint: 0xfef08a, circleTint: 0xf59e0b, anims: CHESS_PIECE_ANIMS };
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_BISHOP = { rig: GOLEM_RIG, clips: golemClips, height: 2.3, shadowSize: 1.4, locomotion: GOLEM_LOCOMOTION, tint: 0xd8b4fe, circleTint: 0xa855f7, anims: CHESS_PIECE_ANIMS };
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 3.0, shadowSize: 2.1, locomotion: GOLEM_LOCOMOTION, tint: 0xfacc15, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+// HÌNH TẠM — chờ tranh art/leon
+const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 2.7, shadowSize: 1.7, locomotion: GOLEM_LOCOMOTION, tint: 0xfef3c7, circleTint: 0xc084fc, anims: CHESS_PIECE_ANIMS };
+
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
@@ -439,6 +514,14 @@ export const CHARACTER_VISUALS = {
     elem_golem: () => ELEM_GOLEM,
     alchemist: () => ALCHEMIST,
     summoner: () => SUMMONER,
+    voidmage: () => VOIDMAGE,
+    chessmaster: () => CHESSMASTER,
+    chess_pawn: () => CHESS_PAWN,
+    chess_rook: () => CHESS_ROOK,
+    chess_knight: () => CHESS_KNIGHT,
+    chess_bishop: () => CHESS_BISHOP,
+    chess_king: () => CHESS_KING,
+    chess_queen: () => CHESS_QUEEN,
     sylva_wolf: () => SYLVA_WOLF,
     sylva_eagle: () => SYLVA_EAGLE,
     sylva_bear: () => SYLVA_BEAR,

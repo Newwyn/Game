@@ -21,7 +21,7 @@ const MODE_TITLE = {
     campaign: '📖 CỐT TRUYỆN · CHỌN ĐỘI HÌNH',
 };
 
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster'];
 const FALLBACK_HEROES = {
     assassin: { id: 'assassin', name: 'Jessica', title: 'Lôi Ám', className: 'Sát Thủ', emoji: '🥷', color: '#1e293b', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1260, atk: 231 },
     warrior: { id: 'warrior', name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 3360, atk: 158 },
@@ -34,6 +34,8 @@ const FALLBACK_HEROES = {
     elementalist: { id: 'elementalist', name: 'Elarion', title: 'Tam Nguyên', className: 'Phù Thủy', emoji: '🔮', color: '#7c3aed', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1300, atk: 276 },
     alchemist: { id: 'alchemist', name: 'Grix', title: 'Lục Độc', className: 'Phù Thủy', emoji: '🧪', color: '#65a30d', race: 'Goblin', raceEmoji: '👺', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 900, atk: 200 },
     summoner: { id: 'summoner', name: 'Sylva', title: 'Lâm Linh', className: 'Triệu Hồi Sư', emoji: '🦌', color: '#16a34a', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 950, atk: 190 },
+    voidmage: { id: 'voidmage', name: 'Nyx', title: 'Hư Không', className: 'Phù Thủy', emoji: '🌌', color: '#6d28d9', race: 'Goblin', raceEmoji: '👺', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 900, atk: 230 },
+    chessmaster: { id: 'chessmaster', name: 'Leon', title: 'Kỳ Vương', className: 'Kỳ Thủ', emoji: '♟️', color: '#eab308', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1000, atk: 170 },
 };
 
 let lastProgress = null;
