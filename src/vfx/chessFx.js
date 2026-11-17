@@ -10,6 +10,10 @@ import * as THREE from 'three';
 import { scene } from '../core/scene.js';
 import { GROUND_Y, gameTimeout } from '../config.js';
 import { spawnPixelFx } from './pixelFx.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import castleUrl from '../assets/world3d/meshy/bld_chesscastle.glb?url';
+import hillUrl from '../assets/world3d/meshy/prop_chesshill.glb?url';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture,
     easeOut, spawnHitSpark, spawnShockwave, spawnRisingSparkles,
@@ -1126,6 +1130,30 @@ function fortMaterial(color, height, gain = 1) {
             }`,
     });
 }
+// ---- Sa bàn chiến trận (17/11/2026, người chơi yêu cầu): THÀNH của phe Leon (mô hình Meshy) ở đầu sân phía đội mình + đồi đất đá cắm cờ quanh mép sân.
+//   Mô hình nạp 1 lần rồi nhân bản; đặt vào nhóm `deco` nên trồi lên cùng tường hào quang. Chỉ đặt phía SAU và 2 đầu sân để không che nhân vật.
+const WAR_LOADER = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const WAR_CACHE = new Map();
+function warModel(url, height) {
+    if (!WAR_CACHE.has(url)) WAR_CACHE.set(url, WAR_LOADER.loadAsync(url).then(g => {
+        const root = g.scene, box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3());
+        root.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);   // chân chạm đất, tâm ở giữa
+        root.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.material.fog = false; } });
+        const wrap = new THREE.Group(); wrap.add(root); wrap.userData.h = size.y || 1;
+        return wrap;
+    }).catch(e => { console.warn('[chessFx] không nạp được mô hình sa bàn', e); return null; }));
+    return WAR_CACHE.get(url).then(base => { if (!base) return null; const m = base.clone(true); m.scale.setScalar(height / base.userData.h); return m; });
+}
+function addWarTable(deco, side = -1) {
+    const hx = BOARD_W / 2, hz = BOARD_D / 2, s = side < 0 ? -1 : 1;
+    const put = (url, h, x, z, ry = 0) => warModel(url, h).then(m => { if (!m || !deco.parent) return; m.position.set(x, 0, z); m.rotation.y = ry; deco.add(m); });
+    put(castleUrl, 9, s * (hx - 13), -hz + 1.0, s < 0 ? 0.5 : -0.5);          // thành phe Leon: góc sau, quay mặt vào sân
+    put(hillUrl, 3.4, -s * (hx - 6), -hz + 2.5, 0.6);                           // đồi phía đối thủ
+    put(hillUrl, 2.6, -s * 9, -hz + 0.5, -0.9);
+    put(hillUrl, 2.2, s * 4, -hz + 0.2, 2.2);
+    put(hillUrl, 2.8, -s * (hx - 1.5), 2.5, 1.7);
+}
+
 function buildChessFort() {
     const g = new THREE.Group();
     g.rotation.x = Math.PI / 2;   // bàn cờ nằm (xoay -90°) -> xoay ngược lại để khối đứng thẳng
@@ -1188,7 +1216,7 @@ function buildChessFort() {
 // ------------------------------------------------------------
 // 8. `board`: Bàn cờ ánh sáng phủ toàn sân khi còn Vua hoặc Hậu
 // ------------------------------------------------------------
-export function updateChessBoard(casterId, { king = false, queen = false } = {}) {
+export function updateChessBoard(casterId, { king = false, queen = false, side = -1 } = {}) {
     const key = String(casterId ?? 'default');
     if (king || queen) {
         boardByTeam.set(key, { king: !!king, queen: !!queen });
@@ -1235,6 +1263,7 @@ export function updateChessBoard(casterId, { king = false, queen = false } = {})
         };
         boardMesh.userData.deco = buildChessFort();
         boardMesh.add(boardMesh.userData.deco);
+        addWarTable(boardMesh.userData.deco, side);
         scene.add(boardMesh);
         boardMesh.material.uniforms.uMix.value = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
     } else if (!boardMesh.parent) scene.add(boardMesh);

@@ -3006,6 +3006,7 @@ function onChessFx(d) {
             updateChessBoard(d.casterId, {
                 king: !!d.king,
                 queen: !!d.queen,
+                side: (caster?.position.x ?? -1) <= (getView(opponentId, 0)?.position.x ?? 1) ? -1 : 1,
             });
             break;
         }
