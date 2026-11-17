@@ -1096,6 +1096,95 @@ function boardMaterial() {
     });
 }
 
+// ---- Thành trì hào quang quanh bàn cờ (17/11/2026): bàn cờ thành 1 "trận đồ" 3D của 2 phe —
+//   ô cờ nổi khối, tường thành + tháp canh bằng ánh sáng ở 2 đầu sân và phía sau (phe trái vàng, phe phải tím), cột sáng ở tháp, vạch giữa sân.
+//   Phía gần camera để trống cho khỏi che nhân vật. Tất cả là khối trong suốt cộng sáng, không đổ bóng, không cản gì.
+const FORT_TIME = { value: 0 };
+function fortMaterial(color, height, gain = 1) {
+    return new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, blending: THREE.AdditiveBlending,
+        uniforms: { uTime: FORT_TIME, uColor: { value: new THREE.Color(color) }, uH: { value: height }, uGain: { value: gain } },
+        vertexShader: `varying vec3 vP; varying vec3 vN;
+            void main(){ vP = position; vN = normal; vec4 p = vec4(position, 1.0);
+            #ifdef USE_INSTANCING
+            p = instanceMatrix * p;
+            #endif
+            gl_Position = projectionMatrix * modelViewMatrix * p; }`,
+        fragmentShader: `
+            varying vec3 vP; varying vec3 vN; uniform float uTime, uH, uGain; uniform vec3 uColor;
+            void main(){
+                float h = clamp(vP.y / uH, 0.0, 1.0);
+                float body = mix(0.20, 0.03, h);                                   // đậm ở chân, nhạt dần lên đỉnh
+                float brick = (1.0 - smoothstep(0.0, 0.06, abs(fract(vP.y * 1.6) - 0.5) - 0.42)) * 0.0
+                    + (1.0 - smoothstep(0.02, 0.05, fract(vP.y * 1.25))) * 0.22;   // mạch gạch ngang
+                float sweep = pow(0.5 + 0.5 * sin(vP.y * 2.4 - uTime * 2.2 + (vP.x + vP.z) * 0.35), 8.0) * 0.5;   // vệt sáng chạy lên
+                float top = smoothstep(0.90, 1.0, h) * 0.55;                        // viền đỉnh sáng
+                float rim = pow(1.0 - abs(vN.y), 2.0) * 0.08;
+                float a = (body + brick * 0.6 + sweep * 0.7 + top * 0.7 + rim) * uGain;
+                vec3 col = mix(uColor, vec3(1.0, 0.97, 0.88), top + sweep * 0.6);
+                gl_FragColor = vec4(col * a, a);
+            }`,
+    });
+}
+function buildChessFort() {
+    const g = new THREE.Group();
+    g.rotation.x = Math.PI / 2;   // bàn cờ nằm (xoay -90°) -> xoay ngược lại để khối đứng thẳng
+    const hx = BOARD_W / 2, hz = BOARD_D / 2;
+    const GOLD = 0xffc93c, VIOLET = 0xb46bff;
+    const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.renderOrder = 1; g.add(m); return m; };
+    // 1) ô cờ nổi khối: các ô SÁNG nhô lên thành bệ thấp, sáng lệch nhịp
+    const cw = BOARD_W / BOARD_COLS, cd = BOARD_D / BOARD_ROWS;
+    for (const side of [-1, 1]) {
+        const mat = fortMaterial(side < 0 ? GOLD : VIOLET, 0.22, 0.55);
+        const slab = new THREE.BoxGeometry(cw * 0.92, 0.22, cd * 0.92); slab.translate(0, 0.11, 0);
+        const cells = [];
+        for (let c = 0; c < BOARD_COLS; c++) for (let r = 0; r < BOARD_ROWS; r++)
+            if ((c + r) % 2 === 1 && (side < 0 ? c < BOARD_COLS / 2 : c >= BOARD_COLS / 2)) cells.push([c, r]);
+        const inst = new THREE.InstancedMesh(slab, mat, cells.length);
+        const M = new THREE.Matrix4();
+        cells.forEach(([c, r], i) => inst.setMatrixAt(i, M.makeTranslation(-hx + (c + 0.5) * cw, 0, hz - (r + 0.5) * cd)));
+        inst.renderOrder = 1; g.add(inst);
+    }
+    // 2) tường thành: phía sau (z âm) chia đôi 2 màu + 2 đầu sân; có lỗ châu mai
+    const wall = (len, h, color, x, z, alongX) => {
+        const mat = fortMaterial(color, h + 0.7);
+        const body = new THREE.BoxGeometry(alongX ? len : 0.7, h, alongX ? 0.7 : len); body.translate(0, h / 2, 0);
+        add(body, mat, x, 0, z);
+        const n = Math.max(2, Math.round(len / 2.2));
+        for (let i = 0; i < n; i++) {   // răng thành
+            const t = -len / 2 + (i + 0.5) * (len / n);
+            const merlon = new THREE.BoxGeometry(alongX ? len / n * 0.55 : 0.8, 0.7, alongX ? 0.8 : len / n * 0.55); merlon.translate(0, h + 0.35, 0);
+            add(merlon, mat, x + (alongX ? t : 0), 0, z + (alongX ? 0 : t));
+        }
+    };
+    wall(hx - 2, 2.4, GOLD, -hx / 2 - 0.5, -hz, true);
+    wall(hx - 2, 2.4, VIOLET, hx / 2 + 0.5, -hz, true);
+    wall(BOARD_D - 5, 2.4, GOLD, -hx, -1.5, false);
+    wall(BOARD_D - 5, 2.4, VIOLET, hx, -1.5, false);
+    // 3) tháp canh hình quân Xe ở 2 góc sau + cổng thành giữa tường sau; cột sáng trên tháp
+    const tower = (x, z, color, h = 5.2, r = 1.5) => {
+        const mat = fortMaterial(color, h + 1);
+        const shaft = new THREE.CylinderGeometry(r * 0.82, r, h, 12, 1, true); shaft.translate(0, h / 2, 0);
+        add(shaft, mat, x, 0, z);
+        const crown = new THREE.CylinderGeometry(r * 1.12, r * 0.9, 0.9, 12, 1, true); crown.translate(0, h + 0.45, 0);
+        add(crown, mat, x, 0, z);
+        for (let i = 0; i < 6; i++) {
+            const a = i / 6 * Math.PI * 2, t = new THREE.BoxGeometry(0.55, 0.6, 0.35); t.translate(0, h + 1.2, 0);
+            const m = add(t, mat, x + Math.cos(a) * r * 1.05, 0, z + Math.sin(a) * r * 1.05); m.rotation.y = -a + Math.PI / 2;
+        }
+        const beamMat = fortMaterial(color, 16, 0.8);
+        const beam = new THREE.CylinderGeometry(0.16, 0.5, 16, 8, 1, true); beam.translate(0, 8, 0);
+        add(beam, beamMat, x, h, z);
+    };
+    tower(-hx, -hz, GOLD); tower(hx, -hz, VIOLET);
+    tower(-hx, hz - 2.5, GOLD, 3.2, 1.1); tower(hx, hz - 2.5, VIOLET, 3.2, 1.1);
+    tower(-1.6, -hz, GOLD, 3.6, 1.0); tower(1.6, -hz, VIOLET, 3.6, 1.0);   // 2 trụ cổng giữa
+    // 4) vạch ranh giới 2 phe giữa sân: màn sáng thấp
+    const mid = new THREE.PlaneGeometry(BOARD_D - 1, 1.1); mid.rotateY(Math.PI / 2); mid.translate(0, 0.55, 0);
+    add(mid, fortMaterial(0xfff3c4, 1.1), 0, 0, 0);
+    return g;
+}
+
 // ------------------------------------------------------------
 // 8. `board`: Bàn cờ ánh sáng phủ toàn sân khi còn Vua hoặc Hậu
 // ------------------------------------------------------------
@@ -1137,7 +1226,15 @@ export function updateChessBoard(casterId, { king = false, queen = false } = {})
             u.uTime.value = t;
             u.uReveal.value = Math.min(1, t / 0.9);
             u.uMix.value += (boardMesh.userData.mix - u.uMix.value) * 0.06;   // đổi màu êm khi thêm / mất quân chúa
+            const deco = boardMesh.userData.deco;
+            if (deco) {   // thành trì + ô cờ nổi: trồi lên từ mặt đất rồi "thở" nhẹ
+                const k = Math.min(1, Math.max(0, (t - 0.35) / 1.3)), e = 1 - Math.pow(1 - k, 3);
+                deco.scale.y = Math.max(0.001, e);
+                FORT_TIME.value = t;
+            }
         };
+        boardMesh.userData.deco = buildChessFort();
+        boardMesh.add(boardMesh.userData.deco);
         scene.add(boardMesh);
         boardMesh.material.uniforms.uMix.value = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
     } else if (!boardMesh.parent) scene.add(boardMesh);
