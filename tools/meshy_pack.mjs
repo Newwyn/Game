@@ -12,7 +12,7 @@ import { MeshoptEncoder, MeshoptDecoder } from 'meshoptimizer';
 import sharp from 'sharp';
 
 const RAW = 'art/battle3d/meshy', OUT = 'src/assets/world3d/meshy';
-const BIG = /^(bld_|forest_(oak|birch)$|town_fountain$)/;
+const BIG = /^(prop_chesssword$|bld_|forest_(oak|birch)$|town_fountain$)/;
 await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 

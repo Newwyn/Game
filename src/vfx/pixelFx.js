@@ -69,6 +69,7 @@ import * as poisonCloud from '../vendor/pixelfx/fx/nature/poison-cloud.js';
 import * as healingBloom from '../vendor/pixelfx/fx/nature/healing-bloom.js';
 import * as thorns from '../vendor/pixelfx/fx/nature/thorns.js';
 import * as arcaneMissiles from '../vendor/pixelfx/fx/arcane/arcane-missiles.js';
+import * as arcaneOrb from '../vendor/pixelfx/fx/arcane/arcane-orb.js';
 import * as manaBurst from '../vendor/pixelfx/fx/arcane/mana-burst.js';
 import * as starFall from '../vendor/pixelfx/fx/arcane/star-fall.js';
 import * as portal from '../vendor/pixelfx/fx/arcane/portal.js';
@@ -90,6 +91,7 @@ const LIB = {
     'explosions/small-explosion': smallExplosion, 'explosions/big-explosion': bigExplosion, 'fire/flame-pillar': flamePillar,
     'fire/fire-ring': fireRing, 'arcane/spell-charge': spellCharge,
     'melee/scythe-reap': scytheReap, 'shadow/dark-explosion': darkExplosion, 'shadow/curse': curse, 'nature/quake': quake, 'impacts/heavy-landing': heavyLanding, 'melee/uppercut': uppercut, 'water/splash': splash, 'water/wave-crash': waveCrash, 'ice/ice-shatter': iceShatter, 'nature/acid-splash': acidSplash, 'nature/poison-cloud': poisonCloud, 'nature/healing-bloom': healingBloom, 'nature/thorns': thorns,
+    'arcane/arcane-orb': arcaneOrb,
     'arcane/arcane-missiles': arcaneMissiles, 'arcane/mana-burst': manaBurst, 'arcane/star-fall': starFall, 'arcane/portal': portal,
     'shadow/black-hole': blackHole, 'shadow/shadow-tendrils': shadowTendrils, 'shadow/soul-drain': soulDrain, 'shadow/grasping-hands': graspingHands,
     'arcane-missiles': arcaneMissiles, 'mana-burst': manaBurst, 'spell-charge': spellCharge, 'star-fall': starFall, 'portal': portal, 'blink-in': blinkIn,

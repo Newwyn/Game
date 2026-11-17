@@ -8,14 +8,16 @@
 //     dance, board, promote, sacrifice, checkmate
 import * as THREE from 'three';
 import { scene } from '../core/scene.js';
-import { GROUND_Y, gameTimeout } from '../config.js';
-import { spawnPixelFx } from './pixelFx.js';
+import { game } from '../state.js';
+import { GROUND_Y, gameTimeout, gameNow } from '../config.js';
+import { spawnPixelFx, pixelLayer, pixelMod } from './pixelFx.js';
 import { cameraRig } from '../core/cameraRig.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import castleUrl from '../assets/world3d/meshy/bld_chesscastle.glb?url';
 import warTableUrl from '../assets/sprites/chess_wartable.webp';
 import hillUrl from '../assets/world3d/meshy/prop_chesshill.glb?url';
+import swordUrl from '../assets/world3d/meshy/prop_chesssword.glb?url';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture,
     easeOut, spawnHitSpark, spawnShockwave, spawnRisingSparkles,
@@ -34,6 +36,7 @@ const TEX = new Map();
 const activeDrains = new Map();
 const activeJudges = new Map();
 const activeOrbs = new Map();
+const activeDances = new Map();   // Hậu đang múa Vũ Điệu Quang Cầu: vòng quả cầu sau lưng chờ bắn
 const activeCrowns = new WeakMap();
 const boardByTeam = new Map();
 let boardMesh = null;
@@ -803,7 +806,9 @@ export function spawnKingCrown(targetViews = [], { duration = 8000, kingView = n
 
 // ---- Thanh gươm ánh sáng 3D của Vua (17/11/2026, người chơi yêu cầu): lúc Vua niệm Phán Quyết các MẢNH gươm bay tới ghép dần thành 1 thanh gươm
 //   khổng lồ dựng đứng trên đầu Vua; hết niệm thì chém sập xuống đất phía trước. Dựng bằng khối, vật liệu vàng cộng sáng (không cần mô hình ngoài).
-const SWORD_LEN = 10.5;
+const SWORD_LEN = 10.5;      // chiều dài gốc của gươm ghép khối (dự phòng)
+const JUDGE_SWORD = 11;      // gươm Phán Quyết dài chừng này
+const MATE_SWORD = 16;       // gươm Chiếu Tướng dài chừng này
 function buildLightSword() {
     const g = new THREE.Group();
     const mat = (c, o = 0.92) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide });
@@ -832,9 +837,147 @@ function buildLightSword() {
     g.userData.parts = parts;
     return g;
 }
-/** k = 0..1 tiến độ niệm: ghép dần các mảnh */
+// ---- Mô hình gươm của Vua (Meshy, 17/11/2026): gươm ngà-vàng có vương miện ở đốc. Nạp 1 lần lúc vào game; chuẩn hoá thành hình học dài 1 đơn vị,
+//   ĐỐC ở gốc toạ độ, lưỡi chạy theo +Y. Chưa nạp xong (hoặc nạp lỗi) thì makeKingSword dùng tạm thanh gươm ghép khối ở trên.
+let SWORD_BASE = null;   // { geo, map }
+const SWORD_LOADER = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+SWORD_LOADER.loadAsync(swordUrl).then((gltf) => {
+    gltf.scene.updateMatrixWorld(true);
+    let mesh = null;
+    gltf.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
+    if (!mesh) return;
+    // toạ độ đỉnh (mô hình nén dạng số nguyên) -> số thực, đã nhân ma trận của nút
+    const src = mesh.geometry.attributes.position, n = src.count, P = new Float32Array(n * 3), v = new THREE.Vector3();
+    const box = new THREE.Box3();
+    for (let i = 0; i < n; i++) { v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrixWorld); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; box.expandByPoint(v); }
+    const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    // trục dài nhất = trục lưỡi gươm; đưa nó về Y
+    const ax = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+    const o1 = (ax + 1) % 3, o2 = (ax + 2) % 3;                      // 2 trục còn lại (giữ đúng chiều tay phải: ax -> Y, o1 -> Z, o2 -> X)
+    const lo = box.min.getComponent(ax), len = size.getComponent(ax) || 1;
+    // đầu nào là MŨI: đầu có tiết diện hẹp hơn (đốc có vương miện to bè, mũi nhọn)
+    let wLo = 0, wHi = 0;
+    for (let i = 0; i < n; i++) {
+        const t = (P[i * 3 + ax] - lo) / len, w = Math.hypot(P[i * 3 + o1] - c.getComponent(o1), P[i * 3 + o2] - c.getComponent(o2));
+        if (t < 0.04) wLo = Math.max(wLo, w); else if (t > 0.96) wHi = Math.max(wHi, w);
+    }
+    const tipHigh = wHi < wLo;
+    const Q = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+        const t = (P[i * 3 + ax] - lo) / len, p1 = (P[i * 3 + o1] - c.getComponent(o1)) / len, p2 = (P[i * 3 + o2] - c.getComponent(o2)) / len;
+        // mũi ở đầu thấp -> quay 180° quanh trục Z mới (đổi dấu Y và X) để không lật mặt tam giác
+        Q[i * 3] = tipHigh ? p2 : -p2; Q[i * 3 + 1] = tipHigh ? t : 1 - t; Q[i * 3 + 2] = p1;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(Q, 3));
+    if (mesh.geometry.attributes.uv) geo.setAttribute('uv', mesh.geometry.attributes.uv);
+    if (mesh.geometry.index) geo.setIndex(mesh.geometry.index);
+    geo.computeBoundingSphere();
+    SWORD_BASE = { geo, map: mesh.material.map ?? null };
+}).catch(e => { console.warn('[chessFx] không nạp được mô hình gươm của Vua — dùng gươm ghép khối', e); });
+
+/** Vật liệu của gươm mô hình: giữ tranh gốc, tự phát sáng (không ăn đèn / bóng / sương), chỉ vẽ phần từ đốc tới `uReveal` (0..1 dọc lưỡi), mép đang hiện rực vàng */
+function swordMaterial(uni, { shell = false } = {}) {
+    const m = new THREE.MeshBasicMaterial(shell
+        ? { color: 0xffc247, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }
+        : { map: SWORD_BASE.map, color: new THREE.Color(1.12, 1.1, 1.04), transparent: true, opacity: 1, fog: false, side: THREE.DoubleSide });
+    m.onBeforeCompile = (sh) => {
+        sh.uniforms.uReveal = uni.uReveal;
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vBladeY;')
+            .replace('#include <begin_vertex>', '#include <begin_vertex>\nvBladeY = position.y;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vBladeY;\nuniform float uReveal;')
+            .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+                if (vBladeY > uReveal) discard;
+                float edgeGlow = smoothstep(uReveal - 0.05, uReveal, vBladeY) * step(uReveal, 0.999);
+                gl_FragColor.rgb += vec3(1.0, 0.82, 0.35) * edgeGlow * 1.6;`);
+    };
+    return m;
+}
+
+/**
+ * THANH GƯƠM CỦA VUA — chỗ DUY NHẤT tạo gươm (Phán Quyết + Chiếu Tướng đều gọi hàm này).
+ * Trả về THREE.Group: gốc toạ độ ở ĐỐC gươm, lưỡi gươm chạy theo trục +Y của nhóm, dài `len` đơn vị. userData.len = chiều dài.
+ * Mô hình Meshy đã nạp: userData.model = true (assembleSword cho hiện dần từ đốc tới mũi). Chưa nạp: gươm ghép khối (userData.parts).
+ */
+function makeKingSword(len = SWORD_LEN) {
+    if (!SWORD_BASE) {
+        const g = buildLightSword();
+        g.scale.setScalar(len / SWORD_LEN);
+        g.userData.len = len;
+        return g;
+    }
+    const g = new THREE.Group();
+    const uni = { uReveal: { value: 0 } };
+    const body = new THREE.Mesh(SWORD_BASE.geo, swordMaterial(uni));
+    body.scale.setScalar(len);
+    body.renderOrder = 3;
+    const shell = new THREE.Mesh(SWORD_BASE.geo, swordMaterial(uni, { shell: true }));   // vỏ sáng vàng phồng ra quanh gươm
+    shell.scale.set(len * 1.22, len * 1.008, len * 2.4);
+    shell.position.y = -len * 0.004;
+    shell.renderOrder = 4;
+    const halo = fxPlane(glowTexture(), len * 0.55, len * 1.2, { color: GOLD_MAIN, opacity: 0 });   // quầng sáng mềm sau lưng gươm
+    halo.position.set(0, len * 0.5, -0.2);
+    for (const o of [body, shell]) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; }
+    g.add(halo, body, shell);
+    g.userData = { model: true, len, uni, halo, k: 0, shardAt: 0, flashed: false };
+    return g;
+}
+/** Làm mờ cả thanh gươm (f = 0 rõ .. 1 mất hẳn) */
+function fadeSword(g, f) {
+    g.traverse(o => {
+        if (!o.material) return;
+        const m = o.material;
+        if (m.userData.baseOpacity == null) { m.userData.baseOpacity = m.opacity ?? 1; m.transparent = true; }
+        m.opacity = m.userData.baseOpacity * Math.max(0, 1 - f);
+    });
+}
+const SHARD_GEO = new THREE.OctahedronGeometry(0.16);
+/** 1 mảnh vàng bay từ ngoài vào, nhập vào mép gươm đang hiện (điểm `to` trong hệ toạ độ sân) */
+function spawnSwordShard(to, spread) {
+    const a = Math.random() * Math.PI * 2, r = spread * (0.6 + Math.random() * 0.6);
+    const from = new THREE.Vector3(to.x + Math.cos(a) * r, to.y + (Math.random() - 0.35) * spread, to.z + Math.sin(a) * r * 0.5);
+    const m = new THREE.Mesh(SHARD_GEO, new THREE.MeshBasicMaterial({ color: Math.random() < 0.4 ? 0xfffbe6 : GOLD_BRIGHT, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    m.userData.sharedGeometry = true;
+    m.scale.set(0.6 + Math.random() * 0.9, 1.4 + Math.random() * 1.6, 0.5);
+    const spin = (Math.random() - 0.5) * 16;
+    addAnim(m, 0.3 + Math.random() * 0.12, (p, fx) => {
+        const e = p * p;   // càng gần càng nhanh (bị hút vào)
+        fx.mesh.position.lerpVectors(from, to, e);
+        fx.mesh.rotation.set(p * spin, p * spin * 0.7, p * spin * 0.4);
+        fx.mesh.material.opacity = p < 0.2 ? p / 0.2 : p > 0.9 ? (1 - p) / 0.1 : 1;
+    });
+}
+/**
+ * k = 0..1 tiến độ ghép gươm. Gươm mô hình: hiện dần từ đốc tới mũi, mép đang hiện rực sáng, các mảnh vàng bay vào nhập ở mép; đủ (k = 1) thì loé sáng 1 lần.
+ * Gươm ghép khối (dự phòng): các mảnh bay vào chỗ.
+ */
 function assembleSword(g, k) {
-    for (const m of g.userData.parts) {
+    const U = g.userData;
+    if (U.model) {
+        k = Math.min(1, Math.max(0, k));
+        U.uni.uReveal.value = k >= 1 ? 2 : k;
+        U.halo.material.opacity = 0.26 * k;
+        const now = performance.now();
+        if (k > U.k && k < 1 && g.parent && now >= U.shardAt) {
+            U.shardAt = now + 26;
+            const edge = g.localToWorld(new THREE.Vector3(0, k * U.len, 0));
+            for (let i = 0; i < 2; i++) spawnSwordShard(edge, Math.max(2.4, U.len * 0.32));
+        }
+        if (k >= 1 && !U.flashed && U.k < 1 && U.k > 0 && g.parent) {
+            // ghép xong: loé sáng dọc cả thanh gươm
+            U.flashed = true;
+            const mid = g.localToWorld(new THREE.Vector3(0, U.len * 0.5, 0));
+            const flash = fxPlane(glowTexture(), U.len * 0.9, U.len * 1.5, { color: WHITE_GOLD, opacity: 0.95 });
+            flash.position.set(mid.x, mid.y, mid.z + 0.3);
+            flash.rotation.z = g.rotation.z;
+            addAnim(flash, 0.32, (p, fx) => { fx.mesh.scale.set(0.5 + easeOut(p) * 0.9, 1, 1); fx.mesh.material.opacity = 0.95 * (1 - p); });
+            spawnHitSpark({ x: mid.x, y: mid.y - GROUND_Y - 0.75, z: mid.z }, { count: 14, color: GOLD_BRIGHT, size: 1.6 });
+        }
+        U.k = k;
+        return;
+    }
+    if (!U.parts) return;
+    for (const m of U.parts) {
         const u = m.userData, q = Math.min(1, Math.max(0, (k - u.t0) / 0.22)), e = 1 - Math.pow(1 - q, 3);
         m.visible = q > 0;
         m.position.lerpVectors(u.from, u.home, e);
@@ -852,12 +995,13 @@ export function startKingJudge(casterId, summonIdx, kingView, { duration = 3000 
     if (kingView) {
         kingView.playAction?.('charge', { hold: true });
         kingView.flashMagicCircle?.(durSec);
+        kingView._bigJumpUntil = gameNow() + durMs + 700;   // camera nâng + lùi (cơ chế sẵn có của cú nhảy cao) để thấy trọn thanh gươm dựng trên đầu Vua
     }
 
     const g = new THREE.Group();
     const aura = fxPlane(glowTexture(), 3.2, 3.6, { color: GOLD_MAIN, opacity: 0.65 });
     g.add(aura);
-    const sword = buildLightSword();   // gươm 3D ghép dần trên đầu Vua, mũi chĩa lên trời
+    const sword = makeKingSword(JUDGE_SWORD);   // gươm 3D hiện dần trên đầu Vua (đốc ở dưới, mũi chĩa lên trời)
     scene.add(sword);
 
     let stopped = false;
@@ -884,7 +1028,7 @@ export function startKingJudge(casterId, summonIdx, kingView, { duration = 3000 
         const pulse = 1 + 0.25 * p + 0.08 * Math.sin(p * durSec * 14);
         aura.scale.setScalar(pulse);
         sword.position.set(pos.x, GROUND_Y + 2.6, (pos.z ?? 0) - 0.4);
-        assembleSword(sword, p);
+        assembleSword(sword, p / 0.88);   // ghép xong trước lúc chém 1 nhịp: loé sáng rồi mới bổ xuống
     });
 
     gameTimeout(() => {
@@ -910,7 +1054,7 @@ export function spawnKingJudgeSlam(casterId, summonIdx, kingView, { x, z } = {})
     const kp = kingView?.position ?? { x: (x ?? 0) - 2, z: z ?? 0 };
     const dir = x != null && Math.abs(x - kp.x) > 0.1 ? Math.sign(x - kp.x) : (kingView?.facingLeft ? -1 : 1);
     // thanh gươm 3D: đủ mảnh rồi quật sập xuống đất phía trước (xoay quanh đốc gươm), chạm đất thì loé sáng rồi tan
-    const sword = judge?.sword ?? buildLightSword();
+    const sword = judge?.sword ?? makeKingSword(JUDGE_SWORD);
     if (!sword.parent) { sword.position.set(kp.x, GROUND_Y + 2.6, (kp.z ?? 0) - 0.4); scene.add(sword); }
     assembleSword(sword, 1);
     const t0 = performance.now();
@@ -921,7 +1065,7 @@ export function spawnKingJudgeSlam(casterId, summonIdx, kingView, { x, z } = {})
         sword.rotation.z = -dir * e * 1.62;                               // ~93 độ: lưỡi gươm đập xuống mặt đất
         if (t > 0.2) {
             const f = Math.min(1, (t - 0.2) / 0.55);
-            sword.traverse(o => { if (o.material) o.material.opacity = 0.92 * (1 - f); });
+            fadeSword(sword, f);
             if (f >= 1) { sword.removeFromParent(); return; }
         }
         requestAnimationFrame(swing);
@@ -950,9 +1094,69 @@ export function spawnKingJudgeSlam(casterId, summonIdx, kingView, { x, z } = {})
 }
 
 // ------------------------------------------------------------
-// 7. `orb` / `orbTick` / `orbGone` & `dance` (Quang Cầu & Vũ Điệu Quang Cầu của Hậu)
+// 7. `orb` / `orbTick` / `orbGone` & `dance` / `danceShot` (Quang Cầu & Vũ Điệu Quang Cầu của Hậu) — làm lại 17/11/2026
+//   Quả cầu = hiệu ứng pixelfx "Arcane orb" (quả cầu thuỷ tinh có lõi sáng + 2 vòng sáng xoay quanh) tô bảng màu TRẮNG-VÀNG,
+//   dưới đất 1 quầng sáng tròn mềm đúng bán kính gây sát thương (2,5), mỗi nhịp gây sát thương thì phập phồng + 1 gợn sáng loang ra.
+//   Vũ điệu: quả cũ bay về sau lưng Hậu xếp thành vòng xoay; mỗi phát bắn 1 quả rời vòng thành vệt sáng tới mục tiêu rồi nổ sáng ở đó.
 // ------------------------------------------------------------
-export function spawnQueenOrb(id, x, z, { duration = 10000 } = {}) {
+const ORB_PAL = ['#6a3fb0', '#b48a2c', '#e0b64a', '#ffd670', '#ffe9a6', '#fff6d6', '#ffffff', '#ffffff'];   // trắng-vàng sáng, viền ngoài cùng ánh tím (nổi trên bàn cờ vàng)
+const ORB_Y = 1.15;            // tâm quả cầu cao chừng này so với mặt đất
+const ORB_PX = 2.9 / 44;       // 1 điểm ảnh của pixelLayer (cỡ chuẩn) = chừng này đơn vị sân
+const ORB_CORE_GEO = new THREE.SphereGeometry(1, 18, 12);
+const ORB_CY = 52;             // tâm quả cầu của "Arcane orb" nằm trên gốc hiệu ứng 52 điểm ảnh (bán kính 17)
+
+/** 1 quả cầu ánh sáng: { group (tâm quả cầu ở gốc nhóm), step(dt) } — bán kính ~17 × ORB_PX × scale */
+function makeLightOrb(scale = 0.5, seed = 1) {
+    const g = new THREE.Group();
+    const mod = pixelMod('arcane/arcane-orb');
+    let layer = null;
+    if (mod) {
+        layer = pixelLayer(mod, { palette: ORB_PAL, seed, scale });
+        layer.group.position.y = -ORB_CY * ORB_PX * scale;
+        g.add(layer.group);
+        layer.step(0.016);
+    }
+    const halo = fxPlane(glowTexture(), 3.4 * scale, 3.4 * scale, { color: GOLD_BRIGHT, opacity: 0.4 });
+    halo.position.z = -0.05;
+    // lõi cầu ĐẶC trắng-vàng (khối 3D thật) nằm trong lớp điểm ảnh -> nhìn từ góc nào cũng là 1 quả cầu sáng rõ
+    const R = 17 * ORB_PX * scale * 0.86;
+    const ball = (color, k, opacity, side = THREE.FrontSide) => {
+        const m = new THREE.Mesh(ORB_CORE_GEO, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, fog: false, depthWrite: false, side }));
+        m.userData.sharedGeometry = true;
+        m.scale.setScalar(R * k);
+        m.position.z = -0.03;
+        m.renderOrder = 2;
+        return m;
+    };
+    // viền tím sẫm (mặt sau của khối lớn hơn 1 chút) -> quả cầu nổi rõ trên bàn cờ vàng nhạt; thân vàng tươi; tâm trắng nóng
+    g.add(halo, ball(0x5b21b6, 1.2, 0.95, THREE.BackSide), ball(0xffd84a, 1, 1), ball(0xfff8dc, 0.62, 1));
+    return { group: g, halo, step: (dt) => { if (dt > 0) layer?.step(dt); } };
+}
+
+/** Quầng tròn trên mặt đất đúng bán kính quả cầu: lòng tím sẫm trong mờ (để nổi trên bàn cờ vàng lẫn nền cỏ), mép trắng-vàng sáng (mép ở 92% bán kính tấm) */
+function orbHaloTexture() {
+    return makeTex('queenOrbHalo3', 256, 256, (ctx) => {
+        const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        g.addColorStop(0, 'rgba(255,248,214,0.55)');
+        g.addColorStop(0.22, 'rgba(170,120,255,0.50)');
+        g.addColorStop(0.6, 'rgba(70,26,150,0.62)');
+        g.addColorStop(0.86, 'rgba(60,20,140,0.80)');
+        g.addColorStop(0.9, 'rgba(255,255,255,1)');
+        g.addColorStop(0.93, 'rgba(255,236,150,1)');
+        g.addColorStop(0.96, 'rgba(90,40,180,0.85)');
+        g.addColorStop(1, 'rgba(90,40,170,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 256, 256);
+    });
+}
+/** Tấm phẳng nằm trên mặt đất (xoay ngửa) */
+function floorPlane(tex, size, opts) {
+    const m = fxPlane(tex, size, size, opts);
+    m.rotation.x = -Math.PI / 2;
+    return m;
+}
+
+export function spawnQueenOrb(id, x, z, { duration = 10000, radius = 2.5 } = {}) {
     const key = String(id ?? '0');
     removeQueenOrb(key, false);
 
@@ -961,16 +1165,11 @@ export function spawnQueenOrb(id, x, z, { duration = 10000 } = {}) {
     const durSec = Math.max(0.5, (duration ?? 10000) / 1000);
 
     const g = new THREE.Group();
-    const floorRing = fxPlane(ringTexture(), 4.8, 4.8, { color: GOLD_MAIN, opacity: 0.35 });
-    floorRing.rotation.x = -Math.PI / 2;
-    floorRing.position.set(0, FLOOR_Y - GROUND_Y, 0);
-
-    const halo = fxPlane(glowTexture(), 2.2, 2.2, { color: GOLD_MAIN, opacity: 0.65 });
-    halo.position.set(0, 1.05, 0.45);
-    const core = fxPlane(queenOrbTexture(), 1.25, 1.25, { additive: true, opacity: 0.95 });
-    core.position.set(0, 1.05, 0.48);
-
-    g.add(floorRing, halo, core);
+    const ground = floorPlane(orbHaloTexture(), (radius * 2) / 0.92, { additive: false, color: 0xffffff, opacity: 0 });
+    ground.position.set(0, FLOOR_Y - GROUND_Y, 0);
+    const orb = makeLightOrb(0.5, (Number(id) || 0) % 17 + 1);
+    orb.group.position.set(0, ORB_Y, -0.55);   // lùi ra sau 1 chút: đối thủ đứng đúng chỗ đó vẫn hiện trước quả cầu
+    g.add(ground, orb.group);
     g.position.set(tx, GROUND_Y, tz);
 
     const entry = {
@@ -980,6 +1179,8 @@ export function spawnQueenOrb(id, x, z, { duration = 10000 } = {}) {
         group: g,
         pulse: 0,
         stopped: false,
+        age: 0,
+        fadeAt: null,       // tuổi lúc bắt đầu tan (mờ dần 0,3 giây)
         stop: () => {
             entry.stopped = true;
             g.visible = false;
@@ -987,33 +1188,40 @@ export function spawnQueenOrb(id, x, z, { duration = 10000 } = {}) {
     };
     activeOrbs.set(key, entry);
 
-    addAnim(g, durSec + 0.5, (p, fx, dt = 0.016) => {
+    addAnim(g, durSec + 0.8, (p, fx, dt = 0.016) => {
         if (entry.stopped) {
             fx.life = fx.age;
             return;
         }
-        entry.pulse = Math.max(0, entry.pulse - dt * 3.2);
-        const bob = Math.sin(fx.age * 3.8) * 0.1;
-        const sc = 1 + 0.12 * Math.sin(fx.age * 6) + 0.45 * entry.pulse;
-        core.position.y = 1.05 + bob;
-        halo.position.y = 1.05 + bob;
-        core.rotation.z = fx.age * 1.8;
-        core.scale.setScalar(sc);
-        halo.scale.setScalar(sc * 1.15);
-        floorRing.material.opacity = 0.28 + 0.35 * entry.pulse;
+        orb.step(dt);
+        entry.age = fx.age;
+        entry.pulse = Math.max(0, entry.pulse - dt * 2.6);
+        const born = Math.min(1, fx.age / 0.3), e = easeOut(born);
+        const gone = entry.fadeAt == null ? 0 : Math.min(1, (fx.age - entry.fadeAt) / 0.3);
+        const k = e * (1 - gone);
+        orb.group.position.y = ORB_Y + Math.sin(fx.age * 2.6) * 0.08;
+        orb.group.scale.setScalar((0.4 + 0.6 * e) * (1 + 0.16 * entry.pulse) * (1 - 0.5 * gone));
+        orb.group.visible = gone < 0.95;
+        orb.halo.material.opacity = (0.34 + 0.3 * entry.pulse) * k;
+        ground.scale.setScalar((0.6 + 0.4 * e) * (1 + 0.05 * entry.pulse));
+        ground.material.opacity = (0.9 + 0.1 * entry.pulse) * k;
+        if (gone >= 1) { entry.stopped = true; fx.life = fx.age; }
     });
 
     return entry;
 }
 
-export function tickQueenOrb(id) {
-    const key = String(id ?? '0');
-    const entry = activeOrbs.get(key);
-    const x = entry?.x ?? 0;
-    const z = entry?.z ?? 0;
-    if (entry) entry.pulse = 1;
-    spawnShockwave({ x, z }, { color: GOLD_BRIGHT, radius: 2.5, life: 0.42 });
-    spawnHitSpark({ x, y: 0, z }, { count: 6, color: WHITE_GOLD, size: 0.9 });
+/** `orbTick`: quả cầu vừa gây sát thương -> phập phồng nhẹ + 1 gợn sáng mảnh loang ra tới mép bán kính */
+export function tickQueenOrb(id, { radius = 2.5 } = {}) {
+    const entry = activeOrbs.get(String(id ?? '0'));
+    if (!entry) return;
+    entry.pulse = 1;
+    const ripple = floorPlane(ringTexture(), radius * 2 * (128 / 104), { color: WHITE_GOLD, opacity: 0 });
+    ripple.position.set(entry.x, FLOOR_Y + 0.02, entry.z);
+    addAnim(ripple, 0.5, (p, fx) => {
+        fx.mesh.scale.setScalar(0.25 + 0.75 * easeOut(p));
+        fx.mesh.material.opacity = 0.7 * (1 - p) * Math.min(1, p * 8);
+    });
 }
 
 export function removeQueenOrb(id, burst = true) {
@@ -1021,99 +1229,141 @@ export function removeQueenOrb(id, burst = true) {
     const entry = activeOrbs.get(key);
     if (!entry) return;
     activeOrbs.delete(key);
-    const { x, z } = entry;
-    entry.stop();
-    if (burst) {
-        const flash = fxPlane(glowTexture(), 1.8, 1.8, { color: GOLD_BRIGHT, opacity: 0.8 });
-        flash.position.set(x, GROUND_Y + 1.05, z + 0.5);
-        addAnim(flash, 0.28, (p, fx) => {
-            fx.mesh.scale.setScalar(0.8 + easeOut(p) * 0.9);
-            fx.mesh.material.opacity = 0.8 * (1 - p);
-        });
-    }
+    if (!burst) { entry.stop(); return; }
+    // hết giờ: mờ dần + 1 chớp sáng nhỏ
+    entry.fadeAt = entry.age ?? 0;
+    const flash = fxPlane(glowTexture(), 1.6, 1.6, { color: GOLD_BRIGHT, opacity: 0.7 });
+    flash.position.set(entry.x, GROUND_Y + ORB_Y, entry.z + 0.3);
+    addAnim(flash, 0.3, (p, fx) => {
+        fx.mesh.scale.setScalar(0.7 + easeOut(p) * 0.8);
+        fx.mesh.material.opacity = 0.7 * (1 - p);
+    });
 }
 
-export function spawnQueenDance(queenView, {
-    recalled = [],
-    shots = [],
-    getTargetView = null,
-    fallbackPos = null,
-} = {}) {
-    const qPos = queenView?.position ?? fallbackPos ?? { x: 0, z: 0 };
+/** Tâm vòng quả cầu sau lưng Hậu + chỗ của quả thứ i lúc `t` giây (vòng đứng, quay đều) */
+const DANCE_R = 1.25;
+function danceSlot(queenView, fallback, i, n, t) {
+    const q = queenView?.position ?? fallback ?? { x: 0, z: 0 };
+    const dir = queenView?.facingLeft ? -1 : 1;
+    const h = queenView?.height ?? 2.4;
+    const a = (i / Math.max(1, n)) * Math.PI * 2 + t * 2.4;
+    return { x: q.x - dir * 0.55 + Math.cos(a) * DANCE_R, y: GROUND_Y + h * 0.62 + Math.sin(a) * DANCE_R, z: (q.z ?? 0) - 0.25 };
+}
+
+/**
+ * `dance` (lúc bắt đầu niệm): thu các quả đang nằm trên sân (recalled) về sau lưng Hậu, thêm cho đủ `count` quả, xếp thành vòng xoay chờ bắn.
+ * Từng phát bắn do `danceShot` -> fireQueenDanceShot.
+ */
+export function spawnQueenDance(casterId, summonIdx, queenView, { recalled = [], count = 2, castTime = 1000, gap = 250, fallbackPos = null } = {}) {
+    const key = pieceKey(casterId, summonIdx);
+    activeDances.get(key)?.stop();
+    const total = Math.max(1, count ?? 2);
+    const lifeSec = ((castTime ?? 1000) + total * (gap ?? 250)) / 1000 + 0.6;
     if (queenView) {
         queenView.playAction?.('skill');
-        queenView.flashMagicCircle?.(1.0);
+        queenView.flashMagicCircle?.(lifeSec - 0.6);
     }
-
-    // Lưu vị trí các quả cầu cũ rồi thu hồi
-    const startPoints = [];
+    // chỗ các quả cũ đang nằm -> bay về từ đó; quả thêm thì hiện ra ngay cạnh Hậu
+    const starts = [];
     recalled.forEach((id) => {
         const ex = activeOrbs.get(String(id));
-        if (ex) startPoints.push({ x: ex.x, z: ex.z });
+        if (ex) starts.push({ x: ex.x, y: GROUND_Y + ORB_Y, z: ex.z });
         removeQueenOrb(id, false);
     });
-
-    const total = Math.max(shots.length, startPoints.length + 2, 2);
+    const holder = new THREE.Group();
+    const orbs = [];
     for (let i = 0; i < total; i++) {
-        const from = startPoints[i] ?? { x: qPos.x, z: qPos.z ?? 0 };
-        const shot = shots[i] ?? shots[i % Math.max(1, shots.length)];
-        const orbMesh = fxPlane(queenOrbTexture(), 1.1, 1.1, { additive: true });
-        const haloMesh = fxPlane(glowTexture(), 1.8, 1.8, { color: GOLD_MAIN, opacity: 0.65 });
-        const g = new THREE.Group();
-        g.add(haloMesh, orbMesh);
-
-        const baseAng = (i / total) * Math.PI * 2;
-        let hit = false;
-        addAnim(g, 1.05, (p, fx) => {
-            const curQ = queenView?.position ?? qPos;
-            if (p < 0.35) {
-                // Giai đoạn 1: thu về sau lưng Hậu
-                const u = easeOut(p / 0.35);
-                const ang = baseAng + u * 2.2;
-                const rx = curQ.x + Math.cos(ang) * 1.35;
-                const ry = GROUND_Y + 1.45 + Math.sin(ang) * 0.85;
-                const rz = (curQ.z ?? 0) + 0.55;
-                fx.mesh.position.set(
-                    from.x + (rx - from.x) * u,
-                    (GROUND_Y + 1.05) + (ry - (GROUND_Y + 1.05)) * u,
-                    (from.z ?? 0) + (rz - (from.z ?? 0)) * u,
-                );
-            } else if (p < 0.68) {
-                // Giai đoạn 2: xoay vòng nhanh sau lưng Hậu
-                const u = (p - 0.35) / 0.33;
-                const ang = baseAng + 2.2 + u * Math.PI * 3.2;
-                fx.mesh.position.set(
-                    curQ.x + Math.cos(ang) * 1.35,
-                    GROUND_Y + 1.45 + Math.sin(ang) * 0.85,
-                    (curQ.z ?? 0) + 0.55,
-                );
-            } else {
-                // Giai đoạn 3: bắn vọt tới mục tiêu của từng phát trong shots[]
-                const u = easeOut((p - 0.68) / 0.32);
-                const ang = baseAng + 2.2 + Math.PI * 3.2;
-                const sx = curQ.x + Math.cos(ang) * 1.35;
-                const sy = GROUND_Y + 1.45 + Math.sin(ang) * 0.85;
-                const sz = (curQ.z ?? 0) + 0.55;
-                const tv = shot?.targetIndex != null ? getTargetView?.(shot.targetIndex) : null;
-                const tx = shot?.x ?? tv?.position?.x ?? (curQ.x + 6);
-                const tz = shot?.z ?? tv?.position?.z ?? (curQ.z ?? 0);
-                fx.mesh.position.set(
-                    sx + (tx - sx) * u,
-                    sy + ((GROUND_Y + 1.0) - sy) * u + Math.sin(u * Math.PI) * 0.7,
-                    sz + ((tz + 0.55) - sz) * u,
-                );
-                if (p >= 0.98 && !hit) {
-                    hit = true;
-                    spawnShockwave({ x: tx, z: tz }, { color: GOLD_BRIGHT, radius: 2.3, life: 0.4 });
-                    spawnHitSpark({ x: tx, y: 0, z: tz }, { count: 7, color: WHITE_GOLD, size: 1.05 });
-                }
-            }
-            orbMesh.rotation.z = p * 12;
-        });
+        const o = makeLightOrb(0.3, i + 3);
+        const q = queenView?.position ?? fallbackPos ?? { x: 0, z: 0 };
+        const from = starts[i] ?? { x: q.x, y: GROUND_Y + (queenView?.height ?? 2.4) * 0.6, z: q.z ?? 0 };
+        orbs.push({ ...o, from, fresh: !starts[i], fired: false, pos: { ...from } });
+        holder.add(o.group);
     }
+    const state = {
+        orbs, holder, queenView, stopped: false,
+        stop: () => { state.stopped = true; holder.visible = false; },
+    };
+    activeDances.set(key, state);
+    const GATHER = Math.min(0.55, (castTime ?? 1000) / 1000 * 0.6);   // giây: bay về xong trước khi phát đầu rời vòng
+    addAnim(holder, lifeSec, (p, fx, dt = 0.016) => {
+        const dead = queenView && queenView.member?.alive === false;
+        if (state.stopped || dead || orbs.every(o => o.fired)) {
+            if (activeDances.get(key) === state) activeDances.delete(key);
+            fx.life = fx.age;
+            return;
+        }
+        const t = fx.age, u = easeOut(Math.min(1, t / GATHER));
+        orbs.forEach((o, i) => {
+            if (o.fired) return;
+            const s = danceSlot(queenView, fallbackPos, i, total, t);
+            o.pos.x = o.from.x + (s.x - o.from.x) * u;
+            o.pos.y = o.from.y + (s.y - o.from.y) * u + Math.sin(u * Math.PI) * (o.fresh ? 0 : 1.2);   // quả cũ bay vồng lên rồi về vòng
+            o.pos.z = o.from.z + (s.z - o.from.z) * u;
+            o.group.position.set(o.pos.x, o.pos.y, o.pos.z);
+            o.group.scale.setScalar(o.fresh ? 0.2 + 0.8 * u : 1 - 0.0 * u);
+            o.step(dt);
+        });
+    });
+    return state;
 }
 
-// ---- Bàn cờ "trận đồ" (17/11/2026): vẽ bằng shader — ô cờ sáng lăn tăn, đường lưới có vệt sáng chạy, vòng trận ở giữa, viền mờ dần ----
+/**
+ * `danceShot`: quả thứ `n` rời vòng sau lưng Hậu, lao thành VỆT SÁNG tới (x, z) trong `flight` ms rồi nổ sáng ở đó (onHit: hiện số sát thương).
+ * Quả Quang Cầu mới ở chỗ đó do sự kiện `orb` của máy chủ tạo ngay sau.
+ */
+export function fireQueenDanceShot(casterId, summonIdx, queenView, { n = 1, x = 0, z = 0, flight = 200, onHit = null, fallbackPos = null } = {}) {
+    const state = activeDances.get(pieceKey(casterId, summonIdx));
+    let o = state?.orbs.find((q, i) => !q.fired && i === (n ?? 1) - 1) ?? state?.orbs.find(q => !q.fired);
+    if (o) { o.fired = true; state.holder.remove(o.group); }
+    else {
+        // không còn vòng (vào trận giữa chừng...): bắn thẳng từ chỗ Hậu
+        const q = queenView?.position ?? fallbackPos ?? { x: 0, z: 0 };
+        o = { ...makeLightOrb(0.3, n + 3), pos: { x: q.x, y: GROUND_Y + 1.6, z: q.z ?? 0 } };
+    }
+    const from = { ...o.pos }, to = { x: x ?? 0, y: GROUND_Y + ORB_Y, z: z ?? 0 };
+    const dur = Math.max(0.08, (flight ?? 200) / 1000);
+    const len = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z) || 1;
+    // vệt sáng: 1 dải sáng kéo dài sau quả cầu, nằm dọc theo hướng bay
+    const streak = fxPlane(glowTexture(), 1, 0.5, { color: WHITE_GOLD, opacity: 0.9 });
+    const g = new THREE.Group();
+    g.add(streak, o.group);
+    o.group.position.set(0, 0, 0);
+    o.group.scale.setScalar(1.15);
+    let age = 0, done = false, puffT = 0;
+    addAnim(g, dur + 0.05, (p, fx, dt = 0.016) => {
+        age += dt;
+        const u = Math.min(1, age / dur), e = u * u * (3 - 2 * u) * 0.4 + u * 0.6;
+        const px = from.x + (to.x - from.x) * e, py = from.y + (to.y - from.y) * e + Math.sin(e * Math.PI) * 0.5, pz = from.z + (to.z - from.z) * e;
+        g.position.set(px, py, pz + 0.3);
+        const ang = Math.atan2(to.y - from.y, to.x - from.x);
+        const tail = Math.min(len * e, 3.2);
+        streak.scale.set(Math.max(0.3, tail), 1, 1);
+        streak.rotation.z = ang;
+        streak.position.set(-Math.cos(ang) * tail * 0.5, -Math.sin(ang) * tail * 0.5, -0.02);
+        o.step(dt);
+        puffT += dt;
+        if (puffT > 0.03) {
+            puffT = 0;
+            const puff = fxPlane(glowTexture(), 0.5, 0.5, { color: GOLD_BRIGHT, opacity: 0.5 });
+            puff.position.set(px, py, pz + 0.28);
+            addAnim(puff, 0.3, (q, f2) => { f2.mesh.scale.setScalar(1 + q * 1.3); f2.mesh.material.opacity = 0.5 * (1 - q); });
+        }
+        if (u >= 1 && !done) {
+            done = true;
+            // nổ sáng ở đích: chớp trắng-vàng + tia lửa điểm ảnh + 1 gợn sáng trên đất
+            const flash = fxPlane(glowTexture(), 2.6, 2.6, { color: WHITE_GOLD, opacity: 0.95 });
+            flash.position.set(to.x, to.y, to.z + 0.35);
+            addAnim(flash, 0.26, (q, f2) => { f2.mesh.scale.setScalar(0.5 + easeOut(q) * 1.1); f2.mesh.material.opacity = 0.95 * (1 - q); });
+            spawnPixelFx('impacts/hit-spark', { pos: { x: to.x, z: to.z }, palette: 'holy', scale: 0.9 });
+            const ripple = floorPlane(ringTexture(), 5 * (128 / 104), { color: GOLD_BRIGHT, opacity: 0 });
+            ripple.position.set(to.x, FLOOR_Y + 0.02, to.z);
+            addAnim(ripple, 0.4, (q, f2) => { f2.mesh.scale.setScalar(0.2 + 0.8 * easeOut(q)); f2.mesh.material.opacity = 0.8 * (1 - q); });
+            onHit?.();
+            fx.life = fx.age;
+        }
+    });
+}
+
 const BOARD_W = 56, BOARD_D = 24, BOARD_COLS = 14, BOARD_ROWS = 6;
 function boardMaterial() {
     return new THREE.ShaderMaterial({
@@ -1430,6 +1680,7 @@ export function spawnCheckmate({
     if (kingView) {
         kingView.playAction?.('charge', { hold: true });
         kingView.flashMagicCircle?.(liftSec);
+        kingView._bigJumpUntil = gameNow() + liftMs + 900;   // camera nâng + lùi để thấy thanh gươm trên cao
     }
 
     // Tâm bên đối thủ để thanh đại kiếm ánh sáng giáng xuống
@@ -1466,51 +1717,177 @@ export function spawnCheckmate({
         });
     });
 
-    // Thanh gươm ánh sáng khổng lồ (Excalibur) lao từ bầu trời xuống đúng lúc hết `lift`
-    const swordGroup = new THREE.Group();
-    const swordGlow = fxPlane(glowTexture(), 6.5, 14.5, { color: GOLD_MAIN, opacity: 0 });
-    const swordMesh = fxPlane(giantSwordTexture(), 4.2, 13.5, { additive: false, opacity: 0 });
-    swordMesh.position.z = 0.05;
-    swordGroup.add(swordGlow, swordMesh);
-
-    const dropStart = Math.max(0, liftSec - 0.32);
-    const totalLife = liftSec + 0.75;
+    // Thanh gươm 3D của Vua (makeKingSword): hiện trên cao phía trên đội hình địch, MŨI CHÚC XUỐNG, các mảnh ghép dần suốt lúc nâng (`lift`);
+    //   0,22 giây cuối cả thanh lao xuống, mũi gươm cắm đất đúng lúc máy chủ gây sát thương, rồi tan
+    const L = MATE_SWORD;
+    const sword = makeKingSword(L);
+    sword.rotation.z = Math.PI;                       // lưỡi (+Y của nhóm) quay xuống đất
+    const HOVER_Y = GROUND_Y + L + 4.5;               // đốc gươm lúc treo trên cao (mũi còn cách đất 4,5)
+    const STAB_Y = GROUND_Y + L - 1.2;                // đốc gươm lúc mũi đã cắm xuống đất
+    const DROP = Math.min(0.22, liftSec * 0.4);
+    const glow = fxPlane(glowTexture(), 5.5, L + 4, { color: GOLD_MAIN, opacity: 0 });
+    const holder = new THREE.Group();
+    holder.add(glow);
+    scene.add(sword);
+    assembleSword(sword, 0);
+    const totalLife = liftSec + 0.8;
     let impacted = false;
 
-    addAnim(swordGroup, totalLife, (p, fx) => {
+    addAnim(holder, totalLife, (p, fx) => {
         const t = p * totalLife;
-        if (t < dropStart) return;
-        if (t <= liftSec) {
-            const u = Math.min(1, (t - dropStart) / Math.max(0.05, liftSec - dropStart));
-            const y = GROUND_Y + 17.5 - easeOut(u) * 12.0;
-            fx.mesh.position.set(cx, y, cz + 0.75);
-            swordMesh.material.opacity = Math.min(1, u * 2.5);
-            swordGlow.material.opacity = 0.75 * Math.min(1, u * 2);
-            return;
+        let y = HOVER_Y, fade = 0;
+        if (t <= liftSec - DROP) {
+            assembleSword(sword, Math.min(1, t / Math.max(0.05, liftSec - DROP)));
+            y = HOVER_Y + Math.sin(t * 5) * 0.12;      // lơ lửng nhè nhẹ lúc đang ghép
+        } else if (t <= liftSec) {
+            assembleSword(sword, 1);
+            const u = (t - (liftSec - DROP)) / DROP;
+            y = HOVER_Y + (STAB_Y - HOVER_Y) * u * u;  // lao xuống nhanh dần
+        } else {
+            assembleSword(sword, 1);
+            y = STAB_Y;
+            fade = Math.min(1, (t - liftSec - 0.25) / 0.5);
+            if (!impacted) {
+                impacted = true;
+                kingView?.releaseHold?.('charge');
+                kingView?.playAction?.('slam');
+                enemyViews.forEach((ev) => { if (ev) ev._lift = 0; });
+                spawnShockwave({ x: cx, z: cz }, { color: GOLD_MAIN, radius: 9.5, life: 0.75 });
+                spawnPixelFx('impacts/ground-slam', {
+                    pos: { x: cx, z: cz },
+                    palette: 'gold',
+                    scale: 1.35,
+                    maxLife: 1.8,
+                });
+                spawnHitSpark({ x: cx, y: 0, z: cz }, { count: 18, color: GOLD_BRIGHT, size: 2.0 });
+                spawnPixelFx('nature/quake', { pos: { x: cx, z: cz }, scale: 1.2, maxLife: 1.4 });   // đất nứt + bụi
+                cameraRig?.shake?.(0.6, 380);
+                onImpact?.();
+            }
         }
-        if (!impacted) {
-            impacted = true;
-            kingView?.releaseHold?.('charge');
-            kingView?.playAction?.('slam');
-            enemyViews.forEach((ev) => { if (ev) ev._lift = 0; });
-            spawnShockwave({ x: cx, z: cz }, { color: GOLD_MAIN, radius: 9.5, life: 0.75 });
-            spawnPixelFx('impacts/ground-slam', {
-                pos: { x: cx, z: cz },
-                palette: 'gold',
-                scale: 1.35,
-                maxLife: 1.8,
-            });
-            spawnHitSpark({ x: cx, y: 0, z: cz }, { count: 18, color: GOLD_BRIGHT, size: 2.0 });
-            onImpact?.();
+        sword.position.set(cx, y, cz);
+        if (fade > 0) fadeSword(sword, fade);
+        glow.position.set(cx, y - L * 0.5, cz - 0.3);
+        glow.material.opacity = 0.3 * Math.min(1, t / 0.4) * (1 - Math.max(0, fade));
+        if (p >= 1 || fade >= 1) { sword.removeFromParent(); fx.life = fx.age; }
+    });
+}
+
+// ------------------------------------------------------------
+// 10. HÀO QUANG QUÂN CHÚA (17/11/2026): Vua và Hậu luôn có hào quang quanh mình suốt lúc còn trên sân.
+//   Vua: quầng vàng ấm quanh thân, ấn hoàng gia xoay chậm dưới chân, vài đốm vàng bay lên, vương miện ánh sáng mờ trên đầu.
+//   Hậu: quầng trắng-vàng ánh tím, vòng sáng dưới chân, 3 quả cầu sáng nhỏ bay vòng quanh.
+//   syncRoyalAuras() (gọi khi có sự kiện cờ) bật 1 bộ quét: cứ 0,4 giây tìm quân chúa còn sống chưa có hào quang thì gắn.
+//   Mỗi hào quang bám theo quân, tự tắt khi quân gục / bị thay (phong cấp dùng lại ô) / ra khỏi sân; clearChessFx gỡ hết.
+//   Rẻ: mỗi quân ~9 tấm phẳng / khối cố định, không cấp phát gì trong vòng lặp. Độ đậm theo cài đặt hiệu ứng (vật liệu isVfx do addAnim gắn).
+// ------------------------------------------------------------
+const ROYAL_AURA = { chess_king: 'king', chess_queen: 'queen' };
+const royalAuras = new Map();   // view -> { stop() }
+let auraScan = null;            // { stopped }
+const AURA_ORB_GEO = new THREE.SphereGeometry(1, 12, 8);
+
+function makeRoyalAura(view, kind) {
+    const h = view.height ?? 2.6;
+    const g = new THREE.Group();
+    const king = kind === 'king';
+    // ấn / vòng sáng dưới chân
+    const sigil = king
+        ? fxPlane(summonSquareTexture(true), h * 1.5, h * 1.5, { additive: false, opacity: 0.9 })
+        : fxPlane(orbHaloTexture(), h * 1.35, h * 1.35, { additive: false, opacity: 0.85 });
+    sigil.rotation.x = -Math.PI / 2;
+    sigil.position.y = FLOOR_Y - GROUND_Y + 0.01;
+    const floorGlow = fxPlane(glowTexture(), h * 1.3, h * 1.3, { color: king ? GOLD_MAIN : VIOLET_MAIN, opacity: king ? 0.3 : 0.26 });
+    floorGlow.rotation.x = -Math.PI / 2;
+    floorGlow.position.y = FLOOR_Y - GROUND_Y;
+    // quầng sáng mềm quanh thân (nằm SAU lưng quân để không che hình)
+    const body = fxPlane(glowTexture(), h * 0.95, h * 1.25, { color: king ? 0xffc93c : 0xfff4d0, opacity: 0.26 });
+    body.position.set(0, h * 0.5, -0.3);
+    const tint = king ? null : fxPlane(glowTexture(), h * 0.7, h * 0.95, { color: VIOLET_MAIN, opacity: 0.16 });
+    if (tint) tint.position.set(0, h * 0.55, -0.32);
+    g.add(floorGlow, sigil, body);
+    if (tint) g.add(tint);
+    // Vua: vương miện ánh sáng mờ lơ lửng ngay trên đầu (sau lưng thanh máu) + đốm vàng bay lên
+    let crown = null;
+    const motes = [];
+    if (king) {
+        crown = fxPlane(crownTexture(), h * 0.34, h * 0.26, { opacity: 0.5 });
+        crown.position.set(0, h * 1.0, -0.25);
+        g.add(crown);
+        for (let i = 0; i < 6; i++) {
+            const m = fxPlane(glowTexture(), 0.2, 0.2, { color: GOLD_BRIGHT, opacity: 0 });
+            m.userData.a = i * 1.047 + 0.3; m.userData.r = h * (0.3 + (i % 3) * 0.09); m.userData.ph = i / 6;
+            motes.push(m); g.add(m);
         }
-        const fade = Math.max(0, 1 - (t - liftSec) / 0.75);
-        fx.mesh.position.set(cx, GROUND_Y + 5.5, cz + 0.75);
-        swordMesh.material.opacity = fade;
-        swordGlow.material.opacity = 0.75 * fade;
+    } else {
+        // Hậu: 3 quả cầu sáng nhỏ bay vòng quanh người
+        for (let i = 0; i < 3; i++) {
+            const o = new THREE.Mesh(AURA_ORB_GEO, new THREE.MeshBasicMaterial({ color: 0xfff6d8, transparent: true, opacity: 0.95, fog: false, depthWrite: false }));
+            o.userData.sharedGeometry = true;
+            o.scale.setScalar(0.1);
+            const gl = fxPlane(glowTexture(), 0.55, 0.55, { color: i === 1 ? VIOLET_LIGHT : GOLD_BRIGHT, opacity: 0.6 });
+            const w = new THREE.Group(); w.add(gl, o);
+            w.userData.ph = (i / 3) * Math.PI * 2; w.userData.y = h * (0.35 + i * 0.18);
+            motes.push(w); g.add(w);
+        }
+    }
+    g.traverse(o => { if (o.isMesh) o.renderOrder = 1; });
+    const entry = { stopped: false, stop: () => { entry.stopped = true; g.visible = false; } };
+    let k = 0;
+    addAnim(g, 1e7, (p, fx, dt = 0.016) => {
+        const m = view.member;
+        const gone = entry.stopped || !m || m.alive === false || ROYAL_AURA[m.classId] !== kind || (view.root && !view.root.parent);
+        k += ((gone ? 0 : 1) - k) * Math.min(1, dt * 5);
+        if (gone && k < 0.03) { royalAuras.delete(view); fx.life = fx.age; return; }
+        const t = fx.age, pos = view.position;
+        g.visible = !entry.stopped && view.root?.visible !== false && !view._voidVanished;
+        g.position.set(pos.x, GROUND_Y + (view._lift ?? 0) + (view._hover ?? 0), pos.z ?? 0);
+        const breath = 0.5 + 0.5 * Math.sin(t * 1.7);
+        sigil.rotation.z = t * (king ? 0.35 : -0.5);
+        sigil.material.opacity = (king ? 0.95 : 0.85) * k * (0.85 + 0.15 * breath);
+        floorGlow.material.opacity = (king ? 0.3 : 0.26) * k;
+        body.material.opacity = (0.36 + 0.12 * breath) * k;
+        body.scale.setScalar(1 + 0.05 * breath);
+        if (tint) tint.material.opacity = (0.3 + 0.1 * (1 - breath)) * k;
+        if (king) {
+            crown.material.opacity = (0.38 + 0.16 * breath) * k;
+            crown.position.y = h * 1.0 + 0.05 * Math.sin(t * 2.1);
+            for (const mo of motes) {
+                const q = (t * 0.32 + mo.userData.ph) % 1;   // 0 -> 1: từ chân bay lên quá vai
+                mo.position.set(Math.cos(mo.userData.a + q * 1.6) * mo.userData.r, 0.15 + q * h * 0.9, Math.sin(mo.userData.a + q * 1.6) * mo.userData.r * 0.6 + 0.1);
+                mo.material.opacity = 0.75 * k * Math.sin(q * Math.PI);
+            }
+        } else {
+            for (const w of motes) {
+                const a = t * 1.3 + w.userData.ph;
+                w.position.set(Math.cos(a) * h * 0.42, w.userData.y + Math.sin(t * 2 + w.userData.ph) * 0.12, Math.sin(a) * h * 0.3);
+                w.children[0].material.opacity = 0.55 * k;
+                w.children[1].material.opacity = 0.95 * k;
+            }
+        }
+    });
+    return entry;
+}
+
+/** Gọi khi có sự kiện cờ (gọi quân, phong cấp, bàn cờ đổi...): bật bộ quét gắn hào quang cho Vua / Hậu đang ở trên sân */
+export function syncRoyalAuras() {
+    if (auraScan && !auraScan.stopped) { auraScan.acc = 1; return; }
+    const scan = auraScan = { stopped: false, acc: 1 };
+    addAnim(new THREE.Group(), 1e7, (p, fx, dt = 0.016) => {
+        if (scan.stopped) { fx.life = fx.age; return; }
+        scan.acc += dt;
+        if (scan.acc < 0.4) return;
+        scan.acc = 0;
+        for (const list of Object.values(game.views ?? {})) for (const v of list ?? []) {
+            const kind = v?.member?.alive ? ROYAL_AURA[v.member.classId] : null;
+            if (kind && !royalAuras.has(v)) royalAuras.set(v, makeRoyalAura(v, kind));
+        }
     });
 }
 
 export function clearChessFx() {
+    for (const a of royalAuras.values()) a.stop();
+    royalAuras.clear();
+    if (auraScan) { auraScan.stopped = true; auraScan = null; }
     for (const st of activeDrains.values()) {
         st.stopped = true;
         st.layer?.stop?.();
@@ -1520,6 +1897,8 @@ export function clearChessFx() {
     activeJudges.clear();
     for (const orb of activeOrbs.values()) orb.stop();
     activeOrbs.clear();
+    for (const st of activeDances.values()) st.stop();
+    activeDances.clear();
     boardByTeam.clear();
     if (boardMesh) {
         boardMesh.userData.castle?.removeFromParent();

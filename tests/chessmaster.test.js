@@ -940,7 +940,8 @@ const CHESS_FX = { summon: ['piece', 'summonIdx', 'x', 'z'], command: ['wing', '
     drainEnd: ['summonIdx', 'targetId', 'targetIndex', 'mode', 'duration'], bind: ['summonIdx', 'targetId', 'targetIndex', 'duration'],
     pawnGuard: ['summonIdx', 'x', 'z', 'targets'], drainTick: ['summonIdx', 'targetId', 'targetIndex', 'mode', 'effects'],
     crown: ['summonIdx', 'targets', 'duration'], judgeStart: ['summonIdx', 'duration', 'targets'], judgeSlam: ['summonIdx', 'x', 'z', 'effects'],
-    orb: ['id', 'x', 'z', 'duration'], orbTick: ['id', 'effects'], orbGone: ['id'], dance: ['summonIdx', 'recalled', 'shots'],
+    orb: ['id', 'x', 'z', 'duration'], orbTick: ['id', 'effects'], orbGone: ['id'], dance: ['summonIdx', 'recalled', 'count'],
+    danceShot: ['summonIdx', 'n', 'id', 'targetIndex', 'x', 'z', 'flight', 'effects'],
     board: ['king', 'queen'], promote: ['from', 'to', 'piece', 'summonIdx'], sacrifice: ['piece'], checkmate: ['kingIdx', 'queenIdx', 'lift', 'effects'] };
 
 test('trận AUTO thật có Leon (hạt giống cố định): chạy hết không lỗi, trạng thái luôn hợp lệ, mọi sự kiện chessFx đúng bảng', () => {
@@ -1174,32 +1175,63 @@ test('Quang Cầu: 1 quả mỗi 3000 ms, sống 10000 ms, vị trí nằm trong
     assert.equal(h.run('orbs().length'), 3);   // quả rơi ở 6000, 9000, 12000 còn sống
 });
 
-test('Vũ Điệu Quang Cầu: đang có 3 quả → sau 1000 ms niệm, 3 quả cũ biến mất, bắn 5 phát; đang có 0 quả → bắn 2; mỗi phát ×0.9 rồi thành 1 quả mới 10000 ms ở chỗ mục tiêu', () => {
+test('Vũ Điệu Quang Cầu: đang có 3 quả → thu về, niệm 1000 ms rồi bắn TỪNG phát một (5 phát, cách nhau 250 ms, phát đầu ở +1000 ms); đang có 0 quả → 2 phát; mỗi phát chọn đối thủ còn sống lúc bắn, ×0.9, bay 200 ms rồi thành 1 quả mới 10000 ms ở chỗ mục tiêu; Hậu bận tới hết loạt; Hậu gục giữa loạt → các phát còn lại mất', () => {
     for (const have of [3, 0]) {
         const h = harness();
         arena(h, { foes: [['monster_dummy', 10, 0], ['monster_dummy', 14, 2], ['monster_dummy', 12, -2.5]] });
         h.run(`put("knight"); var bs = put("bishop"); bs.drainNext = 1e15; var qn = put("queen"), QSL = slot("queen"), orbs = () => room.players.p1.chessOrbs || [];
             upTo(${have * 3000}); var old = orbs().map(o => o.id), t = room.clock - T0; leon.actionUntil = 0; cast(2)`);
         assert.equal(h.run('old.length'), have);
-        const t = h.run('t'), dance = h.fx('dance');
+        const t = h.run('t'), count = have + 2, end = t + 1000 + (count - 1) * 250, dance = h.fx('dance');
         assert.equal(dance.length, 1);
-        assert.deepEqual([dance[0].casterId, dance[0].casterIdx, dance[0].summonIdx, dance[0].recalled], ['p1', 0, h.run('QSL'), json(h, 'old')]);
-        assert.equal(dance[0].shots.length, have + 2);
+        assert.deepEqual([dance[0].casterId, dance[0].casterIdx, dance[0].summonIdx, dance[0].recalled, dance[0].count, dance[0].castTime, dance[0].gap, dance[0].flight],
+            ['p1', 0, h.run('QSL'), json(h, 'old'), count, 1000, 250, 200]);
         assert.equal(h.run('orbs().length'), 0);                                // quả cũ đã được thu về
-        assert.equal(h.run('qn.actionUntil - T0 >= t + 1000'), true);
-        const shots = json(h, `hits.filter(x => x.by === 'chess_queen' && x.at === ${t} && x.mult === 0.9)`);
-        assert.deepEqual(shots.map(x => [x.mult, x.delay]), Array(have + 2).fill([0.9, 1000]));
-        assert.deepEqual(shots.map(x => x.ti), dance[0].shots.map(s => s.targetIndex));
-        h.run(`var hp = foes.map(e => e.hp); upTo(${t + 950})`);
-        assert.equal(h.fx('orb').length, have);
-        h.run(`upTo(${t + 1000})`);
-        const fresh = h.fx('orb').slice(have);
-        assert.deepEqual(fresh.map(o => [o.id, o.x, o.z, o.duration]), dance[0].shots.map(s => [s.id, s.x, s.z, 10000]));
-        for (const s of dance[0].shots) assert.deepEqual([s.x, s.z], json(h, `[foes[${s.targetIndex}].x, foes[${s.targetIndex}].z]`));
-        assert.deepEqual(json(h, 'orbs().map(o => o.endTime - T0)'), Array(have + 2).fill(t + 11000));
-        assert.ok(h.run('foes.reduce((n, e, i) => n + hp[i] - e.hp, 0)') > 0);
+        // Hậu bận tới hết loạt bắn (phát cuối rời tay ở `end`)
+        assert.deepEqual(json(h, '[qn.royalBusy - T0, qn.actionUntil - T0, chessFree(qn, room.clock)]'), [end, end + 300, false]);
         assert.equal(h.run('leon.skillCooldowns[2] - T0'), t + 600 + 12000);
+        h.run(`var hp = foes.map(e => e.hp); upTo(${t + 950})`);
+        assert.equal(h.fx('danceShot').length, 0);
+        assert.equal(h.run('foes.every((e, i) => e.hp === hp[i])'), true);      // lúc niệm chưa có phát nào
+        for (let n = 1; n <= count; n++) {
+            const ms = t + 1000 + (n - 1) * 250;
+            h.run(`upTo(${ms - 50})`);
+            assert.equal(h.fx('danceShot').length, n - 1, `chưa tới phát ${n}`);
+            assert.equal(h.run('chessFree(qn, room.clock)'), false);
+            h.run(`upTo(${ms})`);
+            const shots = h.fx('danceShot');
+            assert.equal(shots.length, n, `phát ${n} ở ${ms} ms`);
+            const s = shots.at(-1);
+            assert.deepEqual([s.casterId, s.summonIdx, s.n, s.flight, s.effects.length, s.targetId], ['p1', h.run('QSL'), n, 200, 1, 'p2']);
+            assert.deepEqual([s.x, s.z], json(h, `[foes[${s.targetIndex}].x, foes[${s.targetIndex}].z]`));
+            assert.deepEqual(json(h, `hits.filter(x => x.by === 'chess_queen' && x.at === ${ms} && x.mult === 0.9)`).map(x => [x.ti, x.mult, x.delay]), [[s.targetIndex, 0.9, 200]]);
+            // quả mới xuất hiện khi phát đó bay tới nơi (+200 ms)
+            h.run(`upTo(${ms + 150})`);
+            assert.equal(h.fx('orb').length, have + n - 1);
+            h.run(`upTo(${ms + 200})`);
+            const o = h.fx('orb').at(-1);
+            assert.equal(h.fx('orb').length, have + n);
+            assert.deepEqual([o.id, o.x, o.z, o.duration], [s.id, s.x, s.z, 10000]);
+            // mục tiêu chọn LÚC BẮN: sau phát 1, đối thủ vừa bị nhắm gục -> các phát sau chỉ vào đối thủ còn sống
+            if (n === 1 && have) h.run(`kill(foes[${s.targetIndex}], foes)`);
+        }
+        const all = h.fx('danceShot');
+        assert.equal(new Set(all.map(s => s.id)).size, count);
+        if (have) assert.equal(all.slice(1).every(s => s.targetIndex !== all[0].targetIndex), true);
+        assert.deepEqual(json(h, 'orbs().map(o => o.endTime - T0)'), all.map(s => t + 1000 + (s.n - 1) * 250 + 200 + 10000));
+        assert.ok(h.run('foes.reduce((n, e, i) => n + hp[i] - e.hp, 0)') > 0);
+        h.run(`upTo(${end + 300})`);
+        assert.equal(h.run('chessFree(qn, room.clock)'), true);                 // hết loạt: Hậu rảnh lại
+        assert.equal(h.fx('danceShot').length, count);
     }
+    // Hậu gục giữa loạt: các phát chưa bắn mất luôn
+    const g = harness();
+    arena(g, { foes: [['monster_dummy', 10, 0], ['monster_dummy', 14, 2]] });
+    g.run('put("knight"); var bs = put("bishop"); bs.drainNext = 1e15; var qn = put("queen"); upTo(9000); leon.actionUntil = 0; cast(2); upTo(9000 + 1250)');
+    assert.equal(g.fx('dance')[0].count, 5);
+    assert.equal(g.fx('danceShot').length, 2);
+    g.run('kill(qn); upTo(9000 + 4000)');
+    assert.equal(g.fx('danceShot').length, 2);
 });
 
 // ============================================================

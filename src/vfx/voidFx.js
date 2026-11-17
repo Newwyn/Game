@@ -4,7 +4,7 @@
 // Hiệu ứng lấy từ thư viện pixelfx (src/vendor/pixelfx):
 //   Bảng màu: 'arcane' cho kỹ năng 1–2 (Ma Đạn Tinh Tú, Sao Rơi), 'shadow' cho kỹ năng 3 (Hố Đen) và thiên phú.
 import * as THREE from 'three';
-import { GROUND_Y, gameTimeout } from '../config.js';
+import { GROUND_Y, gameTimeout, gameNow } from '../config.js';
 import { spawnPixelFx, pixelLayer, pixelMod } from './pixelFx.js';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnRisingGlyph } from './vfx.js';
 
@@ -38,15 +38,20 @@ export function nyxHandPoint(view) {
 }
 
 /**
- * Đầu gậy pha lê của Nyx lúc GIƠ GẬY NIỆM (khung starfall3..6: gậy giơ cao quá đầu, hơi chếch về phía trước).
- * Điểm `hand` trong atlas do máy tự dò nên rơi vào tai / tay trước chứ không phải đầu gậy -> dùng bảng đo tay dưới đây
- * ([về phía trước, lên trên] tính bằng điểm ảnh của tấm tranh, gốc ở chân); khung khác: điểm trên đầu ~1,05 × chiều cao, hơi chếch trước.
+ * NGÔI SAO PHA LÊ ở đầu gậy của Nyx trong 2 tư thế niệm — đo tay trên từng tấm tranh (lưới 25 điểm ảnh), [về phía trước, lên trên] tính từ chân:
+ *   Sao Rơi (starfall3..6): gậy giơ cao quá đầu, chếch về phía trước.
+ *   Hố Đen (blackhole3..6): tay trước chĩa ra, gậy dựng đứng SAU LƯNG, ngôi sao ngang tầm mặt.
+ * Điểm `hand` trong atlas do máy tự dò (rơi vào tai / tay trước) nên không dùng được.
+ * Khung khác của cùng động tác (2 khung vào thế, khung chuyển) dùng điểm của khung giữ đầu tiên -> quả cầu không nhảy lung tung.
  */
-const STAFF_TIP = { starfall3: [29, 384], starfall4: [29, 384], starfall5: [54, 384], starfall6: [48, 384] };
-export function nyxStaffPoint(view) {
+const STAFF_TIP = {
+    starfall3: [29, 382], starfall4: [27, 380], starfall5: [52, 380], starfall6: [40, 380],
+    blackhole3: [-91, 257], blackhole4: [-89, 256], blackhole5: [-81, 244], blackhole6: [-84, 255],
+};
+export function nyxStaffPoint(view, skill = 'starfall') {
     if (!view) return { x: 0, y: GROUND_Y + 2.4, z: 0 };
     const h = view.height ?? 2.3, dir = view.facingLeft ? -1 : 1;
-    const tip = STAFF_TIP[view._frame];
+    const tip = STAFF_TIP[view._frame] ?? STAFF_TIP[skill === 'blackhole' ? 'blackhole3' : 'starfall3'];
     if (tip && view._leanG && view._u && view._spMesh) {
         // cùng cách tính với FrameSpriteView.pointWorld: theo đúng tấm tranh đang hiện (lật theo hướng nhìn, nhún, nghiêng người)
         const s = view._spMesh.scale, u = view._u;
@@ -54,8 +59,8 @@ export function nyxStaffPoint(view) {
         return { x: w.x, y: w.y, z: w.z };   // giữ cả z: ở góc nhìn chéo tấm tranh quay mặt về camera nên điểm trên tranh lệch khỏi mặt phẳng z của chân
     }
     return {
-        x: view.position.x + dir * h * 0.11,
-        y: GROUND_Y + h * 1.05 + (view._lift ?? 0) + (view._hover ?? 0),
+        x: view.position.x + dir * h * (skill === 'blackhole' ? -0.5 : 0.11),
+        y: GROUND_Y + h * (skill === 'blackhole' ? 0.7 : 1.05) + (view._lift ?? 0) + (view._hover ?? 0),
         z: view.position.z,
     };
 }
@@ -143,6 +148,7 @@ export function spawnVoidOrbLoss(pos, orbLost) {
  * `channel`: Nyx giữ tư thế niệm trong `duration` ms, lặp `spell-charge` ở bàn tay tới `channelEnd`;
  * khi `shell` = true (Thiên phú 2 — Vỏ Hư Không) bọc thêm `void-orb` quanh người cùng thời gian.
  */
+const CHANNEL_ACTION = { starfall: 'charge', blackhole: 'blackhole' };
 export function startVoidChannel(casterId, casterIdx, casterView, {
     skill = 'starfall',
     duration = 5000,
@@ -155,8 +161,9 @@ export function startVoidChannel(casterId, casterIdx, casterView, {
     const palette = skill === 'blackhole' ? 'shadow' : 'arcane';
 
     if (casterView) {
-        if (!casterView.playAction?.('charge', { hold: true })) {
-            casterView.playAction?.('cast', { hold: true });
+        // Sao Rơi: giơ gậy quá đầu (clip charge) · Hố Đen: chĩa tay, gậy dựng sau lưng (clip blackhole) — giữ tới khi niệm xong
+        if (!casterView.playAction?.(CHANNEL_ACTION[skill] ?? 'charge', { hold: true })) {
+            if (!casterView.playAction?.('charge', { hold: true })) casterView.playAction?.('cast', { hold: true });
         }
         casterView.flashMagicCircle?.(durSec);
     }
@@ -170,36 +177,53 @@ export function startVoidChannel(casterId, casterIdx, casterView, {
     };
     activeChannels.set(key, state);
 
-    const sc = 0.85;
+    // Quả cầu tụ lực (pixelfx spell-charge) đặt ĐÚNG ngôi sao pha lê ở đầu gậy, cỡ vừa phải so với Nyx (cô ấy nhỏ): bán kính cầu ~0,16 ô.
+    //   · tâm cầu của hiệu ứng nằm ở (15, -22) px từ gốc -> dời gốc ngược lại (theo hướng lật lúc bắt đầu niệm)
+    //   · KHÔNG gắn `view`: hiệu ứng không cần hình bóng nhân vật (khỏi lo bóng ma / lệch theo dáng mẫu của thư viện), vị trí lấy thẳng từ đầu gậy mỗi khung
+    //   · khung tranh đổi (vòng giữ 4 khung) thì đầu gậy xê dịch vài điểm ảnh -> trượt êm theo, không giật
+    const sc = 0.5;
     const h = casterView?.height ?? 2.3;
     const u = (h / 44) * sc;
-    const flipSign = casterView?.facingLeft ? -1 : 1;   // hiệu ứng lật theo hướng nhìn lúc bắt đầu niệm (đứng niệm thì không quay người)
-    // Quả cầu tụ lực của spell-charge nằm ở (15, -22) px từ gốc -> dời gốc để tâm cầu trùng ĐẦU GẬY Nyx đang giơ cao (cả 2 hướng nhìn)
+    const flipSign = casterView?.facingLeft ? -1 : 1;
+    const cur = { x: 0, y: 0, z: 0, at: 0 };
     state.chargeLayer = spawnPixelFx('arcane/spell-charge', {
-        view: casterView,
         pos: casterView?.position ?? { x: 0, z: 0 },
-        bare: true,
+        flip: flipSign < 0,
+        height: h,
         palette,
         scale: sc,
         maxLife: durSec,
         getPos: casterView ? () => {
-            const q = nyxStaffPoint(casterView);
-            return { x: q.x - flipSign * 15 * u, y: q.y - 22 * u, z: (q.z ?? 0) + 0.05 };
+            const q = nyxStaffPoint(casterView, skill);
+            const now = performance.now(), k = cur.at ? Math.min(1, (now - cur.at) / 60) : 1;   // đuổi kịp trong ~60 ms
+            cur.at = now;
+            cur.x += (q.x - cur.x) * k; cur.y += (q.y - cur.y) * k; cur.z += (q.z - cur.z) * k;
+            return { x: cur.x - flipSign * 15 * u, y: cur.y - 22 * u, z: cur.z + 0.12 };   // +z: vẽ TRƯỚC cây gậy
         } : null,
         until: () => state.stopped || (casterView ? casterView.member?.alive === false : false),
     });
+    state.chargeLayer?.group?.traverse?.(o => { if (o.isMesh) o.renderOrder = 6; });   // luôn vẽ sau (đè lên) tấm tranh nhân vật + vòng phép dưới đất
 
     if (shell) {
-        // void-orb có tâm ở Y = -62 px phía trên gốc -> hạ gốc xuống để tâm quả cầu đen nằm GIỮA THÂN Nyx (nửa chiều cao)
-        const shellScale = 0.75;
-        const shellLift = h * 0.5 - 62 * (h / 44) * shellScale;
+        // Vỏ Hư Không: quả cầu đen của void-orb (tâm ở Y = -62 px trên gốc hiệu ứng) phải nằm GIỮA THÂN Nyx.
+        //   Lấy điểm giữa thân NGAY TRÊN TẤM TRANH (có cả độ sâu z): ở góc nhìn chéo tấm tranh ngả về phía camera, đặt hiệu ứng theo toạ độ chân
+        //   thì quả cầu bị lệch hẳn sang bên (sai lệch phối cảnh) — lỗi cũ.
+        const shellScale = 0.75, su = (h / 44) * shellScale;
+        const mid = new THREE.Vector3();
         state.shellLayer = spawnPixelFx('shadow/void-orb', {
-            view: casterView,
             pos: casterView?.position ?? { x: 0, z: 0 },
+            flip: flipSign < 0,
+            height: h,
             palette: 'shadow',
             scale: shellScale,
-            lift: shellLift,
             maxLife: durSec,
+            getPos: casterView ? () => {
+                if (casterView._leanG && casterView._u && casterView._spMesh) {
+                    const s = casterView._spMesh.scale;
+                    casterView._leanG.localToWorld(mid.set(0, 0.5 * h * s.y, 0.1));   // (h = chiều cao tấm đứng trong hệ toạ độ của tranh)
+                } else mid.set(casterView.position.x, GROUND_Y + h * 0.5 + (casterView._lift ?? 0), casterView.position.z);
+                return { x: mid.x, y: mid.y - 62 * su, z: mid.z };
+            } : null,
             until: () => state.stopped || (casterView ? casterView.member?.alive === false : false),
         });
     }
@@ -224,12 +248,14 @@ export function endVoidChannel(casterId, casterIdx, casterView = null, reason = 
         if (hole && !hole.closed && reason !== 'done') { hole.broken = true; activeHoles.delete(key); }
         state.stopped = true;
         state.chargeLayer?.stop?.();
+        if (state.chargeLayer?.group) state.chargeLayer.group.visible = false;   // niệm xong / bị ngắt: quả cầu tụ lực biến mất ngay, không mờ dần
         state.shellLayer?.stop?.();
         state.holeLayer?.stop?.();
         activeChannels.delete(key);
     }
     if (view) {
         view.releaseHold?.('charge');
+        view.releaseHold?.('blackhole');
         view.releaseHold?.('cast');
     }
 }
@@ -270,25 +296,52 @@ export const voidAimed = (casterId, casterIdx, what) => !!(activeChannels.get(ca
 // ------------------------------------------------------------
 const TENDRIL_LEAD = 300;   // ms: xúc tu trồi lên trước cú quất chừng này
 const HOLE_Y = 1.65;        // tâm đĩa hố đen lơ lửng cao chừng này so với mặt đất (ngang ngực đội hình địch)
-/** `hole`: hố đen lặp trong `duration` ms tại (x, z), phóng theo `radius`; ghi lại lịch xúc tu (lashTimes, tính từ lúc bắt đầu niệm) để `holeEnd` dùng */
-export function spawnVoidHole(casterId, casterIdx, x, z, { radius = 8, duration = 4000, lashTimes = null, lashRadius = 4 } = {}) {
+/**
+ * Sự kiện hole: hố đen tại (x, z) suốt duration ms, LỚN DẦN: bắt đầu nhỏ (cỡ bán kính 2,5) rồi phình tới bán kính hút của từng nhịp (pullRadii) —
+ * giữa 2 nhịp lớn từ từ, đúng lúc mỗi nhịp hút thì bật to hẳn lên 1 nấc; tới nhịp cuối là đủ cỡ radius.
+ * Ghi lại lịch xúc tu (lashTimes, tính từ lúc bắt đầu niệm) để sự kiện holeEnd dùng.
+ */
+export function spawnVoidHole(casterId, casterIdx, x, z, { radius = 8, duration = 5000, pulseTimes = null, pullRadii = null, lashTimes = null, lashRadius = 4 } = {}) {
     const key = casterKey(casterId, casterIdx);
     const state = activeChannels.get(key);
-    const durSec = Math.max(0.3, (duration ?? 4000) / 1000);
-    const scale = Math.max(0.85, (radius ?? 8) / 4.8);
-    // Tâm đĩa hố đen ở Y = -70 px trên gốc -> hạ lift để tâm hố đen lơ lửng ngang tầm ngực đội hình địch
+    const durSec = Math.max(0.3, (duration ?? 5000) / 1000);
+    const scale = Math.max(0.85, (radius ?? 8) / 4.8);   // cỡ ĐẦY ĐỦ (bán kính hút lớn nhất)
+    // Tâm đĩa hố đen ở Y = -70 px trên gốc -> hạ gốc để tâm hố đen lơ lửng ngang tầm ngực đội hình địch (kể cả lúc đang phình)
     const u = (2.9 / 44) * scale;
-    const lift = HOLE_Y - 70 * u;
     const hole = { x: x ?? 0, z: z ?? 0, radius, duration, lashTimes, lashRadius, broken: false, closed: false, lashAimed: false };
     activeHoles.set(key, hole);
-    const layer = spawnPixelFx('shadow/black-hole', {
+    // bán kính đang hiện theo thời gian trận (ms từ lúc mở)
+    const T = Array.isArray(pulseTimes) && pulseTimes.length ? pulseTimes : [duration ?? 5000];
+    const R = T.map((_, i) => pullRadii?.[i] ?? radius);
+    const R0 = Math.min(2.5, R[0]), t0 = gameNow();
+    const radiusAt = (t) => {
+        let prevT = 0, prevR = R0;
+        for (let i = 0; i < T.length; i++) {
+            if (t < T[i]) {
+                const q = Math.max(0, (t - prevT) / Math.max(1, T[i] - prevT));
+                return prevR + (R[i] - prevR) * 0.55 * q * q * (3 - 2 * q);   // lớn từ từ được 55% quãng...
+            }
+            const pop = Math.min(1, (t - T[i]) / 180);                         // ...đúng nhịp hút thì bật nốt phần còn lại trong 0,18 giây
+            prevR = prevR + (R[i] - prevR) * (0.55 + 0.45 * (1 - Math.pow(1 - pop, 3)));
+            if (pop < 1) return prevR;
+            prevR = R[i]; prevT = T[i];
+        }
+        return prevR;
+    };
+    let layer = null;
+    layer = spawnPixelFx('shadow/black-hole', {
         pos: { x: x ?? 0, z: z ?? 0 },
         palette: 'shadow',
         scale,
-        lift,
         maxLife: durSec,
+        getPos: () => {
+            const s = Math.max(0.2, radiusAt(gameNow() - t0) / (radius || 8));
+            if (layer?.group) layer.group.scale.setScalar(s);
+            return { x: x ?? 0, y: GROUND_Y + HOLE_Y - 70 * u * s, z: z ?? 0 };
+        },
         until: () => !!state?.stopped || hole.broken || hole.closed,
     });
+    if (layer?.group) layer.group.scale.setScalar(Math.max(0.2, R0 / (radius || 8)));
     if (state) state.holeLayer = layer;
     // dọn sổ nếu vì lý do nào đó không nhận được holeEnd / channelEnd
     gameTimeout(() => { if (activeHoles.get(key) === hole) activeHoles.delete(key); }, Math.max(duration ?? 4000, ...(lashTimes ?? [0])) + 2500);

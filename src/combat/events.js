@@ -90,7 +90,7 @@ import {
     spawnChessSummon, spawnChessCommand, spawnPawnSlash, spawnChessCastle,
     spawnKnightJump, spawnKnightFork, startBishopDrain, endBishopDrain,
     spawnBishopBind, spawnKingCrown, startKingJudge, spawnKingJudgeSlam,
-    spawnQueenOrb, tickQueenOrb, removeQueenOrb, spawnQueenDance,
+    spawnQueenOrb, tickQueenOrb, removeQueenOrb, spawnQueenDance, fireQueenDanceShot, syncRoyalAuras,
     updateChessBoard, spawnPawnPromote, spawnChessSacrifice, spawnCheckmate,
     clearChessFx,
 } from '../vfx/chessFx.js';
@@ -716,8 +716,9 @@ function onSkillExecuted(data) {
         }
         case 'void_starfall':
         case 'void_blackhole': {
-            if (!caster.playAction?.('charge', { hold: true })) caster.playAction?.('cast', { hold: true });
-            caster.flashMagicCircle?.(data.type === 'void_starfall' ? 5 : 4);
+            // Sao Rơi: giơ gậy quá đầu · Hố Đen: chĩa tay, gậy dựng sau lưng (voidFx.startVoidChannel giữ đúng tư thế này tới hết niệm)
+            if (!caster.playAction?.(data.type === 'void_blackhole' ? 'blackhole' : 'charge', { hold: true }) && !caster.playAction?.('charge', { hold: true })) caster.playAction?.('cast', { hold: true });
+            caster.flashMagicCircle?.(5);
             break;
         }
         case 'chess_guard':
@@ -2804,7 +2805,7 @@ function onVoidFx(d) {
         case 'channel': {
             startVoidChannel(d.casterId, d.casterIdx, caster, {
                 skill: d.skill ?? 'starfall',
-                duration: d.duration ?? (d.skill === 'blackhole' ? 4000 : 5000),
+                duration: d.duration ?? 5000,
                 shell: !!d.shell,
             });
             break;
@@ -2826,7 +2827,9 @@ function onVoidFx(d) {
         case 'hole': {
             spawnVoidHole(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, {
                 radius: d.radius ?? 8,
-                duration: d.duration ?? 4000,
+                duration: d.duration ?? 5000,
+                pulseTimes: d.pulseTimes ?? null,
+                pullRadii: d.pullRadii ?? null,
                 lashTimes: d.lashTimes ?? null,
                 lashRadius: d.lashRadius ?? 4,
             });
@@ -2892,6 +2895,7 @@ function onVoidFx(d) {
 /** Sự kiện riêng của Leon (Kỳ Vương, chessmaster) và 6 quân cờ ánh sáng */
 function onChessFx(d) {
     if (!d || typeof d.kind !== 'string') return;
+    syncRoyalAuras();   // Vua / Hậu đang trên sân thì luôn có hào quang (bộ quét tự gắn / gỡ)
     const caster = d.casterId != null && d.casterIdx != null ? getView(d.casterId, d.casterIdx) : null;
     const summon = d.casterId != null && d.summonIdx != null ? getView(d.casterId, d.summonIdx) : null;
     const opponentId = opponentIdOf(d.casterId);
@@ -3012,22 +3016,26 @@ function onChessFx(d) {
             break;
         }
         case 'dance': {
-            spawnQueenDance(summon ?? caster, {
+            // bắt đầu niệm: quả cũ bay về sau lưng Hậu, xếp vòng chờ bắn (từng phát: `danceShot`)
+            spawnQueenDance(d.casterId, d.summonIdx, summon ?? caster, {
                 recalled: d.recalled ?? [],
-                shots: d.shots ?? [],
-                getTargetView: (idx) => getView(foeId, idx),
+                count: d.count ?? ((d.recalled?.length ?? 0) + 2),
+                castTime: d.castTime ?? 1000,
+                gap: d.gap ?? 250,
                 fallbackPos: summon?.position ?? caster?.position,
             });
-            gameTimeout(() => {
-                showEffects(d.effects);
-                (d.shots ?? []).forEach(s => {
-                    if (s.effect) {
-                        const t = getView(foeId, s.targetIndex ?? s.effect.targetIndex);
-                        if (t) showHit(t, s.effect, { fx: false });
-                    }
-                });
-                cameraRig.shake(0.18, 160);
-            }, 950);
+            break;
+        }
+        case 'danceShot': {
+            // 1 quả rời vòng thành vệt sáng tới mục tiêu; tới nơi mới hiện số sát thương
+            fireQueenDanceShot(d.casterId, d.summonIdx, summon ?? caster, {
+                n: d.n ?? 1,
+                x: d.x ?? 0,
+                z: d.z ?? 0,
+                flight: d.flight ?? 200,
+                fallbackPos: summon?.position ?? caster?.position,
+                onHit: () => { showEffects(d.effects); cameraRig.shake(0.09, 90); },
+            });
             break;
         }
         case 'board': {
