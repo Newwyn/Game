@@ -21,6 +21,8 @@ import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
 import { GRIX_SPRITE } from './sprite/grixSprite.js';
 import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
 import { LEON_SPRITE } from './sprite/leonSprite.js';
+import { NYX_SPRITE } from './sprite/nyxSprite.js';
+import { CHESS_PAWN_SPRITE, CHESS_ROOK_SPRITE, CHESS_KNIGHT_SPRITE, CHESS_BISHOP_SPRITE, CHESS_KING_SPRITE, CHESS_QUEEN_SPRITE } from './sprite/chessPieceSprites.js';
 import { WOLF_SPRITE, EAGLE_SPRITE, BEAR_SPRITE } from './sprite/sylvaPetSprites.js';
 import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
 import { ELARION_SPRITE } from './sprite/elarionSprite.js';
@@ -437,8 +439,10 @@ const VOIDMAGE = {
     defaultSkins: IGNAR_DEFAULT_SKINS,
     secondary: IGNAR_SECONDARY,
     locomotion: IGNAR_LOCOMOTION,
-    blink: true,
-    tint: 0xc4b5fd,
+    blink: false,
+    sprite: NYX_SPRITE,
+    spriteParam: 'nyx',
+    spriteIdleParam: 'nyxIdle',
     ghostTint: 0xa855f7,
     circleTint: 0x6d28d9,
     anims: {
@@ -488,17 +492,23 @@ const CHESS_PIECE_ANIMS = {
     summon: { clip: 'summon' },
 };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_PAWN = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize: 1.2, locomotion: GOLEM_LOCOMOTION, tint: 0xfef9c3, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+const CHESS_PAWN = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize: 1.2, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+    sprite: CHESS_PAWN_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_ROOK = { rig: GOLEM_RIG, clips: golemClips, height: 2.6, shadowSize: 2.0, locomotion: GOLEM_LOCOMOTION, tint: 0xfde047, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+const CHESS_ROOK = { rig: GOLEM_RIG, clips: golemClips, height: 2.6, shadowSize: 2.0, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+    sprite: CHESS_ROOK_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_KNIGHT = { rig: GOLEM_RIG, clips: golemClips, height: 2.2, shadowSize: 1.6, locomotion: GOLEM_LOCOMOTION, tint: 0xfef08a, circleTint: 0xf59e0b, anims: CHESS_PIECE_ANIMS };
+const CHESS_KNIGHT = { rig: GOLEM_RIG, clips: golemClips, height: 2.2, shadowSize: 1.6, locomotion: GOLEM_LOCOMOTION, circleTint: 0xf59e0b,
+    sprite: CHESS_KNIGHT_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_BISHOP = { rig: GOLEM_RIG, clips: golemClips, height: 2.3, shadowSize: 1.4, locomotion: GOLEM_LOCOMOTION, tint: 0xd8b4fe, circleTint: 0xa855f7, anims: CHESS_PIECE_ANIMS };
+const CHESS_BISHOP = { rig: GOLEM_RIG, clips: golemClips, height: 2.3, shadowSize: 1.4, locomotion: GOLEM_LOCOMOTION, circleTint: 0xa855f7,
+    sprite: CHESS_BISHOP_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 3.0, shadowSize: 2.1, locomotion: GOLEM_LOCOMOTION, tint: 0xfacc15, circleTint: 0xeab308, anims: CHESS_PIECE_ANIMS };
+const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 3.0, shadowSize: 2.1, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+    sprite: CHESS_KING_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 2.7, shadowSize: 1.7, locomotion: GOLEM_LOCOMOTION, tint: 0xfef3c7, circleTint: 0xc084fc, anims: CHESS_PIECE_ANIMS };
+const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 2.7, shadowSize: 1.7, locomotion: GOLEM_LOCOMOTION, circleTint: 0xc084fc,
+    sprite: CHESS_QUEEN_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
