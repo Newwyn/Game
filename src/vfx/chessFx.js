@@ -13,6 +13,7 @@ import { spawnPixelFx } from './pixelFx.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import castleUrl from '../assets/world3d/meshy/bld_chesscastle.glb?url';
+import warTableUrl from '../assets/sprites/chess_wartable.webp';
 import hillUrl from '../assets/world3d/meshy/prop_chesshill.glb?url';
 import {
     addAnim, fxPlane, glowTexture, ringTexture, sparkTexture,
@@ -1213,6 +1214,34 @@ function buildChessFort() {
     return g;
 }
 
+// ---- Sa bàn tranh vẽ: lớp phủ mặt sân. Chỗ tối của tranh thì trong suốt (thấy cỏ), chỗ sáng là hào quang vàng; có Hậu thì ngả tím nhẹ.
+const WAR_W = 68, WAR_D = 45.3;   // bàn cờ trong tranh chiếm ~65% bề ngang -> phủ x ±22, z ±10
+let _warTex = null;
+function warTableMaterial() {
+    if (!_warTex) { _warTex = new THREE.TextureLoader().load(warTableUrl); _warTex.anisotropy = 8; }
+    return new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+        uniforms: { uMap: { value: _warTex }, uTime: { value: 0 }, uReveal: { value: 0 }, uMix: { value: 0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `
+            varying vec2 vUv; uniform sampler2D uMap; uniform float uTime, uReveal, uMix;
+            void main(){
+                vec2 uv = vUv; if (uv.x < 0.185) uv.x = 1.0 - uv.x;   // bỏ toà thành vẽ phẳng ở đầu trái (nhìn nghiêng thì xấu): soi gương phần đồi núi bên phải sang
+                vec4 t = texture2D(uMap, uv);
+                float lum = max(t.r, max(t.g, t.b));
+                vec2 c = (vUv - 0.5) * vec2(1.0, 0.667);
+                float r = length(c) * 2.0;                                  // 0 ở tâm, ~1 ở vòng sáng
+                float open = 1.0 - smoothstep(uReveal * 1.25 - 0.12, uReveal * 1.25, r);   // mở dần từ tâm ra
+                float front = (1.0 - smoothstep(0.0, 0.05, abs(r - uReveal * 1.25))) * (1.0 - uReveal);
+                float pulse = 0.92 + 0.08 * sin(uTime * 1.6 + r * 9.0);
+                vec3 col = t.rgb * pulse * 1.15;
+                col = mix(col, col.brg * vec3(1.25, 0.8, 1.35), uMix * 0.45);   // có Hậu: ngả tím nhẹ
+                float a = clamp(lum * 1.7, 0.0, 0.96) * open + front * 0.8;
+                gl_FragColor = vec4(col + vec3(1.0, 0.85, 0.4) * front, a);
+            }`,
+    });
+}
+
 // ------------------------------------------------------------
 // 8. `board`: Bàn cờ ánh sáng phủ toàn sân khi còn Vua hoặc Hậu
 // ------------------------------------------------------------
@@ -1233,6 +1262,7 @@ export function updateChessBoard(casterId, { king = false, queen = false, side =
 
     if (!anyKing && !anyQueen) {
         if (boardMesh) {
+            boardMesh.userData.castle?.removeFromParent();
             boardMesh.removeFromParent();
             boardMesh = null;
             boardMode = null;
@@ -1242,28 +1272,41 @@ export function updateChessBoard(casterId, { king = false, queen = false, side =
 
     const mode = anyKing && anyQueen ? 'both' : anyQueen ? 'queen' : 'king';
     if (!boardMesh) {
-        boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_D), boardMaterial());
+        // (17/11/2026, người chơi chốt) SA BÀN = 1 bức tranh Codex vẽ theo ảnh mẫu của người chơi (art/leon/fx2/fx-wartable.png): bàn cờ 16x8 ô,
+        //   thành phe Leon ở đầu sân, núi đồi, vòng sáng — trải phẳng trên mặt sân như 1 lớp hào quang vàng. Phe Leon ở bên phải thì lật ngang.
+        boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(WAR_W, WAR_D), warTableMaterial());
         boardMesh.rotation.x = -Math.PI / 2;
-        boardMesh.position.set(0, GROUND_Y + 0.02, 0);
+        boardMesh.scale.x = side > 0 ? -1 : 1;
+        boardMesh.position.set(0, GROUND_Y + 0.03, 0);
         boardMesh.renderOrder = 0;
         boardMesh.userData.born = performance.now();
-        // tự chạy đồng hồ: không cần vòng lặp riêng
         boardMesh.onBeforeRender = () => {
             const u = boardMesh?.material.uniforms; if (!u) return;
             const t = (performance.now() - boardMesh.userData.born) / 1000;
             u.uTime.value = t;
-            u.uReveal.value = Math.min(1, t / 0.9);
-            u.uMix.value += (boardMesh.userData.mix - u.uMix.value) * 0.06;   // đổi màu êm khi thêm / mất quân chúa
-            const deco = boardMesh.userData.deco;
-            if (deco) {   // thành trì + ô cờ nổi: trồi lên từ mặt đất rồi "thở" nhẹ
-                const k = Math.min(1, Math.max(0, (t - 0.35) / 1.3)), e = 1 - Math.pow(1 - k, 3);
-                deco.scale.y = Math.max(0.001, e);
-                FORT_TIME.value = t;
-            }
+            u.uReveal.value = Math.min(1, t / 1.4);
+            u.uMix.value += (boardMesh.userData.mix - u.uMix.value) * 0.06;
         };
-        boardMesh.userData.deco = buildChessFort();
-        boardMesh.add(boardMesh.userData.deco);
-        addWarTable(boardMesh.userData.deco, side);
+        boardMesh.material.uniforms.uMix.value = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
+        // Thành hào quang 3D bay lơ lửng ở đầu sân phe Leon (người chơi yêu cầu 17/11): mô hình Meshy phủ ánh vàng cộng sáng, nhấp nhô + xoay nhẹ
+        const born = performance.now(), sgn = side > 0 ? 1 : -1;
+        warModel(castleUrl, 7.5).then(m => {
+            if (!m || !boardMesh || boardMesh.userData.born !== born) return;
+            m.traverse(o => { if (o.isMesh) { o.material = new THREE.MeshBasicMaterial({ map: o.material.map ?? null, color: 0xffd166, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }); o.renderOrder = 2; } });
+            m.position.set(sgn * 25, GROUND_Y + 2.2, -5.5);
+            m.rotation.y = sgn < 0 ? 0.55 : -0.55;
+            m.onBeforeRender = null;
+            const base = m.scale.x;
+            const tick = () => {
+                if (!m.parent) return;
+                const t = (performance.now() - born) / 1000, k = Math.min(1, t / 1.2);
+                m.position.y = GROUND_Y + 2.2 + Math.sin(t * 1.3) * 0.35;
+                m.rotation.y = (sgn < 0 ? 0.55 : -0.55) + Math.sin(t * 0.5) * 0.12;
+                m.scale.setScalar(base * (0.2 + 0.8 * k));
+                requestAnimationFrame(tick);
+            };
+            scene.add(m); boardMesh.userData.castle = m; tick();
+        });
         scene.add(boardMesh);
         boardMesh.material.uniforms.uMix.value = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
     } else if (!boardMesh.parent) scene.add(boardMesh);
@@ -1412,6 +1455,7 @@ export function clearChessFx() {
     activeOrbs.clear();
     boardByTeam.clear();
     if (boardMesh) {
+        boardMesh.userData.castle?.removeFromParent();
         boardMesh.removeFromParent();
         boardMesh = null;
         boardMode = null;
