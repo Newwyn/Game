@@ -754,6 +754,169 @@ export function endBishopDrain(casterId, summonIdx, bishopView = null) {
     }
 }
 
+// ---- Tượng — HÚT CẠN (nước cờ, thay Trói Buộc): niệm 2 giây hút MỌI đối thủ cùng lúc. Từ từng đối thủ, các đốm hồn bay vòng về đầu gậy của Tượng
+//   (tím = đang hút Orb, đỏ = đang hút máu); ở đầu gậy là bình hút hồn của pixelfx soul-drain. Niệm xong: loé sáng + chữ "+N%" (Đĩa Năng Lượng).
+const activeTeamDrains = new Map();
+const SIPHON_COL = { orb: [0xc084fc, 0xf3e8ff], hp: [0xef4444, 0xfecaca] };
+const bishopStaff = (v, fallback) => {
+    const p = v?.position ?? fallback ?? { x: 0, z: 0 };
+    return { x: p.x + (v?.facingLeft ? -0.55 : 0.55), y: GROUND_Y + 1.25 + (v?._lift ?? 0), z: (p.z ?? 0) + 0.2 };
+};
+/** `teamDrain`: targets = [{ view, mode: 'orb' | 'hp' }] */
+export function startTeamDrain(casterId, summonIdx, bishopView, targets = [], { duration = 2000, fallbackPos = null } = {}) {
+    endTeamDrain(casterId, summonIdx, bishopView, { reason: 'restart' });
+    const key = pieceKey(casterId, summonIdx);
+    const durSec = Math.max(0.3, (duration ?? 2000) / 1000);
+    const list = targets.filter(t => t?.view);
+    if (bishopView) {
+        // quay mặt về phía đông đối thủ nhất rồi giơ gậy niệm
+        const cx = list.length ? list.reduce((s, t) => s + t.view.position.x, 0) / list.length : bishopView.position.x + 1;
+        bishopView.facingLeft = cx < bishopView.position.x;
+        bishopView.playAction?.('cast', { hold: true });
+        bishopView.flashMagicCircle?.(durSec);
+    }
+    const state = { bishopView, stopped: false, modes: new Map(list.map(t => [t.view, t.mode === 'hp' ? 'hp' : 'orb'])), layer: null };
+    activeTeamDrains.set(key, state);
+    // bình hút hồn ở đầu gậy (pixelfx soul-drain: tinh thể ở (0, -50) px từ gốc)
+    const sc = 0.8, h = bishopView?.height ?? 2.3, u = (h / 44) * sc;
+    state.layer = spawnPixelFx('shadow/soul-drain', {
+        pos: bishopView?.position ?? fallbackPos ?? { x: 0, z: 0 },
+        flip: !!bishopView?.facingLeft,
+        height: h,
+        palette: 'arcane',
+        scale: sc,
+        maxLife: durSec,
+        getPos: () => { const s = bishopStaff(bishopView, fallbackPos); return { x: s.x, y: s.y - 50 * u, z: s.z + 0.1 }; },
+        until: () => state.stopped || (bishopView ? bishopView.member?.alive === false : false),
+    });
+    // dòng đốm hồn từ từng đối thủ về đầu gậy
+    let acc = 0, n = 0;
+    addAnim(new THREE.Group(), durSec + 0.1, (p, fx, dt = 0.016) => {
+        if (state.stopped || (bishopView && bishopView.member?.alive === false)) { fx.life = fx.age; return; }
+        acc += dt;
+        if (acc < 0.075) return;
+        acc = 0; n++;
+        for (const [v, mode] of state.modes) {
+            if (v.member?.alive === false) continue;
+            const [col, core] = SIPHON_COL[mode];
+            const from = { x: v.position.x, y: GROUND_Y + (v.height ?? 2.2) * 0.55 + (v._lift ?? 0), z: (v.position.z ?? 0) + 0.25 };
+            const side = (n % 2 ? 1 : -1) * (0.5 + Math.random() * 0.9), up = 0.8 + Math.random() * 1.2;
+            const wisp = new THREE.Group();
+            const glow = fxPlane(glowTexture(), 0.62, 0.62, { color: col, opacity: 0.85 });
+            const dot = fxPlane(glowTexture(), 0.24, 0.24, { color: core, opacity: 1 });
+            dot.position.z = 0.01;
+            wisp.add(glow, dot);
+            addAnim(wisp, 0.42 + Math.random() * 0.12, (q, f2) => {
+                const to = bishopStaff(bishopView, fallbackPos);
+                const e = q * q * (3 - 2 * q), b = Math.sin(q * Math.PI);
+                f2.mesh.position.set(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e + b * up, from.z + (to.z - from.z) * e + b * side * 0.4);
+                f2.mesh.scale.setScalar(1.15 - 0.75 * q);
+                glow.material.opacity = 0.85 * Math.min(1, q * 6) * (1 - q * 0.35);
+            });
+        }
+    });
+    gameTimeout(() => { if (activeTeamDrains.get(key) === state) endTeamDrain(casterId, summonIdx, bishopView, { reason: 'timeout' }); }, (duration ?? 2000) + 400);
+    return state;
+}
+/** `teamDrainTick`: cập nhật màu dòng hồn theo thứ đang bị hút (orbViews: đang mất Orb, hpViews: đang mất máu) + đầu gậy loé 1 nhịp */
+export function tickTeamDrain(casterId, summonIdx, { orbViews = [], hpViews = [] } = {}) {
+    const state = activeTeamDrains.get(pieceKey(casterId, summonIdx));
+    if (!state) return;
+    for (const v of orbViews) if (v) state.modes.set(v, 'orb');
+    for (const v of hpViews) if (v) state.modes.set(v, 'hp');
+    const s = bishopStaff(state.bishopView);
+    const flash = fxPlane(glowTexture(), 1.5, 1.5, { color: hpViews.length > orbViews.length ? 0xfca5a5 : VIOLET_LIGHT, opacity: 0.8 });
+    flash.position.set(s.x, s.y, s.z + 0.15);
+    addAnim(flash, 0.22, (p, fx) => { fx.mesh.scale.setScalar(0.6 + easeOut(p) * 0.8); fx.mesh.material.opacity = 0.8 * (1 - p); });
+}
+/** `teamDrainEnd`: dừng dòng hồn; niệm xong (reason 'done') thì Tượng loé sáng nhận Đĩa Năng Lượng (+dmgUp sát thương đòn thường) */
+export function endTeamDrain(casterId, summonIdx, bishopView = null, { dmgUp = 0, reason = 'done' } = {}) {
+    const key = pieceKey(casterId, summonIdx);
+    const state = activeTeamDrains.get(key);
+    const view = bishopView ?? state?.bishopView;
+    if (state) {
+        state.stopped = true;
+        state.layer?.stop?.();
+        activeTeamDrains.delete(key);
+    }
+    if (view) { view.releaseHold?.('cast'); view.releaseHold?.('charge'); }
+    if (reason === 'done' && view && state) {
+        const s = bishopStaff(view);
+        spawnPixelFx('impacts/hit-spark', { pos: { x: s.x, z: s.z }, palette: 'arcane', scale: 0.9 });
+        spawnRisingSparkles(view.position, { count: 10, color: VIOLET_LIGHT, radius: 1 });
+        spawnRisingGlyph(view.position, `💿 +${Math.round((dmgUp ?? 0) * 100)}%`, '#ede9fe', '#6d28d9');
+    }
+}
+
+/**
+ * Đòn đánh thường của Tượng lúc có Đĩa Năng Lượng: hiệu ứng pixelfx "Energy disc" (lưỡi cưa năng lượng xoay) bay từ đầu gậy tới mục tiêu,
+ * dmgUp càng cao đĩa càng to. Chưa nạp được hiệu ứng thì dùng tia tím thường.
+ */
+export function spawnBishopDisc(from, to, { duration = 0.26, dmgUp = 0, onHit } = {}) {
+    const mod = pixelMod('projectiles/energy-disc');
+    if (!mod) return spawnBishopBolt(from, to, { duration, onHit });
+    const layer = pixelLayer(mod, { front: true, palette: 'arcane', scale: 0.6 + 0.45 * Math.min(1, Math.max(0, dmgUp) / 1.2), seed: 5 });
+    const g = layer.group;
+    const y0 = from.y ?? 1.15, y1 = to.y ?? 0.95, z0 = (from.z ?? 0) + 0.55, z1 = (to.z ?? 0) + 0.6;
+    g.rotation.z = Math.atan2(y1 - y0, to.x - from.x);
+    let hit = false;
+    addAnim(g, duration + 0.02, (p, fx, dt = 0.016) => {
+        const q = Math.min(1, fx.age / duration);
+        fx.mesh.position.set(from.x + (to.x - from.x) * q, y0 + (y1 - y0) * q, z0 + (z1 - z0) * q);
+        if (dt > 0) layer.step(dt);
+        if (q >= 1 && !hit) {
+            hit = true;
+            spawnHitSpark({ x: to.x, y: 0, z: to.z }, { count: 8, color: VIOLET_LIGHT, size: 1.1 });
+            onHit?.();
+            fx.life = fx.age;
+        }
+    });
+}
+
+/**
+ * `knightCharge`: Mã vừa ra sân ở cuối đội hình lao thẳng tới mục tiêu trong `time` ms — hình quân trượt từ (fromX, fromZ) tới (x, z),
+ * vệt tốc độ + bụi đất dọc đường, tới nơi thì loé đòn đâm (onHit: hiện số sát thương).
+ */
+export function spawnKnightCharge(knightView, { fromX, fromZ = 0, x, z = 0, time = 500, onHit = null } = {}) {
+    const from = { x: fromX ?? knightView?.position.x ?? 0, z: fromZ ?? 0 }, to = { x: x ?? from.x, z: z ?? 0 };
+    const dur = Math.max(0.1, (time ?? 500) / 1000);
+    const dir = to.x >= from.x ? 1 : -1;
+    if (knightView) {
+        knightView.facingLeft = dir < 0;
+        knightView.teleport?.(from.x, from.z, false);
+        knightView.leapTo?.(to.x, to.z, { duration: dur, height: 0 });
+        knightView.playAction?.('dash');
+    }
+    spawnDashLine(from, to, 0.9);
+    const len = Math.hypot(to.x - from.x, to.z - from.z) || 1, ang = Math.atan2(0, to.x - from.x);
+    let acc = 0, done = false;
+    addAnim(new THREE.Group(), dur + 0.05, (p, fx, dt = 0.016) => {
+        const q = Math.min(1, fx.age / dur), px = from.x + (to.x - from.x) * q, pz = from.z + (to.z - from.z) * q;
+        acc += dt;
+        if (acc > 0.03 && q < 1) {
+            acc = 0;
+            // vệt tốc độ sau lưng Mã
+            const streak = fxPlane(glowTexture(), Math.min(3.2, len * 0.35), 0.16, { color: GOLD_BRIGHT, opacity: 0.8 });
+            streak.position.set(px - dir * 1.2, GROUND_Y + 0.6 + Math.random() * 1.2, pz + 0.3);
+            streak.rotation.z = ang;
+            addAnim(streak, 0.22, (k, f2) => { f2.mesh.material.opacity = 0.8 * (1 - k); f2.mesh.scale.set(1 + k * 0.6, 1, 1); });
+            // bụi đất bốc lên dưới chân
+            const dust = fxPlane(glowTexture(), 0.9, 0.6, { additive: false, color: 0xcbb994, opacity: 0.5 });
+            dust.position.set(px - dir * 0.5, GROUND_Y + 0.25, pz + 0.35);
+            addAnim(dust, 0.5, (k, f2) => { f2.mesh.position.y = GROUND_Y + 0.25 + k * 0.5; f2.mesh.scale.setScalar(1 + k * 1.4); f2.mesh.material.opacity = 0.5 * (1 - k); });
+        }
+        if (q >= 1 && !done) {
+            done = true;
+            const hitX = to.x + dir * 1.0;
+            spawnPixelFx('impacts/hit-spark', { pos: { x: hitX, z: to.z }, palette: 'gold', scale: 1.1, flip: dir < 0 });
+            spawnShockwave({ x: hitX, z: to.z }, { color: GOLD_MAIN, radius: 2.4, life: 0.4 });
+            spawnHitSpark({ x: hitX, y: 0, z: to.z }, { count: 10, color: GOLD_BRIGHT, size: 1.3 });
+            onHit?.();
+            fx.life = fx.age;
+        }
+    });
+}
+
 export function spawnBishopBind(targetView, { duration = 2000, bishopView = null, fallbackPos = null } = {}) {
     if (bishopView) {
         bishopView.playAction?.('skill');
@@ -1807,10 +1970,12 @@ export function spawnChessSacrifice(allyViews = [], { casterView = null } = {}) 
     }
 }
 
+const MATE_LIFT_H = 2.5;   // đối thủ bị Chiếu Tướng nâng lên cao chừng này
 export function spawnCheckmate({
     kingView = null,
     queenView = null,
     enemyViews = [],
+    liftedViews = null,   // những đối thủ bị nâng (máy chủ báo); null = mọi đối thủ
     lift = 1500,
     onImpact = null,
 } = {}) {
@@ -1848,16 +2013,57 @@ export function spawnCheckmate({
         fx.mesh.material.opacity = p < 0.12 ? p / 0.12 : p > 0.78 ? (1 - p) / 0.22 : 0.9;
     });
 
-    // Nâng các đối thủ lên không trung suốt `lift` ms
-    enemyViews.forEach((ev) => {
-        if (!ev) return;
-        const ring = fxPlane(ringTexture(), 2.2, 2.2, { color: VIOLET_LIGHT, opacity: 0.85 });
+    // NHẬT THỰC trên bàn tay giơ cao của Hậu suốt lúc nâng (pixelfx "Eclipse": mặt trăng đen che mặt trời, quầng sáng ngọc trai) — cỡ chừng nửa chiều cao của Hậu, bám theo Hậu
+    if (queenView) {
+        const qh = queenView.height ?? 2.7, esc = 0.5;
+        const eclipse = spawnPixelFx('shadow/eclipse', {
+            pos: queenView.position,
+            height: qh,
+            scale: esc,
+            maxLife: liftSec + 0.15,
+            getPos: () => ({
+                x: queenView.position.x + (queenView.facingLeft ? -1 : 1) * qh * 0.22,
+                y: GROUND_Y + qh * 1.22 + (queenView._lift ?? 0) + (queenView._hover ?? 0),
+                z: (queenView.position.z ?? 0) + 0.3,
+            }),
+            until: () => queenView.member?.alive === false,
+        });
+        eclipse?.group?.traverse?.(o => { if (o.isMesh) o.renderOrder = 6; });
+    }
+
+    // NÂNG đối thủ: từng đứa bị nâng bay lên từ từ ~2,5 ô (cùng cơ chế _lift của hất tung: bóng / thanh máu đi theo), lơ lửng nhấp nhô + ngả nghiêng bất lực,
+    //   dưới chân có cột sáng mờ và bụi cuốn lên; gươm của Vua cắm xuống thì rơi
+    const lifted = (liftedViews ?? enemyViews).filter(Boolean);
+    lifted.forEach((ev, i) => {
+        const column = fxPlane(glowTexture(), 1.5, MATE_LIFT_H + 1.2, { color: VIOLET_LIGHT, opacity: 0 });
+        const ring = fxPlane(ringTexture(), 2.2, 2.2, { color: VIOLET_LIGHT, opacity: 0 });
         ring.rotation.x = -Math.PI / 2;
-        addAnim(ring, liftSec, (p, fx) => {
-            const liftH = Math.sin(Math.min(1, p / 0.85) * (Math.PI / 2)) * 2.1 * (p > 0.88 ? (1 - p) / 0.12 : 1);
-            ev._lift = Math.max(ev._lift ?? 0, liftH);
-            fx.mesh.position.set(ev.position.x, GROUND_Y + liftH + 0.1, ev.position.z ?? 0);
-            fx.mesh.material.opacity = 0.85 * (1 - p * 0.4);
+        const holder = new THREE.Group();
+        holder.add(column, ring);
+        let dustT = 0;
+        addAnim(holder, liftSec, (p, fx, dt = 0.016) => {
+            const t = p * liftSec;
+            const rise = Math.min(1, t / Math.min(0.7, liftSec * 0.5)), e = 1 - Math.pow(1 - rise, 3);
+            const drop = p > 0.93 ? (1 - p) / 0.07 : 1;                                   // sát lúc gươm cắm: rơi nhanh
+            const liftH = (MATE_LIFT_H * e + Math.sin(t * 4 + i) * 0.12 * e) * drop;
+            ev._lift = Math.max(0, liftH);
+            if (ev.root) ev.root.rotation.z = Math.sin(t * 2.2 + i * 1.7) * 0.22 * e * drop;   // ngả nghiêng bất lực
+            const x = ev.position.x, z = ev.position.z ?? 0;
+            column.position.set(x, GROUND_Y + (liftH + 0.6) * 0.5, z - 0.2);
+            column.scale.set(1, Math.max(0.1, (liftH + 0.6) / (MATE_LIFT_H + 1.2)), 1);
+            column.material.opacity = 0.34 * e * drop;
+            ring.position.set(x, FLOOR_Y + 0.02, z);
+            ring.scale.setScalar(0.7 + 0.3 * Math.sin(t * 5));
+            ring.material.opacity = 0.7 * e * drop;
+            dustT += dt;
+            if (dustT > 0.12 && drop >= 1) {
+                dustT = 0;
+                const dust = fxPlane(glowTexture(), 0.5, 0.5, { additive: false, color: 0xd6ccb0, opacity: 0.45 });
+                const a = Math.random() * Math.PI * 2;
+                dust.position.set(x + Math.cos(a) * 0.7, GROUND_Y + 0.15, z + Math.sin(a) * 0.4);
+                addAnim(dust, 0.6, (k, f2) => { f2.mesh.position.y = GROUND_Y + 0.15 + k * 1.3; f2.mesh.scale.setScalar(1 + k); f2.mesh.material.opacity = 0.45 * (1 - k); });
+            }
+            if (p >= 1) { ev._lift = 0; if (ev.root) ev.root.rotation.z = 0; }
         });
     });
 
@@ -1895,7 +2101,7 @@ export function spawnCheckmate({
                 impacted = true;
                 kingView?.releaseHold?.('charge');
                 kingView?.playAction?.('slam');
-                enemyViews.forEach((ev) => { if (ev) ev._lift = 0; });
+                lifted.forEach((ev) => { ev._lift = 0; if (ev.root) ev.root.rotation.z = 0; });
                 spawnShockwave({ x: cx, z: cz }, { color: GOLD_MAIN, radius: 9.5, life: 0.75 });
                 spawnPixelFx('impacts/ground-slam', {
                     pos: { x: cx, z: cz },
@@ -2043,6 +2249,8 @@ export function clearChessFx() {
     activeOrbs.clear();
     for (const b of activeShotBursts) b.stop();
     activeShotBursts.clear();
+    for (const st of activeTeamDrains.values()) { st.stopped = true; st.layer?.stop?.(); }
+    activeTeamDrains.clear();
     for (const st of activeDances.values()) st.stop();
     activeDances.clear();
     boardByTeam.clear();

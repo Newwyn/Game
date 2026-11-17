@@ -77,6 +77,8 @@ import * as portal from '../vendor/pixelfx/fx/arcane/portal.js';
 import * as blackHole from '../vendor/pixelfx/fx/shadow/black-hole.js';
 import * as shadowTendrils from '../vendor/pixelfx/fx/shadow/shadow-tendrils.js';
 import * as soulDrain from '../vendor/pixelfx/fx/shadow/soul-drain.js';
+import * as eclipse from '../vendor/pixelfx/fx/shadow/eclipse.js';
+import * as energyDisc from '../vendor/pixelfx/fx/projectiles/energy-disc.js';
 import * as graspingHands from '../vendor/pixelfx/fx/shadow/grasping-hands.js';
 import * as voidCustom from './pixelfx-custom/void-bolt.js';   // tự vẽ: 1 tia Ma Đạn (tách từ arcane-missiles), nhịp hút Hố Đen (Nyx)
 
@@ -94,6 +96,7 @@ const LIB = {
     'melee/scythe-reap': scytheReap, 'shadow/dark-explosion': darkExplosion, 'shadow/curse': curse, 'nature/quake': quake, 'impacts/heavy-landing': heavyLanding, 'melee/uppercut': uppercut, 'water/splash': splash, 'water/wave-crash': waveCrash, 'ice/ice-shatter': iceShatter, 'nature/acid-splash': acidSplash, 'nature/poison-cloud': poisonCloud, 'nature/healing-bloom': healingBloom, 'nature/thorns': thorns,
     'arcane/arcane-orb': arcaneOrb,
     'arcane/arcane-missiles': arcaneMissiles, 'arcane/mana-burst': manaBurst, 'arcane/star-fall': starFall, 'arcane/portal': portal,
+    'shadow/eclipse': eclipse, 'projectiles/energy-disc': energyDisc,
     'shadow/black-hole': blackHole, 'shadow/shadow-tendrils': shadowTendrils, 'shadow/soul-drain': soulDrain, 'shadow/grasping-hands': graspingHands,
     'arcane-missiles': arcaneMissiles, 'mana-burst': manaBurst, 'spell-charge': spellCharge, 'star-fall': starFall, 'portal': portal, 'blink-in': blinkIn,
     'custom/void-missile': voidCustom.missile, 'custom/void-pull': voidCustom.pull,

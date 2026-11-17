@@ -90,7 +90,7 @@ import {
     spawnChessSummon, spawnChessCommand, spawnPawnSlash, spawnChessCastle,
     spawnKnightJump, spawnKnightFork, startBishopDrain, endBishopDrain,
     spawnBishopBind, spawnKingCrown, startKingJudge, spawnKingJudgeSlam,
-    spawnQueenOrb, tickQueenOrb, removeQueenOrb, spawnQueenDance, fireQueenDanceShot, syncRoyalAuras,
+    spawnQueenOrb, tickQueenOrb, removeQueenOrb, spawnQueenDance, fireQueenDanceShot, syncRoyalAuras, startTeamDrain, tickTeamDrain, endTeamDrain, spawnBishopDisc, spawnKnightCharge,
     updateChessBoard, spawnPawnPromote, spawnChessSacrifice, spawnCheckmate,
     clearChessFx,
 } from '../vfx/chessFx.js';
@@ -348,9 +348,11 @@ function onAutoAttack(data) {
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
-            const fn = atkClass === 'chess_bishop' ? spawnBishopBolt : atkClass === 'chess_queen' ? spawnQueenBolt : spawnChessFlick;
+            // Tượng đang có Đĩa Năng Lượng (sau Hút Cạn): đòn thường là lưỡi cưa năng lượng, dmgUp càng cao càng to
+            const discs = atkClass === 'chess_bishop' ? attacker.squad?.[data.attackerIndex]?.statusEffects?.find(e => e.type === 'chess_discs' && e.endTime > gameNow()) : null;
+            const fn = discs ? spawnBishopDisc : atkClass === 'chess_bishop' ? spawnBishopBolt : atkClass === 'chess_queen' ? spawnQueenBolt : spawnChessFlick;
             const pal = atkClass === 'chess_bishop' ? 'arcane' : 'gold';
-            fn(chestOf(attackerView, 1.15), chestOf(target, 0.95), { duration: 0.22, onHit: () => {
+            fn(chestOf(attackerView, 1.15), chestOf(target, 0.95), { duration: discs ? 0.26 : 0.22, dmgUp: discs?.dmgUp ?? 0, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) spawnPixelFx('impacts/hit-spark', { pos: target.position, palette: pal, scale: 0.8 });
             } });
@@ -2966,6 +2968,44 @@ function onChessFx(d) {
             endBishopDrain(d.casterId, d.summonIdx, summon);
             break;
         }
+        case 'teamDrain': {
+            // Hút Cạn: dòng hồn từ MỌI đối thủ về đầu gậy của Tượng (tím = Orb, đỏ = máu)
+            startTeamDrain(d.casterId, d.summonIdx, summon, (d.targets ?? []).map(t => ({ view: getView(t.targetId ?? foeId, t.targetIndex), mode: t.mode })), {
+                duration: d.duration ?? 2000,
+                fallbackPos: summon?.position ?? caster?.position,
+            });
+            break;
+        }
+        case 'teamDrainTick': {
+            tickTeamDrain(d.casterId, d.summonIdx, {
+                orbViews: (d.orbTargets ?? []).map(i => getView(foeId, i)).filter(Boolean),
+                hpViews: (d.effects ?? []).map(e => getView(foeId, e.targetIndex)).filter(Boolean),
+            });
+            showEffects(d.effects);
+            (d.orbTargets ?? []).forEach(i => { const v = getView(foeId, i); if (v) spawnRisingGlyph(v.position, '−0.125◆', '#e9d5ff', '#6d28d9'); });
+            if (summon && d.heal > 0) spawnDamageNumber(summon.position, d.heal, 'heal');
+            break;
+        }
+        case 'teamDrainEnd': {
+            endTeamDrain(d.casterId, d.summonIdx, summon, { dmgUp: d.dmgUp ?? 0, reason: d.reason ?? 'done' });
+            break;
+        }
+        case 'knightCharge': {
+            // Mã vừa ra sân ở cuối đội hình: lao thẳng tới mục tiêu (hình của Mã có thể chưa kịp tạo -> chờ tối đa ~0,5 giây)
+            const t0 = performance.now();
+            const run = (tries) => {
+                const v = getView(d.casterId, d.summonIdx);
+                if (!v && tries > 0) { setTimeout(() => run(tries - 1), 50); return; }
+                const passed = (performance.now() - t0) * timeState.scale;
+                spawnKnightCharge(v, {
+                    fromX: d.fromX, fromZ: d.fromZ, x: d.x, z: d.z,
+                    time: Math.max(120, (d.time ?? 500) - passed),
+                    onHit: () => { showEffects(d.effects); cameraRig.shake(0.2, 160); },
+                });
+            };
+            run(10);
+            break;
+        }
         case 'bind': {
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
             spawnBishopBind(target, {
@@ -3070,6 +3110,7 @@ function onChessFx(d) {
                 kingView,
                 queenView,
                 enemyViews,
+                liftedViews: Array.isArray(d.lifted) ? d.lifted.map(i => getView(foeId, i)).filter(Boolean) : null,   // chỉ nâng những đối thủ máy chủ báo là bị nâng
                 lift: d.lift ?? 1500,
                 onImpact: () => {
                     showEffects(d.effects);

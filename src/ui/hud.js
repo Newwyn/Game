@@ -536,7 +536,8 @@ function effectInfo(ef, m) {
         case 'chess_castle': return ['♜', '#facc15', 'Khiên Nhập Thành', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
         case 'chess_castle_guard': return ['🏰', '#fde047', 'Nhập Thành Bảo Hộ', `−${pc(ef.value ?? 0.25)}% sát thương nhận vào`];
         case 'chess_drain': return ['♝', '#c084fc', 'Hút Hồn', 'Tượng đang hút năng lượng / sinh lực đối thủ'];
-        case 'chess_bound': return ['⛓️', '#a855f7', 'Trói Buộc', `−${pc(ef.value ?? 0.30)}% P.DEF & M.DEF`, true];
+        case 'chess_siphon': return ['♝', '#c084fc', 'Hút Cạn', 'Tượng đang hút năng lượng / sinh lực của mọi đối thủ'];
+        case 'chess_discs': return ['💿', '#a78bfa', 'Đĩa Năng Lượng', `Đòn đánh thường thành Đĩa Năng Lượng: +${pc(ef.dmgUp ?? 0)}% sát thương`];
         case 'chess_crown': return ['👑', '#facc15', 'Vương Miện', `+${pc((ef.defUp ?? 0.15) * (ef.x2 ? 2 : 1))}% P.DEF & M.DEF · Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
         case 'chess_judging': return ['⚔️', '#fde047', 'Phán Quyết', 'Vua đang giơ kiếm tích sát thương, miễn ngắt niệm'];
         case 'chess_sacrifice': return ['🛡️', '#fef08a', 'Thí Quân', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
