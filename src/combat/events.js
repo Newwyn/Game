@@ -82,6 +82,7 @@ import {
 import {
     spawnVoidMissiles, spawnVoidBurst, startVoidChannel, endVoidChannel,
     spawnVoidStarWave, spawnVoidHole, spawnVoidLash, aimVoidStars, voidAimed,
+    spawnVoidPull, closeVoidHole, spawnVoidOrbLoss,
     spawnVoidVanish, spawnVoidReturn, spawnVoidErode,
 } from '../vfx/voidFx.js';
 import {
@@ -2771,22 +2772,29 @@ function onVoidFx(d) {
 
     switch (d.kind) {
         case 'missiles': {
-            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
-            spawnVoidMissiles(caster, target, {
-                flight: d.flight ?? 600,
-                toPos: d.x != null ? { x: d.x, z: d.z ?? 0 } : null,
-            });
+            // 5 tia rời tay Nyx lần lượt, mỗi tia lượn vòng tới mục tiêu riêng (số sát thương + Mana Burst hiện ở `burst` lúc từng tia tới nơi)
+            spawnVoidMissiles(caster, (d.shots ?? []).map(s => ({
+                target: s.targetIndex != null ? getView(s.targetId ?? foeId, s.targetIndex) : null,
+                delay: s.delay ?? 500,
+                flight: s.flight ?? 400,
+            })));
             break;
         }
         case 'burst': {
+            // 1 tia vừa tới nơi: Mana Burst nổ tại mục tiêu của nó (4 tia đầu nổ nhỏ, tia cuối nổ đủ cỡ + mở màn 9 nhịp nổ lan)
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
             const pos = {
-                x: d.x ?? target?.position.x ?? caster?.position.x ?? 0,
-                z: d.z ?? target?.position.z ?? caster?.position.z ?? 0,
+                x: target?.position.x ?? d.x ?? caster?.position.x ?? 0,
+                z: target?.position.z ?? d.z ?? caster?.position.z ?? 0,
             };
-            spawnVoidBurst(pos, { orbLost: d.orbLost ?? 0 });
+            const last = d.last !== false;
+            spawnVoidBurst(pos, { last });
             showEffects(d.effects);
-            cameraRig.shake(0.14, 140);
+            if (target && (d.effects ?? []).some(e => !e.isMiss)) {
+                target.flashHit?.();
+                if (d.orbLost > 0) spawnVoidOrbLoss(target.position, d.orbLost);
+            }
+            cameraRig.shake(last ? 0.16 : 0.07, last ? 150 : 70);
             break;
         }
         case 'burstTick': {
@@ -2825,6 +2833,24 @@ function onVoidFx(d) {
             cameraRig.shake(0.16, 180);
             break;
         }
+        case 'pull': {
+            // nhịp hút: vòng sáng co về tâm + vệt kéo từ từng đối thủ vừa bị giật (chỗ đứng mới do stateUpdate đưa tới)
+            spawnVoidPull(d.x ?? 0, d.z ?? 0, {
+                radius: d.radius ?? 8,
+                n: d.n ?? 1,
+                movedViews: (d.moved ?? []).map(m => getView(foeId, m.targetIndex)).filter(Boolean),
+            });
+            showEffects(d.effects);
+            cameraRig.shake(0.12, 130);
+            break;
+        }
+        case 'holeEnd': {
+            // hố đen khép lại + nổ; từ đây xúc tu mới trồi lên (hẹn trước theo lashTimes đã nhận ở `hole`)
+            closeVoidHole(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, { radius: d.radius ?? 4 });
+            showEffects(d.effects);
+            cameraRig.shake(0.24, 220);
+            break;
+        }
         case 'lash': {
             if (!voidAimed(d.casterId, d.casterIdx, 'lashAimed')) spawnVoidLash(d.x ?? 0, d.z ?? 0, {
                 n: d.n ?? 1,
@@ -2835,7 +2861,7 @@ function onVoidFx(d) {
             break;
         }
         case 'channelEnd': {
-            endVoidChannel(d.casterId, d.casterIdx, caster);
+            endVoidChannel(d.casterId, d.casterIdx, caster, d.reason ?? 'done');
             break;
         }
         case 'vanish': {
@@ -2957,6 +2983,8 @@ function onChessFx(d) {
             startKingJudge(d.casterId, d.summonIdx, summon, {
                 duration: d.duration ?? 3000,
             });
+            // vừa niệm: mọi đối thủ bị khiêu khích về phía Vua -> dấu khiêu khích bật trên đầu từng đứa
+            (d.targets ?? []).forEach(i => { const v = getView(d.targetId ?? opponentIdOf(d.casterId), i); if (v) spawnTauntIcon(v); });
             break;
         }
         case 'judgeSlam': {

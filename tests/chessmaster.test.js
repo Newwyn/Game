@@ -135,7 +135,8 @@ test('chessmaster: có trong CLASS_DEFS, SQUAD_ORDER, cửa hàng 1200 Kim Cươ
     assert.deepEqual(def.passives.map(p => [p.name, p.type, p.talent]), [['Thí Quân', 'chess_sacrifice', 1], ['Phong Cấp', 'chess_promote', 2]]);
     assert.deepEqual(def.passives[0].levels, { value: [0.06, 0.08, 0.10] });
     assert.deepEqual([def.passives[0].orb, def.passives[0].duration], [0.5, 5000]);
-    assert.deepEqual(def.passives[1].levels, { value: [15000, 12000] });
+    assert.deepEqual(def.passives[1].levels, { value: [12000, 10000] });   // Phong Cấp: 12 giây (thiên phú cấp 2: 10 giây)
+    assert.match(def.passives[1].desc, /Tốt.*Hậu.*Mã.*Vua/);
     // 6 quân cờ: triệu hồi có máu, nhận buff + debuff, chỉ số gốc + mỗi cấp đúng bảng spec 5.6
     assert.deepEqual(json(h, 'CHESS_UNITS'), Object.fromEntries(Object.keys(PIECES).map(k => [k, `chess_${k}`])));
     for (const [kind, [name, hp, hpUp, atkKey, atk, atkUp, pDef, pDefUp, mDef, mDefUp, atkSpeed, atkRange]] of Object.entries(PIECES)) {
@@ -163,7 +164,7 @@ test('chessmaster: có trong CLASS_DEFS, SQUAD_ORDER, cửa hàng 1200 Kim Cươ
     assert.equal(h.run('squad.length'), 1);
     assert.equal(h.run('squad[0].classId'), 'chessmaster');
     assert.equal(h.run('squad[0].mp'), 2000);   // 1,5 Orb + 0,5 Orb của tộc Human
-    assert.deepEqual(json(h, 'squad[0].passives.map(p => [p.type, p.value])'), [['chess_sacrifice', 0.10], ['chess_promote', 12000]]);
+    assert.deepEqual(json(h, 'squad[0].passives.map(p => [p.type, p.value])'), [['chess_sacrifice', 0.10], ['chess_promote', 10000]]);
     assert.deepEqual(json(h, 'squad[0].skills.map(s => s.mode)'), ['pawn', 'knight', 'locked']);
     // mô tả thiên phú điền đủ số (không còn dấu ?)
     const talents = json(h, 'talentInfo(CLASS_DEFS.chessmaster, { level: 60, rank: 3 })');
@@ -173,7 +174,7 @@ test('chessmaster: có trong CLASS_DEFS, SQUAD_ORDER, cửa hàng 1200 Kim Cươ
     assert.match(talents[1].desc, /12/);
 });
 
-test('chess nút: đầu trận [pawn, knight, locked]; gọi Tốt (−1 Orb) → [rook, …]; gọi Xe (−2 Orb) → [guardMove, knight, king]; giá và hồi đúng bảng', () => {
+test('chess nút + khoá cánh: đầu trận [pawn, knight, locked]; gọi Tốt (−1 Orb) → [rook, locked, locked] (cánh công khoá); gọi Xe (−2 Orb) → [guardMove, locked, king]; bấm nút khoá không mất Orb; gọi Vua → cánh công mở lại; giá và hồi đúng bảng', () => {
     const h = harness();
     arena(h);   // 1 cọc gỗ đứng trong tầm đánh của Leon (cách 8): có đối thủ trong tầm thì mới dùng được nút
     h.run('leon.mpSec = 0; leon.mpAtk = 0');   // không tự hồi Orb: đo đúng số Orb mỗi nút trừ
@@ -181,8 +182,9 @@ test('chess nút: đầu trận [pawn, knight, locked]; gọi Tốt (−1 Orb) �
     const order = () => h.events.filter(e => e.name === 'skillExecuted' && e.data.casterId === 'p1').map(e => [e.data.type, e.data.mode]);
     assert.deepEqual(json(h, 'modes()'), ['pawn', 'knight', 'locked']);
     assertButton(h, 0, 'pawn'); assertButton(h, 1, 'knight'); assertButton(h, 2, 'locked');
-    assert.deepEqual(json(h, 'leon.chess'), { ever: { pawn: false, rook: false, knight: false, bishop: false }, firstWing: null, turn: { guard: 0, strike: 0 },
+    assert.deepEqual(json(h, 'leon.chess'), { ever: { pawn: false, rook: false, knight: false, bishop: false }, firstWing: null, wing: null, turn: { guard: 0, strike: 0 },
         cd: {}, deadAt: {}, royalAuto: { king: 0, queen: 0 }, seatSince: 0, royals: 0, royalEver: false });
+    assert.equal(h.run('skillUsable(leon, 0) && skillUsable(leon, 1)'), true);   // chưa gọi quân nào: cả 2 cánh đều bấm được
     // ---- Gọi Tốt: −1 Orb, hồi 1 s (tính sau khi diễn xong), quân ra sân sau động tác gọi ----
     h.run('leon.queuedSkills = [0]');
     tick(1);
@@ -194,81 +196,97 @@ test('chess nút: đầu trận [pawn, knight, locked]; gọi Tốt (−1 Orb) �
     assert.equal(h.run('leon.skillCooldowns[0] - t1'), lock + 1000);
     assert.equal(h.run('leon.chess.cd.pawn - t1'), lock + 1000);
     assert.equal(h.run('slot("pawn")'), -1);                       // chưa ra: còn đang diễn động tác gọi
+    assert.deepEqual(json(h, '[leon.chess.wing, modes()[1]]'), ['guard', 'locked']);   // vừa bấm là đã chọn cánh thủ: nút cánh công khoá liền
     tick(Math.ceil(impact / 50) + 1);
     assert.equal(h.run('piece("pawn").classId'), 'chess_pawn');
     const s1 = h.fx('summon');
     assert.equal(s1.length, 1);
     assert.deepEqual([s1[0].casterId, s1[0].casterIdx, s1[0].piece, s1[0].summonIdx], ['p1', 0, 'pawn', h.run('slot("pawn")')]);
     assert.ok(s1[0].x > 0 && Number.isFinite(s1[0].z));           // Tốt ra phía trước Leon (về phía địch)
-    assert.deepEqual(json(h, 'modes()'), ['rook', 'knight', 'locked']);
-    assertButton(h, 0, 'rook');
+    assert.deepEqual(json(h, 'modes()'), ['rook', 'locked', 'locked']);
+    assertButton(h, 0, 'rook'); assertButton(h, 1, 'locked');
     assert.equal(h.run('leon.skillCooldowns[0] <= room.clock'), true);   // Gọi Xe có đồng hồ riêng: chưa dùng lần nào -> sẵn sàng
+    const N = Math.ceil(lock / 50) + 2 + Math.ceil(impact / 50);
     // ---- Gọi Xe: −2 Orb ----
     h.run('leon.queuedSkills = [0]');
-    tick(Math.ceil(lock / 50) + 2 + Math.ceil(impact / 50));
+    tick(N);
     assert.deepEqual(order(), [['chess_guard', 'pawn'], ['chess_guard', 'rook']]);
     assert.equal(h.run('leon.mp'), 2000);
     assert.equal(h.run('piece("rook").classId'), 'chess_rook');
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'king']);
-    assertButton(h, 0, 'guardMove'); assertButton(h, 1, 'knight'); assertButton(h, 2, 'king');
-    assert.deepEqual(json(h, '[leon.chess.ever, leon.chess.firstWing]'), [{ pawn: true, rook: true, knight: false, bishop: false }, 'guard']);
-    // ---- cánh công: Gọi Mã (−1), Gọi Tượng (−2, cần nạp thêm Orb) ----
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'locked', 'king']);
+    assertButton(h, 0, 'guardMove'); assertButton(h, 1, 'locked'); assertButton(h, 2, 'king');
+    assert.deepEqual(json(h, '[leon.chess.ever, leon.chess.firstWing, leon.chess.wing]'), [{ pawn: true, rook: true, knight: false, bishop: false }, 'guard', 'guard']);
+    // ---- cánh công đang khoá: bấm nút 2 không mất Orb, không ra quân, lệnh bị gỡ khỏi hàng đợi ----
+    assert.equal(h.run('skillUsable(leon, 1)'), false);
     h.run('leon.queuedSkills = [1]');
-    tick(Math.ceil(lock / 50) + 2 + Math.ceil(impact / 50));
-    assert.equal(h.run('leon.mp'), 1000);
-    assert.equal(h.run('piece("knight").classId'), 'chess_knight');
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'bishop', 'king']);
-    assertButton(h, 1, 'bishop');
-    h.run('leon.mp = 2000; leon.queuedSkills = [1]');
-    tick(Math.ceil(lock / 50) + 2 + Math.ceil(impact / 50));
-    assert.equal(h.run('leon.mp'), 0);
-    assert.equal(h.run('piece("bishop").classId'), 'chess_bishop');
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'strikeMove', 'king']);   // cánh thủ đủ trước -> nút 3 vẫn là Gọi Vua
-    assertButton(h, 1, 'strikeMove');
-    assert.equal(h.fx('summon').length, 4);
-    // ---- Gọi Vua: −3 Orb; có Vua rồi thì nút 3 thành chiêu 2 của Vua (đợt này bấm chưa có tác dụng) ----
+    tick(N);
+    assert.equal(h.run('leon.mp'), 2000);
+    assert.equal(h.run('slot("knight")'), -1);
+    assert.deepEqual(json(h, 'leon.queuedSkills'), []);
+    assert.equal(order().length, 2);
+    // ---- Gọi Vua: −3 Orb; có Vua rồi thì nút 3 thành chiêu 2 của Vua, cánh công MỞ LẠI ----
     h.run('leon.mp = 3000; leon.queuedSkills = [2]');
-    tick(Math.ceil(lock / 50) + 2 + Math.ceil(impact / 50));
+    tick(N);
     assert.equal(h.run('leon.mp'), 0);
     assert.equal(h.run('piece("king").classId'), 'chess_king');
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'kingSkill']);
+    assertButton(h, 1, 'knight'); assertButton(h, 2, 'kingSkill');
+    assert.equal(h.run('leon.chess.royalEver && skillUsable(leon, 1)'), true);
+    // ---- cánh công: Gọi Mã (−1), Gọi Tượng (−2) ----
+    h.run('leon.mp = 1000; leon.queuedSkills = [1]');
+    tick(N);
+    assert.equal(h.run('leon.mp'), 0);
+    assert.equal(h.run('piece("knight").classId'), 'chess_knight');
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'bishop', 'kingSkill']);
+    assertButton(h, 1, 'bishop');
+    h.run('leon.mp = 2000; leon.queuedSkills = [1]');
+    tick(N);
+    assert.equal(h.run('leon.mp'), 0);
+    assert.equal(h.run('piece("bishop").classId'), 'chess_bishop');
     assert.deepEqual(json(h, 'modes()'), ['guardMove', 'strikeMove', 'kingSkill']);
-    assertButton(h, 2, 'kingSkill');
+    assertButton(h, 1, 'strikeMove');
+    assert.equal(h.fx('summon').length, 5);
+    // Vua gục: cả 2 cánh vẫn dùng được tới hết trận
+    h.run('kill(piece("knight")); var kgSlot = slot("king")');
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'kingSkill']);
     // mỗi quân chỉ 1 con, đều là thành viên thật của đội (triệu hồi), của đúng Leon này
     assert.deepEqual(json(h, 'team.slice(1).map(s => [s.classId, s.chessKind, s.summon, s.ownerIdx, s.alive, s.side])'),
-        ['pawn', 'rook', 'knight', 'bishop', 'king'].map(k => [`chess_${k}`, k, true, 0, true, 'left']));
+        ['pawn', 'rook', 'king', 'knight', 'bishop'].map(k => [`chess_${k}`, k, true, 0, k !== 'knight', 'left']));
+    h.run('kill(piece("king"))');
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'king']);
 });
 
 test('chess "đã từng gọi": Tốt chết → nút 1 về pawn, nút 3 vẫn king; trong 5000 ms sau khi chết skillUsable(nút 1) false', () => {
     const h = harness();
     arena(h);
     h.run('put("pawn"); put("rook")');
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'king']);
-    assert.equal(h.run('skillUsable(leon, 0) && skillUsable(leon, 1) && skillUsable(leon, 2)'), true);
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'locked', 'king']);
+    assert.equal(h.run('skillUsable(leon, 0) && !skillUsable(leon, 1) && skillUsable(leon, 2)'), true);   // (cánh công khoá tới khi có quân chúa)
     h.run('var pawnSlot = slot("pawn"); at(2000); kill(piece("pawn"))');
-    assert.deepEqual(json(h, 'modes()'), ['pawn', 'knight', 'king']);   // đổi ngay lúc quân chết, "đã từng đủ Tốt + Xe" vẫn giữ
+    assert.deepEqual(json(h, 'modes()'), ['pawn', 'locked', 'king']);   // đổi ngay lúc quân chết, "đã từng đủ Tốt + Xe" vẫn giữ
     assertButton(h, 0, 'pawn'); assertButton(h, 2, 'king');
     assert.equal(h.run('leon.chess.deadAt.pawn - T0'), 2000);
     assert.equal(h.run('skillUsable(leon, 0)'), false);
     assert.equal(h.run('leon.skillCooldowns[0] - T0'), 2000 + 5000);      // nút đếm ngược tới lúc gọi lại được
     h.run('at(6999)');
     assert.equal(h.run('skillUsable(leon, 0)'), false);
-    assert.equal(h.run('skillUsable(leon, 1) && skillUsable(leon, 2)'), true);   // 2 nút kia không bị ảnh hưởng
+    assert.equal(h.run('!skillUsable(leon, 1) && skillUsable(leon, 2)'), true);  // nút 3 không bị ảnh hưởng
     h.run('at(7000)');
     assert.equal(h.run('skillUsable(leon, 0)'), true);
     // gọi lại: Tốt mới dùng lại đúng ô cũ trong đội, nút 1 trở lại Nước Cờ Thủ
     h.run('cast(0); at(7000 + leon.skills[0].impact)');
     assert.equal(h.run('slot("pawn")'), h.run('pawnSlot'));
     assert.equal(h.run('piece("pawn").hp'), h.run('piece("pawn").maxHp'));
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'king']);
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'locked', 'king']);
     // Xe chết khi Tốt còn sống: nút 1 thành Gọi Xe
     h.run('at(9000); kill(piece("rook"))');
-    assert.deepEqual(json(h, 'modes()'), ['rook', 'knight', 'king']);
+    assert.deepEqual(json(h, 'modes()'), ['rook', 'locked', 'king']);
     assert.equal(h.run('skillUsable(leon, 0)'), false);
     h.run('at(14000)');
     assert.equal(h.run('skillUsable(leon, 0)'), true);
     // cả Tốt lẫn Xe chết: gọi Tốt trước; nút 3 vẫn Gọi Vua
     h.run('kill(piece("pawn"))');
-    assert.deepEqual(json(h, 'modes()'), ['pawn', 'knight', 'king']);
+    assert.deepEqual(json(h, 'modes()'), ['pawn', 'locked', 'king']);
     // quân chúa gọi bằng nút 3 mà chết thì nút 3 gọi lại đúng quân đó (cũng chờ 5 giây)
     h.run('leon.actionUntil = 0; leon.skillCooldowns = [0, 0, 0]; cast(2); at(14000 + leon.skills[2].impact)');
     assert.equal(h.run('piece("king").classId'), 'chess_king');
@@ -281,34 +299,42 @@ test('chess "đã từng gọi": Tốt chết → nút 1 về pawn, nút 3 vẫn
     assert.equal(h.run('skillUsable(leon, 2)'), true);
 });
 
-test('chess cánh đủ trước: đủ Mã+Tượng rồi mới đủ Tốt+Xe → nút 3 là queen', () => {
+test('chess khoá cánh: gọi quân cánh nào trước thì cánh kia khoá tới khi có quân chúa; đủ Mã+Tượng → nút 3 là queen; đủ Tốt+Xe → king; có quân chúa rồi thì cả 2 cánh dùng tới hết trận', () => {
     const h = harness();
     arena(h);
-    h.run('put("pawn"); put("knight")');
-    assert.deepEqual(json(h, 'modes()'), ['rook', 'bishop', 'locked']);   // mỗi cánh mới 1 quân: nút 3 còn khoá
-    assert.equal(h.run('skillUsable(leon, 2)'), false);
-    h.run('put("bishop")');
-    assert.deepEqual(json(h, 'modes()'), ['rook', 'strikeMove', 'queen']);
+    h.run('put("knight")');
+    assert.deepEqual(json(h, 'modes()'), ['locked', 'bishop', 'locked']);   // chọn cánh công: nút cánh thủ khoá, nút 3 còn khoá (chưa đủ cánh)
+    assertButton(h, 0, 'locked'); assertButton(h, 2, 'locked');
+    assert.deepEqual(json(h, '[leon.chess.wing, skillUsable(leon, 0), skillUsable(leon, 1), skillUsable(leon, 2)]'), ['strike', false, true, false]);
+    // bấm thẳng vào nút khoá (không qua vòng lặp trận): lưới an toàn — không ra quân, không trừ Orb, không vào hồi
+    h.run('var mp0 = leon.mp; cast(0); at(1000)');
+    assert.deepEqual(json(h, '[slot("pawn"), leon.mp === mp0, leon.skillCooldowns[0]]'), [-1, true, 0]);
+    h.run('leon.actionUntil = 0; put("bishop")');
+    assert.deepEqual(json(h, 'modes()'), ['locked', 'strikeMove', 'queen']);
     assert.equal(h.run('leon.chess.firstWing'), 'strike');
     assertButton(h, 2, 'queen');
-    h.run('put("rook")');
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'strikeMove', 'queen']);   // cả hai cánh đều đủ: quân chúa của cánh đủ TRƯỚC
-    assert.deepEqual(json(h, 'leon.chess.ever'), { pawn: true, rook: true, knight: true, bishop: true });
-    // gọi Hậu ra sân
-    h.run('cast(2); at(leon.skills[2].impact)');
+    // gọi Hậu ra sân bằng nút 3 -> cánh thủ mở
+    h.run('cast(2); at(1000 + leon.skills[2].impact)');
     assert.equal(h.run('piece("queen").classId'), 'chess_queen');
     assert.equal(h.run('piece("king")'), undefined);
+    assert.deepEqual(json(h, 'modes()'), ['pawn', 'strikeMove', 'queenSkill']);
+    assert.deepEqual(json(h, '[skillUsable(leon, 0), skillUsable(leon, 2)]'), [true, true]);    // Gọi Tốt · chiêu 2 của Hậu (Vũ Điệu Quang Cầu)
+    h.run('put("pawn"); put("rook")');
     assert.deepEqual(json(h, 'modes()'), ['guardMove', 'strikeMove', 'queenSkill']);
-    assert.equal(h.run('skillUsable(leon, 2)'), true);    // chiêu 2 của Hậu (Vũ Điệu Quang Cầu)
-    // quân của cánh công chết hết: nút 3 không đổi (đã từng đủ)
+    assert.deepEqual(json(h, 'leon.chess.ever'), { pawn: true, rook: true, knight: true, bishop: true });
+    // quân của cánh công + Hậu chết hết: nút 3 gọi lại Hậu (cánh đủ trước), cả 2 cánh vẫn mở
     h.run('kill(piece("knight")); kill(piece("bishop")); kill(piece("queen"))');
     assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'queen']);
-    // thứ tự ngược lại ở trận khác: đủ Tốt+Xe trước -> king
+    // thứ tự ngược lại ở trận khác: chọn cánh thủ -> king. Quân cánh kia có ra sân bằng đường khác (không qua nút) cũng không mở khoá
     const g = harness();
     arena(g);
-    g.run('put("knight"); put("pawn"); put("rook"); put("bishop")');
-    assert.deepEqual(json(g, 'modes()'), ['guardMove', 'strikeMove', 'king']);
-    assert.equal(g.run('leon.chess.firstWing'), 'guard');
+    g.run('put("pawn")');
+    assert.deepEqual(json(g, 'modes()'), ['rook', 'locked', 'locked']);
+    g.run('put("rook"); put("knight")');
+    assert.deepEqual(json(g, 'modes()'), ['guardMove', 'locked', 'king']);
+    assert.deepEqual(json(g, '[leon.chess.firstWing, leon.chess.wing]'), ['guard', 'guard']);
+    g.run('put("king")');
+    assert.deepEqual(json(g, 'modes()'), ['guardMove', 'bishop', 'kingSkill']);
 });
 
 test('chess quân không hết giờ: sau 120 s vẫn sống; mỗi loại 1 quân; chỉ số = gốc + perLevel × (cấp Leon − 1)', () => {
@@ -345,7 +371,7 @@ test('chess quân không hết giờ: sau 120 s vẫn sống; mỗi loại 1 qu�
     assert.equal(h.run('team.length'), 7);
 });
 
-test('chess: mp 500 bấm Gọi Tốt → không trừ mp, không có quân; nút khoá bấm 5 lần → queuedSkills không giữ lại, nút 1 vẫn dùng được', () => {
+test('chess: mp 500 bấm Gọi Tốt → không trừ mp, không có quân; nút khoá (nút 3, nút cánh bị khoá) bấm 5 lần → queuedSkills không giữ lại, nút 1 vẫn dùng được', () => {
     const h = harness();
     arena(h);
     h.run('leon.mpSec = 0; leon.mpAtk = 0; leon.mp = 500');
@@ -375,17 +401,26 @@ test('chess: mp 500 bấm Gọi Tốt → không trừ mp, không có quân; nú
     assert.deepEqual(json(h, 'leon.queuedSkills'), []);
     tick(10);
     assert.equal(h.run('piece("pawn").classId'), 'chess_pawn');
-    // nút khoá đứng đầu hàng đợi cũng không chặn nút khác: [nút 3 khoá, nút 2 Gọi Mã] -> Mã vẫn ra
-    h.run('leon.mp = 1000; leon.actionUntil = 0; leon.queuedSkills = [2, 1]');
+    // đã chọn cánh thủ: nút cánh công (nút 2) khoá — bấm 5 lần không lần nào được giữ lại, không mất Orb
+    assert.equal(h.run('modes()[1]'), 'locked');
+    h.run('leon.mp = 1000');
+    for (let n = 0; n < 5; n++) {
+        h.run('press(1)');
+        tick(1);
+        assert.equal(h.run('leon.queuedSkills.includes(1)'), false, `lần bấm nút cánh khoá ${n + 1}`);
+    }
+    assert.deepEqual(json(h, '[leon.mp, slot("knight")]'), [1000, -1]);
+    // nút khoá đứng đầu hàng đợi cũng không chặn nút khác: [nút 3 khoá, nút 2 khoá, nút 1 Gọi Xe] -> Xe vẫn ra
+    h.run('leon.mp = 2000; leon.actionUntil = 0; leon.queuedSkills = [2, 1, 0]');
     tick(1);
     assert.equal(h.run('leon.mp'), 0);
     tick(10);
-    assert.equal(h.run('piece("knight").classId'), 'chess_knight');
+    assert.equal(h.run('piece("rook").classId'), 'chess_rook');
     assert.deepEqual(json(h, 'leon.queuedSkills'), []);
     // đang hồi chiêu: lệnh chờ, không trừ Orb, hết hồi mới ra
-    h.run('put("rook"); leon.mp = 2000; leon.actionUntil = 0; leon.queuedSkills = [0]');
+    h.run('leon.mp = 2000; leon.actionUntil = 0; leon.queuedSkills = [0]');
     tick(1);
-    assert.deepEqual(h.events.filter(e => e.name === 'skillExecuted').map(e => e.data.mode), ['pawn', 'knight', 'guardMove']);
+    assert.deepEqual(h.events.filter(e => e.name === 'skillExecuted').map(e => e.data.mode), ['pawn', 'rook', 'guardMove']);
     assert.equal(h.run('leon.mp'), 1000);
     h.run('var used = room.clock; leon.queuedSkills = [0]');
     tick(100);   // 5 giây: Nước Cờ Thủ còn đang hồi (8 giây)
@@ -410,8 +445,8 @@ test('chess: Leon gục trước khi quân kịp ra sân thì không có quân; 
     h.run(`leon.alive = true; leon.hp = leon.maxHp; leon.state = 'idle'; leon.actionUntil = 0; leon.skillCooldowns = [0, 0, 0];
         put("pawn"); put("knight");
         summonChessPiece(room, 'p2', HI, 'knight', room.clock);`);
-    assert.deepEqual(json(h, 'modes()'), ['rook', 'bishop', 'locked']);
-    assert.deepEqual(json(h, 'her.skills.map(s => s.mode)'), ['pawn', 'bishop', 'locked']);
+    assert.deepEqual(json(h, 'modes()'), ['rook', 'locked', 'locked']);                       // Leon phe trái chọn cánh thủ (Tốt ra trước)
+    assert.deepEqual(json(h, 'her.skills.map(s => s.mode)'), ['locked', 'bishop', 'locked']);   // Leon phe phải chọn cánh công
     assert.deepEqual(json(h, 'Object.keys(chessPieces(room.players.p2, HI))'), ['knight']);
     assert.deepEqual(h.fx('summon').map(e => [e.casterId, e.piece]), [['p1', 'pawn'], ['p1', 'knight'], ['p2', 'knight']]);
     assert.equal(h.run('foes.find(s => s.chessKind).side'), 'right');
@@ -423,7 +458,7 @@ test('chess: Leon gục trước khi quân kịp ra sân thì không có quân; 
     assert.equal(h.run('leon.alive'), false);
     assert.deepEqual(json(h, '[pw.alive, kn.alive]'), [true, true]);
     assert.equal(h.run('pw.lastAttackTime > t1 || kn.lastAttackTime > t1'), true);
-    assert.deepEqual(json(h, 'leon.skills.map(s => s.mode)'), ['rook', 'bishop', 'locked']);
+    assert.deepEqual(json(h, 'leon.skills.map(s => s.mode)'), ['rook', 'locked', 'locked']);
     assert.ok(!h.run('room.winner'));                                    // Rok còn sống: trận chưa kết thúc
     // phe chỉ còn quân cờ sống → thua (luật sẵn có chỉ đếm tướng); quân cờ biến mất theo
     h.run('kill(rok)');
@@ -498,7 +533,7 @@ test('Nước cờ thủ luân phiên: lần 1 Tốt tiến 2 ô về phía đ�
         var D0 = taken(foes[0], lyra)`);
     const [LI, PS, RS, AI] = [h.run('LI'), h.run('PS'), h.run('RS'), h.run('AI')];
     assert.ok(h.run('D0') > 20);
-    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'knight', 'king']);
+    assert.deepEqual(json(h, 'modes()'), ['guardMove', 'locked', 'king']);
     // ---- lần 1: Tốt — Giữ Lối ----
     h.run('cast(0)');
     assert.deepEqual(h.fx('command'), [{ casterId: 'p1', casterIdx: LI, kind: 'command', wing: 'guard', piece: 'pawn', summonIdx: PS }]);
@@ -660,7 +695,7 @@ test('Chiếu Đôi: 2 đối thủ gần nhất trong 7 ô bị kéo tới các
     // sói 1 (20, 0) đứng sâu nhất -> Mã nhảy tới (18.8, 0). Cách chỗ đó: sói 1 = 1,2 · sói 2 = 4,1 · sói 3 = 5,7 (gần thứ ba: không bị kéo) · sói 0 = 10,8 (ngoài 7 ô)
     arena(h, { foes: [['c1_wolf', 8, 0], ['c1_wolf', 20, 0], ['c1_wolf', 16, 3], ['c1_wolf', 14, -3]] });
     h.run('var kn = put("knight", 3, 1.5), bs = put("bishop", -1, 1.5), KS = slot("knight"); bs.drainNext = 1e15; var far = (i) => Math.hypot(foes[i].x - kn.x, foes[i].z - kn.z); var hp0 = foes.map(e => e.hp)');
-    assert.deepEqual(json(h, 'modes()'), ['pawn', 'strikeMove', 'queen']);
+    assert.deepEqual(json(h, 'modes()'), ['locked', 'strikeMove', 'queen']);
     h.run('cast(1)');
     assert.deepEqual(h.fx('command'), [{ casterId: 'p1', casterIdx: 0, kind: 'command', wing: 'strike', piece: 'knight', summonIdx: h.run('KS') }]);
     assert.ok(Math.abs(h.run('kn.x') - 18.8) < 1e-9 && h.run('kn.z') === 0, 'Mã nhảy vào hàng sau');
@@ -904,9 +939,9 @@ const CHESS_FX = { summon: ['piece', 'summonIdx', 'x', 'z'], command: ['wing', '
     knightJump: ['summonIdx', 'x', 'z', 'effects'], fork: ['summonIdx', 'pulled', 'effects'], drain: ['summonIdx', 'targetId', 'targetIndex', 'mode', 'duration'],
     drainEnd: ['summonIdx', 'targetId', 'targetIndex', 'mode', 'duration'], bind: ['summonIdx', 'targetId', 'targetIndex', 'duration'],
     pawnGuard: ['summonIdx', 'x', 'z', 'targets'], drainTick: ['summonIdx', 'targetId', 'targetIndex', 'mode', 'effects'],
-    crown: ['summonIdx', 'targets', 'duration'], judgeStart: ['summonIdx', 'duration'], judgeSlam: ['summonIdx', 'x', 'z', 'effects'],
+    crown: ['summonIdx', 'targets', 'duration'], judgeStart: ['summonIdx', 'duration', 'targets'], judgeSlam: ['summonIdx', 'x', 'z', 'effects'],
     orb: ['id', 'x', 'z', 'duration'], orbTick: ['id', 'effects'], orbGone: ['id'], dance: ['summonIdx', 'recalled', 'shots'],
-    board: ['king', 'queen'], promote: ['from', 'to', 'summonIdx'], sacrifice: ['piece'], checkmate: ['kingIdx', 'queenIdx', 'lift', 'effects'] };
+    board: ['king', 'queen'], promote: ['from', 'to', 'piece', 'summonIdx'], sacrifice: ['piece'], checkmate: ['kingIdx', 'queenIdx', 'lift', 'effects'] };
 
 test('trận AUTO thật có Leon (hạt giống cố định): chạy hết không lỗi, trạng thái luôn hợp lệ, mọi sự kiện chessFx đúng bảng', () => {
     const seen = new Set();
@@ -1022,13 +1057,16 @@ test('Vương Miện hồi máu: Vua bị đánh trúng → ai còn khiên vươ
     assert.deepEqual(json(h, 'h0()'), [a[0] + up[0] * 3, a[1] + up[1] * 3, a[2]]);
 });
 
-test('Phán Quyết: niệm 3000 ms; applyStun không ngắt; mất 500 máu lúc niệm → cú chém = ×2.0 P.ATK + 500 (trần 30% maxHp của Vua), vùng dài 7 rộng 5 trước mặt, hất tung 1000 ms', () => {
+test('Phán Quyết: niệm 3000 ms, vừa niệm là MỌI đối thủ trên sân bị khiêu khích về Vua 3000 ms; applyStun không ngắt; mất 500 máu lúc niệm → cú chém = ×2.0 P.ATK + 500 (trần 30% maxHp của Vua), vùng dài 7 rộng 5 trước mặt, hất tung 1000 ms', () => {
     for (const [lost, bonus] of [[500, 500], [2000, 1260]]) {
         const h = harness();
         // Vua ở (10, 0) nhìn về +x. Trong vùng: sói 0 (13, 0), sói 1 (16.9, 2.4) · ngoài: sói 2 (17.5, 0) quá dài, sói 3 (13, 3) quá rộng, sói 4 (8, 0) sau lưng
         arena(h, { foes: [['c1_wolf', 13, 0], ['c1_wolf', 16.9, 2.4], ['c1_wolf', 17.5, 0], ['c1_wolf', 13, 3], ['c1_wolf', 8, 0]] });
         h.run(STATS + `put("pawn"); put("rook"); var kg = put("king", 10, 0), KS = slot("king"); kg.crownNext = 1e15; var hp0 = foes.map(e => e.hp); cast(2)`);
-        assert.deepEqual(h.fx('judgeStart'), [{ casterId: 'p1', casterIdx: 0, kind: 'judgeStart', summonIdx: h.run('KS'), duration: 3000 }]);
+        assert.deepEqual(h.fx('judgeStart'), [{ casterId: 'p1', casterIdx: 0, kind: 'judgeStart', summonIdx: h.run('KS'), duration: 3000, targetId: 'p2', targets: [0, 1, 2, 3, 4] }]);
+        // cả 5 con sói (trong vùng chém lẫn ngoài vùng, kể cả con sau lưng) đều bị khiêu khích về phía Vua đúng 3000 ms
+        assert.deepEqual(json(h, "foes.map(e => { const t = e.statusEffects.find(x => x.type === 'taunted'); return t ? [t.endTime - T0, t.duration, t.sourceIndex, !!t.debuff, e.lockedTargetIndex] : null; })"),
+            [0, 1, 2, 3, 4].map(() => [3000, 3000, h.run('KS'), true, -1]));
         assert.deepEqual(json(h, "[eff(kg, 'chess_judging').endTime - T0, eff(kg, 'chess_judging').stored, kg.actionUntil - T0 >= 3000, ccImmune(kg, room.clock)]"), [3000, 0, true, true]);
         assert.deepEqual(json(h, '[leon.skillCooldowns[2] - T0, skillUsable(leon, 2)]'), [600 + 12000, false]);   // đang niệm: không bấm lại được
         // bị choáng lúc niệm: không ngắt; bị đánh vẫn mất máu, tích lại
@@ -1049,7 +1087,7 @@ test('Phán Quyết: niệm 3000 ms; applyStun không ngắt; mất 500 máu lú
             assert.equal(h.run(`foes[${i}].statusEffects.some(e => e.type === 'knockup' && e.endTime === T0 + 4000)`), true);
             assert.ok(h.run(`foes[${i}].hp < hp0[${i}]`));
         }
-        for (const i of [2, 3, 4]) assert.equal(h.run(`foes[${i}].hp === hp0[${i}] && foes[${i}].statusEffects.length === 0`), true, `sói ${i} ngoài vùng`);
+        for (const i of [2, 3, 4]) assert.equal(h.run(`foes[${i}].hp === hp0[${i}] && foes[${i}].statusEffects.every(e => e.type === 'taunted')`), true, `sói ${i} ngoài vùng: chỉ bị khiêu khích`);
         assert.equal(h.run("eff(kg, 'chess_judging')"), undefined);
         assert.equal(h.run('ccImmune(kg, room.clock)'), false);
     }
@@ -1059,6 +1097,37 @@ test('Phán Quyết: niệm 3000 ms; applyStun không ngắt; mất 500 máu lú
     g.run('put("pawn"); put("rook"); var kg = put("king", 10, 0); kg.crownNext = 1e15; cast(2); at(1000); kill(kg); at(4000)');
     assert.equal(g.fx('judgeSlam').length, 0);
     assert.equal(g.run('foes[0].hp'), g.run('foes[0].maxHp'));
+});
+
+test('Phán Quyết khiêu khích: đối thủ miễn khống chế / triệu hồi không nhận debuff / đã gục không dính; trong vòng lặp trận thật sói bỏ mục tiêu gần để đánh Vua; Vua tự dùng (có cả Vua và Hậu) cũng khiêu khích', () => {
+    const h = harness();
+    // 0: sói thường (xa 30 ô vẫn dính) · 1: sói miễn khống chế · 2: Golem (triệu hồi không nhận debuff) · 3: sói đã gục · 4: sói thường
+    arena(h, { foes: [['c1_wolf', 40, 0], ['c1_wolf', 13, 0], ['elem_golem', 14, 2], ['c1_wolf', 12, -2], ['c1_wolf', 13, 3]] });
+    h.run(`foes[1].statusEffects.push({ type: 'giant_form', endTime: T0 + 99999, immuneUntil: T0 + 99999 }); foes[2].summon = true; kill(foes[3], foes);
+        put("pawn"); put("rook"); var kg = put("king", 10, 0), KS = slot("king"); kg.crownNext = 1e15; cast(2)`);
+    assert.equal(h.run('ccImmune(foes[1], room.clock) && !takesDebuffs(foes[2])'), true);
+    assert.deepEqual(h.fx('judgeStart')[0].targets, [0, 4]);
+    assert.deepEqual(json(h, "foes.map(e => e.statusEffects.some(x => x.type === 'taunted'))"), [true, false, false, false, true]);
+    // vòng lặp trận thật: sói đang cắn Leon đứng ngay cạnh, Vua niệm thì nó quay sang đánh Vua
+    const r = harness();
+    arena(r, { foes: [['c1_wolf', 2, 0]] });
+    r.run('put("pawn", -20, 5); put("rook", -20, -5); var kg = put("king", 12, 0), KS = slot("king"); kg.crownNext = 1e15; kg.hp = kg.maxHp = 1e6; leon.hp = leon.maxHp = 1e6');
+    const tick = realLoop(r);
+    tick(30);
+    assert.equal(r.run('foes[0].targetIndex'), r.run('LI'));     // gần Leon nhất -> đang đánh Leon
+    r.run('leon.queuedSkills = [2]');
+    tick(2);
+    assert.equal(r.fx('judgeStart').length, 1);
+    assert.deepEqual(r.fx('judgeStart')[0].targets, [0]);
+    tick(20);    // 1 giây sau: sói đã bỏ Leon, chạy về phía Vua
+    assert.equal(r.run('foes[0].targetIndex'), r.run('KS'));
+    // có cả Vua và Hậu: Vua tự dùng Phán Quyết -> cũng khiêu khích
+    const a = harness();
+    arena(a, { foes: [['c1_wolf', 13, 0], ['c1_wolf', 30, 4]] });
+    a.run('put("pawn"); put("rook"); var kg = put("king", 10, 0); var qn = put("queen", 0, 0); kg.crownNext = qn.orbNext = 1e15; upTo(200)');
+    assert.equal(a.fx('judgeStart').length, 1);
+    assert.deepEqual(a.fx('judgeStart')[0].targets, [0, 1]);
+    assert.equal(a.run("foes.every(e => e.statusEffects.some(x => x.type === 'taunted' && x.sourceIndex === slot('king')))"), true);
 });
 
 // ============================================================
@@ -1184,44 +1253,71 @@ test('Thí Quân: quân chết → mỗi đồng đội khiên 6% / 8% / 10% max
     }
 });
 
-test('Phong Cấp: có Vua + Tốt sống 15000 ms (mức 2: 12000) kể từ max(lúc Vua ra, lúc Tốt ra) → Tốt thành chess_queen đủ chỉ số; ô Tốt trống, nút 1 về pawn; nút 3 thành checkmate với skillCooldowns[2] ≤ now; có Hậu thì Tốt thành chess_king; ghế trống lại → Tốt mới phong tiếp', () => {
-    for (const [level, rank, wait] of [[40, 1, 15000], [60, 3, 12000]]) {
+test('Phong Cấp: có Vua (ghế Hậu trống) + TỐT sống 12000 ms (mức 2: 10000) kể từ max(lúc Vua ra, lúc Tốt ra, lúc ghế trống) → Tốt thành chess_queen đủ chỉ số; có Hậu (ghế Vua trống) + MÃ sống đủ → Mã thành chess_king; ô quân vừa phong trống, gọi lại được; nút 3 thành checkmate với skillCooldowns[2] ≤ now; ghế trống lại → phong tiếp', () => {
+    for (const [level, rank, wait] of [[40, 1, 12000], [60, 3, 10000]]) {
         const h = harness();
         arena(h, { level, rank });
-        h.run('var pw = put("pawn"), rk = put("rook"), PS = slot("pawn"); at(1000); var kg = put("king"); kg.crownNext = 1e15; at(1000)');
+        assert.equal(h.run("talentOf(leon, 'chess_promote').value"), wait);
+        // có sẵn Mã từ đầu: đang có VUA thì Mã KHÔNG được phong (ghế Vua không trống), chỉ Tốt lên Hậu
+        h.run('var pw = put("pawn"), rk = put("rook"), kn = put("knight"), PS = slot("pawn"), NS = slot("knight"); at(1000); var kg = put("king"); kg.crownNext = 1e15; at(1000)');
         h.run(`upTo(${1000 + wait - 50})`);
         assert.equal(h.fx('promote').length, 0);
         assert.equal(h.run('team[PS].classId'), 'chess_pawn');
         h.run(`upTo(${1000 + wait})`);
-        assert.deepEqual(h.fx('promote'), [{ casterId: 'p1', casterIdx: 0, kind: 'promote', from: h.run('PS'), to: 'queen', summonIdx: h.run('PS') }]);
+        assert.deepEqual(h.fx('promote'), [{ casterId: 'p1', casterIdx: 0, kind: 'promote', from: h.run('PS'), to: 'queen', piece: 'pawn', summonIdx: h.run('PS') }]);
         const q = json(h, 'team[PS]');
         assert.deepEqual([q.classId, q.chessKind, q.name, q.alive, q.maxHp, q.hp, q.mAtk, q.pAtk, q.atkRange, q.ownerIdx],
             ['chess_queen', 'queen', 'Hậu', true, 1400 + 90 * (level - 1), 1400 + 90 * (level - 1), 230 + 13 * (level - 1), 0, 11, 0]);
         assert.equal(h.run('pw.alive'), false);                                    // Tốt cũ không còn trên sân
-        assert.deepEqual(json(h, 'modes()'), ['pawn', 'knight', 'checkmate']);
+        assert.equal(h.run('team[NS].classId'), 'chess_knight');                   // Mã vẫn là Mã
+        assert.deepEqual(json(h, 'modes()'), ['pawn', 'bishop', 'checkmate']);
         assert.deepEqual(json(h, '[leon.skillCooldowns[2] <= room.clock, skillUsable(leon, 0), leon.chess.deadAt.pawn === undefined]'), [true, true, true]);
         assert.equal(h.fx('sacrifice').length, 0);                                 // phong cấp không phải quân chết
-        // ghế Hậu trống lại -> Tốt mới sống đủ lâu thì phong tiếp
-        h.run(`var t = room.clock - T0; kill(team[PS]); at(t); var pw2 = put("pawn"), PS2 = slot("pawn"); upTo(t + ${wait - 50})`);
+        // đủ 2 quân chúa: không ai được phong nữa dù sống bao lâu
+        h.run(`var t = room.clock - T0; var pwx = put("pawn"); upTo(t + ${wait + 2000})`);
+        assert.equal(h.fx('promote').length, 1);
+        // ghế Hậu trống lại -> đếm lại từ lúc ghế trống: Tốt (đã sống sẵn) phong tiếp sau đúng `wait`
+        h.run(`t = room.clock - T0; kill(team[PS]); at(t); var PS2 = slot("pawn"); upTo(t + ${wait - 50})`);
         assert.equal(h.fx('promote').length, 1);
         h.run(`upTo(t + ${wait})`);
-        assert.deepEqual(h.fx('promote').at(-1), { casterId: 'p1', casterIdx: 0, kind: 'promote', from: h.run('PS2'), to: 'queen', summonIdx: h.run('PS2') });
-        // Vua gục, còn Hậu: Tốt mới xưng Vua
-        h.run(`t = room.clock - T0; kill(kg); at(t); var pw3 = put("pawn"), PS3 = slot("pawn"); upTo(t + ${wait})`);
-        assert.equal(h.fx('promote').at(-1).to, 'king');
-        assert.deepEqual(json(h, '[team[PS3].classId, team[PS3].maxHp, modes()[2]]'), ['chess_king', 4200 + 260 * (level - 1), 'checkmate']);
+        assert.deepEqual(h.fx('promote').at(-1), { casterId: 'p1', casterIdx: 0, kind: 'promote', from: h.run('PS2'), to: 'queen', piece: 'pawn', summonIdx: h.run('PS2') });
+        // Vua gục, còn Hậu (ghế Vua trống): MÃ xưng Vua — Tốt mới thì KHÔNG (Tốt chỉ lên Hậu)
+        h.run(`t = room.clock - T0; kill(kg); at(t); var pw3 = put("pawn"), PS3 = slot("pawn"); upTo(t + ${wait - 50})`);
+        assert.equal(h.fx('promote').length, 2);
+        h.run(`upTo(t + ${wait})`);
+        assert.deepEqual(h.fx('promote').at(-1), { casterId: 'p1', casterIdx: 0, kind: 'promote', from: h.run('NS'), to: 'king', piece: 'knight', summonIdx: h.run('NS') });
+        assert.deepEqual(json(h, '[team[NS].classId, team[NS].chessKind, team[NS].maxHp, team[PS3].classId, kn.alive]'), ['chess_king', 'king', 4200 + 260 * (level - 1), 'chess_pawn', false]);
+        // ô Mã trống: nút 2 về Gọi Mã, gọi lại được ngay (không phải chờ 5 giây); nút 3 là Chiếu Tướng
+        assert.deepEqual(json(h, '[modes(), skillUsable(leon, 1), leon.chess.deadAt.knight === undefined]'), [['guardMove', 'knight', 'checkmate'], true, true]);
+        assert.equal(h.fx('sacrifice').length, 2);                                 // (2 lần Thí Quân là của Hậu và Vua bị giết ở trên, không phải của quân được phong)
     }
-    // chưa mở thiên phú 2 (cấp 39): không phong cấp · Tốt ra sau Vua: tính từ lúc Tốt ra
+    // chưa mở thiên phú 2 (cấp 39): không phong cấp
     const g = harness();
     arena(g, { level: 39, rank: 1 });
-    g.run('put("pawn"); put("rook"); var kg = put("king"); kg.crownNext = 1e15; upTo(20000)');
+    g.run('put("pawn"); put("rook"); put("knight"); var kg = put("king"); kg.crownNext = 1e15; upTo(20000)');
     assert.equal(g.fx('promote').length, 0);
+    // Tốt ra sau Vua: tính từ lúc Tốt ra
     const k = harness();
     arena(k, { level: 40, rank: 1 });
-    k.run('var p0 = put("pawn"); put("rook"); var kg = put("king"); kg.crownNext = 1e15; at(0); kill(p0); at(8000); put("pawn"); upTo(22950)');
+    k.run('var p0 = put("pawn"); put("rook"); var kg = put("king"); kg.crownNext = 1e15; at(0); kill(p0); at(8000); put("pawn"); upTo(19950)');
     assert.equal(k.fx('promote').length, 0);
-    k.run('upTo(23000)');
+    k.run('upTo(20000)');
     assert.equal(k.fx('promote').length, 1);
+    // chỉ có Hậu: Tốt không được phong (ghế trống là ghế Vua, cần Mã); Mã ra sau thì tính từ lúc Mã ra
+    const q = harness();
+    arena(q, { level: 40, rank: 1 });
+    q.run('var n0 = put("knight"); put("bishop"); var qn = put("queen"); qn.orbNext = 1e15; at(0); kill(n0); put("pawn"); upTo(20000)');
+    assert.equal(q.fx('promote').length, 0);
+    q.run('put("knight"); upTo(31950)');
+    assert.equal(q.fx('promote').length, 0);
+    q.run('upTo(32000)');
+    assert.deepEqual(q.fx('promote').map(e => [e.piece, e.to]), [['knight', 'king']]);
+    // gọi thẳng chessPromote sai đường (Tốt -> Vua, Mã -> Hậu, Xe -> gì cũng không): không làm gì
+    const w = harness();
+    arena(w, { level: 40, rank: 1 });
+    w.run('put("pawn"); put("rook"); put("knight")');
+    assert.deepEqual(json(w, '[chessPromote(room, "p1", slot("pawn"), "king", room.clock), chessPromote(room, "p1", slot("knight"), "queen", room.clock), chessPromote(room, "p1", slot("rook"), "king", room.clock)]'), [-1, -1, -1]);
+    assert.equal(w.fx('promote').length, 0);
 });
 
 test('Chiếu Tướng: tốn 3 Orb, hồi 20000; mọi đối thủ bị nâng 1500 ms rồi nhận ×3.0 P.ATK của Vua và choáng 1000 ms; đối thủ ccImmune không bị nâng nhưng mất máu', () => {
@@ -1272,6 +1368,8 @@ test('AUTO chessmaster: đội không có Chiến Binh sống → nút 1 trướ
     assert.equal(a.run('auto(900)'), -1);
     a.run('put("pawn")');
     assert.equal(a.run('auto(1000)'), -1);                                       // Gọi Xe cần 2 Orb: để dành, không gọi Mã
+    assert.equal(a.run('modes()[1]'), 'locked');                                 // (cánh công đang khoá: AUTO không bao giờ chọn nút 2 lúc này)
+    assert.notEqual(a.run('auto(5000)'), 1);
     assert.equal(a.run('auto(2000)'), 0);
     a.run('put("rook")');
     assert.equal(a.run('auto(2500)'), -1);                                       // để dành 3 Orb cho quân chúa

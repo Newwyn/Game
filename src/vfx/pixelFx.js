@@ -76,6 +76,7 @@ import * as blackHole from '../vendor/pixelfx/fx/shadow/black-hole.js';
 import * as shadowTendrils from '../vendor/pixelfx/fx/shadow/shadow-tendrils.js';
 import * as soulDrain from '../vendor/pixelfx/fx/shadow/soul-drain.js';
 import * as graspingHands from '../vendor/pixelfx/fx/shadow/grasping-hands.js';
+import * as voidCustom from './pixelfx-custom/void-bolt.js';   // tự vẽ: 1 tia Ma Đạn (tách từ arcane-missiles), nhịp hút Hố Đen (Nyx)
 
 const LIB = {
     'melee/sword-slash': swordSlash, 'impacts/hit-spark': hitSpark, 'status/rage': rage, 'ui/exclamation': exclamation,
@@ -92,6 +93,7 @@ const LIB = {
     'arcane/arcane-missiles': arcaneMissiles, 'arcane/mana-burst': manaBurst, 'arcane/star-fall': starFall, 'arcane/portal': portal,
     'shadow/black-hole': blackHole, 'shadow/shadow-tendrils': shadowTendrils, 'shadow/soul-drain': soulDrain, 'shadow/grasping-hands': graspingHands,
     'arcane-missiles': arcaneMissiles, 'mana-burst': manaBurst, 'spell-charge': spellCharge, 'star-fall': starFall, 'portal': portal, 'blink-in': blinkIn,
+    'custom/void-missile': voidCustom.missile, 'custom/void-pull': voidCustom.pull,
     'black-hole': blackHole, 'shadow-tendrils': shadowTendrils, 'void-orb': voidOrb, 'soul-drain': soulDrain, 'grasping-hands': graspingHands,
 };
 

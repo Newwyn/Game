@@ -49,7 +49,8 @@ test('voidmage: có trong CLASS_DEFS, SQUAD_ORDER, cửa hàng 1000 Kim Cương,
     assert.equal(h.run('squad.length'), 1);
     assert.equal(h.run('squad[0].classId'), 'voidmage');
     assert.deepEqual(JSON.parse(h.run('JSON.stringify(squad[0].passives.map(p => [p.type, p.value, p.revive ?? null]))')), [['void_erosion', 0.10, null], ['void_shell', 0.45, 0.50]]);
-    assert.equal(h.run('squad[0].skills[0].multiplier'), 3.85);   // ×2.2 bậc SSS (×1.75)
+    assert.equal(h.run('squad[0].skills[0].multiplier'), 0.875);   // mỗi tia ×0.5, bậc SSS (×1.75)
+    assert.deepEqual(json(h, '[squad[0].skills[2].pullMultiplier, squad[0].skills[2].closeMultiplier, squad[0].skills[0].burn]').map(v => +v.toFixed(4)), [0.612, 1.05, 0.3]);   // (số nhân làm tròn 3 chữ số) nhịp hút / đòn khép hố tăng theo bậc, lượng Orb đốt thì không
     // mô tả thiên phú điền đủ số (không còn dấu ?)
     const talents = JSON.parse(h.run("JSON.stringify(talentInfo(CLASS_DEFS.voidmage, { level: 60, rank: 3 }))"));
     assert.equal(talents.length, 2);
@@ -97,7 +98,7 @@ function realLoop(h) {
 }
 const json = (h, code) => JSON.parse(h.run(`JSON.stringify(${code})`));
 
-test('void_starfall: 4 đợt ở 3000/3500/4000/4500 ms, mỗi đợt ×0.9 bán kính 5.5 quanh cụm đông nhất, choáng 500 ms, đợt 2 và 4 isCrit === true', () => {
+test('void_starfall: 4 đợt ở 500/1700/2900/4100 ms (sao rơi ngay từ đầu lúc niệm), mỗi đợt ×0.9 bán kính 5.5 quanh cụm đông nhất, choáng 500 ms, đợt 2 và 4 isCrit === true', () => {
     const h = harness();
     // cụm 3 con sói quanh (10, 0) + 1 con đứng lẻ ở (21, 0)
     arena(h, { foes: [['c1_wolf', 10, 0], ['c1_wolf', 11, 1], ['c1_wolf', 10.5, -1], ['c1_wolf', 21, 0]] });
@@ -106,12 +107,15 @@ test('void_starfall: 4 đợt ở 3000/3500/4000/4500 ms, mỗi đợt ×0.9 bá
     assert.equal(h.run('voidChannel(nyx, room.clock).skill'), 'starfall');
     assert.equal(h.run('nyx.actionUntil - T0'), 5000);                 // đứng niệm đủ 5 giây
     assert.equal(h.run('nyx.skillCooldowns[1] - T0'), 5000 + 16000);   // hồi chiêu tính sau khi niệm xong
-    // vùng rơi chọn lúc đợt đầu sắp rơi (giây thứ 3), không phải lúc bấm: cả cụm dời +3 ô sau khi Nyx đã niệm 1 giây
-    h.run('at(1000); foes.slice(0, 3).forEach(e => { e.x += 3; })');
-    h.run('at(2999)');
+    // vùng rơi chọn lúc đợt đầu sắp rơi (50 ms sau khi bấm = 450 ms trước đợt đầu), không phải lúc bấm: cả cụm dời +3 ô ngay sau khi Nyx bắt đầu niệm
+    h.run('at(40); foes.slice(0, 3).forEach(e => { e.x += 3; })');
+    assert.equal(h.fx('starAim').length, 0);
+    h.run('at(50)');
+    assert.deepEqual(h.fx('starAim').map(e => [e.radius, e.lead, e.waves]), [[5.5, 450, [0, 1200, 2400, 3600]]]);
+    h.run('at(499)');
     assert.equal(h.fx('starWave').length, 0);
     assert.equal(h.run('foes[0].hp'), h.run('foes[0].maxHp'));
-    for (const [n, ms] of [[1, 3000], [2, 3500], [3, 4000], [4, 4500]]) {
+    for (const [n, ms] of [[1, 500], [2, 1700], [3, 2900], [4, 4100]]) {
         h.run(`at(${ms - 1})`);
         assert.equal(h.fx('starWave').length, n - 1, `chưa tới đợt ${n}`);
         h.run(`at(${ms})`);
@@ -155,7 +159,7 @@ test('void_starfall: 4 đợt ở 3000/3500/4000/4500 ms, mỗi đợt ×0.9 bá
     assert.equal(h.run('nyx.skillCooldowns[1] - T0'), 21000);
 });
 
-test('void_starfall: Nyx bị choáng ở 3200 ms (chưa có thiên phú 2) → chỉ 1 đợt rơi, skillCooldowns[1] > now, voidChannel === undefined', () => {
+test('void_starfall: Nyx bị choáng ở 600 ms (chưa có thiên phú 2) → chỉ 1 đợt rơi, skillCooldowns[1] > now, voidChannel === undefined', () => {
     const h = harness();
     arena(h, { foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 1]] });   // cọc gỗ: không đánh, không di chuyển
     const tick = realLoop(h);
@@ -164,8 +168,8 @@ test('void_starfall: Nyx bị choáng ở 3200 ms (chưa có thiên phú 2) → 
     assert.equal(h.fx('channel').length, 1);
     assert.equal(h.run('nyx.mp < nyx.maxMp - 1900'), true);
     h.run('var castAt = room.clock');
-    tick(64);   // 3200 ms sau
-    assert.equal(h.run('room.clock - castAt'), 3200);
+    tick(12);   // 600 ms sau
+    assert.equal(h.run('room.clock - castAt'), 600);
     assert.equal(h.fx('starWave').length, 1);
     assert.equal(h.run('nyx.state'), 'acting');
     h.run('applyStun(nyx, 1000, room.clock)');
@@ -180,13 +184,13 @@ test('void_starfall: Nyx bị choáng ở 3200 ms (chưa có thiên phú 2) → 
     assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['stun']);
     assert.notEqual(h.run('nyx.state'), 'acting');                       // không kẹt actionUntil: hết choáng là đánh tiếp
     assert.notEqual(h.run('nyx.state'), 'stunned');
-    assert.equal(h.run('nyx.lastAttackTime > castAt + 4200'), true);
+    assert.equal(h.run('nyx.lastAttackTime > castAt + 1600'), true);
 });
 
-test('void_starfall: Nyx chết ở 3200 ms → không đợt nào rơi thêm', () => {
+test('void_starfall: Nyx chết ở 600 ms → không đợt nào rơi thêm', () => {
     const h = harness();
     arena(h, { foes: [['c1_wolf', 8, 0], ['c1_wolf', 9, 1]] });
-    h.run('cast(1); at(3200)');
+    h.run('cast(1); at(600)');
     assert.equal(h.fx('starWave').length, 1);
     h.run('nyx.hp = 0; killMember(nyx, team)');
     assert.equal(h.run('nyx.alive'), false);
@@ -196,148 +200,198 @@ test('void_starfall: Nyx chết ở 3200 ms → không đợt nào rơi thêm', 
     assert.equal(h.fx('starWave').length, 1);
     assert.deepEqual(json(h, 'foes.map(e => e.hp)'), json(h, 'hp'));
     assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['death']);   // không báo 'done' thêm lần nữa
-    assert.equal(h.run('nyx.skillCooldowns[1] > T0 + 3200'), true);       // hồi chiêu vẫn chạy
+    assert.equal(h.run('nyx.skillCooldowns[1] > T0 + 600'), true);        // hồi chiêu vẫn chạy
 });
 
-test('void_missiles: mục tiêu mp 3000 → sau impact mp ∈ {1000, 2000}; sát thương chính theo ×2.2; đúng 9 nhịp sau đó (bắt đầu +400 ms, cách 65 ms), mỗi nhịp ×0.12, trúng cả đối thủ trong bán kính 3', () => {
-    const seen = new Set();
-    for (const rnd of [0.5, 0.2]) {   // 0.5 -> đốt 2 Orb · 0.2 -> đốt 1 Orb
+test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/860 ms, bay 400 ms), mỗi tia tới 1 đối thủ ngẫu nhiên: ×0.5 + đốt 0,3 Orb + 1 sự kiện burst; tia cuối (last) → 9 nhịp nổ lan ở mục tiêu cuối (bắt đầu +400 ms, cách 65 ms) ×0.12 trong bán kính 3', () => {
+    const lastSeen = new Set();
+    for (const rnd of [0.5, 0.99]) {   // 2 giá trị ngẫu nhiên khác nhau -> thứ tự mục tiêu khác nhau (không né, không chí mạng)
         const h = harness();
         arena(h, { foeHeroes: ['warrior', 'archer', 'mage'] });
         h.run(`__rnd = ${rnd};
-            var rok = foe('warrior'), lyra = foe('archer'), ignar = foe('mage'), RI = foes.indexOf(rok);
-            Object.assign(rok, { x: 8, z: 0, mp: 3000 }); Object.assign(ignar, { x: 10, z: 0, mp: 500 }); Object.assign(lyra, { x: 8, z: 9, mp: 2000 });
-            nyx.targetIndex = foes.indexOf(lyra); cast(0)`);
-        const RI = h.run('RI');
-        assert.deepEqual(h.fx('missiles'), [{ casterId: 'p1', casterIdx: 0, kind: 'missiles', targetId: 'p2', targetIndex: RI, flight: 600 }]);
-        assert.equal(h.run('nyx.actionUntil - T0'), 700);
-        assert.equal(h.run('nyx.skillCooldowns[0] - T0'), 700 + 7000);
-        h.run('at(599)');
+            var rok = foe('warrior'), lyra = foe('archer'), ignar = foe('mage');
+            Object.assign(rok, { x: 8, z: 0, mp: 3000 }); Object.assign(ignar, { x: 8, z: 7, mp: 500 }); Object.assign(lyra, { x: 8, z: 9, mp: 2000 });
+            var mp0 = foes.map(e => e.mp), hp0 = foes.map(e => e.hp);
+            nyx.targetIndex = foes.indexOf(rok); cast(0)`);
+        const mis = h.fx('missiles');
+        assert.equal(mis.length, 1);
+        assert.deepEqual([mis[0].casterId, mis[0].casterIdx, mis[0].targetId, mis[0].form, mis[0].formTime], ['p1', 0, 'p2', 200, 300]);
+        const shots = mis[0].shots;
+        assert.deepEqual(shots.map(s => [s.targetId, s.delay, s.flight]), [500, 590, 680, 770, 860].map(d => ['p2', d, 400]));
+        // 3 đối thủ, 5 tia: ai cũng bị nhắm ít nhất 1 tia (3 tia đầu mỗi người 1 tia), 2 tia sau lặp lại
+        assert.deepEqual([...new Set(shots.slice(0, 3).map(s => s.targetIndex))].sort(), [0, 1, 2]);
+        assert.equal(h.run('nyx.actionUntil - T0'), 900);
+        assert.equal(h.run('nyx.skillCooldowns[0] - T0'), 900 + 7000);
+        h.run('at(899)');
         assert.equal(h.fx('burst').length, 0);
-        assert.equal(h.run('rok.mp'), 3000);
-        assert.equal(h.run('rok.hp'), h.run('rok.maxHp'));
-        h.run('at(600)');
-        const burst = h.fx('burst');
-        assert.equal(burst.length, 1);
-        const mp = h.run('rok.mp');
-        assert.ok(mp === 1000 || mp === 2000, `mp còn ${mp}`);
-        seen.add(mp);
-        assert.equal(burst[0].orbLost, (3000 - mp) / 1000);
-        assert.deepEqual([burst[0].targetId, burst[0].targetIndex, burst[0].x, burst[0].z], ['p2', RI, 8, 0]);
-        // cú trúng chính: 1 đòn đơn ×2.2 vào đúng mục tiêu
-        const main = json(h, 'hits.filter(x => x.at === 600)');
-        assert.deepEqual(main.map(x => [x.ti, x.mult, x.aoe]), [[RI, 2.2, false]]);
-        assert.equal(burst[0].effects.length, 1);
-        assert.ok(burst[0].effects[0].damage > 0);
-        assert.equal(h.run('rok.maxHp - rok.hp'), burst[0].effects[0].damage);
-        assert.equal(h.run('ignar.hp'), h.run('ignar.maxHp'));   // cú trúng chính không lan
-        // Mana Burst: nhịp n nổ ở 600 + 400 + (n − 1) × 65 ms
+        assert.deepEqual(json(h, 'foes.map(e => [e.mp, e.hp])'), json(h, 'mp0.map((m, i) => [m, hp0[i]])'));
+        // từng tia tới nơi: 1 đòn đơn ×0.5 vào đúng mục tiêu của tia + đốt 0,3 Orb (300 MP; còn ít hơn thì đốt hết phần còn lại)
+        const mp = json(h, 'mp0'), dmg = [0, 0, 0];
+        shots.forEach((s, k) => {
+            const ms = s.delay + s.flight;
+            h.run(`at(${ms - 1})`);
+            assert.equal(h.fx('burst').length, k, `tia ${k + 1} chưa tới`);
+            h.run(`at(${ms})`);
+            const bolts = h.fx('burst');
+            assert.equal(bolts.length, k + 1, `tia ${k + 1} tới nơi ở ${ms} ms`);
+            const b = bolts.at(-1), lost = Math.min(mp[s.targetIndex], 300);
+            assert.deepEqual([b.n, b.targetId, b.targetIndex, b.orbLost, b.effects.length, b.last], [k + 1, 'p2', s.targetIndex, lost / 1000, 1, k === 4]);
+            assert.deepEqual([b.x, b.z], json(h, `[foes[${s.targetIndex}].x, foes[${s.targetIndex}].z]`));   // nổ Mana Burst tại chỗ mục tiêu của tia đó
+            mp[s.targetIndex] -= lost;
+            assert.deepEqual(json(h, `hits.filter(x => x.at === ${ms})`).map(x => [x.ti, x.mult, x.aoe]), [[s.targetIndex, 0.5, false]]);
+            assert.ok(b.effects[0].damage > 0);
+            dmg[s.targetIndex] += b.effects[0].damage;
+        });
+        assert.deepEqual(json(h, 'foes.map(e => e.mp)'), mp);
+        assert.deepEqual(json(h, 'foes.map((e, i) => hp0[i] - e.hp)'), dmg);
+        assert.equal(json(h, 'mp0').reduce((t, v) => t + v, 0) - mp.reduce((t, v) => t + v, 0) > 0, true);
+        // 5 sự kiện burst (mỗi tia 1 cái), chỉ cái cuối (1260 ms) có last = true -> 9 nhịp nổ lan ở chỗ mục tiêu của tia cuối
+        const last = shots.at(-1).targetIndex;
+        lastSeen.add(last);
+        assert.deepEqual(h.fx('burst').map(b => b.last), [false, false, false, false, true]);
+        // Mana Burst: nhịp n nổ ở 1260 + 400 + (n − 1) × 65 ms lên mục tiêu cuối + đối thủ trong bán kính 3 quanh nó
+        const near = json(h, `foes.map((e, i) => i).filter(i => Math.hypot(foes[i].x - foes[${last}].x, foes[i].z - foes[${last}].z) <= 3)`);
+        assert.equal(near.includes(h.run('foes.indexOf(rok)')), last === h.run('foes.indexOf(rok)'));   // Rok đứng xa 2 người kia
         for (let n = 1; n <= 9; n++) {
-            const ms = 600 + 400 + (n - 1) * 65;
+            const ms = 1260 + 400 + (n - 1) * 65;
             h.run(`at(${ms - 1})`);
             assert.equal(h.fx('burstTick').length, n - 1, `chưa tới nhịp ${n}`);
             h.run(`at(${ms})`);
             const ticks = h.fx('burstTick');
             assert.equal(ticks.length, n, `nhịp ${n} ở ${ms} ms`);
             assert.equal(ticks.at(-1).n, n);
-            // trúng mục tiêu (Rok) + đối thủ trong bán kính 3 (Ignar cách 2); Lyra cách 9: không trúng
-            assert.deepEqual(ticks.at(-1).effects.map(e => e.targetIndex).sort(), [RI, h.run('foes.indexOf(ignar)')].sort());
+            assert.deepEqual(ticks.at(-1).effects.map(e => e.targetIndex).sort(), near);
             for (const x of json(h, `hits.filter(x => x.at === ${ms})`)) assert.deepEqual([x.mult, x.aoe], [0.12, true]);
         }
-        h.run('at(5000)');
+        h.run('at(6000)');
         assert.equal(h.fx('burstTick').length, 9);   // đúng 9 nhịp, không hơn
-        assert.equal(h.run('lyra.hp'), h.run('lyra.maxHp'));
-        assert.equal(h.run('lyra.mp'), 2000);
-        assert.equal(h.run('ignar.mp'), 500);        // chỉ mục tiêu bị đốt Orb
-        assert.ok(h.run('ignar.hp') < h.run('ignar.maxHp'));
+        assert.equal(h.fx('burst').length, 5);
+        assert.deepEqual(json(h, 'foes.map(e => e.mp)'), mp);   // Mana Burst không đốt Orb
     }
-    assert.deepEqual([...seen].sort(), [1000, 2000]);   // "ngẫu nhiên 1 hoặc 2 Orb": cả hai trường hợp đều xảy ra
+    assert.equal(lastSeen.size, 2);   // mục tiêu thật sự theo số ngẫu nhiên: 2 lần thử, tia cuối rơi vào 2 người khác nhau
 });
 
-test('void_missiles vào quái (maxMp 1000, mp 0): không lỗi, mp vẫn 0', () => {
+test('void_missiles vào quái (maxMp 1000, mp 0): không lỗi, mp vẫn 0; mục tiêu gục trước khi tia tới thì tia đó tan, Mana Burst vẫn nổ', () => {
     const h = harness();
     arena(h, { foes: [['c1_wolf', 7, 0], ['c1_wolf', 9, 0]] });
     assert.deepEqual(json(h, 'foes.map(e => [e.maxMp, e.mp])'), [[1000, 0], [1000, 0]]);
-    h.run('nyx.targetIndex = 0; cast(0); at(600)');
-    const burst = h.fx('burst');
-    assert.equal(burst.length, 1);
-    assert.equal(burst[0].targetIndex, 0);
-    assert.equal(burst[0].orbLost, 0);
-    assert.equal(h.run('foes[0].mp'), 0);
+    h.run('nyx.targetIndex = 0; cast(0); at(1260)');
+    const bolts = h.fx('burst');
+    assert.equal(bolts.length, 5);
+    for (const b of bolts) assert.equal(b.orbLost, 0);
+    assert.deepEqual([...new Set(bolts.map(b => b.targetIndex))].sort(), [0, 1]);   // 2 đối thủ, 5 tia: lặp lại, cả hai đều trúng
+    assert.deepEqual(bolts.map(b => b.last), [false, false, false, false, true]);
+    assert.deepEqual(json(h, 'foes.map(e => e.mp)'), [0, 0]);
     assert.ok(h.run('foes[0].hp') < h.run('foes[0].maxHp'));
-    h.run('at(3000)');
+    assert.ok(h.run('foes[1].hp') < h.run('foes[1].maxHp'));
+    h.run('var hpA = foes.map(e => e.hp); at(3000)');
     assert.equal(h.fx('burstTick').length, 9);
-    assert.equal(h.run('foes[0].mp'), 0);
-    assert.ok(h.run('foes[1].hp') < h.run('foes[1].maxHp'));   // con đứng cách 2 ô ăn 9 nhịp Mana Burst
-    // mục tiêu chết trước khi tia tới: không còn cú trúng chính, Mana Burst vẫn nổ tại chỗ đó
-    h.run('nyx.skillCooldowns[0] = 0; nyx.targetIndex = 0; cast(0); foes[0].hp = 0; killMember(foes[0], foes); var hp1 = foes[1].hp; at(3600)');
-    assert.equal(h.fx('burst').at(-1).effects.length, 0);
+    assert.deepEqual(json(h, 'foes.map(e => e.mp)'), [0, 0]);
+    assert.deepEqual(json(h, 'foes.map((e, i) => e.hp < hpA[i])'), [true, true]);   // 2 con đứng cách nhau 2 ô: cùng ăn 9 nhịp Mana Burst
+    // mục tiêu chết trước khi tia tới: tia nhắm nó tan (không có cú trúng), tia nhắm con kia vẫn trúng, Mana Burst vẫn nổ
+    h.run('nyx.skillCooldowns[0] = 0; nyx.targetIndex = 0; cast(0); foes[0].hp = 0; killMember(foes[0], foes); var hp1 = foes[1].hp; at(3000 + 1260)');
+    const second = h.fx('burst').slice(5);
+    assert.equal(second.length, 5);
+    assert.ok(second.some(b => b.targetIndex === 0) && second.some(b => b.targetIndex === 1));
+    for (const b of second) assert.equal(b.effects.length, b.targetIndex === 0 ? 0 : 1);
+    assert.equal(second.at(-1).last, true);
     h.run('at(9000)');
     assert.equal(h.fx('burstTick').length, 18);
     assert.ok(h.run('foes[1].hp') < h.run('hp1'));
 });
 
-test('void_missiles: chọn anh hùng địch nhiều Orb nhất; không ai có Orb thì chọn mục tiêu đang đánh', () => {
+test('void_missiles: mỗi tia chọn 1 đối thủ ngẫu nhiên còn sống — từ 5 đối thủ trở lên thì 5 mục tiêu khác nhau; ít hơn thì lặp lại; đã gục / tàng hình không bị nhắm; không còn ai thì không bắn', () => {
     const h = harness();
-    arena(h, { foeHeroes: ['warrior', 'archer', 'mage'] });
-    h.run(`var rok = foe('warrior'), lyra = foe('archer'), ignar = foe('mage');
-        var idx = (e) => foes.indexOf(e);
-        Object.assign(rok, { x: 6, z: 0 }); Object.assign(lyra, { x: 9, z: 3 }); Object.assign(ignar, { x: 11, z: -3 });
-        function pick(mps, cur) { [rok.mp, lyra.mp, ignar.mp] = mps; nyx.targetIndex = idx(cur); nyx.skillCooldowns[0] = 0; cast(0); }`);
-    const last = () => h.fx('missiles').at(-1).targetIndex;
-    // Ignar nhiều Orb nhất -> bắn Ignar dù đang đánh Rok
-    h.run('pick([1000, 2000, 4000], rok)');
-    assert.equal(last(), h.run('idx(ignar)'));
-    h.run('pick([3500, 2000, 1000], lyra)');
-    assert.equal(last(), h.run('idx(rok)'));
-    // không ai có đủ 1 Orb -> mục tiêu đang đánh
-    h.run('pick([0, 0, 0], lyra)');
-    assert.equal(last(), h.run('idx(lyra)'));
-    h.run('pick([900, 0, 300], ignar)');
-    assert.equal(last(), h.run('idx(ignar)'));
-    // anh hùng nhiều Orb nhất đứng ngoài tầm chiêu (14): bỏ qua, chọn người nhiều Orb nhất trong tầm
-    h.run('ignar.x = 30; pick([1000, 2000, 4000], rok)');
-    assert.equal(last(), h.run('idx(lyra)'));
-    // anh hùng đã gục / đang tàng hình không được chọn
-    h.run("ignar.x = 11; ignar.alive = false; lyra.statusEffects.push({ type: 'stealth', endTime: room.clock + 5000 }); pick([1000, 2000, 4000], rok)");
-    assert.equal(last(), h.run('idx(rok)'));
+    arena(h, { foes: [['c1_wolf', 6, 0], ['c1_wolf', 7, 2], ['c1_wolf', 8, -2], ['c1_wolf', 9, 3], ['c1_wolf', 10, -3], ['c1_wolf', 30, 0]] });
+    h.run('function shoot(rnd) { __rnd = rnd; nyx.skillCooldowns[0] = 0; nyx.actionUntil = 0; nyx.targetIndex = 0; cast(0); }');
+    const last = () => h.fx('missiles').at(-1).shots.map(s => s.targetIndex);
+    // 6 đối thủ: 5 tia vào 5 con khác nhau (không dồn vào mục tiêu đang đánh), kể cả con đứng xa
+    h.run('shoot(0.5)');
+    const a = last();
+    assert.equal(new Set(a).size, 5);
+    h.run('shoot(0.99)');
+    const b = last();
+    assert.equal(new Set(b).size, 5);
+    assert.notDeepEqual(a, b);           // số ngẫu nhiên khác -> thứ tự / mục tiêu khác
+    assert.equal(b[0], 5);               // (0.99 -> con cuối danh sách: con đứng xa 30 ô vẫn bị nhắm)
+    // còn 2 đối thủ chọn được (3 con gục, 1 con tàng hình): 5 tia chỉ chia cho 2 con đó
+    h.run("[0, 1, 2].forEach(i => { foes[i].alive = false; foes[i].hp = 0; }); foes[3].statusEffects.push({ type: 'stealth', endTime: room.clock + 5000 }); shoot(0.5)");
+    assert.deepEqual([...new Set(last())].sort(), [4, 5]);
+    assert.equal(last().length, 5);
+    // 1 đối thủ: cả 5 tia vào nó
+    h.run('foes[5].alive = false; shoot(0.5)');
+    assert.deepEqual(last(), [4, 4, 4, 4, 4]);
+    // không còn ai chọn được: không có sự kiện missiles mới
+    const n = h.fx('missiles').length;
+    h.run('foes[4].alive = false; shoot(0.5)');
+    assert.equal(h.fx('missiles').length, n);
 });
 
-test('void_missiles: đấu với quái thì bắn mục tiêu đang đánh (quái không phải anh hùng, dù có MP)', () => {
-    const h = harness();
-    arena(h, { foes: [['c1_wolf', 7, 0], ['c1_wolf', 9, 3]] });
-    h.run('foes[0].mp = 1000; nyx.targetIndex = 1; cast(0)');
-    assert.equal(h.fx('missiles')[0].targetIndex, 1);
-    // chưa có mục tiêu đang đánh -> con gần nhất
-    h.run('nyx.targetIndex = -1; nyx.skillCooldowns[0] = 0; cast(0)');
-    assert.equal(h.fx('missiles')[1].targetIndex, 0);
-});
-
-test('void_blackhole: đối thủ cách tâm 6 bị kéo lại gần tâm hơn sau 1 s (≈3 đơn vị); đối thủ cách 9 không bị kéo; 3 đợt ở 1200/2400/3600 ms ×1.1 trong bán kính 4; đối thủ ccImmune không đổi vị trí nhưng vẫn mất máu; mục tiêu isAirborne không trúng xúc tu', () => {
+test('void_blackhole: 4 nhịp hút ở 800/1600/2400/3200 ms — mỗi nhịp giật đối thủ trong bán kính 8 về tâm 2 ô (không vọt qua tâm, ccImmune đứng yên) + ×0.35; 4000 ms hố khép ×0.6 trong bán kính 4; SAU ĐÓ 3 đợt xúc tu ở 4300/4800/5300 ms ×1.1 trong bán kính 4 (isAirborne không trúng)', () => {
     const h = harness();
     // tâm hố đen = (10, 0): 0 đứng giữa · 1 đứng giữa nhưng đang bay · 2, 3 cách tâm 6 · 4 cách 3 và miễn khống chế · 5 cách 3 · 6 cách 9
     arena(h, { foes: [['c1_wolf', 10, 0], ['c1_wolf', 10, 0], ['c1_wolf', 16, 0], ['c1_wolf', 4, 0], ['c1_wolf', 10, 3], ['c1_wolf', 10, -3], ['c1_wolf', 19, 0]] });
     h.run(`foes[1].statusEffects.push({ type: 'windspirit', endTime: T0 + 99999 });
         foes[4].statusEffects.push({ type: 'giant_form', endTime: T0 + 99999, immuneUntil: T0 + 99999 });
         var dist = (i) => Math.hypot(foes[i].x - 10, foes[i].z);
+        var pos = () => foes.map(e => [Math.round(e.x * 1000) / 1000, Math.round((e.z || 0) * 1000) / 1000]);
+        var p0 = pos();
         cast(2)`);
     assert.equal(h.run('isAirborne(foes[1], room.clock) && ccImmune(foes[4], room.clock)'), true);
     assert.deepEqual(h.fx('channel'), [{ casterId: 'p1', casterIdx: 0, kind: 'channel', skill: 'blackhole', duration: 4000, shell: false }]);
-    assert.deepEqual(h.fx('hole'), [{ casterId: 'p1', casterIdx: 0, kind: 'hole', x: 10, z: 0, radius: 8, duration: 4000, lashTimes: [1200, 2400, 3600], lashRadius: 4 }]);
+    assert.deepEqual(h.fx('hole'), [{ casterId: 'p1', casterIdx: 0, kind: 'hole', x: 10, z: 0, radius: 8, duration: 4000,
+        pulseTimes: [800, 1600, 2400, 3200], lashTimes: [4300, 4800, 5300], lashRadius: 4 }]);
     assert.equal(h.run('nyx.actionUntil - T0'), 4000);
     assert.equal(h.run('nyx.skillCooldowns[2] - T0'), 4000 + 24000);
-    // hút 3 ô mỗi giây
-    h.run('at(1000)');
-    assert.ok(Math.abs(h.run('dist(2)') - 3) < 0.01, `cách tâm 6 -> sau 1 s còn ${h.run('dist(2)')}`);
-    assert.ok(Math.abs(h.run('foes[2].x') - 13) < 0.01);
-    assert.ok(Math.abs(h.run('dist(3)') - 3) < 0.01);
-    assert.ok(h.run('dist(5)') < 0.01);                                  // cách 3 -> bị hút tới tâm, không vọt qua
-    assert.deepEqual(json(h, '[foes[6].x, foes[6].z]'), [19, 0]);        // cách 9: ngoài bán kính 8, không bị hút
-    assert.deepEqual(json(h, '[foes[4].x, foes[4].z]'), [10, 3]);        // miễn khống chế: không đổi vị trí
+    // giữa các nhịp hố đen KHÔNG hút liên tục
+    h.run('upTo(750); at(799)');
+    assert.equal(h.fx('pull').length, 0);
+    assert.deepEqual(json(h, 'pos()'), json(h, 'p0'));
+    assert.equal(h.run('foes.every(e => e.hp === e.maxHp)'), true);
+    // vị trí [x của 2, x của 3, z của 5] sau từng nhịp: mỗi nhịp 2 ô về tâm, tới tâm thì dừng (không vọt qua)
+    const want = { 1: [14, 6, -1], 2: [12, 8, 0], 3: [10, 10, 0], 4: [10, 10, 0] };
+    const movedWant = { 1: [2, 3, 5], 2: [2, 3, 5], 3: [2, 3], 4: [] };
+    for (const [n, ms] of [[1, 800], [2, 1600], [3, 2400], [4, 3200]]) {
+        h.run(`at(${ms - 1})`);
+        assert.equal(h.fx('pull').length, n - 1, `chưa tới nhịp hút ${n}`);
+        h.run(`var hp = foes.map(e => e.hp); at(${ms})`);
+        const pulls = h.fx('pull');
+        assert.equal(pulls.length, n, `nhịp hút ${n} ở ${ms} ms`);
+        const p = pulls.at(-1);
+        assert.deepEqual([p.n, p.x, p.z, p.radius], [n, 10, 0, 8]);
+        // ×0.35 lên MỌI đối thủ trong bán kính 8 (kể cả con đang bay và con miễn khống chế) — con cách 9 thì không
+        assert.deepEqual(p.effects.map(e => e.targetIndex).sort(), [0, 1, 2, 3, 4, 5]);
+        const mine = json(h, `hits.filter(x => x.at === ${ms})`);
+        assert.equal(mine.length, 6);
+        for (const x of mine) assert.deepEqual([x.mult, x.aoe, x.ground, x.damage > 0], [0.35, true, false, true]);
+        for (const i of [0, 1, 2, 3, 4, 5]) assert.ok(h.run(`foes[${i}].hp < hp[${i}]`), `đối thủ ${i} mất máu ở nhịp ${n}`);
+        assert.equal(h.run('foes[6].hp'), h.run('foes[6].maxHp'));
+        const at = json(h, '[foes[2].x, foes[3].x, foes[5].z]');
+        at.forEach((v, i) => assert.ok(Math.abs(v - want[n][i]) < 0.001, `nhịp ${n}: ${at} so với ${want[n]}`));
+        // `moved`: đúng những con vừa bị giật + chỗ đứng mới của chúng
+        assert.deepEqual(p.moved.map(m => m.targetIndex).sort(), movedWant[n]);
+        for (const m of p.moved) assert.ok(Math.abs(m.x - h.run(`foes[${m.targetIndex}].x`)) < 1e-9 && Math.abs(m.z - h.run(`foes[${m.targetIndex}].z`)) < 1e-9);
+        assert.deepEqual(json(h, '[foes[4].x, foes[4].z]'), [10, 3]);        // miễn khống chế: không đổi vị trí (nhưng vẫn mất máu)
+        assert.deepEqual(json(h, '[foes[6].x, foes[6].z]'), [19, 0]);        // cách 9: ngoài bán kính 8, không bị hút
+        h.run(`var p1 = pos(); upTo(${ms + 700})`);
+        assert.deepEqual(json(h, 'pos()'), json(h, 'p1'));                  // giữa 2 nhịp: đứng yên
+    }
+    assert.equal(h.fx('lash').length, 0);       // lúc còn niệm: chưa có xúc tu
+    assert.equal(h.fx('holeEnd').length, 0);
+    // 4000 ms: niệm xong, hố khép lại nổ 1 đòn ×0.6 trong bán kính 4 (không phải chiêu mặt đất: con đang bay cũng trúng)
+    h.run('at(3999)');
+    assert.equal(h.fx('channelEnd').length, 0);
+    assert.equal(h.fx('holeEnd').length, 0);
+    h.run('at(4000)');
+    assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);
+    const end = h.fx('holeEnd');
+    assert.equal(end.length, 1);
+    assert.deepEqual([end[0].x, end[0].z, end[0].radius], [10, 0, 4]);
+    assert.deepEqual(end[0].effects.map(e => e.targetIndex).sort(), [0, 1, 2, 3, 4, 5]);
+    for (const x of json(h, 'hits.filter(x => x.at === 4000)')) assert.deepEqual([x.mult, x.aoe, x.ground, x.damage > 0], [0.6, true, false, true]);
     assert.equal(h.fx('lash').length, 0);
-    assert.equal(h.run('foes.every(e => e.hp === e.maxHp)'), true);      // hút không gây sát thương
-    // 3 đợt xúc tu
-    for (const [n, ms] of [[1, 1200], [2, 2400], [3, 3600]]) {
+    // 3 đợt xúc tu SAU khi hố khép
+    for (const [n, ms] of [[1, 4300], [2, 4800], [3, 5300]]) {
         h.run(`at(${ms - 1})`);
         assert.equal(h.fx('lash').length, n - 1, `chưa tới đợt ${n}`);
         h.run(`var hp = foes.map(e => e.hp); at(${ms})`);
@@ -350,22 +404,16 @@ test('void_blackhole: đối thủ cách tâm 6 bị kéo lại gần tâm hơn 
         assert.equal(mine.length, 5);
         for (const x of mine) assert.deepEqual([x.mult, x.aoe, x.ground, x.damage > 0], [1.1, true, true, true]);
         for (const i of [0, 2, 3, 4, 5]) assert.ok(h.run(`foes[${i}].hp < hp[${i}]`), `đối thủ ${i} mất máu ở đợt ${n}`);
-        assert.equal(h.run('foes[1].hp'), h.run('foes[1].maxHp'));
+        assert.equal(h.run('foes[1].hp'), h.run('hp[1]'));
         assert.equal(h.run('foes[6].hp'), h.run('foes[6].maxHp'));
     }
-    assert.deepEqual(json(h, '[foes[4].x, foes[4].z]'), [10, 3]);
-    assert.deepEqual(json(h, '[foes[6].x, foes[6].z]'), [19, 0]);
-    // hết 4 giây: hố đen tắt, không hút nữa
-    h.run('at(3999)');
-    assert.equal(h.fx('channelEnd').length, 0);
-    h.run('at(4000)');
-    assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);
-    h.run('foes[2].x = 16; at(5000)');
+    // xong: không hút, không quất thêm
+    h.run('foes[2].x = 16; upTo(8000)');
     assert.equal(h.run('foes[2].x'), 16);
-    assert.equal(h.fx('lash').length, 3);
+    assert.deepEqual([h.fx('pull').length, h.fx('holeEnd').length, h.fx('lash').length, h.fx('channelEnd').length], [4, 1, 3, 1]);
 });
 
-test('void_blackhole trong vòng lặp trận thật: hút đều 3 ô / giây; Nyx bị choáng (chưa có thiên phú 2) thì hố đen tắt, các đợt xúc tu còn lại bị huỷ', () => {
+test('void_blackhole trong vòng lặp trận thật: mỗi nhịp hút giật 2 ô; Nyx bị choáng lúc niệm (chưa có thiên phú 2) thì hố đen tắt — không nhịp hút nào nữa, không đòn khép, không xúc tu', () => {
     const h = harness();
     arena(h, { foes: [['monster_dummy', 6, 0], ['monster_dummy', 12, 0]] });   // cọc gỗ đứng yên; tâm cụm = (9, 0) (tính theo con đầu: (9 + 6) / 2 = 7.5)
     const tick = realLoop(h);
@@ -375,24 +423,63 @@ test('void_blackhole trong vòng lặp trận thật: hút đều 3 ô / giây; 
     assert.ok(hole, 'vòng lặp trận đã dùng Hố Đen');
     assert.equal(h.run('nyx.mp <= nyx.maxMp - 3000 + 200'), true);   // đã trừ 3 Orb
     h.run(`var cx = ${hole.x}, far = () => Math.abs(foes[1].x - cx), d0 = far()`);
-    tick(20);   // 1 giây
-    assert.ok(Math.abs(h.run('d0 - far()') - 3) < 0.2, `1 giây hút ${h.run('d0 - far()')} ô`);
-    tick(6);    // 1300 ms: đợt xúc tu đầu đã quất
-    assert.equal(h.fx('lash').length, 1);
+    tick(15);   // 750 ms: chưa tới nhịp hút đầu -> chưa nhúc nhích
+    assert.equal(h.run('d0 - far()'), 0);
+    tick(1);    // 800 ms: nhịp hút 1
+    assert.equal(h.fx('pull').length, 1);
+    assert.ok(Math.abs(h.run('d0 - far()') - 2) < 0.001, `nhịp 1 giật ${h.run('d0 - far()')} ô`);
+    tick(10);   // 1300 ms: giữa 2 nhịp không hút
+    assert.ok(Math.abs(h.run('d0 - far()') - 2) < 0.001);
+    assert.equal(h.fx('lash').length, 0);
     h.run('applyStun(nyx, 800, room.clock)');
     tick(1);
     assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['stun']);
     assert.equal(h.run('voidChannel(nyx, room.clock)'), undefined);
     assert.equal(h.run('nyx.skillCooldowns[2] - room.clock'), 24000);
     h.run('var x1 = foes[1].x');
-    tick(70);   // 3,5 giây nữa
+    tick(100);  // 5 giây nữa (quá cả mốc xúc tu cuối 5300 ms)
     assert.equal(h.run('foes[1].x'), h.run('x1'));          // hố đen đã tắt: không hút nữa
-    assert.equal(h.fx('lash').length, 1);                   // đợt 2, 3 bị huỷ
+    assert.deepEqual([h.fx('pull').length, h.fx('holeEnd').length, h.fx('lash').length], [1, 0, 0]);   // nhịp 2–4, đòn khép, xúc tu: đều bị huỷ
     assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['stun']);
     assert.notEqual(h.run('nyx.state'), 'acting');
 });
 
-test('void_erosion: cú trúng chiêu 1 = +1 tầng; 9 nhịp Mana Burst không cộng; mỗi đợt sao, mỗi đợt xúc tu +1; tối đa 5; per = 0.06 / 0.08 / 0.10 theo mức thiên phú 1 / 2 / 3; hết sau 8000 ms', () => {
+test('void_blackhole: xúc tu tự quất như Cột Lửa — Nyx bị choáng / gục SAU khi niệm xong (4000 ms) thì 3 đợt vẫn quất; niệm bị ngắt ở 3500 ms thì không đòn khép, không xúc tu', () => {
+    for (const how of ['stun', 'death', 'broken']) {
+        const h = harness();
+        arena(h, { foes: [['monster_dummy', 6, 0], ['monster_dummy', 12, 0]] });
+        const tick = realLoop(h);
+        h.run('nyx.queuedSkills = [2]');
+        tick(1);
+        assert.equal(h.fx('hole').length, 1);
+        if (how === 'broken') {
+            tick(70);   // 3500 ms: đủ 4 nhịp hút, chưa niệm xong
+            assert.equal(h.fx('pull').length, 4);
+            h.run('applyStun(nyx, 500, room.clock)');
+            tick(50);   // tới 6000 ms
+            assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['stun']);
+            assert.deepEqual([h.fx('holeEnd').length, h.fx('lash').length], [0, 0]);
+            continue;
+        }
+        tick(80);   // 4000 ms: niệm xong, hố khép
+        assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);
+        assert.deepEqual([h.fx('pull').length, h.fx('holeEnd').length, h.fx('lash').length], [4, 1, 0]);
+        h.run(how === 'stun' ? 'applyStun(nyx, 3000, room.clock)' : 'nyx.hp = 0; killMember(nyx, team); team.push({ ...createMonsterSquad(1, [["monster_dummy", -30, 0]])[0], side: "left" })');   // (thêm 1 cọc gỗ phe mình để trận chưa kết thúc)
+        h.run('var hp = foes.map(e => e.hp)');
+        tick(5);    // 4250 ms
+        assert.equal(h.fx('lash').length, 0);
+        tick(1);    // 4300 ms: đợt 1
+        assert.equal(h.fx('lash').length, 1);
+        tick(20);   // 5300 ms: đủ 3 đợt
+        assert.deepEqual(h.fx('lash').map(e => [e.n, e.effects.length]), [[1, 2], [2, 2], [3, 2]]);
+        assert.deepEqual(json(h, 'foes.map((e, i) => e.hp < hp[i])'), [true, true]);
+        assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);   // không báo ngắt kênh thêm lần nào
+        tick(40);
+        assert.equal(h.fx('lash').length, 3);
+    }
+});
+
+test('void_erosion: mỗi tia Ma Đạn trúng = +1 tầng; 9 nhịp Mana Burst không cộng; mỗi đợt sao, mỗi nhịp hút, mỗi đợt xúc tu +1 (đòn khép hố không cộng); tối đa 5; per = 0.06 / 0.08 / 0.10 theo mức thiên phú 1 / 2 / 3; hết sau 8000 ms', () => {
     for (const [rank, per] of [[0, 0.06], [2, 0.08], [3, 0.10]]) {
         const h = harness();
         arena(h, { level: 20, rank, foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 0]] });   // cấp 20: chỉ có thiên phú 1
@@ -403,42 +490,49 @@ test('void_erosion: cú trúng chiêu 1 = +1 tầng; 9 nhịp Mana Burst không 
         assert.equal(h.run("talentOf(nyx, 'void_erosion').value"), per);
         assert.equal(h.run("talentOf(nyx, 'void_shell')"), null);
         assert.equal(h.run('mDef(0)'), 500);
-        // Ma Đạn: cú trúng +1 tầng lên mục tiêu; 9 nhịp Mana Burst không cộng (kể cả lên con đứng cạnh)
-        h.run('nyx.targetIndex = 0; cast(0); at(600)');
-        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1, 0]);
-        assert.deepEqual(h.fx('erode'), [{ casterId: 'p1', casterIdx: 0, kind: 'erode', targetId: 'p2', targetIndex: 0, stacks: 1 }]);
-        assert.deepEqual(json(h, "[ero(0).per, ero(0).maxStacks, ero(0).debuff, ero(0).endTime - room.clock]"), [per, 5, true, 8000]);
-        assert.equal(h.run('mDef(0)'), Math.floor(500 * (1 - per)));
-        h.run('at(1600)');
+        // Ma Đạn (số ngẫu nhiên 0.5, 2 đối thủ): 5 tia vào đối thủ 1, 0, 1, 1, 1 — MỖI tia trúng +1 tầng lên mục tiêu của nó; 9 nhịp Mana Burst không cộng
+        h.run('nyx.targetIndex = 0; cast(0)');
+        assert.deepEqual(h.fx('missiles')[0].shots.map(s => s.targetIndex), [1, 0, 1, 1, 1]);
+        h.run('at(900)');
+        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [0, 1]);
+        assert.deepEqual(h.fx('erode'), [{ casterId: 'p1', casterIdx: 0, kind: 'erode', targetId: 'p2', targetIndex: 1, stacks: 1 }]);
+        assert.deepEqual(json(h, "[ero(1).per, ero(1).maxStacks, ero(1).debuff, ero(1).endTime - room.clock]"), [per, 5, true, 8000]);
+        assert.equal(h.run('mDef(1)'), Math.floor(500 * (1 - per)));
+        h.run('at(1260)');
+        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1, 4]);
+        h.run('at(2300)');
         assert.equal(h.fx('burstTick').length, 9);
-        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1, 0]);
-        assert.equal(h.fx('erode').length, 1);
-        // Sao Rơi (bấm ở 1600): mỗi đợt +1 tầng lên mọi đối thủ trúng
+        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1, 4]);
+        assert.equal(h.fx('erode').length, 5);
+        // Sao Rơi (bấm ở 2300): mỗi đợt +1 tầng lên mọi đối thủ trúng — tối đa 5
         h.run('recast(1)');
-        for (const [n, ms] of [[1, 4600], [2, 5100], [3, 5600], [4, 6100]]) {
+        for (const [n, ms] of [[1, 2800], [2, 4000], [3, 5200], [4, 6400]]) {
             h.run(`at(${ms})`);
-            assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1 + n, n], `sau đợt sao ${n}`);
+            assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [1 + n, 5], `sau đợt sao ${n}`);
         }
         assert.equal(h.run('mDef(0)'), Math.floor(500 * (1 - 5 * per)));
-        assert.equal(h.run('mDef(1)'), Math.floor(500 * (1 - 4 * per)));
-        // Hố Đen (bấm ở 6600): mỗi đợt xúc tu +1 tầng — tối đa 5
-        h.run('at(6600); recast(2)');
-        for (const ms of [7800, 9000, 10200]) {
+        assert.equal(h.run('mDef(1)'), Math.floor(500 * (1 - 5 * per)));
+        assert.equal(Math.max(...h.fx('erode').map(e => e.stacks)), 5);
+        assert.deepEqual(h.fx('erode').filter(e => e.targetIndex === 0).slice(0, 5).map(e => e.stacks), [1, 2, 3, 4, 5]);
+        // giữ 8000 ms tính từ lần cộng cuối (6400)
+        h.run('at(14399)');
+        assert.equal(h.run('mDef(0)'), Math.floor(500 * (1 - 5 * per)));
+        h.run('at(14400)');
+        assert.deepEqual(json(h, '[stacks(0), stacks(1), mDef(0), mDef(1)]'), [0, 0, 500, 500]);
+        // hết rồi thì đếm lại từ 1. Hố Đen (bấm ở 14400): mỗi nhịp hút +1 tầng · đòn khép hố không cộng · mỗi đợt xúc tu +1 (tối đa 5)
+        h.run('recast(2)');
+        for (const [n, ms] of [[1, 15200], [2, 16000], [3, 16800], [4, 17600]]) {
+            h.run(`at(${ms})`);
+            assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [n, n], `sau nhịp hút ${n}`);
+        }
+        h.run('at(18400)');
+        assert.equal(h.fx('holeEnd').length, 1);
+        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [4, 4]);
+        for (const ms of [18700, 19200, 19700]) {
             h.run(`at(${ms})`);
             assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [5, 5], `sau đợt xúc tu ở ${ms}`);
         }
         assert.equal(h.fx('lash').length, 3);
-        assert.equal(h.run('mDef(1)'), Math.floor(500 * (1 - 5 * per)));
-        assert.equal(Math.max(...h.fx('erode').map(e => e.stacks)), 5);
-        assert.deepEqual(h.fx('erode').filter(e => e.targetIndex === 0).slice(0, 5).map(e => e.stacks), [1, 2, 3, 4, 5]);
-        // giữ 8000 ms tính từ lần cộng cuối (10200)
-        h.run('at(18199)');
-        assert.equal(h.run('mDef(0)'), Math.floor(500 * (1 - 5 * per)));
-        h.run('at(18200)');
-        assert.deepEqual(json(h, '[stacks(0), stacks(1), mDef(0), mDef(1)]'), [0, 0, 500, 500]);
-        // hết rồi thì đếm lại từ 1
-        h.run('nyx.targetIndex = 1; recast(0); at(18800)');
-        assert.deepEqual(json(h, '[stacks(0), stacks(1)]'), [0, 1]);
     }
 });
 
@@ -480,7 +574,7 @@ test('void_erosion: 6 đối thủ chết → mAtk ×1.40 (tối đa 5 lần); 2
 test('void_erosion mức 0 (Nyx dưới cấp 20): không tầng nào, đối thủ / đồng minh gục không cộng gì; đòn trượt và triệu hồi không nhận debuff thì không dính tầng', () => {
     const h = harness();
     arena(h, { level: 19, allies: ['warrior'], foes: [['monster_dummy', 8, 0], ['c1_wolf', 9, 0]] });
-    h.run('var s0 = getEffectiveStats(nyx, room.clock).stats; nyx.targetIndex = 0; cast(0); at(600); nyx.actionUntil = 0; cast(1); upTo(6000)');
+    h.run('var s0 = getEffectiveStats(nyx, room.clock).stats; nyx.targetIndex = 0; cast(0); at(1260); nyx.actionUntil = 0; cast(1); upTo(6000)');
     assert.equal(h.fx('starWave').length, 4);
     assert.equal(h.fx('erode').length, 0);
     assert.equal(h.run("foes.some(e => e.statusEffects.some(s => s.type === 'void_erosion'))"), false);
@@ -489,10 +583,12 @@ test('void_erosion mức 0 (Nyx dưới cấp 20): không tầng nào, đối th
     // có thiên phú: cú trúng bị né (trượt) không cộng tầng · Golem (triệu hồi không nhận debuff) không dính tầng
     const g = harness();
     arena(g, { level: 20, foes: [['c1_wolf', 8, 0], ['elem_golem', 9, 0]] });
-    g.run('foes[1].summon = true; __rnd = 0; nyx.targetIndex = 0; cast(0); at(600)');   // __rnd = 0: sói né được (né 9%)
-    assert.equal(g.fx('burst')[0].effects[0].isMiss, true);
+    g.run('foes[1].summon = true; __rnd = 0; nyx.targetIndex = 0; cast(0); at(1260)');   // __rnd = 0: sói né được (né 9%)
+    const wolfBolts = g.fx('burst').filter(b => b.targetIndex === 0);
+    assert.ok(wolfBolts.length >= 1 && g.fx('burst').some(b => b.targetIndex === 1));
+    for (const b of wolfBolts) assert.equal(b.effects[0].isMiss, true);
     assert.equal(g.fx('erode').length, 0);
-    g.run('__rnd = 0.5; at(1600); nyx.actionUntil = 0; cast(1); at(4600)');
+    g.run('__rnd = 0.5; at(2300); nyx.actionUntil = 0; cast(1); at(2800)');
     assert.deepEqual(g.fx('starWave')[0].effects.map(e => e.targetIndex).sort(), [0, 1]);
     assert.deepEqual(g.fx('erode').map(e => e.targetIndex), [0]);
     assert.equal(g.run("foes[1].statusEffects.some(s => s.type === 'void_erosion')"), false);
@@ -516,7 +612,7 @@ test('void_shell: đang kênh, applyStun 1000 ms → không có hiệu ứng stu
         // đang niệm: giảm sát thương nhận
         const shell = h.run('taken()');
         assert.ok(Math.abs(shell - h.run('plain') * (1 - value)) <= 1, `nhận ${shell} so với ${h.run('plain')} × ${1 - value}`);
-        tick(64);   // 3200 ms: đã rơi đợt 1
+        tick(12);   // 600 ms: đã rơi đợt 1
         assert.equal(h.fx('starWave').length, 1);
         assert.equal(h.run('ccImmune(nyx, room.clock)'), true);
         h.run('applyStun(nyx, 1000, room.clock)');
@@ -530,7 +626,7 @@ test('void_shell: đang kênh, applyStun 1000 ms → không có hiệu ứng stu
         tick(1);
         assert.equal(h.run("nyx.statusEffects.some(e => e.type === 'stun' || e.type === 'knocked')"), false);
         assert.equal(h.fx('channelEnd').length, 0);
-        tick(40);   // tới 5300 ms: đủ 4 đợt, niệm xong
+        tick(92);   // tới 5300 ms: đủ 4 đợt, niệm xong
         assert.equal(h.fx('starWave').length, 4);
         assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);
         assert.equal(h.run('nyx.skillCooldowns[1] - castAt'), 21000);
@@ -593,7 +689,7 @@ test('void_shell: đòn chí tử → alive vẫn true, isVanished 3000 ms, canB
 test('void_shell: mượn mạng giữa lúc niệm → chiêu bị huỷ (đợt chưa rơi không rơi nữa), hồi chiêu vẫn chạy, không kẹt động tác', () => {
     const h = harness();
     arena(h, { level: 40, rank: 1, foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 1]] });
-    h.run('cast(1); upTo(3200)');
+    h.run('cast(1); upTo(600)');
     assert.equal(h.fx('starWave').length, 1);
     // đang có Vỏ Hư Không (giảm 30% sát thương) nhưng đòn này vẫn chí tử
     h.run('dealDamage(nyx, 999999, room.players.p1)');
@@ -731,6 +827,7 @@ test('AUTO voidmage trong vòng lặp trận thật: Hố Đen trước, niệm 
     assert.deepEqual(order().slice(0, 3), ['void_blackhole', 'void_starfall', 'void_missiles']);
     assert.equal(h.fx('lash').length, 3);
     assert.equal(h.fx('starWave').length, 4);
+    tick(30);   // 5 tia bay xong + Mana Burst nổ đủ 9 nhịp
     assert.ok(h.fx('burstTick').length >= 9);
 });
 
@@ -781,10 +878,11 @@ test('đối thủ miễn khống chế (trùm đang niệm Phán Quyết, Golem
         room.stage = { diff: 'hell' };   // khiên Phán Quyết dày (25% máu trùm cấp 60): không vỡ trong bài thử này
         boss.bossCasts = 3; boss.judgmentReadyAt = room.clock; processJudgment(room, 'p2', 0, 'p1', room.clock);
         var shield0 = boss.ult.shield, bossHp = boss.hp, golemHp = golem.hp, pos = () => [boss.x, boss.z, golem.x, golem.z];
-        var p0 = pos(), wolfX = wolf.x; cast(2); upTo(4000)`);
+        var p0 = pos(), wolfX = wolf.x; cast(2); upTo(5300)`);
     assert.ok(h.run('!!boss.ult'), 'trùm đang niệm Phán Quyết');
     assert.equal(h.run('ccImmune(boss, room.clock) && ccImmune(golem, room.clock)'), true);
-    assert.equal(h.fx('lash').length, 3);
+    assert.deepEqual([h.fx('pull').length, h.fx('holeEnd').length, h.fx('lash').length], [4, 1, 3]);
+    assert.deepEqual(h.fx('pull').flatMap(p => p.moved.map(m => m.targetIndex)).filter(i => i !== 2), []);   // chỉ sói (vị trí 2) bị giật
     assert.deepEqual(json(h, 'pos()'), json(h, 'p0'));                 // không bị hút
     assert.ok(h.run('wolf.x') < h.run('wolfX'));                       // sói thường thì bị hút
     assert.ok(h.run('boss.ult.shield') < h.run('shield0'));            // trùm đang niệm: đòn đánh trừ vào khiên Phán Quyết
@@ -792,7 +890,7 @@ test('đối thủ miễn khống chế (trùm đang niệm Phán Quyết, Golem
     assert.ok(h.run('golem.hp') < h.run('golemHp'));                   // Golem vẫn mất máu
     assert.equal(h.run("golem.statusEffects.some(e => e.type === 'void_erosion')"), false);
     // Sao Rơi: choáng không dính vào trùm đang niệm / Golem
-    h.run('var s1 = boss.ult.shield, g1 = golem.hp; nyx.actionUntil = 0; nyx.skillCooldowns = [0, 0, 0]; cast(1); upTo(8700)');
+    h.run('var s1 = boss.ult.shield, g1 = golem.hp; nyx.actionUntil = 0; nyx.skillCooldowns = [0, 0, 0]; cast(1); upTo(9400)');
     assert.equal(h.fx('starWave').length, 4);
     assert.equal(h.run("boss.statusEffects.some(e => e.type === 'stun' && e.endTime > room.clock)"), false);
     assert.equal(h.run("golem.statusEffects.some(e => e.type === 'stun' && e.endTime > room.clock)"), false);
@@ -806,11 +904,11 @@ test('void_starfall / void_blackhole: vừa dính choáng (chưa có thiên phú
     for (const [level, shell] of [[1, false], [40, true]]) {
         const h = harness();
         arena(h, { level, rank: level === 40 ? 1 : 0, foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 1]] });
-        h.run('cast(1); upTo(3450); applyStun(nyx, 1000, room.clock); nyx.statusEffects.push({ type: "stun", endTime: room.clock + 1000 }); at(3500)');
+        h.run('cast(1); upTo(1650); applyStun(nyx, 1000, room.clock); nyx.statusEffects.push({ type: "stun", endTime: room.clock + 1000 }); at(1700)');
         assert.equal(h.fx('starWave').length, shell ? 2 : 1, `đợt 2 ${shell ? 'vẫn rơi' : 'không rơi'}`);
         h.run(`nyx.statusEffects = nyx.statusEffects.filter(e => e.type !== 'stun' && e.type !== 'void_channel'); nyx.actionUntil = 0; nyx.skillCooldowns = [0, 0, 0];
-            cast(2); upTo(3500 + 1150); nyx.statusEffects.push({ type: "stun", endTime: room.clock + 1000 }); at(3500 + 1200)`);   // Hố Đen bấm ở 3500 -> đợt xúc tu đầu ở 4700
-        assert.equal(h.fx('lash').length, shell ? 1 : 0);
+            cast(2); upTo(1700 + 750); nyx.statusEffects.push({ type: "stun", endTime: room.clock + 1000 }); at(1700 + 800)`);   // Hố Đen bấm ở 1700 -> nhịp hút đầu ở 2500
+        assert.equal(h.fx('pull').length, shell ? 1 : 0);
     }
 });
 
@@ -837,6 +935,8 @@ test('bấm chiêu khi chưa đủ Orb / đang niệm: không mất Orb, lệnh 
     tick(45);   // quá 4 giây: Hố Đen xong -> Sao Rơi bắt đầu
     assert.deepEqual(h.fx('channel').map(e => e.skill), ['blackhole', 'starfall']);
     assert.deepEqual(h.fx('channelEnd').map(e => e.reason), ['done']);
+    assert.equal(h.fx('holeEnd').length, 1);
+    tick(25);   // xúc tu quất sau khi hố khép (4,3 / 4,8 / 5,3 giây) — lúc này Nyx đã niệm Sao Rơi
     assert.equal(h.fx('lash').length, 3);
 });
 
@@ -874,8 +974,9 @@ test('void_shell: trở lại sau lưng đồng đội đứng sau cùng 3 ô; �
 });
 
 // Bảng sự kiện voidFx (hợp đồng với máy khách): kind -> các trường phải có (ngoài casterId, casterIdx)
-const VOID_FX = { missiles: ['targetId', 'targetIndex', 'flight'], burst: ['targetId', 'targetIndex', 'x', 'z', 'orbLost', 'effects'], burstTick: ['n', 'effects'],
-    channel: ['skill', 'duration', 'shell'], starAim: ['x', 'z', 'radius', 'lead', 'waves'], starWave: ['n', 'x', 'z', 'radius', 'effects'], hole: ['x', 'z', 'radius', 'duration', 'lashTimes', 'lashRadius'], lash: ['n', 'x', 'z', 'radius', 'effects'],
+const VOID_FX = { missiles: ['targetId', 'form', 'formTime', 'shots'], burst: ['n', 'targetId', 'targetIndex', 'x', 'z', 'orbLost', 'effects', 'last'], burstTick: ['n', 'effects'],
+    channel: ['skill', 'duration', 'shell'], starAim: ['x', 'z', 'radius', 'lead', 'waves'], starWave: ['n', 'x', 'z', 'radius', 'effects'], hole: ['x', 'z', 'radius', 'duration', 'pulseTimes', 'lashTimes', 'lashRadius'], pull: ['n', 'x', 'z', 'radius', 'effects', 'moved'], holeEnd: ['x', 'z', 'radius', 'effects'],
+    lash: ['n', 'x', 'z', 'radius', 'effects'],
     channelEnd: ['reason'], vanish: ['duration'], return: ['x', 'z', 'hp'], erode: ['targetId', 'targetIndex', 'stacks'] };
 
 test('trận AUTO thật có Nyx (hạt giống cố định): chạy hết không lỗi, trạng thái luôn hợp lệ, mọi sự kiện voidFx đúng bảng', () => {
@@ -907,6 +1008,7 @@ test('trận AUTO thật có Nyx (hạt giống cố định): chạy hết khô
         for (const d of h.fx()) {
             assert.ok(VOID_FX[d.kind], `kind lạ: ${d.kind}`);
             for (const f of ['casterId', 'casterIdx', ...VOID_FX[d.kind]]) assert.ok(d[f] !== undefined && d[f] !== null, `${d.kind}.${f} (hạt giống ${seed})`);
+            if (d.kind === 'missiles') for (const s of d.shots) for (const f of ['targetId', 'targetIndex', 'delay', 'flight']) assert.ok(s[f] !== undefined && s[f] !== null, `missiles.shots.${f}`);
             seen.add(d.kind);
         }
     }

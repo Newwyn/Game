@@ -492,22 +492,22 @@ const CHESS_PIECE_ANIMS = {
     summon: { clip: 'summon' },
 };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_PAWN = { rig: GOLEM_RIG, clips: golemClips, height: 1.7, shadowSize: 1.2, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+const CHESS_PAWN = { rig: GOLEM_RIG, clips: golemClips, height: 2.3, shadowSize: 1.5, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
     sprite: CHESS_PAWN_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_ROOK = { rig: GOLEM_RIG, clips: golemClips, height: 2.6, shadowSize: 2.0, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+const CHESS_ROOK = { rig: GOLEM_RIG, clips: golemClips, height: 3.3, shadowSize: 2.4, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
     sprite: CHESS_ROOK_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_KNIGHT = { rig: GOLEM_RIG, clips: golemClips, height: 2.2, shadowSize: 1.6, locomotion: GOLEM_LOCOMOTION, circleTint: 0xf59e0b,
+const CHESS_KNIGHT = { rig: GOLEM_RIG, clips: golemClips, height: 2.9, shadowSize: 1.9, locomotion: GOLEM_LOCOMOTION, circleTint: 0xf59e0b,
     sprite: CHESS_KNIGHT_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_BISHOP = { rig: GOLEM_RIG, clips: golemClips, height: 2.3, shadowSize: 1.4, locomotion: GOLEM_LOCOMOTION, circleTint: 0xa855f7,
+const CHESS_BISHOP = { rig: GOLEM_RIG, clips: golemClips, height: 2.9, shadowSize: 1.7, locomotion: GOLEM_LOCOMOTION, circleTint: 0xa855f7,
     sprite: CHESS_BISHOP_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 3.0, shadowSize: 2.1, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
+const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 4.7, shadowSize: 2.8, locomotion: GOLEM_LOCOMOTION, circleTint: 0xeab308,
     sprite: CHESS_KING_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 // HÌNH TẠM — chờ tranh art/leon
-const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 2.7, shadowSize: 1.7, locomotion: GOLEM_LOCOMOTION, circleTint: 0xc084fc,
+const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 4.4, shadowSize: 2.3, locomotion: GOLEM_LOCOMOTION, circleTint: 0xc084fc,
     sprite: CHESS_QUEEN_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */

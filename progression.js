@@ -38,7 +38,9 @@ const SKILL_DMG_KEYS = ['multiplier', 'spiritMultiplier', 'splashMultiplier', 'b
     'perStack', 'tickMultiplier', 'burnMultiplier', 'palmMultiplier', 'volleyMultiplier', 'guardianMultiplier',
     'slamMultiplier', 'cleaveMultiplier', 'aoeMultiplier', 'fallMultiplier', 'upliftMultiplier',
     'rollMultiplier', 'trailMultiplier', 'counterMultiplier',
-    'iceMultiplier', 'fireMultiplier', 'shardMultiplier', 'crashMultiplier', 'strikeMultiplier'];   // (Elarion: trước đây sót, không tăng theo bậc)
+    'iceMultiplier', 'fireMultiplier', 'shardMultiplier', 'crashMultiplier', 'strikeMultiplier',
+    'pullMultiplier', 'closeMultiplier'];   // (Nyx — Hố Đen: nhịp hút, đòn khép hố)
+      // (Elarion: trước đây sót, không tăng theo bậc)
 const SKILL_BUFF_KEYS = ['atkSpeedUp', 'atkUp', 'critUp', 'critDmgUp', 'teamAccUp', 'teamDodgeUp', 'teamDef', 'defDown', 'mAtkUp', 'mDefUp', 'burstHeal', 'shieldPct'];
 
 function scaleSkills(skills, rank) {
