@@ -459,15 +459,9 @@ const CLASS_DEFS = {
         mpAtk: 200, mpSec: 130, atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01,
         autoHitFrame: 2, autoImpact: 400,   // ms: giơ gậy + tia Hư Không nhỏ bay tới
         skills: [
-<<<<<<< HEAD
-            // Ma Đạn Tinh Tú (ra chiêu như Thần Tiễn Phá Thiên của Lyra): giơ tay (impact) -> 5 tia tím hiện sau lưng Nyx (formTime) -> phóng LẦN LƯỢT
-            //   (cách nhau boltGap) -> mỗi tia bay vòng cung arcFlight ms tới 1 đối thủ NGẪU NHIÊN còn sống (ưu tiên đối thủ chưa bị tia nào nhắm; ít hơn 5 đối thủ thì lặp lại).
-            //   Mỗi tia trúng: ×0.5 + đốt 0,3 Orb (`burn`) + 1 tầng Xói Mòn. Tia CUỐI tới nơi -> 0,4s sau Mana Burst nổ 9 nhịp (cách nhau 65ms) ở chỗ mục tiêu cuối,
-=======
             // Ma Đạn Tinh Tú (ra chiêu như Thần Tiễn Phá Thiên của Lyra): giơ tay (impact) -> tụ phép ở bàn tay (formTime) -> 5 tia tím phóng LẦN LƯỢT
             //   (cách nhau boltGap) -> mỗi tia bay vòng cung arcFlight ms tới 1 đối thủ NGẪU NHIÊN còn sống (ưu tiên đối thủ chưa bị tia nào nhắm; ít hơn 5 đối thủ thì lặp lại).
             //   Mỗi tia trúng: ×0.5 + đốt 0,3 Orb (`burn`) + 1 tầng Xói Mòn. Mỗi tia tới nơi nổ 1 Mana Burst (hình); tia CUỐI tới nơi -> 0,4s sau 9 nhịp nổ lan (cách nhau 65ms) ở chỗ mục tiêu cuối,
->>>>>>> team/integ
             //   mỗi nhịp ×0.12 lên mục tiêu đó + đối thủ trong bán kính 3
             { name: 'Ma Đạn Tinh Tú', orbCost: 1, cooldown: 7000, castTime: 0, type: 'void_missiles', castRange: 14, multiplier: 0.5, bolts: 5, burn: 0.3,
               burstHits: 9, burstDelay: 400, burstGap: 65, burstMultiplier: 0.12, burstRadius: 3, impact: 200, formTime: 300, boltGap: 90, arcFlight: 400, lock: 900 },
@@ -7041,11 +7035,7 @@ function elemAiPick(room, pid, idx, oppId, now) {
 //   Niệm kiểu "kênh": hiệu ứng `void_channel { skill, endTime, x, z, id }` nằm trên Nyx, Nyx đứng niệm (actionUntil = hết kênh).
 //   Các đợt sát thương hẹn bằng later(): mỗi đợt chỉ chạy khi Nyx còn sống và đúng kênh đó (id) còn chạy
 //   -> bị ngắt (choáng khi chưa có Vỏ Hư Không / gục / Mượn Mạng) là mọi đợt chưa rơi tự huỷ.
-<<<<<<< HEAD
-//   Máy khách nhận sự kiện 'voidFx' { casterId, casterIdx, kind, ... } — kind: missiles · bolt · burst · burstTick · channel · starAim · starWave ·
-=======
 //   Máy khách nhận sự kiện 'voidFx' { casterId, casterIdx, kind, ... } — kind: missiles · burst · burstTick · channel · starAim · starWave ·
->>>>>>> team/integ
 //   hole · pull · holeEnd · lash · channelEnd · vanish · return · erode.
 //   Hiệu ứng trạng thái mới: `void_channel` (trên Nyx: đang niệm) · `void_erosion { stacks, per, maxStacks }` (trên đối thủ: −thủ phép) ·
 //   `void_vanish` (trên Nyx: đang trong cổng Hư Không). Trường trên Nyx: voidKills / voidAllies (cộng dồn thiên phú 1), voidLifeUsed
@@ -7183,11 +7173,7 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     const stunned = (t) => m.statusEffects.some(ef => ef.type === 'stun' && ef.endTime > t) && !voidShell(m, t);
     const live = (ch, t) => m.alive && !room.winner && voidChannel(m, t) === ch && !stunned(t);
     if (sk.type === 'void_missiles') {
-<<<<<<< HEAD
-        // ---- Ma Đạn Tinh Tú: `bolts` tia hiện sau lưng Nyx rồi phóng lần lượt, MỖI tia bay vòng tới 1 đối thủ ngẫu nhiên còn sống ----
-=======
         // ---- Ma Đạn Tinh Tú: `bolts` tia rời tay Nyx lần lượt, MỖI tia bay vòng tới 1 đối thủ ngẫu nhiên còn sống ----
->>>>>>> team/integ
         //   (như Thần Tiễn Phá Thiên: ưu tiên đối thủ chưa bị tia nào nhắm; ít đối thủ hơn số tia thì lặp lại). Mục tiêu chọn lúc ra chiêu để máy khách vẽ đường bay;
         //   mục tiêu gục trước khi tia tới nơi thì tia đó tan (không gây gì).
         const list = opp.squad.filter(e => canBeTargeted(e, now));
@@ -7198,11 +7184,7 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
             const from = fresh.length ? fresh : list;
             const target = from[Math.floor(Math.random() * from.length)];
             aimed.add(target);
-<<<<<<< HEAD
-            // tia thứ k rời chỗ sau: giơ tay (impact) + hiện hình (formTime) + k × boltGap, rồi bay arcFlight ms
-=======
             // tia thứ k rời tay sau: giơ tay (impact) + tụ phép (formTime) + k × boltGap, rồi bay arcFlight ms
->>>>>>> team/integ
             shots.push({ target, ti: opp.squad.indexOf(target), delay: (sk.impact ?? 0) + (sk.formTime ?? 0) + k * (sk.boltGap ?? 90), flight: sk.arcFlight ?? 400 });
         }
         emitVoid(room.id, { ...base, kind: 'missiles', targetId: oppId, form: sk.impact ?? 0, formTime: sk.formTime ?? 0,
@@ -7227,17 +7209,9 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
                 }
                 hit.push(eff);
             }
-<<<<<<< HEAD
-            emitVoid(room.id, { ...base, kind: 'bolt', n: k + 1, targetId: oppId, targetIndex: s.ti, orbLost, effects: hit });
-            if (s === final) {
-                spot.x = target.x; spot.z = target.z || 0;
-                emitVoid(room.id, { ...base, kind: 'burst', targetId: oppId, targetIndex: s.ti, x: spot.x, z: spot.z });
-            }
-=======
             // mỗi tia tới nơi = 1 sự kiện `burst` (máy khách nổ Mana Burst tại mục tiêu của tia đó); tia CUỐI (last) mở màn 9 nhịp nổ lan
             if (s === final) { spot.x = target.x; spot.z = target.z || 0; }
             emitVoid(room.id, { ...base, kind: 'burst', n: k + 1, targetId: oppId, targetIndex: s.ti, x: target.x, z: target.z || 0, orbLost, effects: hit, last: s === final });
->>>>>>> team/integ
         }));
         // Mana Burst: nhịp n nổ sau khi tia CUỐI tới nơi burstDelay + (n − 1) × burstGap — lên mục tiêu cuối + đối thủ trong bán kính burstRadius quanh chỗ đó
         for (let n = 1; n <= sk.burstHits; n++) later(landed + sk.burstDelay + (n - 1) * sk.burstGap, () => {

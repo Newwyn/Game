@@ -2772,30 +2772,12 @@ function onVoidFx(d) {
 
     switch (d.kind) {
         case 'missiles': {
-<<<<<<< HEAD
-            // 5 tia hiện sau lưng Nyx rồi phóng lần lượt, mỗi tia bay vòng tới mục tiêu riêng (số sát thương hiện ở `bolt` lúc từng tia tới nơi)
-=======
             // 5 tia rời tay Nyx lần lượt, mỗi tia lượn vòng tới mục tiêu riêng (số sát thương + Mana Burst hiện ở `burst` lúc từng tia tới nơi)
->>>>>>> team/integ
             spawnVoidMissiles(caster, (d.shots ?? []).map(s => ({
                 target: s.targetIndex != null ? getView(s.targetId ?? foeId, s.targetIndex) : null,
                 delay: s.delay ?? 500,
                 flight: s.flight ?? 400,
-<<<<<<< HEAD
-            })), { form: d.form ?? 200, formTime: d.formTime ?? 300 });
-            break;
-        }
-        case 'bolt': {
-            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
-            showEffects(d.effects);
-            if (target && (d.effects ?? []).some(e => !e.isMiss)) {
-                target.flashHit?.();
-                if (d.orbLost > 0) spawnVoidOrbLoss(target.position, d.orbLost);
-            }
-            cameraRig.shake(0.06, 60);
-=======
             })));
->>>>>>> team/integ
             break;
         }
         case 'burst': {
@@ -2805,12 +2787,8 @@ function onVoidFx(d) {
                 x: target?.position.x ?? d.x ?? caster?.position.x ?? 0,
                 z: target?.position.z ?? d.z ?? caster?.position.z ?? 0,
             };
-<<<<<<< HEAD
-            spawnVoidBurst(pos);
-=======
             const last = d.last !== false;
             spawnVoidBurst(pos, { last });
->>>>>>> team/integ
             showEffects(d.effects);
             if (target && (d.effects ?? []).some(e => !e.isMiss)) {
                 target.flashHit?.();
