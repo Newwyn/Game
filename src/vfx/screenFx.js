@@ -5,6 +5,7 @@
 //   startStorm    : trời giông (Elarion — Hơi Nước Bỏng): trời tối sầm phía trên + mưa xiên dày + chớp sáng khi sét đánh
 // Cả hai trả về { stop() } (tắt dần) — tự tắt sau `duration` ms TRẬN (theo tốc độ game).
 import { gameTimeout } from '../config.js';
+import { fxScale } from '../core/settings.js';
 
 function makeLayer(z = 5) {
     const host = document.getElementById('game-container') ?? document.body;
@@ -27,7 +28,7 @@ function runLayer(draw, { duration, fadeIn = 0.4, fadeOut = 0.7, z } = {}) {
         k = Math.max(0, Math.min(1, k));
         if ((frame++ & 31) === 0) L.fit();
         L.ctx.clearRect(0, 0, L.c.width, L.c.height);
-        if (k > 0) draw(L.ctx, L.c.width, L.c.height, dt, k);
+        if (k > 0) draw(L.ctx, L.c.width, L.c.height, dt, k * fxScale());
         if (want === 0 && k <= 0) { dead = true; L.c.remove(); return; }
         requestAnimationFrame(tick);
     };

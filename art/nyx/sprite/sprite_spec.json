@@ -1,0 +1,116 @@
+{
+    "note": "Nyx (Hu Khong) bac SSS: dung = Codex, dong tac = Flow 17/11/2026",
+    "atlasScale": 0.75,
+    "maxWidth": 4096,
+    "pad": 6,
+    "calib": "idle1",
+    "key": "green",
+    "footBand": 16,
+    "footMin": 25,
+    "solidFeet": true,
+    "out": "src/assets/sprites/nyx_sprite",
+    "meta": "src/characters/sprite/nyxSprite.json",
+    "format": "webp",
+    "sheets": {
+        "idle": {
+            "scale": 1,
+            "split": true,
+            "file": "art/nyx/sprite/sprite-idle.png",
+            "groups": [
+                [
+                    "idle",
+                    4,
+                    "heel"
+                ],
+                [
+                    "ready",
+                    4,
+                    "heel"
+                ]
+            ]
+        },
+        "attack": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-attack.jpg",
+            "anchor": "heel"
+        },
+        "move": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-move.jpg",
+            "anchor": "body"
+        },
+        "hurt-stun": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-hurt-stun.jpg",
+            "groups": [
+                [
+                    "hurt",
+                    4,
+                    "heel"
+                ],
+                [
+                    "stun",
+                    4,
+                    "heel"
+                ]
+            ]
+        },
+        "dead-victory": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-dead-victory.jpg",
+            "groups": [
+                [
+                    "dead",
+                    4,
+                    "toe"
+                ],
+                [
+                    "victory",
+                    4,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        },
+        "cast-land": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-cast-land.jpg",
+            "groups": [
+                [
+                    "cast",
+                    4,
+                    "heel"
+                ],
+                [
+                    "land",
+                    4,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        },
+        "missiles": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-missiles.jpg",
+            "anchor": "heel"
+        },
+        "starfall": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-starfall.jpg",
+            "anchor": "heel"
+        },
+        "blackhole": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/nyx/sprite_flow/sprite-blackhole.jpg",
+            "anchor": "heel"
+        }
+    }
+}

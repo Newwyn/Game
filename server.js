@@ -459,26 +459,32 @@ const CLASS_DEFS = {
         mpAtk: 200, mpSec: 130, atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01,
         autoHitFrame: 2, autoImpact: 400,   // ms: giơ gậy + tia Hư Không nhỏ bay tới
         skills: [
-            // Ma Đạn Tinh Tú: chùm 5 tia tím bay vòng tới 1 mục tiêu (ưu tiên anh hùng địch nhiều Orb nhất, không có thì mục tiêu đang đánh).
-            //   Trúng: ×2.2 + đốt ngẫu nhiên 1–2 Orb. 0,4s sau cú trúng Mana Burst nổ 9 nhịp (cách nhau 65ms), mỗi nhịp ×0.12 lên mục tiêu + đối thủ trong bán kính 3
-            { name: 'Ma Đạn Tinh Tú', orbCost: 1, cooldown: 7000, castTime: 0, type: 'void_missiles', castRange: 14, multiplier: 2.2,
-              burnMin: 1, burnMax: 2, burstHits: 9, burstDelay: 400, burstGap: 65, burstMultiplier: 0.12, burstRadius: 3, impact: 600, lock: 700 },
-            // Sao Rơi: niệm 5s — từ giây thứ 3 có 4 đợt sao (3,0 / 3,5 / 4,0 / 4,5s), mỗi đợt ×0.9 trong bán kính 5.5 + choáng 0,5s; đợt 2 và 4 chắc chắn chí mạng.
-            //   Vùng rơi = chỗ đông đối thủ nhất, chọn lúc đợt đầu sắp rơi (giây thứ 3)
+            // Ma Đạn Tinh Tú (ra chiêu như Thần Tiễn Phá Thiên của Lyra): giơ tay (impact) -> 5 tia tím hiện sau lưng Nyx (formTime) -> phóng LẦN LƯỢT
+            //   (cách nhau boltGap) -> mỗi tia bay vòng cung arcFlight ms tới 1 đối thủ NGẪU NHIÊN còn sống (ưu tiên đối thủ chưa bị tia nào nhắm; ít hơn 5 đối thủ thì lặp lại).
+            //   Mỗi tia trúng: ×0.5 + đốt 0,3 Orb (`burn`) + 1 tầng Xói Mòn. Tia CUỐI tới nơi -> 0,4s sau Mana Burst nổ 9 nhịp (cách nhau 65ms) ở chỗ mục tiêu cuối,
+            //   mỗi nhịp ×0.12 lên mục tiêu đó + đối thủ trong bán kính 3
+            { name: 'Ma Đạn Tinh Tú', orbCost: 1, cooldown: 7000, castTime: 0, type: 'void_missiles', castRange: 14, multiplier: 0.5, bolts: 5, burn: 0.3,
+              burstHits: 9, burstDelay: 400, burstGap: 65, burstMultiplier: 0.12, burstRadius: 3, impact: 200, formTime: 300, boltGap: 90, arcFlight: 400, lock: 900 },
+            // Sao Rơi: niệm 5s — sao rơi NGAY từ đầu: 4 đợt ở 0,5 / 1,7 / 2,9 / 4,1s, mỗi đợt ×0.9 trong bán kính 5.5 + choáng 0,5s; đợt 2 và 4 chắc chắn chí mạng.
+            //   Vùng rơi = chỗ đông đối thủ nhất, chọn lúc đợt đầu sắp rơi (aimLead ms trước đợt đầu = 50 ms sau khi bắt đầu niệm)
             { name: 'Sao Rơi', orbCost: 2, cooldown: 16000, castTime: 0, type: 'void_starfall', castRange: 18, channel: 5000,
-              waveTimes: [3000, 3500, 4000, 4500], aimLead: 450, tickMultiplier: 0.9, radius: 5.5, stun: 500, critWaves: [2, 4], impact: 0, lock: 5000 },
-            // Hố Đen: niệm 4s — hố đen mở ở chỗ đông đối thủ nhất, suốt 4s hút đối thủ trong bán kính 8 về tâm (3 ô / giây; miễn khống chế thì không bị hút).
-            //   Xúc tu bóng tối quất 3 đợt (1,2 / 2,4 / 3,6s), mỗi đợt ×1.1 trong bán kính 4 quanh tâm — chiêu mặt đất: không trúng mục tiêu đang bay
+              waveTimes: [500, 1700, 2900, 4100], aimLead: 450, tickMultiplier: 0.9, radius: 5.5, stun: 500, critWaves: [2, 4], impact: 0, lock: 5000 },
+            // Hố Đen: niệm 4s — hố đen mở ở chỗ đông đối thủ nhất và hút theo NHỊP: ở 0,8 / 1,6 / 2,4 / 3,2s mỗi nhịp giật đối thủ trong bán kính 8 về tâm 2 ô
+            //   (không vọt qua tâm; miễn khống chế thì không bị kéo) và gây ×0.35 lên mọi đối thủ trong bán kính 8 (+1 tầng Xói Mòn mỗi nhịp).
+            //   Giây thứ 4: hố đen khép lại, nổ 1 đòn ×0.6 trong bán kính 4. SAU ĐÓ xúc tu bóng tối mới trồi lên quất 3 đợt (4,3 / 4,8 / 5,3s), mỗi đợt ×1.1
+            //   trong bán kính 4 quanh tâm — chiêu mặt đất: không trúng mục tiêu đang bay. Nyx chỉ đứng niệm tới giây thứ 4; xúc tu tự quất như Cột Lửa của Ignar
+            //   (Nyx bị choáng / gục sau khi niệm xong vẫn quất; niệm bị ngắt trước giây thứ 4 thì không có đòn khép lẫn xúc tu)
             { name: 'Hố Đen', orbCost: 3, cooldown: 24000, castTime: 0, type: 'void_blackhole', castRange: 16, channel: 4000,
-              pullRadius: 8, pullSpeed: 3, lashTimes: [1200, 2400, 3600], tickMultiplier: 1.1, lashRadius: 4, impact: 0, lock: 4000 },
+              pullRadius: 8, pullTimes: [800, 1600, 2400, 3200], pullStep: 2, pullMultiplier: 0.35, closeMultiplier: 0.6,
+              lashTimes: [4300, 4800, 5300], tickMultiplier: 1.1, lashRadius: 4, impact: 0, lock: 4000 },
         ],
         passives: [
-            // Thiên phú 1 — Xói Mòn Hư Không: mỗi ĐỢT chiêu trúng (cú trúng Ma Đạn, mỗi đợt sao, mỗi đợt xúc tu — 9 nhịp Mana Burst KHÔNG tính)
+            // Thiên phú 1 — Xói Mòn Hư Không: mỗi ĐỢT chiêu trúng (mỗi tia Ma Đạn, mỗi đợt sao, mỗi nhịp hút + mỗi đợt xúc tu của Hố Đen — 9 nhịp Mana Burst và đòn khép hố KHÔNG tính)
             //   -> mục tiêu −thủ phép, cộng dồn 5 lần, giữ 8s · đối thủ gục: +8% M.ATK (tối đa 5 lần) · đồng minh gục: +15% chí mạng, +30% sát thương chí mạng
             //   (tối đa 3 lần). Triệu hồi của cả 2 phe không tính
             { name: 'Xói Mòn Hư Không', type: 'void_erosion', talent: 1, maxStacks: 5, duration: 8000, killMAtk: 0.08, killMax: 5,
               allyCrit: 150, allyCritDmg: 300, allyMax: 3, levels: { value: [0.06, 0.08, 0.10] },
-              desc: 'Mỗi đợt chiêu trúng (Ma Đạn, mỗi đợt Sao Rơi, mỗi đợt xúc tu): mục tiêu −{value%} thủ phép, cộng dồn 5 lần, giữ 8s · mỗi đối thủ gục: +8% M.ATK (tối đa 5 lần, tới hết trận) · mỗi đồng minh gục: +15% tỉ lệ chí mạng và +30% sát thương chí mạng (tối đa 3 lần) · triệu hồi không tính' },
+              desc: 'Mỗi đợt chiêu trúng (mỗi tia Ma Đạn, mỗi đợt Sao Rơi, mỗi nhịp hút và mỗi đợt xúc tu của Hố Đen): mục tiêu −{value%} thủ phép, cộng dồn 5 lần, giữ 8s · mỗi đối thủ gục: +8% M.ATK (tối đa 5 lần, tới hết trận) · mỗi đồng minh gục: +15% tỉ lệ chí mạng và +30% sát thương chí mạng (tối đa 3 lần) · triệu hồi không tính' },
             // Thiên phú 2 — Vỏ Hư Không: lúc niệm Sao Rơi / Hố Đen có quả cầu đen bọc: miễn khống chế (không bị ngắt niệm) + giảm sát thương nhận.
             //   Mượn Mạng (1 lần mỗi trận): nhận đòn chí tử -> rơi vào cổng Hư Không `vanish` ms (không ai đánh được, không hành động) rồi trở lại hàng sau
             { name: 'Vỏ Hư Không', type: 'void_shell', talent: 2, vanish: 3000, levels: { value: [0.30, 0.45], revive: [0.30, 0.50] },
@@ -2923,7 +2929,7 @@ function startBattleLoop(roomId) {
                 // Rok: dây liên kết + Ý Chí Thép (hồi máu theo giây) · Ignar: Giáp Lửa hết -> nổ choáng
                 processIronWill(roomId, playerId, memberIndex, now);
                 processFireWard(roomId, playerId, memberIndex, opponentId, now);
-                // Nyx: Hố Đen hút đối thủ về tâm · Vỏ Hư Không gỡ khống chế lúc niệm · đang trong cổng Hư Không (Mượn Mạng): không hành động
+                // Nyx: Vỏ Hư Không gỡ khống chế lúc niệm · đang trong cổng Hư Không (Mượn Mạng): không hành động
                 if (processVoid(room, playerId, memberIndex, opponentId, now)) return;
                 // Đang bị Thần Chết phán quyết: lơ lửng, không làm gì, không nhận hiệu ứng mới
                 if (processJudged(member, now)) return;
@@ -7028,8 +7034,8 @@ function elemAiPick(room, pid, idx, oppId, now) {
 //   Niệm kiểu "kênh": hiệu ứng `void_channel { skill, endTime, x, z, id }` nằm trên Nyx, Nyx đứng niệm (actionUntil = hết kênh).
 //   Các đợt sát thương hẹn bằng later(): mỗi đợt chỉ chạy khi Nyx còn sống và đúng kênh đó (id) còn chạy
 //   -> bị ngắt (choáng khi chưa có Vỏ Hư Không / gục / Mượn Mạng) là mọi đợt chưa rơi tự huỷ.
-//   Máy khách nhận sự kiện 'voidFx' { casterId, casterIdx, kind, ... } — kind: missiles · burst · burstTick · channel · starWave ·
-//   hole · lash · channelEnd · vanish · return · erode.
+//   Máy khách nhận sự kiện 'voidFx' { casterId, casterIdx, kind, ... } — kind: missiles · bolt · burst · burstTick · channel · starAim · starWave ·
+//   hole · pull · holeEnd · lash · channelEnd · vanish · return · erode.
 //   Hiệu ứng trạng thái mới: `void_channel` (trên Nyx: đang niệm) · `void_erosion { stacks, per, maxStacks }` (trên đối thủ: −thủ phép) ·
 //   `void_vanish` (trên Nyx: đang trong cổng Hư Không). Trường trên Nyx: voidKills / voidAllies (cộng dồn thiên phú 1), voidLifeUsed
 //   (Mượn Mạng đã dùng), voidReturnAt / voidReturnHp (giờ trở lại + phần máu khi trở lại).
@@ -7117,6 +7123,7 @@ function endVoidChannel(room, pid, idx, reason) {
     if (!ch) return false;
     m.statusEffects = m.statusEffects.filter(e => e !== ch);
     if (reason !== 'done') {
+        ch.broken = true;   // bị ngắt giữa chừng: các việc hẹn sau khi niệm xong (đòn khép + xúc tu của Hố Đen) không chạy nữa
         const now = room.clock ?? Date.now();
         const si = skillsOf(m).findIndex(sk => sk.type === `void_${ch.skill}`);
         if (si >= 0 && !team.debugNoMana) m.skillCooldowns[si] = now + skillsOf(m)[si].cooldown;
@@ -7165,41 +7172,53 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     const stunned = (t) => m.statusEffects.some(ef => ef.type === 'stun' && ef.endTime > t) && !voidShell(m, t);
     const live = (ch, t) => m.alive && !room.winner && voidChannel(m, t) === ch && !stunned(t);
     if (sk.type === 'void_missiles') {
-        // ---- Ma Đạn Tinh Tú: 5 tia bay vòng tới 1 mục tiêu — trúng ×multiplier + đốt 1–2 Orb, rồi Mana Burst nổ `burstHits` nhịp ----
-        // mục tiêu: anh hùng địch nhiều Orb nhất (đang có ít nhất 1 Orb, đứng trong tầm chiêu); không ai có Orb thì mục tiêu đang đánh
-        const inReach = (e) => Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= sk.castRange;
-        const rich = opp.squad.filter(e => SQUAD_ORDER.includes(e.classId) && canBeTargeted(e, now) && e.mp >= ORB_COST && inReach(e))
-            .sort((a, b) => b.mp - a.mp)[0];
-        const cur = opp.squad[m.targetIndex];
-        const target = rich ?? ((cur?.alive && canBeTargeted(cur, now)) ? cur : findBestTarget(m, opp.squad, now));
-        if (!target) return;
-        const ti = opp.squad.indexOf(target);
-        emitVoid(room.id, { ...base, kind: 'missiles', targetId: oppId, targetIndex: ti, flight: sk.impact });
-        const spot = { x: target.x, z: target.z || 0 };   // tâm Mana Burst = chỗ mục tiêu đứng lúc tia tới nơi
-        later(sk.impact, () => {
+        // ---- Ma Đạn Tinh Tú: `bolts` tia hiện sau lưng Nyx rồi phóng lần lượt, MỖI tia bay vòng tới 1 đối thủ ngẫu nhiên còn sống ----
+        //   (như Thần Tiễn Phá Thiên: ưu tiên đối thủ chưa bị tia nào nhắm; ít đối thủ hơn số tia thì lặp lại). Mục tiêu chọn lúc ra chiêu để máy khách vẽ đường bay;
+        //   mục tiêu gục trước khi tia tới nơi thì tia đó tan (không gây gì).
+        const list = opp.squad.filter(e => canBeTargeted(e, now));
+        if (!list.length) return;
+        const aimed = new Set(), shots = [];
+        for (let k = 0; k < sk.bolts; k++) {
+            const fresh = list.filter(e => !aimed.has(e));
+            const from = fresh.length ? fresh : list;
+            const target = from[Math.floor(Math.random() * from.length)];
+            aimed.add(target);
+            // tia thứ k rời chỗ sau: giơ tay (impact) + hiện hình (formTime) + k × boltGap, rồi bay arcFlight ms
+            shots.push({ target, ti: opp.squad.indexOf(target), delay: (sk.impact ?? 0) + (sk.formTime ?? 0) + k * (sk.boltGap ?? 90), flight: sk.arcFlight ?? 400 });
+        }
+        emitVoid(room.id, { ...base, kind: 'missiles', targetId: oppId, form: sk.impact ?? 0, formTime: sk.formTime ?? 0,
+            shots: shots.map(s => ({ targetId: oppId, targetIndex: s.ti, delay: s.delay, flight: s.flight })) });
+        const final = shots[shots.length - 1];
+        const spot = { x: final.target.x, z: final.target.z || 0 };   // tâm Mana Burst = chỗ mục tiêu CUỐI đứng lúc tia cuối tới nơi
+        const landed = final.delay + final.flight;
+        shots.forEach((s, k) => later(s.delay + s.flight, () => {
             const t = room.clock;
             if (room.winner) return;
-            spot.x = target.x; spot.z = target.z || 0;
-            const hit = [];
+            const target = s.target, hit = [];
             let orbLost = 0;
             if (target.alive) {
-                const eff = hitTarget(m, target, ti, opp, sk.multiplier, t);
-                if (!eff.isMiss) voidErode(m, target, t);   // Xói Mòn: cú trúng tính 1 đợt (9 nhịp Mana Burst không tính)
-                if (!eff.isMiss && !opp.debugNoMana) {
-                    // đốt ngẫu nhiên burnMin..burnMax Orb (quái / mục tiêu hết Orb: không có gì để đốt)
-                    const n = sk.burnMin + Math.floor(Math.random() * (sk.burnMax - sk.burnMin + 1));
-                    const lost = Math.min(target.mp ?? 0, n * ORB_COST);
-                    target.mp -= lost; orbLost = lost / ORB_COST;
+                const eff = hitTarget(m, target, s.ti, opp, sk.multiplier, t);
+                if (!eff.isMiss) {
+                    voidErode(m, target, t);   // Xói Mòn: mỗi tia trúng tính 1 đợt (9 nhịp Mana Burst không tính)
+                    if (!opp.debugNoMana) {
+                        // mỗi tia đốt `burn` Orb (quái / mục tiêu hết Orb: không có gì để đốt)
+                        const lost = Math.min(target.mp ?? 0, Math.round(sk.burn * ORB_COST));
+                        target.mp -= lost; orbLost = lost / ORB_COST;
+                    }
                 }
                 hit.push(eff);
             }
-            emitVoid(room.id, { ...base, kind: 'burst', targetId: oppId, targetIndex: ti, x: spot.x, z: spot.z, orbLost, effects: hit });
-        });
-        // Mana Burst: nhịp n nổ sau cú trúng burstDelay + (n − 1) × burstGap — lên mục tiêu + đối thủ trong bán kính burstRadius quanh chỗ trúng
-        for (let n = 1; n <= sk.burstHits; n++) later(sk.impact + sk.burstDelay + (n - 1) * sk.burstGap, () => {
+            emitVoid(room.id, { ...base, kind: 'bolt', n: k + 1, targetId: oppId, targetIndex: s.ti, orbLost, effects: hit });
+            if (s === final) {
+                spot.x = target.x; spot.z = target.z || 0;
+                emitVoid(room.id, { ...base, kind: 'burst', targetId: oppId, targetIndex: s.ti, x: spot.x, z: spot.z });
+            }
+        }));
+        // Mana Burst: nhịp n nổ sau khi tia CUỐI tới nơi burstDelay + (n − 1) × burstGap — lên mục tiêu cuối + đối thủ trong bán kính burstRadius quanh chỗ đó
+        for (let n = 1; n <= sk.burstHits; n++) later(landed + sk.burstDelay + (n - 1) * sk.burstGap, () => {
             const t = room.clock;
             if (room.winner) return;
-            const hits = foesOf(opp, t).filter(o => o.e === target || distXZ(o.e, spot.x, spot.z) <= sk.burstRadius)
+            const hits = foesOf(opp, t).filter(o => o.e === final.target || distXZ(o.e, spot.x, spot.z) <= sk.burstRadius)
                 .map(o => hitTarget(m, o.e, o.i, opp, sk.burstMultiplier, t, { aoe: true, noBlock: true }));
             emitVoid(room.id, { ...base, targetId: oppId, kind: 'burstTick', n, effects: hits });
         });
@@ -7233,15 +7252,47 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
             emitVoid(room.id, { ...base, targetId: oppId, kind: 'starWave', n, x: ch.x, z: ch.z, radius: sk.radius, effects: hits });
         }));
     } else if (sk.type === 'void_blackhole') {
-        // ---- Hố Đen: mở ở chỗ đông đối thủ nhất (đếm theo bán kính hút), hút suốt lúc niệm (processVoid), xúc tu quất ở lashTimes ----
+        // ---- Hố Đen: mở ở chỗ đông đối thủ nhất (đếm theo bán kính hút). Lúc niệm: hút theo NHỊP (pullTimes). Niệm xong (channel): hố khép lại nổ 1 đòn,
+        //      rồi xúc tu mới trồi lên quất ở lashTimes (mọi mốc tính từ lúc bắt đầu niệm) ----
         const c = bestCluster(m, opp.squad, sk.castRange, sk.pullRadius, now);
         if (!c) { m.actionUntil = now; return; }   // không còn ai chọn được: không niệm
         const ch = startVoidChannel(room, pid, idx, 'blackhole', sk, now, c);
-        ch.pullRadius = sk.pullRadius; ch.pullSpeed = sk.pullSpeed; ch.last = now;
-        emitVoid(room.id, { ...base, kind: 'hole', x: ch.x, z: ch.z, radius: sk.pullRadius, duration: sk.channel, lashTimes: sk.lashTimes, lashRadius: sk.lashRadius });
-        sk.lashTimes.forEach((at, k) => later(at, () => {
+        emitVoid(room.id, { ...base, kind: 'hole', x: ch.x, z: ch.z, radius: sk.pullRadius, duration: sk.channel,
+            pulseTimes: sk.pullTimes, lashTimes: sk.lashTimes, lashRadius: sk.lashRadius });
+        // nhịp hút: giật đối thủ trong bán kính hút về tâm pullStep ô (không vọt qua tâm; miễn khống chế thì đứng yên) + ×pullMultiplier lên mọi đối thủ trong bán kính đó
+        sk.pullTimes.forEach((at, k) => later(at, () => {
             const t = room.clock;
             if (!live(ch, t)) return;
+            const moved = [], hits = [];
+            for (const o of foesOf(opp, t)) {
+                const e = o.e, dx = ch.x - e.x, dz = ch.z - (e.z || 0), d = Math.hypot(dx, dz);
+                if (d > sk.pullRadius) continue;
+                if (d > 0.001 && !ccImmune(e, t)) {
+                    const f = Math.min(1, sk.pullStep / d);   // không vọt qua tâm
+                    e.x += dx * f; e.z = (e.z || 0) + dz * f;
+                    clampToArena(e);
+                    moved.push({ targetIndex: o.i, x: e.x, z: e.z || 0 });
+                }
+                const eff = hitTarget(m, e, o.i, opp, sk.pullMultiplier, t, { aoe: true, noBlock: true });
+                if (!eff.isMiss) voidErode(m, e, t);
+                hits.push(eff);
+            }
+            emitVoid(room.id, { ...base, targetId: oppId, kind: 'pull', n: k + 1, x: ch.x, z: ch.z, radius: sk.pullRadius, effects: hits, moved });
+        }));
+        // niệm đủ giờ: hố đen khép lại, nổ 1 đòn ×closeMultiplier trong bán kính xúc tu (việc "kết thúc kênh" hẹn trước đó nên chạy trước đòn này;
+        //   kênh bị ngắt giữa chừng -> ch.broken -> không có đòn khép, không có xúc tu)
+        later(sk.channel, () => {
+            const t = room.clock;
+            if (ch.broken || !m.alive || room.winner || stunned(t)) return;
+            ch.closed = true;
+            const hits = foesOf(opp, t).filter(o => distXZ(o.e, ch.x, ch.z) <= sk.lashRadius)
+                .map(o => hitTarget(m, o.e, o.i, opp, sk.closeMultiplier, t, { aoe: true, noBlock: true }));
+            emitVoid(room.id, { ...base, targetId: oppId, kind: 'holeEnd', x: ch.x, z: ch.z, radius: sk.lashRadius, effects: hits });
+        });
+        // xúc tu quất SAU KHI hố khép (như Cột Lửa của Ignar: đã hẹn thì cứ quất, kể cả khi Nyx bị choáng / gục sau lúc niệm xong)
+        sk.lashTimes.forEach((at, k) => later(at, () => {
+            const t = room.clock;
+            if (!ch.closed || room.winner) return;
             // chiêu mặt đất: mục tiêu đang bay không trúng xúc tu
             const hits = foesOf(opp, t).filter(o => !isAirborne(o.e, t) && distXZ(o.e, ch.x, ch.z) <= sk.lashRadius)
                 .map(o => {
@@ -7254,7 +7305,7 @@ function castVoidSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     }
 }
 /**
- * Mỗi nhịp cho Nyx: Hố Đen hút đối thủ về tâm (pullSpeed ô / giây trận; đối thủ miễn khống chế không bị hút) · kênh hết giờ thì kết thúc ·
+ * Mỗi nhịp cho Nyx: kênh hết giờ thì kết thúc ·
  * Vỏ Hư Không gỡ khống chế · Mượn Mạng: giữ Nyx trong cổng Hư Không rồi đưa trở lại.
  * Trả về true khi Nyx không được hành động trong nhịp này (đang trong cổng Hư Không).
  */
@@ -7277,18 +7328,6 @@ function processVoid(room, pid, idx, oppId, now) {
     if (now >= ch.endTime) { endVoidChannel(room, pid, idx, 'done'); return false; }   // (thường đã kết thúc bằng việc hẹn giờ — đây là lưới an toàn)
     // Vỏ Hư Không: đang niệm thì miễn khống chế — gỡ choáng / hất tung / đẩy lùi / túm / đóng băng / khiêu khích vừa dính (không bị ngắt niệm)
     if (voidShell(m, now) && m.statusEffects.some(e => VOID_SHELL_CC.has(e.type))) m.statusEffects = m.statusEffects.filter(e => !VOID_SHELL_CC.has(e.type));
-    const opp = room.players[oppId];
-    if (ch.skill === 'blackhole' && opp) {
-        const step = ch.pullSpeed * Math.max(0, now - ch.last) / 1000;
-        ch.last = now;
-        if (step > 0) for (const { e } of foesOf(opp, now)) {
-            const dx = ch.x - e.x, dz = ch.z - (e.z || 0), d = Math.hypot(dx, dz);
-            if (d > ch.pullRadius || d < 0.001 || ccImmune(e, now)) continue;
-            const k = Math.min(1, step / d);   // không vọt qua tâm
-            e.x += dx * k; e.z = (e.z || 0) + dz * k;
-            clampToArena(e);
-        }
-    }
     return false;
 }
 

@@ -2,6 +2,7 @@
 // SCENE / CAMERA / RENDERER
 // ============================================================
 import * as THREE from 'three';
+import { fxScale } from './settings.js';
 import { battlePixelRatio } from './gpu.js';
 
 export const scene = new THREE.Scene();
@@ -46,10 +47,13 @@ export function keepShaders() {
 const FLAT = new Set(['PlaneGeometry', 'ShapeGeometry', 'CircleGeometry', 'RingGeometry']);
 THREE.Material.prototype.onBeforeRender = function (r, s, c, geometry, object) {
     if (this.side === THREE.DoubleSide && this.transparent && !this.forceSinglePass && FLAT.has(geometry?.type)) this.forceSinglePass = true;
-    // Giảm chói: lúc nhiều chiêu nổ cùng lúc, mọi hiệu ứng CỘNG SÁNG mờ bớt theo fxDim.k (chỉ trong lần vẽ này, vẽ xong trả lại)
-    if (fxDim.k < 1 && this.blending === THREE.AdditiveBlending && this.__op == null) {
+    // Giảm chói: lúc nhiều chiêu nổ cùng lúc, mọi hiệu ứng CỘNG SÁNG mờ bớt theo fxDim.k;
+    // đồng thời giảm độ đậm toàn bộ hiệu ứng chiêu (cộng sáng + vật liệu gắn isVfx) theo cài đặt fxLevel
+    const scale = (this.blending === THREE.AdditiveBlending || this.userData?.isVfx) ? fxScale() : 1;
+    const k = (this.blending === THREE.AdditiveBlending ? fxDim.k : 1) * scale;
+    if (k < 1 && this.__op == null) {
         this.__op = this.opacity;
-        this.opacity *= fxDim.k;
+        this.opacity *= k;
         object.onAfterRender = restoreOpacity;
     }
 };

@@ -1163,15 +1163,14 @@ export class CutoutCharacterView extends CharacterView {
             o.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
             return o;
         };
-        // giáp nước (Hòa Âm 1+2): bong bóng, sáng theo máu giáp còn lại
+        // giáp nước (Hòa Âm 1+2): luôn dùng bong bóng nước quanh người, sáng theo máu giáp còn lại
         const ws = effs.find(e => e.type === 'water_shield' && e.endTime > now && e.hp > 0);
         if (NERISSA_PIXEL) {
             this._pixDt = dt;
-            this._pixStatus('_pixWaterShield', !!ws, 'holy/divine-shield', { palette: 'water', seed: 6, bare: true });
             const dancing = effs.some(e => /^dance_(tide|flow|god)$/.test(e.type) && e.endTime > now);
             this._pixStatus('_pixWaterAura', dancing, 'custom/water-aura', { seed: 6 });
         }
-        const bubble = fade('_waterBubble', !!ws && !NERISSA_PIXEL, () => makeWaterBubble(this.height));
+        const bubble = fade('_waterBubble', !!ws, () => makeWaterBubble(this.height));
         bubble?.update(dt, bubble.k, ws?.maxHp ? Math.max(0, ws.hp / ws.maxHp) : 0);
         // Thủy Thần Vũ: Thủy Thần hiện ra sau lưng rồi giữ suốt điệu múa (chỉ trên người Nerissa)
         const god = effs.some(e => e.type === 'dance_god' && e.endTime > now);

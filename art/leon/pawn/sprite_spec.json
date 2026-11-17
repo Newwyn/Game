@@ -1,0 +1,83 @@
+{
+    "note": "Quan pawn cua Leon: dung = Codex, dong tac = Flow",
+    "atlasScale": 0.6,
+    "maxWidth": 4096,
+    "pad": 6,
+    "calib": "idle1",
+    "key": "green",
+    "footBand": 16,
+    "footMin": 25,
+    "solidFeet": true,
+    "out": "src/assets/sprites/chess_pawn_sprite",
+    "meta": "src/characters/sprite/chess_pawnSprite.json",
+    "format": "webp",
+    "sheets": {
+        "idle": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/pawn/sprite-idle.png",
+            "groups": [
+                [
+                    "idle",
+                    4,
+                    "heel"
+                ],
+                [
+                    "ready",
+                    4,
+                    "heel"
+                ]
+            ]
+        },
+        "attack": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/leon/pawn/flow/sprite-attack.jpg",
+            "anchor": "body",
+            "ground": "group"
+        },
+        "move": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/leon/pawn/flow/sprite-move.jpg",
+            "anchor": "body",
+            "ground": "group"
+        },
+        "hurt-dead": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/leon/pawn/flow/sprite-hurt-dead.jpg",
+            "groups": [
+                [
+                    "hurt",
+                    4,
+                    "heel"
+                ],
+                [
+                    "dead",
+                    3,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        },
+        "skill": {
+            "scale": 1.28,
+            "split": true,
+            "file": "art/leon/pawn/flow/sprite-skill.jpg",
+            "groups": [
+                [
+                    "skillA",
+                    4,
+                    "body"
+                ],
+                [
+                    "skillB",
+                    4,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        }
+    }
+}

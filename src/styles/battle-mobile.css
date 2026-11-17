@@ -58,6 +58,7 @@
     #top-left-controls #btn-auto,
     #top-left-controls #btn-pause,
     #top-left-controls #btn-speed,
+    #top-left-controls #btn-camera,
     #top-left-controls #btn-menu {
         padding: 4px 8px;
         font-size: 11px;
@@ -400,7 +401,8 @@
     }
 
     .pause-buttons button,
-    #btn-shake {
+    #btn-shake,
+    #btn-fx-level {
         min-height: 42px;
         padding: 8px 16px;
         font-size: 13px;

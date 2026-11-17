@@ -2,7 +2,11 @@
 const KEY = 'loc.settings';
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { saved = {}; }
-export const settings = { shake: true, ...saved };
+export const FX_LEVELS = ['soft', 'minimal', 'full'];
+export const settings = { shake: true, fxLevel: 'soft', ...saved };
+export function fxScale() {
+    return settings.fxLevel === 'minimal' ? 0.32 : settings.fxLevel === 'soft' ? 0.58 : 1;
+}
 export function setSetting(k, v) {
     settings[k] = v;
     try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch { /* bỏ qua */ }

@@ -82,6 +82,7 @@ import {
 import {
     spawnVoidMissiles, spawnVoidBurst, startVoidChannel, endVoidChannel,
     spawnVoidStarWave, spawnVoidHole, spawnVoidLash, aimVoidStars, voidAimed,
+    spawnVoidPull, closeVoidHole, spawnVoidOrbLoss,
     spawnVoidVanish, spawnVoidReturn, spawnVoidErode,
 } from '../vfx/voidFx.js';
 import {
@@ -2771,11 +2772,22 @@ function onVoidFx(d) {
 
     switch (d.kind) {
         case 'missiles': {
+            // 5 tia hiện sau lưng Nyx rồi phóng lần lượt, mỗi tia bay vòng tới mục tiêu riêng (số sát thương hiện ở `bolt` lúc từng tia tới nơi)
+            spawnVoidMissiles(caster, (d.shots ?? []).map(s => ({
+                target: s.targetIndex != null ? getView(s.targetId ?? foeId, s.targetIndex) : null,
+                delay: s.delay ?? 500,
+                flight: s.flight ?? 400,
+            })), { form: d.form ?? 200, formTime: d.formTime ?? 300 });
+            break;
+        }
+        case 'bolt': {
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
-            spawnVoidMissiles(caster, target, {
-                flight: d.flight ?? 600,
-                toPos: d.x != null ? { x: d.x, z: d.z ?? 0 } : null,
-            });
+            showEffects(d.effects);
+            if (target && (d.effects ?? []).some(e => !e.isMiss)) {
+                target.flashHit?.();
+                if (d.orbLost > 0) spawnVoidOrbLoss(target.position, d.orbLost);
+            }
+            cameraRig.shake(0.06, 60);
             break;
         }
         case 'burst': {
@@ -2784,7 +2796,7 @@ function onVoidFx(d) {
                 x: d.x ?? target?.position.x ?? caster?.position.x ?? 0,
                 z: d.z ?? target?.position.z ?? caster?.position.z ?? 0,
             };
-            spawnVoidBurst(pos, { orbLost: d.orbLost ?? 0 });
+            spawnVoidBurst(pos);
             showEffects(d.effects);
             cameraRig.shake(0.14, 140);
             break;
@@ -2825,6 +2837,24 @@ function onVoidFx(d) {
             cameraRig.shake(0.16, 180);
             break;
         }
+        case 'pull': {
+            // nhịp hút: vòng sáng co về tâm + vệt kéo từ từng đối thủ vừa bị giật (chỗ đứng mới do stateUpdate đưa tới)
+            spawnVoidPull(d.x ?? 0, d.z ?? 0, {
+                radius: d.radius ?? 8,
+                n: d.n ?? 1,
+                movedViews: (d.moved ?? []).map(m => getView(foeId, m.targetIndex)).filter(Boolean),
+            });
+            showEffects(d.effects);
+            cameraRig.shake(0.12, 130);
+            break;
+        }
+        case 'holeEnd': {
+            // hố đen khép lại + nổ; từ đây xúc tu mới trồi lên (hẹn trước theo lashTimes đã nhận ở `hole`)
+            closeVoidHole(d.casterId, d.casterIdx, d.x ?? 0, d.z ?? 0, { radius: d.radius ?? 4 });
+            showEffects(d.effects);
+            cameraRig.shake(0.24, 220);
+            break;
+        }
         case 'lash': {
             if (!voidAimed(d.casterId, d.casterIdx, 'lashAimed')) spawnVoidLash(d.x ?? 0, d.z ?? 0, {
                 n: d.n ?? 1,
@@ -2835,7 +2865,7 @@ function onVoidFx(d) {
             break;
         }
         case 'channelEnd': {
-            endVoidChannel(d.casterId, d.casterIdx, caster);
+            endVoidChannel(d.casterId, d.casterIdx, caster, d.reason ?? 'done');
             break;
         }
         case 'vanish': {

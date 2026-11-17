@@ -110,6 +110,7 @@ export function fxBudget(n, min = 1) { return Math.max(Math.min(n, min), Math.ro
 /** Thêm hiệu ứng `mesh` sống `life` giây; tick(p, fx, dt) với p = 0..1 */
 function addAnim(mesh, life, tick, parent = scene) {
     liveFx++;
+    mesh.traverse?.(o => { if (o.material) o.material.userData.isVfx = true; });
     parent.add(mesh);
     const fx = { mesh, type: 'anim', age: 0, life, tick };
     tick(0, fx, 0);

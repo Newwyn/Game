@@ -3,12 +3,12 @@
 // ============================================================
 // Thay cho onclick="..." trong HTML: mọi nút khai báo data-action / data-skill
 // và được xử lý tập trung ở đây.
-import { settings, setSetting } from '../core/settings.js';
+import { settings, setSetting, FX_LEVELS } from '../core/settings.js';
 import { net, socket } from '../net/socket.js';
 import { myId } from '../state.js';
 import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
-import { cameraRig } from '../core/cameraRig.js';
+import { cameraRig, battleCamMode } from '../core/cameraRig.js';
 import { GAME_SPEEDS, timeState } from '../config.js';
 import { toggleStatPanel, setAllStatPanels, toggleAllAuto } from './hud.js';
 import { setDisabledHeroes } from './progressTool.js';
@@ -18,6 +18,11 @@ import { toggleEmit } from './testHubCore.mjs';
 const SPEED_KEY = 'loc.gameSpeed';
 let preferredSpeed = 1;
 try { const v = Number(localStorage.getItem(SPEED_KEY)); if (GAME_SPEEDS.includes(v)) preferredSpeed = v; } catch { /* bỏ qua */ }
+
+export function updateCameraButton(mode = cameraRig.getMode()) {
+    const btn = document.getElementById('btn-camera');
+    if (btn) btn.textContent = mode === 'combat' ? '📷 Ngang' : '📷 Chéo';
+}
 
 export function updateSpeedButton(speed = timeState.speed) {
     const btn = document.getElementById('btn-speed');
@@ -35,6 +40,16 @@ export function applyPreferredSpeed() {
 export function updateShakeButton() {
     const b = document.getElementById('btn-shake');
     if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
+}
+
+const FX_LABELS = { soft: 'DỊU NHẸ', minimal: 'TỐI GIẢN', full: 'ĐẦY ĐỦ' };
+export function updateFxLevelButton() {
+    const b = document.getElementById('btn-fx-level');
+    if (b) {
+        const lvl = FX_LABELS[settings.fxLevel] ? settings.fxLevel : 'soft';
+        b.textContent = `✨ Hiệu ứng chiêu: ${FX_LABELS[lvl]}`;
+        b.classList.toggle('minimal', lvl === 'minimal');
+    }
 }
 // Công tắc test (🧪 Tool thử, src/ui/testHub.js): trạng thái THẬT theo server
 const debugState = { god: false, noMana: false, enemyGod: false };
@@ -85,6 +100,7 @@ const ACTIONS = {
         net.setSpeed(preferredSpeed);
         updateSpeedButton(preferredSpeed);
     },
+    toggleCamera: () => cameraRig.toggleMode(),
     requestReset,
     // Các lệnh test khác (mana, bất tử, gọi quái, phép Elarion…) nằm trong 🧪 Tool thử (src/ui/testHubCore.mjs).
     // Hai lệnh dưới còn nút trong bảng "Chi tiết nhân vật" của Tool thử (progressTool.js).
@@ -92,6 +108,11 @@ const ACTIONS = {
     debugKill: (classId) => net.debugAction('kill', classId),
     backToMenu: () => net.backToMenu(),
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
+    cycleFxLevel: () => {
+        const i = FX_LEVELS.indexOf(settings.fxLevel);
+        setSetting('fxLevel', FX_LEVELS[(i + 1) % FX_LEVELS.length]);
+        updateFxLevelButton();
+    },
 };
 
 
@@ -209,6 +230,9 @@ function changePanelScale(id, step) {
 
 export function setupInput() {
     updateShakeButton();
+    updateFxLevelButton();
+    updateCameraButton(battleCamMode());
+    cameraRig.onModeChange(updateCameraButton);
     socket.on('stateUpdate', (d) => syncDebugToggles(d.players, d.enemyGodMode));
     document.addEventListener('click', onClick);
     window.addEventListener('keydown', onKeyDown);

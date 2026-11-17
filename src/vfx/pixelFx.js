@@ -76,6 +76,7 @@ import * as blackHole from '../vendor/pixelfx/fx/shadow/black-hole.js';
 import * as shadowTendrils from '../vendor/pixelfx/fx/shadow/shadow-tendrils.js';
 import * as soulDrain from '../vendor/pixelfx/fx/shadow/soul-drain.js';
 import * as graspingHands from '../vendor/pixelfx/fx/shadow/grasping-hands.js';
+import * as voidCustom from './pixelfx-custom/void-bolt.js';   // tự vẽ: tia Ma Đạn, đốm ma đạn, nhịp hút Hố Đen (Nyx)
 
 const LIB = {
     'melee/sword-slash': swordSlash, 'impacts/hit-spark': hitSpark, 'status/rage': rage, 'ui/exclamation': exclamation,
@@ -92,6 +93,7 @@ const LIB = {
     'arcane/arcane-missiles': arcaneMissiles, 'arcane/mana-burst': manaBurst, 'arcane/star-fall': starFall, 'arcane/portal': portal,
     'shadow/black-hole': blackHole, 'shadow/shadow-tendrils': shadowTendrils, 'shadow/soul-drain': soulDrain, 'shadow/grasping-hands': graspingHands,
     'arcane-missiles': arcaneMissiles, 'mana-burst': manaBurst, 'spell-charge': spellCharge, 'star-fall': starFall, 'portal': portal, 'blink-in': blinkIn,
+    'custom/void-bolt': voidCustom.bolt, 'custom/void-mote': voidCustom.mote, 'custom/void-pull': voidCustom.pull,
     'black-hole': blackHole, 'shadow-tendrils': shadowTendrils, 'void-orb': voidOrb, 'soul-drain': soulDrain, 'grasping-hands': graspingHands,
 };
 
@@ -164,7 +166,9 @@ export function pixelLayer(mod, { height = 2.9, scale = 1, actor = null, palette
         tex.magFilter = tex.minFilter = THREE.NearestFilter;
         tex.generateMipmaps = false;
         tex.colorSpace = THREE.SRGBColorSpace;
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, fog: false });
+        mat.userData.isVfx = true;
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
         const u = (height / ACTOR_H) * scale;
         mesh.scale.set(fw * u, fh * u, 1);
         mesh.position.set((fw / 2 - OX - pad) * u * (flip ? -1 : 1), (OY + pad - fh / 2) * u, k === 'back' ? -0.25 : 0.35);

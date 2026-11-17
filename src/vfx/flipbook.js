@@ -41,9 +41,11 @@ export function makeFlipbook(url, meta, { pixel = false } = {}) {
         const [w, h] = g.size, [px, py] = g.pivot, u = height / h;
         const geo = new THREE.PlaneGeometry(w * u, h * u);
         geo.translate((w / 2 - px) * u, (py - h / 2) * u, 0);
-        const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        const mat = new THREE.MeshBasicMaterial({
             map: tex(group, frame), transparent: true, depthWrite: false, fog: false, opacity,
-            blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide }));
+            blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide });
+        mat.userData.isVfx = true;
+        const m = new THREE.Mesh(geo, mat);
         m.userData.sharedTexture = true;
         m.userData.fx = { group, frame, u };
         return m;
