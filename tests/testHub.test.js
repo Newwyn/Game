@@ -9,7 +9,7 @@ const C = require('../game/campaign');
 
 const core = import('../src/ui/testHubCore.mjs');
 const HEROES = [['assassin', 'Jessica'], ['warrior', 'Rok'], ['archer', 'Lyra'], ['priest', 'Seraphine'], ['mage', 'Ignar'], ['reaper', 'Zerith'],
-    ['wrestler', 'Brakk'], ['dancer', 'Nerissa'], ['elementalist', 'Elarion'], ['alchemist', 'Grix'], ['summoner', 'Sylva'], ['voidmage', 'Nyx']];
+    ['wrestler', 'Brakk'], ['dancer', 'Nerissa'], ['elementalist', 'Elarion'], ['alchemist', 'Grix'], ['summoner', 'Sylva'], ['voidmage', 'Nyx'], ['chessmaster', 'Leon']];
 const HERO_IDS = HEROES.map(h => h[0]);
 const cat = T.catalog(HEROES.map(([id, name]) => ({ id, name })));   // đúng danh sách server gửi (testCatalogResult)
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
