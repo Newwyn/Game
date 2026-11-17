@@ -32,7 +32,10 @@ export const CAMERA_MODES = {
     explore: { pitchDeg: 48, fov: 42, lookHeight: 0.8, baseDist: 15 },
 };
 
-const ZOOM_MIN = 0.6, ZOOM_MAX = 1.6;
+const ZOOM_MIN = 0.5, ZOOM_MAX = 2.4;   // (17/11/2026) nới biên zoom: lăn chuột lùi xa / vào gần hơn
+// Góc nhìn trận người chơi chọn (phím V đổi, nhớ lại lần sau). Mặc định 'explore' = nhìn từ trên xuống chéo — người chơi thích góc này (17/11/2026).
+const CAM_KEY = 'battle_cam';
+export const battleCamMode = () => { try { return localStorage.getItem(CAM_KEY) === 'combat' ? 'combat' : 'explore'; } catch { return 'explore'; } };
 const FOLLOW_SHARPNESS = 5;   // càng lớn càng bám sát
 const BLEND_SHARPNESS = 4;    // tốc độ chuyển giữa 2 chế độ
 
@@ -72,6 +75,10 @@ function distanceToFit(width) {
 
 export const cameraRig = {
     getMode: () => mode,
+    /** Người chơi đổi góc (phím V): đổi + nhớ */
+    toggleMode() { const next = mode === 'combat' ? 'explore' : 'combat'; try { localStorage.setItem(CAM_KEY, next); } catch {} this.setMode(next); },
+    /** Bám theo 1 nhân vật của mình (bấm vào thẻ nhân vật): -1 = bám cả đội */
+    followIdx: -1,
 
     setMode(next) {
         if (!CAMERA_MODES[next] || next === mode) return;
@@ -83,9 +90,10 @@ export const cameraRig = {
     onModeChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
     /** Chế độ explore: bám theo một điểm (nhân vật / đội hình) */
-    setTarget(x, z) {
+    setTarget(x, z, width = 0) {
         target.set(x, cfg().lookHeight, z);
-        if (mode === 'explore') targetDist = cfg().baseDist;
+        // width > 0: lùi vừa đủ để thấy cả 2 bên (không gần hơn baseDist, không xa quá 30)
+        if (mode === 'explore') targetDist = width > 0 ? THREE.MathUtils.clamp(distanceToFit(width + 8), cfg().baseDist, 30) : cfg().baseDist;
     },
 
     /** Chế độ combat: ôm khung từ minX..maxX (theo trục ngang), z là độ sâu trung bình */

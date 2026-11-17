@@ -3,7 +3,7 @@
 // ============================================================
 import { scene, camera, renderer, clearDynamicObjects } from '../core/scene.js';
 import { warmFlipbooks } from '../vfx/flipbook.js';
-import { cameraRig } from '../core/cameraRig.js';
+import { cameraRig, battleCamMode } from '../core/cameraRig.js';
 import { game, myId, forEachView } from '../state.js';
 import { gameNow } from '../config.js';
 
@@ -37,7 +37,8 @@ export function buildBattleScene(data) {
     clearVfx();
     clearDynamicObjects();
     cameraRig.reset();
-    cameraRig.setMode('combat'); // vào trận luôn dùng góc ngang
+    cameraRig.setMode(battleCamMode()); // góc nhìn người chơi đã chọn (mặc định nhìn chéo từ trên xuống)
+    cameraRig.followIdx = -1;
     game.cameraEngaged = false;
 
     game.roomData = data;
@@ -143,8 +144,19 @@ function updateCamera() {
     cameraRig.setLift(bigJump ? 3.6 : all.some(v => v.member.alive && v.member.statusEffects?.some(e => e.type === 'guard' && e.endTime > now)) ? 1.5 : 0, bigJump ? 7 : 3);
 
     if (cameraRig.getMode() === 'explore') {
-        const x = mine.reduce((s, v) => s + v.position.x, 0) / mine.length;
-        cameraRig.setTarget(x, avgZ);
+        // bấm thẻ nhân vật -> bám riêng nhân vật đó (còn sống); không thì ôm cả đội + đối thủ đã giao tranh
+        const one = cameraRig.followIdx >= 0 ? game.views[me]?.[cameraRig.followIdx] : null;
+        if (one && one.member?.alive) { cameraRig.setTarget(one.position.x, one.position.z); return; }
+        const foeId = Object.keys(game.views).find(id => id !== me);
+        const foes = aliveViews(foeId);
+        let grp = mine;
+        if (foes.length) {
+            const gap = Math.min(...mine.flatMap(a => foes.map(b => Math.abs(a.position.x - b.position.x))));
+            if (gap < ENGAGE_DISTANCE) game.cameraEngaged = true;
+            if (game.cameraEngaged) grp = mine.concat(foes);
+        }
+        const gx = grp.map(v => v.position.x), lo = Math.min(...gx), hi = Math.max(...gx);
+        cameraRig.setTarget((lo + hi) / 2, avgZ, hi - lo);
         return;
     }
 

@@ -1,6 +1,7 @@
 // ============================================================
 // HUD — thẻ thành viên (máu, orb, skill), bảng chỉ số 2 bên
 // ============================================================
+import { cameraRig } from '../core/cameraRig.js';
 import { progressMeta, rankBadge } from './progressTool.js';
 import { game, myId } from '../state.js';
 import { ORB_COST, MAX_SQUAD , gameNow, timeState } from '../config.js';
@@ -125,6 +126,18 @@ function fillCardInfo(card, member, def, i) {
         const cost = btn.querySelector('.cost');
         if (cost) cost.textContent = costLabel(sk);
         btn.title = `${sk.name} — ${costLabel(sk)}${sk.minOrbs ? ' (đốt dần tới khi hết)' : ''}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'}${sk.active ? ' sau khi múa xong' : ''} (click để ra lệnh)`;
+    });
+}
+
+// (17/11/2026) Bấm vào THẺ nhân vật (không phải nút kỹ năng / AUTO): camera bám riêng nhân vật đó; bấm lại thẻ đó -> về bám cả đội
+if (typeof window !== 'undefined') {
+    window.addEventListener('click', (e) => {
+        const card = e.target?.closest?.('[id^="member-"]');
+        if (!card || e.target.closest('button')) return;
+        const i = +card.id.slice(7);
+        if (!Number.isInteger(i)) return;
+        cameraRig.followIdx = cameraRig.followIdx === i ? -1 : i;
+        document.querySelectorAll('[id^="member-"]').forEach(c => { const on = +c.id.slice(7) === cameraRig.followIdx; c.classList.toggle('cam-follow', on); c.style.outline = on ? '2px solid #facc15' : ''; });
     });
 }
 
