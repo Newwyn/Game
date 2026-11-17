@@ -1095,42 +1095,88 @@ export function spawnKingJudgeSlam(casterId, summonIdx, kingView, { x, z } = {})
 
 // ------------------------------------------------------------
 // 7. `orb` / `orbTick` / `orbGone` & `dance` / `danceShot` (Quang Cầu & Vũ Điệu Quang Cầu của Hậu) — làm lại 17/11/2026
-//   Quả cầu = hiệu ứng pixelfx "Arcane orb" (quả cầu thuỷ tinh có lõi sáng + 2 vòng sáng xoay quanh) tô bảng màu TRẮNG-VÀNG,
-//   dưới đất 1 quầng sáng tròn mềm đúng bán kính gây sát thương (2,5), mỗi nhịp gây sát thương thì phập phồng + 1 gợn sáng loang ra.
-//   Vũ điệu: quả cũ bay về sau lưng Hậu xếp thành vòng xoay; mỗi phát bắn 1 quả rời vòng thành vệt sáng tới mục tiêu rồi nổ sáng ở đó.
+//   Quả cầu nằm trên sân (`orb`) = hiệu ứng pixelfx "Sunburst" (`holy/sunburst`) lặp tại chỗ, bảng màu TRẮNG-VÀNG,
+//   giữ lõi cầu đặc sáng nhỏ + viền tím mờ để nổi rõ trên bàn cờ vàng rực, cỡ ~1,4× bản cũ (scale 0.7); dưới đất quầng tròn bán kính 2,5.
+//   Mỗi nhịp `orbTick` loé sáng mạnh hơn (tia sao + chớp + gợn sóng).
+//   Vũ điệu (`dance`): quả thu hồi biến thành quả cầu TRÒN trơn phát sáng (không tia), cỡ ~1,3× bản cũ (scale 0.39), bay về xếp đều thành vòng xoay chậm sau lưng Hậu.
+//   Khi bắn (`danceShot`): quả cầu tròn rời vòng thành vệt sáng, tới đích bung nở thành Sunburst lớn (~1,8×) rồi thu êm về quả cầu Sunburst nằm trên sân (`orb`).
 // ------------------------------------------------------------
 const ORB_PAL = ['#6a3fb0', '#b48a2c', '#e0b64a', '#ffd670', '#ffe9a6', '#fff6d6', '#ffffff', '#ffffff'];   // trắng-vàng sáng, viền ngoài cùng ánh tím (nổi trên bàn cờ vàng)
 const ORB_Y = 1.15;            // tâm quả cầu cao chừng này so với mặt đất
 const ORB_PX = 2.9 / 44;       // 1 điểm ảnh của pixelLayer (cỡ chuẩn) = chừng này đơn vị sân
 const ORB_CORE_GEO = new THREE.SphereGeometry(1, 18, 12);
-const ORB_CY = 52;             // tâm quả cầu của "Arcane orb" nằm trên gốc hiệu ứng 52 điểm ảnh (bán kính 17)
+const ORB_REST_SCALE = 0.7;    // cỡ quả cầu Sunburst nằm trên sân (~1,4× cỡ 0.5 cũ)
+const ORB_DANCE_SCALE = 0.39;  // cỡ quả cầu tròn xoay sau lưng Hậu (~1,3× cỡ 0.3 cũ)
+const ORB_BURST_MULT = 1.8 / 1.4; // tỉ lệ bung nổ lúc đạn chạm đích (~1,8× cỡ cũ, rồi lắng về 1,4×)
+const activeShotBursts = new Set(); // các vụ bung Sunburst ở đích đạn (để clearChessFx dọn sạch & khớp với sự kiện `orb` kế tiếp)
 
-/** 1 quả cầu ánh sáng: { group (tâm quả cầu ở gốc nhóm), step(dt) } — bán kính ~17 × ORB_PX × scale */
-function makeLightOrb(scale = 0.5, seed = 1) {
+function orbSphere(color, radius, opacity, side = THREE.FrontSide) {
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, fog: false, depthWrite: false, side });
+    mat.userData.isVfx = true;
+    const m = new THREE.Mesh(ORB_CORE_GEO, mat);
+    m.userData.sharedGeometry = true;
+    m.scale.setScalar(radius);
+    m.position.z = -0.03;
+    m.renderOrder = 2;
+    return m;
+}
+
+/** 1 quả cầu Sunburst (dùng cho quả cầu nằm trên sân và lúc đạn vừa chạm đích bung nở): { group, halo, contrast, step(dt) } */
+function makeSunburstOrb(scale = ORB_REST_SCALE, seed = 1) {
     const g = new THREE.Group();
-    const mod = pixelMod('arcane/arcane-orb');
+    const mod = pixelMod('holy/sunburst');
     let layer = null;
     if (mod) {
-        layer = pixelLayer(mod, { palette: ORB_PAL, seed, scale });
-        layer.group.position.y = -ORB_CY * ORB_PX * scale;
+        layer = pixelLayer(mod, { palette: ORB_PAL, seed, scale, front: true });
+        // origin của holy/sunburst ở [64, 64] (chính giữa khung 128×128); lùi z -0.35 để mặt phẳng tia nắng nằm đúng tâm (0, 0, 0) của nhóm
+        layer.group.position.set(0, 0, -0.35);
         g.add(layer.group);
         layer.step(0.016);
     }
-    const halo = fxPlane(glowTexture(), 3.4 * scale, 3.4 * scale, { color: GOLD_BRIGHT, opacity: 0.4 });
+    // nền tím sẫm mờ phía sau + quầng vàng cộng sáng giúp các tia nắng trắng-vàng nổi bật trên nền bàn cờ vàng rực
+    const contrast = fxPlane(glowTexture(), 4.2 * scale, 4.2 * scale, { additive: false, color: 0x4c1d95, opacity: 0.28 });
+    contrast.material.userData.isVfx = true;
+    contrast.position.z = -0.06;
+    contrast.renderOrder = 1;
+    const halo = fxPlane(glowTexture(), 3.6 * scale, 3.6 * scale, { color: GOLD_BRIGHT, opacity: 0.44 });
+    halo.material.userData.isVfx = true;
     halo.position.z = -0.05;
-    // lõi cầu ĐẶC trắng-vàng (khối 3D thật) nằm trong lớp điểm ảnh -> nhìn từ góc nào cũng là 1 quả cầu sáng rõ
+    halo.renderOrder = 1;
+    // lõi cầu ĐẶC nhỏ gọn (bán kính ~9.5 px = đúng chân tia R0=9 của sunburst) + viền tím mờ mặt sau để tâm cầu không bị chìm trên sàn vàng
+    const R = 9.5 * ORB_PX * scale;
+    // (17/11/2026, người chơi) CHỈ hiện Sunburst: bỏ cục cầu đặc + viền tím + nền tím cũ; giữ 1 quầng vàng mờ cho tia nắng dễ thấy
+    contrast.visible = false;
+    g.add(contrast, halo);
+    return { group: g, halo, contrast, layer, step: (dt) => { if (dt > 0) layer?.step(dt); } };
+}
+
+/** 1 quả cầu TRÒN trơn phát sáng (không tia) khi thu hồi và xoay sau lưng Hậu: { group, halo, step(dt) } */
+function makeRoundOrb(scale = ORB_DANCE_SCALE) {
+    const g = new THREE.Group();
+    const halo = fxPlane(glowTexture(), 3.4 * scale, 3.4 * scale, { color: GOLD_BRIGHT, opacity: 0.5 });
+    halo.material.userData.isVfx = true;
+    halo.position.z = -0.05;
+    halo.renderOrder = 1;
     const R = 17 * ORB_PX * scale * 0.86;
-    const ball = (color, k, opacity, side = THREE.FrontSide) => {
-        const m = new THREE.Mesh(ORB_CORE_GEO, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, fog: false, depthWrite: false, side }));
-        m.userData.sharedGeometry = true;
-        m.scale.setScalar(R * k);
-        m.position.z = -0.03;
-        m.renderOrder = 2;
-        return m;
+    const rim = orbSphere(0x5b21b6, R * 1.2, 0.94, THREE.BackSide);
+    const shell = orbSphere(0xfacc15, R * 1.08, 0.42);
+    const body = orbSphere(0xffd84a, R * 0.94, 0.98);
+    const core = orbSphere(0xfffbe6, R * 0.64, 1);
+    const glint = orbSphere(0xffffff, R * 0.22, 0.95);
+    glint.position.set(-R * 0.26, R * 0.26, R * 0.82);
+    g.add(halo, rim, shell, body, core, glint);
+    let t = Math.random() * Math.PI * 2;
+    return {
+        group: g,
+        halo,
+        step: (dt) => {
+            if (dt <= 0) return;
+            t += dt * 4.2;
+            const b = 1 + 0.06 * Math.sin(t);
+            core.scale.setScalar(R * 0.64 * b);
+            halo.material.opacity = 0.46 + 0.1 * Math.sin(t);
+        },
     };
-    // viền tím sẫm (mặt sau của khối lớn hơn 1 chút) -> quả cầu nổi rõ trên bàn cờ vàng nhạt; thân vàng tươi; tâm trắng nóng
-    g.add(halo, ball(0x5b21b6, 1.2, 0.95, THREE.BackSide), ball(0xffd84a, 1, 1), ball(0xfff8dc, 0.62, 1));
-    return { group: g, halo, step: (dt) => { if (dt > 0) layer?.step(dt); } };
 }
 
 /** Quầng tròn trên mặt đất đúng bán kính quả cầu: lòng tím sẫm trong mờ (để nổi trên bàn cờ vàng lẫn nền cỏ), mép trắng-vàng sáng (mép ở 92% bán kính tấm) */
@@ -1152,6 +1198,7 @@ function orbHaloTexture() {
 /** Tấm phẳng nằm trên mặt đất (xoay ngửa) */
 function floorPlane(tex, size, opts) {
     const m = fxPlane(tex, size, size, opts);
+    m.material.userData.isVfx = true;
     m.rotation.x = -Math.PI / 2;
     return m;
 }
@@ -1164,10 +1211,21 @@ export function spawnQueenOrb(id, x, z, { duration = 10000, radius = 2.5 } = {})
     const tz = z ?? 0;
     const durSec = Math.max(0.5, (duration ?? 10000) / 1000);
 
+    // Nếu vừa có 1 phát `danceShot` chạm đích ngay tại (tx, tz), nhận lấy pha bung Sunburst (~1,8×) của nó để lắng mượt về cỡ nghỉ (~1,4×)
+    let fromShot = false;
+    for (const b of activeShotBursts) {
+        if (!b.claimed && Math.hypot(b.x - tx, b.z - tz) < 0.65) {
+            b.claimed = true;
+            b.stop();
+            fromShot = true;
+            break;
+        }
+    }
+
     const g = new THREE.Group();
     const ground = floorPlane(orbHaloTexture(), (radius * 2) / 0.92, { additive: false, color: 0xffffff, opacity: 0 });
     ground.position.set(0, FLOOR_Y - GROUND_Y, 0);
-    const orb = makeLightOrb(0.5, (Number(id) || 0) % 17 + 1);
+    const orb = makeSunburstOrb(ORB_REST_SCALE, (Number(id) || 0) % 17 + 1);
     orb.group.position.set(0, ORB_Y, -0.55);   // lùi ra sau 1 chút: đối thủ đứng đúng chỗ đó vẫn hiện trước quả cầu
     g.add(ground, orb.group);
     g.position.set(tx, GROUND_Y, tz);
@@ -1177,7 +1235,8 @@ export function spawnQueenOrb(id, x, z, { duration = 10000, radius = 2.5 } = {})
         x: tx,
         z: tz,
         group: g,
-        pulse: 0,
+        pulse: fromShot ? 0.85 : 0,
+        burst: fromShot ? 1 : 0,   // > 0: vừa bung nở từ phát bắn Vũ Điệu (~1,8× lắng dần về cỡ nghỉ 1,4×)
         stopped: false,
         age: 0,
         fadeAt: null,       // tuổi lúc bắt đầu tan (mờ dần 0,3 giây)
@@ -1195,15 +1254,21 @@ export function spawnQueenOrb(id, x, z, { duration = 10000, radius = 2.5 } = {})
         }
         orb.step(dt);
         entry.age = fx.age;
-        entry.pulse = Math.max(0, entry.pulse - dt * 2.6);
-        const born = Math.min(1, fx.age / 0.3), e = easeOut(born);
+        entry.pulse = Math.max(0, entry.pulse - dt * 2.5);
+        entry.burst = Math.max(0, entry.burst - dt * 2.4);
+        const born = entry.burst > 0 ? 1 : Math.min(1, fx.age / 0.28), e = easeOut(born);
         const gone = entry.fadeAt == null ? 0 : Math.min(1, (fx.age - entry.fadeAt) / 0.3);
         const k = e * (1 - gone);
+        // Khi vừa bung từ danceShot: nở vọt lên cỡ ~1,8× (ORB_BURST_MULT ≈ 1.29× của ORB_REST_SCALE, đỉnh ~1.45×) rồi thu êm về 1.0×
+        const burstMul = entry.burst > 0 ? 1 + (ORB_BURST_MULT - 1 + 0.22 * Math.sin(entry.burst * Math.PI)) * entry.burst : 1;
+        const pulseMul = 1 + 0.28 * entry.pulse;
         orb.group.position.y = ORB_Y + Math.sin(fx.age * 2.6) * 0.08;
-        orb.group.scale.setScalar((0.4 + 0.6 * e) * (1 + 0.16 * entry.pulse) * (1 - 0.5 * gone));
+        orb.group.scale.setScalar((0.4 + 0.6 * e) * burstMul * pulseMul * (1 - 0.5 * gone));
         orb.group.visible = gone < 0.95;
-        orb.halo.material.opacity = (0.34 + 0.3 * entry.pulse) * k;
-        ground.scale.setScalar((0.6 + 0.4 * e) * (1 + 0.05 * entry.pulse));
+        orb.halo.scale.setScalar(1 + 0.45 * entry.pulse + 0.35 * entry.burst);
+        orb.halo.material.opacity = Math.min(1, (0.42 + 0.52 * entry.pulse + 0.35 * entry.burst) * k);
+        if (orb.contrast) orb.contrast.material.opacity = (0.28 + 0.14 * entry.pulse) * k;
+        ground.scale.setScalar((0.6 + 0.4 * e) * (1 + 0.06 * entry.pulse));
         ground.material.opacity = (0.9 + 0.1 * entry.pulse) * k;
         if (gone >= 1) { entry.stopped = true; fx.life = fx.age; }
     });
@@ -1211,16 +1276,30 @@ export function spawnQueenOrb(id, x, z, { duration = 10000, radius = 2.5 } = {})
     return entry;
 }
 
-/** `orbTick`: quả cầu vừa gây sát thương -> phập phồng nhẹ + 1 gợn sáng mảnh loang ra tới mép bán kính */
+/** `orbTick`: quả cầu vừa gây sát thương -> loé sáng rực rỡ (tia sao + chớp tâm + gợn sóng mặt đất) */
 export function tickQueenOrb(id, { radius = 2.5 } = {}) {
     const entry = activeOrbs.get(String(id ?? '0'));
     if (!entry) return;
     entry.pulse = 1;
+    // Chớp loé tia sao trắng-vàng rực ngay tại tâm Sunburst
+    const flare = fxPlane(queenOrbTexture(), 4.2, 4.2, { color: WHITE_GOLD, opacity: 0.95 });
+    flare.position.set(entry.x, GROUND_Y + ORB_Y, entry.z + 0.28);
+    addAnim(flare, 0.38, (p, fx) => {
+        fx.mesh.scale.setScalar(0.55 + easeOut(p) * 0.95);
+        fx.mesh.rotation.z = p * 0.45;
+        fx.mesh.material.opacity = 0.95 * (1 - p);
+    });
+    const flash = fxPlane(glowTexture(), 3.4, 3.4, { color: GOLD_BRIGHT, opacity: 0.85 });
+    flash.position.set(entry.x, GROUND_Y + ORB_Y, entry.z + 0.24);
+    addAnim(flash, 0.3, (p, fx) => {
+        fx.mesh.scale.setScalar(0.65 + easeOut(p) * 0.85);
+        fx.mesh.material.opacity = 0.85 * (1 - p);
+    });
     const ripple = floorPlane(ringTexture(), radius * 2 * (128 / 104), { color: WHITE_GOLD, opacity: 0 });
     ripple.position.set(entry.x, FLOOR_Y + 0.02, entry.z);
     addAnim(ripple, 0.5, (p, fx) => {
         fx.mesh.scale.setScalar(0.25 + 0.75 * easeOut(p));
-        fx.mesh.material.opacity = 0.7 * (1 - p) * Math.min(1, p * 8);
+        fx.mesh.material.opacity = 0.85 * (1 - p) * Math.min(1, p * 8);
     });
 }
 
@@ -1232,26 +1311,28 @@ export function removeQueenOrb(id, burst = true) {
     if (!burst) { entry.stop(); return; }
     // hết giờ: mờ dần + 1 chớp sáng nhỏ
     entry.fadeAt = entry.age ?? 0;
-    const flash = fxPlane(glowTexture(), 1.6, 1.6, { color: GOLD_BRIGHT, opacity: 0.7 });
+    const flash = fxPlane(glowTexture(), 2.1, 2.1, { color: GOLD_BRIGHT, opacity: 0.75 });
     flash.position.set(entry.x, GROUND_Y + ORB_Y, entry.z + 0.3);
     addAnim(flash, 0.3, (p, fx) => {
-        fx.mesh.scale.setScalar(0.7 + easeOut(p) * 0.8);
-        fx.mesh.material.opacity = 0.7 * (1 - p);
+        fx.mesh.scale.setScalar(0.7 + easeOut(p) * 0.85);
+        fx.mesh.material.opacity = 0.75 * (1 - p);
     });
 }
 
-/** Tâm vòng quả cầu sau lưng Hậu + chỗ của quả thứ i lúc `t` giây (vòng đứng, quay đều) */
-const DANCE_R = 1.25;
+/** Tâm vòng quả cầu sau lưng Hậu + chỗ của quả thứ i lúc `t` giây (cách đều, vòng đứng xoay chậm) */
+const DANCE_R = 1.35;
+const DANCE_SPIN = 1.65;
 function danceSlot(queenView, fallback, i, n, t) {
     const q = queenView?.position ?? fallback ?? { x: 0, z: 0 };
     const dir = queenView?.facingLeft ? -1 : 1;
     const h = queenView?.height ?? 2.4;
-    const a = (i / Math.max(1, n)) * Math.PI * 2 + t * 2.4;
+    const a = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2 + t * DANCE_SPIN;
     return { x: q.x - dir * 0.55 + Math.cos(a) * DANCE_R, y: GROUND_Y + h * 0.62 + Math.sin(a) * DANCE_R, z: (q.z ?? 0) - 0.25 };
 }
 
 /**
- * `dance` (lúc bắt đầu niệm): thu các quả đang nằm trên sân (recalled) về sau lưng Hậu, thêm cho đủ `count` quả, xếp thành vòng xoay chờ bắn.
+ * `dance` (lúc bắt đầu niệm): các quả đang nằm trên sân (recalled) thu lại thành quả cầu TRÒN trơn phát sáng (không tia),
+ * bay về sau lưng Hậu, thêm cho đủ `count` quả, xếp cách đều trên vòng xoay chậm chờ bắn.
  * Từng phát bắn do `danceShot` -> fireQueenDanceShot.
  */
 export function spawnQueenDance(casterId, summonIdx, queenView, { recalled = [], count = 2, castTime = 1000, gap = 250, fallbackPos = null } = {}) {
@@ -1263,17 +1344,25 @@ export function spawnQueenDance(casterId, summonIdx, queenView, { recalled = [],
         queenView.playAction?.('skill');
         queenView.flashMagicCircle?.(lifeSec - 0.6);
     }
-    // chỗ các quả cũ đang nằm -> bay về từ đó; quả thêm thì hiện ra ngay cạnh Hậu
+    // chỗ các quả cũ đang nằm -> thu tia lại thành cầu tròn rồi bay về từ đó; quả thêm thì hiện ra ngay cạnh Hậu
     const starts = [];
     recalled.forEach((id) => {
         const ex = activeOrbs.get(String(id));
-        if (ex) starts.push({ x: ex.x, y: GROUND_Y + ORB_Y, z: ex.z });
+        if (ex) {
+            starts.push({ x: ex.x, y: GROUND_Y + ORB_Y, z: ex.z });
+            const shrink = fxPlane(glowTexture(), 2.0, 2.0, { color: WHITE_GOLD, opacity: 0.75 });
+            shrink.position.set(ex.x, GROUND_Y + ORB_Y, ex.z + 0.2);
+            addAnim(shrink, 0.22, (q, f2) => {
+                f2.mesh.scale.setScalar(1.2 - 0.8 * easeOut(q));
+                f2.mesh.material.opacity = 0.75 * (1 - q);
+            });
+        }
         removeQueenOrb(id, false);
     });
     const holder = new THREE.Group();
     const orbs = [];
     for (let i = 0; i < total; i++) {
-        const o = makeLightOrb(0.3, i + 3);
+        const o = makeRoundOrb(ORB_DANCE_SCALE);
         const q = queenView?.position ?? fallbackPos ?? { x: 0, z: 0 };
         const from = starts[i] ?? { x: q.x, y: GROUND_Y + (queenView?.height ?? 2.4) * 0.6, z: q.z ?? 0 };
         orbs.push({ ...o, from, fresh: !starts[i], fired: false, pos: { ...from } });
@@ -1300,7 +1389,7 @@ export function spawnQueenDance(casterId, summonIdx, queenView, { recalled = [],
             o.pos.y = o.from.y + (s.y - o.from.y) * u + Math.sin(u * Math.PI) * (o.fresh ? 0 : 1.2);   // quả cũ bay vồng lên rồi về vòng
             o.pos.z = o.from.z + (s.z - o.from.z) * u;
             o.group.position.set(o.pos.x, o.pos.y, o.pos.z);
-            o.group.scale.setScalar(o.fresh ? 0.2 + 0.8 * u : 1 - 0.0 * u);
+            o.group.scale.setScalar(o.fresh ? 0.25 + 0.75 * u : 1);
             o.step(dt);
         });
     });
@@ -1308,56 +1397,111 @@ export function spawnQueenDance(casterId, summonIdx, queenView, { recalled = [],
 }
 
 /**
- * `danceShot`: quả thứ `n` rời vòng sau lưng Hậu, lao thành VỆT SÁNG tới (x, z) trong `flight` ms rồi nổ sáng ở đó (onHit: hiện số sát thương).
- * Quả Quang Cầu mới ở chỗ đó do sự kiện `orb` của máy chủ tạo ngay sau.
+ * Khi phát bắn Vũ Điệu chạm đích: bung nở thành Sunburst lớn (~1,8× cỡ cũ, lớn hơn quả cầu nghỉ 1,4×)
+ * rồi lắng mượt về quả cầu Sunburst nằm trên sân do sự kiện `orb` tạo ngay sau.
+ */
+function spawnDanceShotSunburst(x, z, seed = 1) {
+    // Nếu quả `orb` tại (x, z) vừa được tạo sớm hơn vài ms, kích hoạt luôn pha bung nở trên quả đó để không vẽ trùng 2 Sunburst
+    for (const orb of activeOrbs.values()) {
+        if (!orb.stopped && orb.age < 0.35 && Math.hypot(orb.x - x, orb.z - z) < 0.65) {
+            orb.burst = 1;
+            orb.pulse = 1;
+            return;
+        }
+    }
+    const burstOrb = makeSunburstOrb(ORB_REST_SCALE, seed);
+    burstOrb.group.position.set(x, GROUND_Y + ORB_Y, z - 0.55);
+    const record = {
+        x,
+        z,
+        claimed: false,
+        stopped: false,
+        stop: () => {
+            record.stopped = true;
+            burstOrb.group.visible = false;
+        },
+    };
+    activeShotBursts.add(record);
+    addAnim(burstOrb.group, 0.52, (q, fx, dt = 0.016) => {
+        if (record.stopped) {
+            activeShotBursts.delete(record);
+            fx.life = fx.age;
+            return;
+        }
+        burstOrb.step(dt);
+        // Nở vọt từ quả cầu tròn thành Sunburst lớn (~1,8× cỡ cũ = ORB_BURST_MULT × cỡ nghỉ, đỉnh ~1.45× cỡ nghỉ) rồi thu về 1.0× cỡ nghỉ
+        let s;
+        if (q < 0.22) {
+            s = 0.55 + easeOut(q / 0.22) * (ORB_BURST_MULT + 0.16 - 0.55);
+        } else {
+            const u = (q - 0.22) / 0.78;
+            s = 1 + (ORB_BURST_MULT + 0.16 - 1) * (1 - easeOut(u));
+        }
+        const fade = q > 0.78 ? (1 - q) / 0.22 : 1;
+        burstOrb.group.scale.setScalar(s);
+        burstOrb.halo.material.opacity = 0.75 * fade;
+        if (burstOrb.contrast) burstOrb.contrast.material.opacity = 0.28 * fade;
+        if (q >= 1) activeShotBursts.delete(record);
+    });
+}
+
+/**
+ * `danceShot`: quả cầu tròn thứ `n` rời vòng sau lưng Hậu, lao thành VỆT SÁNG tới (x, z) trong `flight` ms,
+ * chạm đích thì bung nở thành Sunburst lớn (~1,8×) rồi lắng vào quả Quang Cầu nằm trên sân do sự kiện `orb` tạo.
  */
 export function fireQueenDanceShot(casterId, summonIdx, queenView, { n = 1, x = 0, z = 0, flight = 200, onHit = null, fallbackPos = null } = {}) {
     const state = activeDances.get(pieceKey(casterId, summonIdx));
     let o = state?.orbs.find((q, i) => !q.fired && i === (n ?? 1) - 1) ?? state?.orbs.find(q => !q.fired);
     if (o) { o.fired = true; state.holder.remove(o.group); }
     else {
-        // không còn vòng (vào trận giữa chừng...): bắn thẳng từ chỗ Hậu
+        // không còn vòng (vào trận giữa chừng...): bắn thẳng từ chỗ Hậu bằng quả cầu tròn
         const q = queenView?.position ?? fallbackPos ?? { x: 0, z: 0 };
-        o = { ...makeLightOrb(0.3, n + 3), pos: { x: q.x, y: GROUND_Y + 1.6, z: q.z ?? 0 } };
+        o = { ...makeRoundOrb(ORB_DANCE_SCALE), pos: { x: q.x, y: GROUND_Y + 1.6, z: q.z ?? 0 } };
     }
     const from = { ...o.pos }, to = { x: x ?? 0, y: GROUND_Y + ORB_Y, z: z ?? 0 };
     const dur = Math.max(0.08, (flight ?? 200) / 1000);
     const len = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z) || 1;
-    // vệt sáng: 1 dải sáng kéo dài sau quả cầu, nằm dọc theo hướng bay
-    const streak = fxPlane(glowTexture(), 1, 0.5, { color: WHITE_GOLD, opacity: 0.9 });
+    // vệt sáng: dải sáng rực kéo dài sau quả cầu tròn, nằm dọc theo hướng bay
+    const streak = fxPlane(glowTexture(), 1, 0.62, { color: WHITE_GOLD, opacity: 0.95 });
+    const coreStreak = fxPlane(pieceBoltTexture('queen'), 1, 0.52, { additive: true, opacity: 0.9 });
     const g = new THREE.Group();
-    g.add(streak, o.group);
+    g.add(streak, coreStreak, o.group);
     o.group.position.set(0, 0, 0);
-    o.group.scale.setScalar(1.15);
+    o.group.scale.setScalar(1.08);
     let age = 0, done = false, puffT = 0;
     addAnim(g, dur + 0.05, (p, fx, dt = 0.016) => {
         age += dt;
         const u = Math.min(1, age / dur), e = u * u * (3 - 2 * u) * 0.4 + u * 0.6;
         const px = from.x + (to.x - from.x) * e, py = from.y + (to.y - from.y) * e + Math.sin(e * Math.PI) * 0.5, pz = from.z + (to.z - from.z) * e;
         g.position.set(px, py, pz + 0.3);
-        const ang = Math.atan2(to.y - from.y, to.x - from.x);
-        const tail = Math.min(len * e, 3.2);
-        streak.scale.set(Math.max(0.3, tail), 1, 1);
+        const vy = (to.y - from.y) + Math.cos(e * Math.PI) * Math.PI * 0.5;
+        const ang = Math.atan2(vy, to.x - from.x);
+        const tail = Math.min(len * e, 3.6);
+        streak.scale.set(Math.max(0.35, tail), 1, 1);
         streak.rotation.z = ang;
         streak.position.set(-Math.cos(ang) * tail * 0.5, -Math.sin(ang) * tail * 0.5, -0.02);
+        coreStreak.scale.set(Math.max(0.3, tail * 0.85), 1, 1);
+        coreStreak.rotation.z = ang;
+        coreStreak.position.set(-Math.cos(ang) * tail * 0.42, -Math.sin(ang) * tail * 0.42, -0.01);
         o.step(dt);
         puffT += dt;
         if (puffT > 0.03) {
             puffT = 0;
-            const puff = fxPlane(glowTexture(), 0.5, 0.5, { color: GOLD_BRIGHT, opacity: 0.5 });
+            const puff = fxPlane(glowTexture(), 0.58, 0.58, { color: GOLD_BRIGHT, opacity: 0.55 });
             puff.position.set(px, py, pz + 0.28);
-            addAnim(puff, 0.3, (q, f2) => { f2.mesh.scale.setScalar(1 + q * 1.3); f2.mesh.material.opacity = 0.5 * (1 - q); });
+            addAnim(puff, 0.28, (q, f2) => { f2.mesh.scale.setScalar(1 + q * 1.35); f2.mesh.material.opacity = 0.55 * (1 - q); });
         }
         if (u >= 1 && !done) {
             done = true;
-            // nổ sáng ở đích: chớp trắng-vàng + tia lửa điểm ảnh + 1 gợn sáng trên đất
-            const flash = fxPlane(glowTexture(), 2.6, 2.6, { color: WHITE_GOLD, opacity: 0.95 });
+            // chạm đích: quả cầu tròn bung nở thành Sunburst lớn (~1,8×) rồi lắng về quả Sunburst nằm trên sân (`orb`)
+            spawnDanceShotSunburst(to.x, to.z, (n ?? 1) + 5);
+            const flash = fxPlane(queenOrbTexture(), 3.8, 3.8, { color: WHITE_GOLD, opacity: 0.95 });
             flash.position.set(to.x, to.y, to.z + 0.35);
-            addAnim(flash, 0.26, (q, f2) => { f2.mesh.scale.setScalar(0.5 + easeOut(q) * 1.1); f2.mesh.material.opacity = 0.95 * (1 - q); });
-            spawnPixelFx('impacts/hit-spark', { pos: { x: to.x, z: to.z }, palette: 'holy', scale: 0.9 });
+            addAnim(flash, 0.3, (q, f2) => { f2.mesh.scale.setScalar(0.55 + easeOut(q) * 1.25); f2.mesh.material.opacity = 0.95 * (1 - q); });
+            spawnPixelFx('impacts/hit-spark', { pos: { x: to.x, z: to.z }, palette: 'holy', scale: 0.95 });
             const ripple = floorPlane(ringTexture(), 5 * (128 / 104), { color: GOLD_BRIGHT, opacity: 0 });
             ripple.position.set(to.x, FLOOR_Y + 0.02, to.z);
-            addAnim(ripple, 0.4, (q, f2) => { f2.mesh.scale.setScalar(0.2 + 0.8 * easeOut(q)); f2.mesh.material.opacity = 0.8 * (1 - q); });
+            addAnim(ripple, 0.42, (q, f2) => { f2.mesh.scale.setScalar(0.2 + 0.8 * easeOut(q)); f2.mesh.material.opacity = 0.85 * (1 - q); });
             onHit?.();
             fx.life = fx.age;
         }
@@ -1897,6 +2041,8 @@ export function clearChessFx() {
     activeJudges.clear();
     for (const orb of activeOrbs.values()) orb.stop();
     activeOrbs.clear();
+    for (const b of activeShotBursts) b.stop();
+    activeShotBursts.clear();
     for (const st of activeDances.values()) st.stop();
     activeDances.clear();
     boardByTeam.clear();

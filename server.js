@@ -643,6 +643,8 @@ const CLASS_DEFS = {
         crit: 150, critDmg: 500, acc: 1000, dodge: 80, block: 0, threat: 100,
         atkSpeed: 900, range: 'melee', atkRange: 2.4, moveSpeed: 0.012, autoHitFrame: 2, autoImpact: 200,
         every: 4, multiplier: 1.4, jumpGap: 1.2, jumpImpact: 350, jumpLock: 450,
+        // ra sân (gọi bằng nút): hiện ở CUỐI đội hình rồi lao thẳng về phía địch, đâm đối thủ đầu tiên gặp trên đường ×chargeMultiplier (chessKnightCharge)
+        chargeMultiplier: 1.2, chargeSpeed: 22, chargeLane: 2, chargeMin: 250, chargeMax: 900, chargeGap: 1.2,
         forkRange: 7, forkCount: 2, strikeMultiplier: 1.2, forkStun: 1000, forkLock: 500,
         skills: [], passives: []
     },
@@ -3490,31 +3492,40 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     }
 
     if (member.classId === 'chessmaster') {
-        // Leon (spec 5.8): Chiếu Tướng có là dùng · đồng đội dưới 60% máu -> Nước Cờ Thủ · mở cánh thủ trước nếu đội không có Chiến Binh còn sống
-        //   (ngược lại mở cánh công) -> đủ cánh thì gọi quân chúa -> xây nốt cánh kia · quân chết: gọi lại ngay khi đủ Orb (để dành Orb cho quân đang cần gọi)
-        //   · không còn quân nào cần gọi: chiêu 2 của quân chúa (khi có đối thủ trong vùng), Nước Cờ Công
+        // Leon (giá mới: Tốt / Mã 1 · Xe / Tượng 3 · Vua / Hậu 4 · nước cờ 2 · chiêu quân chúa 3 · Chiếu Tướng 4 Orb; thanh tối đa 5 Orb):
+        //   Chiếu Tướng có là dùng · mở cánh thủ trước nếu đội không có Chiến Binh còn sống (ngược lại mở cánh công): quân 1 -> quân 2 -> quân chúa,
+        //   trong lúc đó KHÔNG tiêu Orb vào việc gì khác (1 + 3 + 4 Orb: tiêu lung tung là không bao giờ gọi nổi quân chúa)
+        //   · có quân chúa rồi: gọi quân còn thiếu / quân vừa chết trước (để dành Orb cho quân đang cần gọi) -> đồng đội dưới 60% máu: Nước Cờ Thủ
+        //   -> chiêu 2 của quân chúa (khi có đối thủ trong vùng) -> Nước Cờ Công -> dư Orb: Nước Cờ Thủ.
+        //   · đang có cả Vua và Hậu: mọi khoản tiêu khác phải chừa đủ để Chiếu Tướng (4 Orb) kịp đủ Orb lúc nó hồi xong (ước lượng theo tốc độ hồi Orb).
         const c = chessState(member), mode = (i) => skillsOf(member)[i]?.mode;
         const ok = (i) => ready(i) && skillUsable(member, i);
         const isSummon = (i) => !!CHESS_UNITS[mode(i)];
         // nút gọi quân đã hết hồi, chỉ còn thiếu Orb -> để dành, không tiêu vào việc khác
         const needsOrb = (i) => isSummon(i) && skillUsable(member, i) && now >= member.skillCooldowns[i] && !ready(i) && foeInReach(member, null, opponentData.squad, now);
         if (mode(2) === 'checkmate' && ok(2)) return 2;
-        const hurt = allies.some(a => a.alive && (!a.summon || a.chessKind) && hpPct(a) < 0.6);
-        if (mode(0) === 'guardMove' && hurt && ok(0)) return 0;
         const first = allies.some(a => a.alive && !a.summon && CLASS_DEFS[a.classId]?.classGroup === 'warrior') ? 1 : 0;
         if (!c.royalEver) {
             // chưa có quân chúa lần nào: dồn Orb cho cánh mở đầu, đủ cánh thì gọi quân chúa
             if (isSummon(first)) return ok(first) ? first : -1;
+            if (isSummon(1 - first)) return ok(1 - first) ? 1 - first : -1;   // (cánh kia đã được chọn bằng tay: nút cánh mở đầu đang khoá)
             if (isSummon(2)) return ok(2) ? 2 : -1;
+            return -1;
         }
         for (const i of [2, first, 1 - first]) if (isSummon(i) && ok(i)) return i;
         if ([2, first, 1 - first].some(needsOrb)) return -1;
+        // để dành cho Chiếu Tướng: tiêu `cost` Orb xong, cộng phần hồi thêm tới lúc Chiếu Tướng hồi chiêu xong, vẫn phải đủ giá của nó
+        const regen = (member.mpSec ?? 0) + (member.mpAtk ?? 0) * 1000 / Math.max(300, member.atkSpeed ?? 1000);
+        const mateCost = mode(2) === 'checkmate' ? (skillsOf(member)[2]?.orbCost ?? 4) * ORB_COST : 0;
+        const spare = (i) => !mateCost || member.mp - (skillsOf(member)[i]?.orbCost ?? 0) * ORB_COST + regen * cdLeft(2) / 1000 >= mateCost;
+        const hurt = allies.some(a => a.alive && (!a.summon || a.chessKind) && hpPct(a) < 0.6);
+        if (mode(0) === 'guardMove' && hurt && ok(0) && spare(0)) return 0;
         if ((mode(2) === 'kingSkill' || mode(2) === 'queenSkill') && ok(2)) {
             const royal = chessPieces(playerData, idx)[mode(2) === 'kingSkill' ? 'king' : 'queen'];
             if (royal && chessRoyalWorth(royal.unit, opponentData, now)) return 2;
         }
-        if (mode(1) === 'strikeMove' && ok(1)) return 1;
-        if (mode(0) === 'guardMove' && orbs >= 4 && ok(0)) return 0;   // dư Orb: không để tràn
+        if (mode(1) === 'strikeMove' && ok(1) && spare(1)) return 1;
+        if (mode(0) === 'guardMove' && orbs >= 4 && ok(0) && spare(0)) return 0;   // dư Orb: không để tràn
         return -1;
     }
 
@@ -7347,7 +7358,7 @@ function processVoid(room, pid, idx, oppId, now) {
 //   ĐỢT 2 (task B4–B6): Vua (Vương Miện, Phán Quyết), Hậu (Quang Cầu, Vũ Điệu Quang Cầu), bàn cờ, Thí Quân, Phong Cấp, Chiếu Tướng, AI riêng (autoChooseSkill).
 //   Quân cờ là thành viên thật của đội (summon: true, chessKind, ownerIdx = vị trí Leon), ở lại tới khi bị giết; Leon gục thì quân vẫn đánh tiếp.
 //   Sự kiện gửi máy khách: 'chessFx' { casterId, casterIdx (Leon), kind, ... } — kind đã dùng: summon · command · pawnSlash · castle · knightJump · fork ·
-//   drain · drainTick · drainEnd · bind · pawnGuard · crown · judgeStart · judgeSlam · orb · orbTick · orbGone · dance · danceShot · board · promote · sacrifice · checkmate.
+//   knightCharge · drain · drainTick · drainEnd · bind · pawnGuard · crown · judgeStart · judgeSlam · orb · orbTick · orbGone · dance · danceShot · board · promote · sacrifice · checkmate.
 //   Hiệu ứng trạng thái đợt 2: `chess_crown { hp, maxHp, defUp, heal, x2, kingSlot }`, `chess_sacrifice` (khiên) · `chess_judging { stored }` (Vua đang niệm) ·
 //   `chess_dancing` (Hậu đang niệm). Trên đội: `chessOrbs` (quang cầu), `chessBoardKey`. Hiệu ứng trạng thái đợt 1: `chess_pawn_shield`, `chess_castle` (khiên) · `chess_castle_guard { value }` (giảm sát thương nhận) ·
 //   `chess_drain { targetPid, targetIdx, endTime, next, mode }` (trên Tượng) · `chess_bound { value }` (trên kẻ bị trói: −thủ).
@@ -7355,19 +7366,22 @@ function processVoid(room, pid, idx, oppId, now) {
 const CHESS_UNITS = { pawn: 'chess_pawn', rook: 'chess_rook', knight: 'chess_knight', bishop: 'chess_bishop', king: 'chess_king', queen: 'chess_queen' };
 /** Bảng chế độ nút: tên / giá Orb / hồi chiêu / hình (src/assets/skills/<icon>.webp). Chế độ trùng tên 1 loại quân = "gọi quân đó" */
 const CHESS_MODES = {
-    pawn: { name: 'Gọi Tốt', orbCost: 1, cooldown: 1000, icon: 'chess_pawn' },
-    rook: { name: 'Gọi Xe', orbCost: 2, cooldown: 1000, icon: 'chess_rook' },
-    guardMove: { name: 'Nước Cờ Thủ', orbCost: 1, cooldown: 8000, icon: 'chess_guard' },
-    knight: { name: 'Gọi Mã', orbCost: 1, cooldown: 1000, icon: 'chess_knight' },
-    bishop: { name: 'Gọi Tượng', orbCost: 2, cooldown: 1000, icon: 'chess_bishop' },
-    strikeMove: { name: 'Nước Cờ Công', orbCost: 1, cooldown: 8000, icon: 'chess_strike' },
+    pawn: { name: 'Gọi Tốt', orbCost: 1, cooldown: 3000, icon: 'chess_pawn' },
+    rook: { name: 'Gọi Xe', orbCost: 3, cooldown: 3000, icon: 'chess_rook' },
+    guardMove: { name: 'Nước Cờ Thủ', orbCost: 2, cooldown: 6000, icon: 'chess_guard' },
+    knight: { name: 'Gọi Mã', orbCost: 1, cooldown: 3000, icon: 'chess_knight' },
+    bishop: { name: 'Gọi Tượng', orbCost: 3, cooldown: 3000, icon: 'chess_bishop' },
+    strikeMove: { name: 'Nước Cờ Công', orbCost: 2, cooldown: 6000, icon: 'chess_strike' },
     locked: { name: 'Chưa Đủ Thế Cờ', orbCost: 0, cooldown: 0, icon: 'chess_locked', locked: true },
-    king: { name: 'Gọi Vua', orbCost: 3, cooldown: 1000, icon: 'chess_king' },
-    queen: { name: 'Gọi Hậu', orbCost: 3, cooldown: 1000, icon: 'chess_queen' },
-    kingSkill: { name: 'Phán Quyết', orbCost: 2, cooldown: 12000, icon: 'chess_kingskill' },
-    queenSkill: { name: 'Vũ Điệu Quang Cầu', orbCost: 2, cooldown: 12000, icon: 'chess_queenskill' },
-    checkmate: { name: 'Chiếu Tướng', orbCost: 3, cooldown: 20000, icon: 'chess_checkmate' },
+    king: { name: 'Gọi Vua', orbCost: 4, cooldown: 15000, icon: 'chess_king' },
+    queen: { name: 'Gọi Hậu', orbCost: 4, cooldown: 15000, icon: 'chess_queen' },
+    kingSkill: { name: 'Phán Quyết', orbCost: 3, cooldown: 6000, icon: 'chess_kingskill' },
+    queenSkill: { name: 'Vũ Điệu Quang Cầu', orbCost: 3, cooldown: 6000, icon: 'chess_queenskill' },
+    checkmate: { name: 'Chiếu Tướng', orbCost: 4, cooldown: 10000, icon: 'chess_checkmate' },
 };
+/** Nước cờ riêng của từng quân cánh (Tốt Giữ Lối · Xe Nhập Thành · Mã Chiếu Đôi · Tượng Trói Buộc) hồi RIÊNG trên từng quân: dùng xong quân đó chờ chừng này mới ra nước cờ lần nữa
+ *  (ngoài hồi chiêu 6 giây của nút). Ghi trên quân: `moveReadyAt`. */
+const CHESS_MOVE_CD = 10000;
 /** Bàn cờ ánh sáng (hiện suốt lúc còn Vua hoặc Hậu): có Vua -> cả phe nhận ít hơn kingReduce · có Hậu -> quân cờ +queenDmg sát thương, +queenSpeed tốc đánh */
 const CHESS_BOARD = { kingReduce: 0.15, queenDmg: 0.20, queenSpeed: 0.20 };
 const CHESS_ROYAL_AUTO = 14000;   // có cả Vua và Hậu: mỗi quân chúa tự dùng chiêu 2 của mình mỗi 14 giây
@@ -7430,11 +7444,21 @@ function chessRefresh(m, team, idx, now) {
 }
 /** Quân đang không làm theo lệnh được: bị khống chế hoặc đang bị Thần Chết phán quyết */
 const chessDisabled = (s, now) => isJudged(s, now) || s.statusEffects.some(e => CHESS_CC.includes(e.type) && e.endTime > now);
-/** Quân tới lượt của nước cờ cánh `wing` (luân phiên theo turn) nếu nó đang làm theo lệnh được: { kind, unit, slot }, không thì null */
+/**
+ * Quân sẽ ra nước cờ của cánh `wing` nếu bấm lúc này: { kind, unit, slot }, không thì null (nút không bấm được).
+ *   · Bình thường là quân TỚI LƯỢT (2 quân luân phiên theo turn). Quân tới lượt không còn / đang bị khống chế -> null.
+ *   · Quân tới lượt còn đang hồi nước cờ riêng (moveReadyAt, CHESS_MOVE_CD) mà quân kia đã hồi xong và nhận lệnh được -> dùng quân kia.
+ *   · Cả hai đều đang hồi -> null.
+ */
 function chessMover(m, team, idx, wing, now) {
-    const kind = CHESS_WINGS[wing][chessState(m).turn[wing] % 2];
-    const p = chessPieces(team, idx)[kind];
-    return p && !chessDisabled(p.unit, now) ? { kind, ...p } : null;
+    const pieces = chessPieces(team, idx), order = CHESS_WINGS[wing], t = chessState(m).turn[wing] % 2;
+    const able = (kind) => { const p = pieces[kind]; return p && !chessDisabled(p.unit, now) ? { kind, ...p } : null; };
+    const cooled = (p) => now >= (p.unit.moveReadyAt ?? 0);
+    const first = able(order[t]);
+    if (!first) return null;
+    if (cooled(first)) return first;
+    const other = able(order[1 - t]);
+    return other && cooled(other) ? other : null;
 }
 /** Nút `idx` của Leon bấm được lúc này (ngoài Orb / hồi chiêu)? Nút khoá: không · gọi quân: quân đó chết đủ 5 giây · nước cờ: quân tới lượt nhận lệnh được · chiêu quân chúa: quân chúa rảnh */
 function chessUsable(m, idx) {
@@ -7479,13 +7503,19 @@ function chessUnit(room, m, idx, kind, x, z, now) {
  * Gọi 1 quân `kind` cho Leon ở vị trí `idx` (như summonSylvaUnit nhưng giữ M.ATK, không hết giờ, mỗi loại chỉ 1 quân trên sân).
  * Trả về vị trí quân trong đội (quân loại đó đang sống thì trả về quân đang có).
  */
-function summonChessPiece(room, pid, idx, kind, now) {
+function summonChessPiece(room, pid, idx, kind, now, { entrance = false } = {}) {
     const team = room.players[pid], m = team?.squad[idx];
     if (!m || !CLASS_DEFS[CHESS_UNITS[kind]]) return -1;
     const have = chessPieces(team, idx)[kind];
     if (have) return have.slot;
     const side = m.side === 'left' ? 1 : -1, [dx, dz] = CHESS_SPAWN[kind];
     const s = chessUnit(room, m, idx, kind, m.x + side * dx, (m.z || 0) + dz, now);
+    if (entrance && kind === 'knight') {
+        // Mã ra sân ở CUỐI đội hình: sau lưng đồng đội đứng xa phía địch nhất (anh hùng lẫn quân cờ còn sống) 1 ô
+        const mates = team.squad.filter(a => a.alive && !isVanished(a, now));
+        const rear = mates.reduce((r, a) => (!r || (a.x - r.x) * side < 0 ? a : r), null);
+        if (rear) { s.x = rear.x - side; s.z = rear.z || 0; clampToArena(s); }
+    }
     // quân cùng loại đã chết của Leon này: dùng lại đúng ô cũ trong đội
     let slot = team.squad.findIndex(o => !o.alive && o.chessKind === kind && o.ownerIdx === idx);
     if (slot >= 0) team.squad[slot] = s; else { slot = team.squad.length; team.squad.push(s); }
@@ -7496,7 +7526,42 @@ function summonChessPiece(room, pid, idx, kind, now) {
     if (!c.firstWing) c.firstWing = Object.keys(CHESS_WINGS).find(w => CHESS_WINGS[w].every(k => c.ever[k])) ?? null;
     emitChess(room.id, { casterId: pid, casterIdx: idx, kind: 'summon', piece: kind, summonIdx: slot, x: s.x, z: s.z, summon: true });
     chessRefresh(m, team, idx, now);
+    if (entrance && kind === 'knight') chessKnightCharge(room, pid, slot, now);
     return slot;
+}
+/**
+ * Mã vừa ra sân (ở cuối đội hình): lao THẲNG về phía địch, dừng ở đối thủ đầu tiên gặp trên đường — đối thủ có khoảng cách tiến lên nhỏ nhất trong làn ±chargeLane
+ * theo z; làn trống thì đối thủ gần nhất. Tới nơi (quãng đường / chargeSpeed, kẹp chargeMin..chargeMax ms) đâm ×chargeMultiplier P.ATK rồi đánh tiếp chính đối thủ đó.
+ * Lúc lao: Mã không tự di chuyển / đánh (khoá actionUntil) nhưng vẫn bị đánh trúng. Không còn đối thủ nào chọn được: không lao (đứng ở cuối đội, đánh như thường).
+ * Sự kiện: chessFx { kind: 'knightCharge', summonIdx, fromX, fromZ, x, z, time, targetId, targetIndex, effects[] } (sát thương trừ lúc tới nơi).
+ */
+function chessKnightCharge(room, pid, slot, now) {
+    const team = room.players[pid], s = team?.squad[slot];
+    const oppId = Object.keys(room.players).find(id => id !== pid), opp = room.players[oppId];
+    if (!s?.alive || !opp) return false;
+    const d = CLASS_DEFS.chess_knight, fwd = s.side === 'left' ? 1 : -1;
+    const foes = foesOf(opp, now).filter(o => canBeTargeted(o.e, now));
+    if (!foes.length) return false;
+    const ahead = (o) => (o.e.x - s.x) * fwd, far = (o) => Math.hypot(o.e.x - s.x, (o.e.z || 0) - (s.z || 0));
+    const lane = foes.filter(o => ahead(o) >= 0 && Math.abs((o.e.z || 0) - (s.z || 0)) <= d.chargeLane);
+    const pick = lane.length ? lane.reduce((a, b) => (ahead(b) < ahead(a) ? b : a)) : foes.reduce((a, b) => (far(b) < far(a) ? b : a));
+    const target = pick.e, dist = far(pick);
+    // dừng cách đối thủ chargeGap ô, trên đường thẳng từ chỗ xuất phát tới nó
+    const k = dist > d.chargeGap ? (dist - d.chargeGap) / dist : 0;
+    const from = { x: s.x, z: s.z || 0 }, to = { x: s.x + (target.x - s.x) * k, z: (s.z || 0) + ((target.z || 0) - (s.z || 0)) * k };
+    const time = Math.round(Math.min(d.chargeMax, Math.max(d.chargeMin, (dist * k) / d.chargeSpeed * 1000)));
+    s.actionUntil = Math.max(s.actionUntil ?? 0, now + time);
+    const eff = hitTarget(s, target, pick.i, opp, d.chargeMultiplier, now, { delay: time });
+    emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'knightCharge', summonIdx: slot, fromX: from.x, fromZ: from.z, x: to.x, z: to.z, time,
+        targetId: oppId, targetIndex: pick.i, effects: [eff] });
+    later(time, () => {
+        if (!s.alive || room.winner || team.squad[slot] !== s) return;
+        s.x = to.x; s.z = to.z;
+        clampToArena(s);
+        if (target.alive) { s.targetIndex = pick.i; s.lockedTargetIndex = -1; }
+        s.lastAttackTime = room.clock;
+    });
+    return true;
 }
 /** Kỹ năng của Leon (executeSkill): theo chế độ đang có của nút — gọi quân (ra sân sau `impact`), nước cờ, chiêu 2 của quân chúa, Chiếu Tướng */
 function castChessSkill(room, pid, idx, oppId, sk, now, effects, extra) {
@@ -7507,7 +7572,7 @@ function castChessSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     if (CHESS_UNITS[mode]) {
         ok = true;
         if (!c.wing) { chessPickWing(m, mode); chessRefresh(m, team, idx, now); }   // chọn cánh ngay lúc bấm (quân ra sân sau `impact`): nút cánh kia khoá liền, không kịp bấm chen
-        later(sk.impact ?? 0, () => { if (m.alive && !room.winner) summonChessPiece(room, pid, idx, mode, room.clock); });
+        later(sk.impact ?? 0, () => { if (m.alive && !room.winner) summonChessPiece(room, pid, idx, mode, room.clock, { entrance: true }); });
         extra.piece = mode; extra.impact = sk.impact ?? 0;
     } else if (CHESS_MOVE_WING[mode]) ok = chessCommand(room, pid, idx, CHESS_MOVE_WING[mode], now, extra);
     else if (mode === 'kingSkill' || mode === 'queenSkill') {
@@ -7531,7 +7596,8 @@ function chessCommand(room, pid, idx, wing, now, extra) {
     const oppId = Object.keys(room.players).find(id => id !== pid);
     const mover = chessMover(m, team, idx, wing, now);
     if (!mover) return false;
-    chessState(m).turn[wing]++;
+    chessState(m).turn[wing] = CHESS_WINGS[wing].indexOf(mover.kind) + 1;   // lần sau tới lượt quân kia
+    if (!team.debugNoMana) mover.unit.moveReadyAt = now + CHESS_MOVE_CD;     // nước cờ riêng của quân này vào hồi (chế độ thử "kỹ năng miễn phí": không hồi)
     emitChess(room.id, { casterId: pid, casterIdx: idx, kind: 'command', wing, piece: mover.kind, summonIdx: mover.slot });
     CHESS_MOVES[mover.kind]?.(room, pid, mover.slot, oppId, now);
     Object.assign(extra, { wing, piece: mover.kind, summonIdx: mover.slot });

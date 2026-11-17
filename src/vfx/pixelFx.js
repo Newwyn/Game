@@ -47,6 +47,7 @@ import * as voidOrb from '../vendor/pixelfx/fx/shadow/void-orb.js';
 import * as electrified from '../vendor/pixelfx/fx/lightning/electrified.js';
 import * as fireball from '../vendor/pixelfx/fx/fire/fireball.js';
 import * as divineShield from '../vendor/pixelfx/fx/holy/divine-shield.js';
+import * as sunburst from '../vendor/pixelfx/fx/holy/sunburst.js';
 import * as waterAura from './pixelfx-custom/water-aura.js';   // tự vẽ: Thủy Vũ Hoàn (Nerissa múa)
 import * as thrust from '../vendor/pixelfx/fx/melee/thrust.js';
 import * as clawSwipe from '../vendor/pixelfx/fx/melee/claw-swipe.js';
@@ -87,7 +88,7 @@ const LIB = {
     'arcane/blink-out': blinkOut, 'arcane/blink-in': blinkIn, 'explosions/smoke-bomb': smokeBomb,
     'holy/heal': heal, 'holy/resurrection': resurrection, 'nature/leaf-storm': leafStorm, 'holy/feather-burst': featherBurst, 'status/haste': haste, 'custom/hawk-sight': hawkSight, 'custom/cast-flash': castFlash, 'custom/water-hit': waterHit, 'water/ripples': ripples, 'fire/meteor': meteor,
     'ice/frost-breath': frostBreath, 'weather/blizzard': blizzardW, 'weather/storm': stormW, 'nature/tornado': tornado,
-    'shadow/void-orb': voidOrb, 'lightning/electrified': electrified, 'fire/fireball': fireball, 'holy/divine-shield': divineShield, 'custom/water-aura': waterAura, 'melee/thrust': thrust, 'melee/claw-swipe': clawSwipe,
+    'shadow/void-orb': voidOrb, 'lightning/electrified': electrified, 'fire/fireball': fireball, 'holy/divine-shield': divineShield, 'holy/sunburst': sunburst, 'custom/water-aura': waterAura, 'melee/thrust': thrust, 'melee/claw-swipe': clawSwipe,
     'explosions/small-explosion': smallExplosion, 'explosions/big-explosion': bigExplosion, 'fire/flame-pillar': flamePillar,
     'fire/fire-ring': fireRing, 'arcane/spell-charge': spellCharge,
     'melee/scythe-reap': scytheReap, 'shadow/dark-explosion': darkExplosion, 'shadow/curse': curse, 'nature/quake': quake, 'impacts/heavy-landing': heavyLanding, 'melee/uppercut': uppercut, 'water/splash': splash, 'water/wave-crash': waveCrash, 'ice/ice-shatter': iceShatter, 'nature/acid-splash': acidSplash, 'nature/poison-cloud': poisonCloud, 'nature/healing-bloom': healingBloom, 'nature/thorns': thorns,
