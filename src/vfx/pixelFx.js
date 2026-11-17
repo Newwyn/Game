@@ -68,6 +68,14 @@ import * as acidSplash from '../vendor/pixelfx/fx/nature/acid-splash.js';
 import * as poisonCloud from '../vendor/pixelfx/fx/nature/poison-cloud.js';
 import * as healingBloom from '../vendor/pixelfx/fx/nature/healing-bloom.js';
 import * as thorns from '../vendor/pixelfx/fx/nature/thorns.js';
+import * as arcaneMissiles from '../vendor/pixelfx/fx/arcane/arcane-missiles.js';
+import * as manaBurst from '../vendor/pixelfx/fx/arcane/mana-burst.js';
+import * as starFall from '../vendor/pixelfx/fx/arcane/star-fall.js';
+import * as portal from '../vendor/pixelfx/fx/arcane/portal.js';
+import * as blackHole from '../vendor/pixelfx/fx/shadow/black-hole.js';
+import * as shadowTendrils from '../vendor/pixelfx/fx/shadow/shadow-tendrils.js';
+import * as soulDrain from '../vendor/pixelfx/fx/shadow/soul-drain.js';
+import * as graspingHands from '../vendor/pixelfx/fx/shadow/grasping-hands.js';
 
 const LIB = {
     'melee/sword-slash': swordSlash, 'impacts/hit-spark': hitSpark, 'status/rage': rage, 'ui/exclamation': exclamation,
@@ -81,6 +89,10 @@ const LIB = {
     'explosions/small-explosion': smallExplosion, 'explosions/big-explosion': bigExplosion, 'fire/flame-pillar': flamePillar,
     'fire/fire-ring': fireRing, 'arcane/spell-charge': spellCharge,
     'melee/scythe-reap': scytheReap, 'shadow/dark-explosion': darkExplosion, 'shadow/curse': curse, 'nature/quake': quake, 'impacts/heavy-landing': heavyLanding, 'melee/uppercut': uppercut, 'water/splash': splash, 'water/wave-crash': waveCrash, 'ice/ice-shatter': iceShatter, 'nature/acid-splash': acidSplash, 'nature/poison-cloud': poisonCloud, 'nature/healing-bloom': healingBloom, 'nature/thorns': thorns,
+    'arcane/arcane-missiles': arcaneMissiles, 'arcane/mana-burst': manaBurst, 'arcane/star-fall': starFall, 'arcane/portal': portal,
+    'shadow/black-hole': blackHole, 'shadow/shadow-tendrils': shadowTendrils, 'shadow/soul-drain': soulDrain, 'shadow/grasping-hands': graspingHands,
+    'arcane-missiles': arcaneMissiles, 'mana-burst': manaBurst, 'spell-charge': spellCharge, 'star-fall': starFall, 'portal': portal, 'blink-in': blinkIn,
+    'black-hole': blackHole, 'shadow-tendrils': shadowTendrils, 'void-orb': voidOrb, 'soul-drain': soulDrain, 'grasping-hands': graspingHands,
 };
 
 /** Bật hiệu ứng pixelfx cho Rok (thử nghiệm 11/2026) — ?rokFx=old để xem bản cũ */
@@ -250,6 +262,9 @@ const HERO_SWING = {
     priest: ['custom/cast-flash', 'holy'], mage: ['custom/cast-flash', 'fire'], archer: ['custom/cast-flash', 'cyber'],
     dancer: null, alchemist: ['custom/cast-flash', 'poison'], summoner: ['custom/cast-flash', 'leaf'],
     sylva_eagle: ['custom/cast-flash', 'gold'], elementalist: ['custom/cast-flash', 'arcane'],
+    voidmage: ['custom/cast-flash', 'arcane'],
+    chessmaster: ['custom/cast-flash', 'gold'], chess_bishop: ['custom/cast-flash', 'arcane'], chess_queen: ['custom/cast-flash', 'holy'],
+    chess_pawn: ['melee/sword-slash', 'gold'], chess_rook: ['melee/thrust', 'gold'], chess_knight: ['melee/sword-slash', 'gold'], chess_king: ['melee/sword-slash', 'gold'],
 };
 const hexToRgb = (h) => { const n = parseInt(String(h).replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const toHex = (r, g, b) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -282,20 +297,21 @@ export function autoSwingFx(view, member, def, { palette } = {}) {
     spawnPixelFx(name, { view, follow: false, pos: { x: view.position.x, z: view.position.z }, palette: palette ?? pal ?? undefined, seed: (member.index ?? 0) + 3, scale: name === 'custom/cast-flash' ? 1.5 : 1 });
 }
 
-/** Hiệu ứng điểm ảnh BAY theo đường thẳng (Lốc Xoáy): from -> to trong `time` giây, xong mờ dần */
+/** Hiệu ứng điểm ảnh BAY theo đường thẳng (Lốc Xoáy): from -> to trong `time` giây (hoặc ms nếu > 10), xong mờ dần */
 export function spawnPixelMover(name, { from, to, time = 1, height = 2.9, scale = 1, palette, seed, flip = false, lift = 0, getPos = null } = {}) {
     const mod = LIB[name];
     if (!mod) return null;
+    const dur = Math.max(0.05, time > 10 ? time / 1000 : time);
     const layer = pixelLayer(mod, { height, scale, palette, seed, flip });
     const g = layer.group;
     let age = 0;
-    addAnim(g, time + 1, (p, fx, dt = 0) => {
+    addAnim(g, dur + 1, (p, fx, dt = 0) => {
         age += dt;
-        const k = Math.min(1, age / time);
+        const k = Math.min(1, age / dur);
         const q = getPos?.();   // bám theo 1 điểm (VD nắm đấm Golem) nếu có
         if (q) g.position.set(q.x, q.y, q.z ?? 0);
         else g.position.set(from.x + (to.x - from.x) * k, GROUND_Y + lift, (from.z ?? 0) + ((to.z ?? 0) - (from.z ?? 0)) * k);
-        if (age >= time) layer.stop();
+        if (age >= dur) layer.stop();
         if (dt > 0) layer.step(dt);
         if (layer.done()) fx.life = fx.age;
     });

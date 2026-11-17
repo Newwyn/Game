@@ -108,7 +108,7 @@ function onKeyDown(e) {
     if (e.code === 'KeyP' || e.code === 'Escape') ACTIONS.togglePause();
     else if (e.code === 'KeyT') ACTIONS.cycleSpeed();
     // V: xem thử góc camera chéo (dành cho bản đồ thế giới sau này) <-> góc ngang khi combat
-    else if (e.code === 'KeyV') cameraRig.setMode(cameraRig.getMode() === 'combat' ? 'explore' : 'combat');
+    else if (e.code === 'KeyV') cameraRig.toggleMode();
 }
 
 function onClick(e) {
