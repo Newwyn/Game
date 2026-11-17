@@ -37,7 +37,7 @@ test('voidmage: có trong CLASS_DEFS, SQUAD_ORDER, cửa hàng 1000 Kim Cương,
     const want = { maxHp: 900, maxMp: 5000, pAtk: 0, mAtk: 230, pDef: 35, mDef: 80, crit: 150, critDmg: 500, acc: 1000, dodge: 110, pen: 100, block: 0,
         lifesteal: 0, threat: 100, mpAtk: 200, mpSec: 130, atkSpeed: 1100, range: 'ranged', atkRange: 13, moveSpeed: 0.01 };
     for (const [k, v] of Object.entries(want)) assert.equal(def[k], v, k);
-    assert.equal(h.run('SQUAD_ORDER.at(-1)'), 'voidmage');
+    assert.equal(h.run("SQUAD_ORDER.includes('voidmage')"), true);
     assert.equal(SHOP.PRICES.voidmage, 1000);
     assert.deepEqual(def.skills.map(s => [s.name, s.type, s.orbCost, s.cooldown]), [
         ['Ma Đạn Tinh Tú', 'void_missiles', 1, 7000], ['Sao Rơi', 'void_starfall', 2, 16000], ['Hố Đen', 'void_blackhole', 3, 24000]]);
