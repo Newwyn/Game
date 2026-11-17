@@ -1,5 +1,7 @@
 # Thiết kế 2 anh hùng mới: Leon (Kỳ Vương) và Nyx (Hư Không)
 
+> **LƯU Ý (17/11/2026):** nhiều luật trong bản này đã đổi theo góp ý sau đó. Luật đúng hiện tại: mục 16–17/11/2026 trong `NHAT_KY_CAP_NHAT.md` và `server.js`.
+
 Ngày 16/11/2026. Người dùng đã chốt ý tưởng trong buổi thảo luận và bảo bắt tay làm ngay.
 Mục nào ghi **(Claude quyết)** là Claude tự chọn để lấp chỗ trống: người dùng đổi được, người làm không tự đổi.
 Anh hùng thứ ba (Kiếm tiên) chưa thảo luận, KHÔNG nằm trong bản này.

@@ -5,6 +5,60 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 16–17/11/2026 — Hai anh hùng mới: LEON (Kỳ Thủ, gọi quân cờ) và NYX (nữ Goblin pháp sư Hư Không)
+
+> Làm tiếp ở máy khác: đọc `docs/LAM_TIEP_LEON_NYX.md` (việc còn lại, cách mở game thử, cách vẽ bằng Flow / Meshy).
+> Bản thiết kế gốc `docs/superpowers/specs/2026-11-16-leon-nyx-design.md` đã CŨ ở nhiều chỗ — luật đúng hiện tại là phần dưới đây và trong `server.js`.
+
+**Trạng thái chung:** cả hai nhân vật chạy được từ đầu tới cuối trên nhánh `main`; `npm test` 276/276 bài qua; `npx vite build` qua. Mã nhân vật: Leon = `chessmaster` (giá 1200), Nyx = `voidmage` (giá 1000). Bài kiểm tra: `tests/chessmaster.test.js`, `tests/voidmage.test.js`.
+
+### NYX — Hư Không (`voidmage`)
+- **Giá Orb: 2 / 3 / 5.**
+- **Chiêu 1 Ma Đạn Tinh Tú:** 5 viên bắn lần lượt, mỗi viên bay vòng tới một đối thủ NGẪU NHIÊN (×0,5 sát thương phép, đốt 0,3 Orb, +1 tầng Xói Mòn). Hình viên đạn = Arcane Missiles của pixelfx (`src/vfx/pixelfx-custom/`), trúng thì nổ Mana Burst; sau viên cuối có 9 nhịp nổ nhỏ ×0,12 bán kính 3.
+- **Chiêu 2 Sao Rơi:** niệm 5 giây, sao rơi ngay từ lúc niệm (4 đợt lúc 0,5 / 1,7 / 2,9 / 4,1 giây), ×0,9 bán kính 5,5, choáng 0,5 giây; đợt 2 và 4 chí mạng.
+- **Chiêu 3 Hố Đen:** niệm 5 giây, hố NHỎ rồi TO DẦN; 3 đợt hút (1,5 / 3 / 4,5 giây, bán kính 4 / 6 / 8), mỗi đợt ×0,35 + choáng 0,5 giây; hết hút nổ ×0,6 bán kính 4; SAU ĐÓ xúc tu mới quất 3 lần ×1,1. Hồi 24 giây.
+- **Thiên phú 1 Xói Mòn:** giảm 6/8/10% kháng phép mỗi tầng (tối đa 5); +8% công phép mỗi khi đối thủ chết (tối đa 5); +15% chí mạng và +30% sát thương chí mạng mỗi khi đồng đội chết (tối đa 3).
+- **Thiên phú 2 Vỏ Hư Không:** đang niệm thì miễn khống chế + giảm 30/45% sát thương; chết hụt 1 lần: biến mất 3 giây rồi hiện lại sau lưng đồng đội đứng cuối với 30/50% máu.
+- Hiệu ứng niệm nằm ở ĐẦU GẬY (bảng `nyxStaffPoint` trong `src/vfx/voidFx.js`).
+- Hình: tạo hình S/SS/SSS + tấm đứng + tấm đánh do Codex vẽ (`art/nyx/`), 7 tấm động tác do Flow vẽ (`art/nyx/sprite_flow/`). Game đang dùng bộ SSS cho mọi bậc.
+
+### LEON — Kỳ Thủ (`chessmaster`)
+- **3 chiêu, mỗi chiêu đổi theo thế cờ.** Cánh THỦ: Tốt, Xe, Nước Cờ Thủ. Cánh CÔNG: Mã, Tượng, Nước Cờ Công. Chiêu 3: gọi Vua (cánh thủ) hoặc Hậu (cánh công).
+- **Khoá cánh:** đã chọn một cánh thì cánh kia bị khoá cho tới khi gọi được Vua hoặc Hậu.
+- **Giá Orb / hồi chiêu** (bảng `CHESS_MODES` trong `server.js`): Tốt 1 Orb / 3 giây · Xe 3 / 3 giây · Nước Cờ Thủ 2 / 6 giây · Mã 1 / 3 giây · Tượng 3 / 3 giây · Nước Cờ Công 2 / 6 giây · Vua 4 / 15 giây · Hậu 4 / 15 giây · chiêu của Vua 3 / 6 giây · chiêu của Hậu 3 / 6 giây · Chiếu Tướng (có cả Vua và Hậu) 4 / 10 giây. Mỗi quân cờ có hồi nước đi RIÊNG 10 giây; quân chết thì chờ 5 giây mới gọi lại.
+- **Phong cấp:** Tốt sống 12 giây (10 giây ở thiên phú bậc 2) -> thành Hậu (chỉ khi Vua đang trên sân); Mã sống 12 giây -> thành Vua (chỉ khi Hậu đang trên sân).
+- **Mã:** xuất hiện phía SAU đồng đội đứng cuối rồi tông thẳng tới đối thủ đầu tiên gặp trên đường, ×1,2.
+- **Tượng:** nước cờ = **Trói Buộc** (trói 2 giây đối thủ công cao nhất, −30% thủ / kháng phép lúc trói và 2 giây sau). Chiêu TỰ DÙNG 12 giây một lần = **Hút Cạn**: hút cả đội địch 2 giây (anh hùng thì hút Orb, quái hoặc hết Orb thì hút máu và hồi cho Tượng); hút xong 8 giây đánh thường thành **Energy Disc**, sát thương tăng theo lượng hút (+12% mỗi 0,5 Orb, cộng tỉ lệ máu hút được, tối đa +120%).
+- **Vua:** vương miện buff 15 giây một lần; **Phán Quyết** — niệm 3 giây, KHIÊU KHÍCH toàn bộ đối thủ, thanh gươm 3D hiện dần từ chuôi tới mũi rồi chém xuống.
+- **Hậu:** 3 giây tạo một quả cầu ánh sáng ngẫu nhiên, tồn tại 10 giây; **Vũ Điệu** — thu cầu về xoay sau lưng (cầu tròn) rồi bắn TỪNG QUẢ cách nhau 0,25 giây, bay ra thành Sunburst.
+- **Chiếu Tướng:** nâng đối thủ lên 1,5 giây, Eclipse hiện trên Hậu, gươm lớn chém xuống.
+- **Bàn cờ (chiêu 3):** sa bàn vàng do Codex vẽ (`art/leon/fx2/fx-wartable.png`) trải phẳng trên sân + toà thành Meshy hào quang vàng bay lơ lửng ở góc. Vua và Hậu có hào quang; Vua / Hậu to bằng Golem (cao 4,7 / 4,4), quân khác 2,3–3,3.
+- Hình: Leon 9 tấm SSS (Codex), 6 quân cờ: tấm đứng Codex + tấm động tác Flow (`art/leon/<quân>/flow/`), 27 icon chiêu (`art/icons/`, cắt bằng `tools/icon_cut.mjs` vào `src/assets/skills/`). Mô hình Meshy: `bld_chesscastle`, `prop_chesshill`, `prop_chesssword` (`src/assets/world3d/meshy/`).
+
+### Thay đổi chung
+- **Camera trận:** mặc định góc chéo từ trên xuống, nhớ lựa chọn (`localStorage battle_cam`), zoom 0,5–2,4; bấm vào thẻ một anh hùng thì camera bám theo người đó (thẻ viền vàng). Antigravity thêm nút 📷 Ngang / Chéo và cài đặt "Hiệu ứng chiêu" 3 mức (`settings.fxLevel`).
+- `MONSTER_SCALE_HEROES` giữ nguyên 11 anh hùng cũ (thêm anh hùng mới không làm đổi sức quái).
+- Công cụ: `tools/codex_draw.js` / `codex_batch.js` nhận nhiều ảnh mẫu; `tools/app_cdp.mjs` (mới đưa vào kho) điều khiển bản ứng dụng bằng chuột thật qua cổng gỡ lỗi để thử khi cửa sổ Claude bị ẩn.
+- Ai làm gì: Claude — luật trên máy chủ, bài kiểm tra, ghép, đóng gói hình, Flow, Meshy; Antigravity — phần lớn hiệu ứng phía máy khách (`voidFx.js`, `chessFx.js`, cầu Sunburst của Hậu, nút camera); Codex — tạo hình nhân vật, icon, sa bàn, ảnh mẫu thành / gươm (hết lượt giữa chừng nên tấm động tác chuyển sang Flow).
+
+### ĐÃ thấy chạy đúng trong game (bấm chuột thật, bản ứng dụng)
+3 chiêu Nyx + Vỏ Hư Không + hiện lại sau lưng đồng đội; gọi Tốt / Xe / Mã / Tượng / Vua, đổi thế cờ, bàn cờ, Phán Quyết, gươm Meshy; Trói Buộc; Hút Cạn tự động (số hút trên cả 3 đối thủ, dòng sáng chảy về Tượng); Energy Disc.
+
+### CHƯA nhìn tận mắt (mới có bài kiểm tra tự động hoặc chưa thử)
+- Toà thành bay (có thể nằm ngoài khung hình), hào quang Vua / Hậu, Vũ Điệu của Hậu, cầu Sunburst có nổi trên nền vàng không.
+- Eclipse đang ở TRÊN ĐẦU Hậu chứ chưa nằm trên tay (cần thêm điểm bàn tay).
+- Kiểu hút Orb khi đối thủ là anh hùng, PvP, nút AUTO trong trận thật, camera bám theo / zoom.
+- Vỏ Hư Không hơi thấp; Nyx quay mặt sang trái chưa soát.
+- Trận ngắn hiếm khi kịp gọi Vua (tổng 8 Orb).
+
+### Còn nợ / chờ bạn quyết
+1. 5 tấm Flow bị cắt mất vũ khí (Xe / Mã / Tượng / Vua đánh thường, chiêu của Tượng): vẽ lại bằng 6 khung thay vì 8?
+2. Gươm của Vua cao quá khung hình ở góc chéo: rút ngắn gươm, hay giữ và nâng camera lúc chém (đang làm cách sau)?
+3. Góc camera có lúc tự đổi chéo -> ngang mà không ai bấm (nghi nút 📷 mới) — chưa tìm nguyên nhân.
+4. Bộ hình bậc S và SS cho Leon + Nyx (36 tấm, Flow) chưa vẽ; ảnh chân dung `src/assets/portraits/chessmaster.png`, `voidmage.png` chưa có.
+5. Nhân vật thứ ba (Kiếm tiên) chưa bàn. Sau đó: làm lại giao diện màn chọn ải / trang bị / túi đồ.
+6. Chưa cập nhật `BAN_THIET_KE_GAME.md` §5–6 và `DOCUMENTATION.md` cho 2 nhân vật mới.
+
 ## 14/11/2026 (5) — Sửa theo người chơi thử bản cài: Tool mở trong ứng dụng, vách đá, sương, lúa mì
 
 - **Tool thử trong bản cài nhảy ra trình duyệt** (và không điều khiển được game): `electron/main.cjs` — trang của game (tool.html) giờ mở thành cửa sổ NGAY TRONG ứng dụng (cùng phiên nên kênh BroadcastChannel 'loc-tool' nối được với game); chỉ trang web ngoài mới mở bằng trình duyệt. Đã thử qua cổng gỡ lỗi của ứng dụng: window.open('tool.html') -> cửa sổ "Tool thử" trong ứng dụng, Tool báo "Đã thấy game".
