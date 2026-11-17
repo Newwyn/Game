@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { scene } from '../core/scene.js';
 import { GROUND_Y, gameTimeout } from '../config.js';
 import { spawnPixelFx } from './pixelFx.js';
+import { cameraRig } from '../core/cameraRig.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import castleUrl from '../assets/world3d/meshy/bld_chesscastle.glb?url';
@@ -800,6 +801,48 @@ export function spawnKingCrown(targetViews = [], { duration = 8000, kingView = n
     });
 }
 
+// ---- Thanh gươm ánh sáng 3D của Vua (17/11/2026, người chơi yêu cầu): lúc Vua niệm Phán Quyết các MẢNH gươm bay tới ghép dần thành 1 thanh gươm
+//   khổng lồ dựng đứng trên đầu Vua; hết niệm thì chém sập xuống đất phía trước. Dựng bằng khối, vật liệu vàng cộng sáng (không cần mô hình ngoài).
+const SWORD_LEN = 10.5;
+function buildLightSword() {
+    const g = new THREE.Group();
+    const mat = (c, o = 0.92) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide });
+    const parts = [];
+    const add = (geo, m, y, x = 0) => { const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, 0); mesh.renderOrder = 3; g.add(mesh); parts.push(mesh); return mesh; };
+    add(new THREE.OctahedronGeometry(0.42), mat(0xfff3c4), 0);                                   // đốc gươm
+    add(new THREE.CylinderGeometry(0.16, 0.2, 1.3, 8), mat(0xd9a520), 0.85);                     // chuôi
+    add(new THREE.BoxGeometry(3.0, 0.34, 0.5), mat(0xffd166), 1.65);                             // chắn tay
+    add(new THREE.OctahedronGeometry(0.34), mat(0xfff3c4), 1.65, -1.6);
+    add(new THREE.OctahedronGeometry(0.34), mat(0xfff3c4), 1.65, 1.6);
+    const N = 6, segH = (SWORD_LEN - 3.4) / N;
+    for (let i = 0; i < N; i++) {                                                               // lưỡi gươm: N đoạn thuôn dần
+        const w0 = 1.15 - i * 0.11, w1 = 1.15 - (i + 1) * 0.11;
+        const geo = new THREE.CylinderGeometry(w1 / 2, w0 / 2, segH * 0.96, 4, 1); geo.scale(1, 1, 0.22); geo.rotateY(Math.PI / 4);
+        add(geo, mat(i % 2 ? 0xffe08a : 0xffc93c), 1.9 + segH * (i + 0.5));
+        add(new THREE.BoxGeometry(0.07, segH * 0.96, 0.3), mat(0xffffff, 0.9), 1.9 + segH * (i + 0.5));   // sống gươm sáng trắng
+    }
+    const tip = new THREE.ConeGeometry(0.26, 1.5, 4); tip.scale(1, 1, 0.22); tip.rotateY(Math.PI / 4);
+    add(tip, mat(0xfff3c4), 1.9 + segH * N + 0.75);
+    // mỗi mảnh nhớ chỗ đúng + chỗ bay tới từ đâu + lúc bắt đầu ghép (từ đốc lên mũi)
+    parts.forEach((m, i) => {
+        const a = i * 2.399, r = 5 + (i % 4) * 1.4;
+        m.userData = { home: m.position.clone(), from: new THREE.Vector3(Math.cos(a) * r, m.position.y + ((i % 3) - 1) * 2.5, Math.sin(a) * r * 0.6), t0: (i / parts.length) * 0.78, spin: (i % 2 ? 1 : -1) * (3 + i % 3) };
+        m.visible = false;
+    });
+    g.userData.parts = parts;
+    return g;
+}
+/** k = 0..1 tiến độ niệm: ghép dần các mảnh */
+function assembleSword(g, k) {
+    for (const m of g.userData.parts) {
+        const u = m.userData, q = Math.min(1, Math.max(0, (k - u.t0) / 0.22)), e = 1 - Math.pow(1 - q, 3);
+        m.visible = q > 0;
+        m.position.lerpVectors(u.from, u.home, e);
+        m.rotation.y = (1 - e) * u.spin;
+        m.scale.setScalar(0.3 + 0.7 * e);
+    }
+}
+
 export function startKingJudge(casterId, summonIdx, kingView, { duration = 3000 } = {}) {
     endKingJudge(casterId, summonIdx);
     const key = pieceKey(casterId, summonIdx);
@@ -813,17 +856,19 @@ export function startKingJudge(casterId, summonIdx, kingView, { duration = 3000 
 
     const g = new THREE.Group();
     const aura = fxPlane(glowTexture(), 3.2, 3.6, { color: GOLD_MAIN, opacity: 0.65 });
-    const sword = fxPlane(giantSwordTexture(), 1.15, 3.4, { additive: true, opacity: 0.92 });
-    sword.rotation.z = Math.PI; // mũi kiếm giơ thẳng lên trời khi niệm
-    sword.position.set(0, 1.5, 0.05);
-    g.add(aura, sword);
+    g.add(aura);
+    const sword = buildLightSword();   // gươm 3D ghép dần trên đầu Vua, mũi chĩa lên trời
+    scene.add(sword);
 
     let stopped = false;
     const state = {
         kingView,
+        sword,
+        keepSword: false,   // spawnKingJudgeSlam nhận thanh gươm để chém; niệm bị ngắt thì gươm tan
         stop: () => {
             stopped = true;
             g.visible = false;
+            if (!state.keepSword) sword.removeFromParent();
             kingView?.releaseHold?.('charge');
         },
     };
@@ -838,7 +883,8 @@ export function startKingJudge(casterId, summonIdx, kingView, { duration = 3000 
         fx.mesh.position.set(pos.x, GROUND_Y + 1.5, (pos.z ?? 0) + 0.55);
         const pulse = 1 + 0.25 * p + 0.08 * Math.sin(p * durSec * 14);
         aura.scale.setScalar(pulse);
-        sword.scale.setScalar(0.9 + 0.25 * p);
+        sword.position.set(pos.x, GROUND_Y + 2.6, (pos.z ?? 0) - 0.4);
+        assembleSword(sword, p);
     });
 
     gameTimeout(() => {
@@ -858,9 +904,30 @@ export function endKingJudge(casterId, summonIdx) {
 }
 
 export function spawnKingJudgeSlam(casterId, summonIdx, kingView, { x, z } = {}) {
+    const judge = activeJudges.get(pieceKey(casterId, summonIdx));
+    if (judge) judge.keepSword = true;
     endKingJudge(casterId, summonIdx);
     const kp = kingView?.position ?? { x: (x ?? 0) - 2, z: z ?? 0 };
     const dir = x != null && Math.abs(x - kp.x) > 0.1 ? Math.sign(x - kp.x) : (kingView?.facingLeft ? -1 : 1);
+    // thanh gươm 3D: đủ mảnh rồi quật sập xuống đất phía trước (xoay quanh đốc gươm), chạm đất thì loé sáng rồi tan
+    const sword = judge?.sword ?? buildLightSword();
+    if (!sword.parent) { sword.position.set(kp.x, GROUND_Y + 2.6, (kp.z ?? 0) - 0.4); scene.add(sword); }
+    assembleSword(sword, 1);
+    const t0 = performance.now();
+    const swing = () => {
+        if (!sword.parent) return;
+        const t = (performance.now() - t0) / 1000;
+        const k = Math.min(1, t / 0.2), e = k * k;                      // quật nhanh dần
+        sword.rotation.z = -dir * e * 1.62;                               // ~93 độ: lưỡi gươm đập xuống mặt đất
+        if (t > 0.2) {
+            const f = Math.min(1, (t - 0.2) / 0.55);
+            sword.traverse(o => { if (o.material) o.material.opacity = 0.92 * (1 - f); });
+            if (f >= 1) { sword.removeFromParent(); return; }
+        }
+        requestAnimationFrame(swing);
+    };
+    swing();
+    gameTimeout(() => { cameraRig?.shake?.(0.55, 320); }, 200);
     const tx = x ?? kp.x + dir * 3.2;
     const tz = z ?? kp.z ?? 0;
 

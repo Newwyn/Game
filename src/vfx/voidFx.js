@@ -17,20 +17,22 @@ function casterKey(casterId, casterIdx) {
     return `${casterId ?? 'v'}:${casterIdx ?? 0}`;
 }
 
-/** Tọa độ bàn tay phóng phép của Nyx (bản sprite hoặc khung xương tạm mượn Ignar) */
+/**
+ * Bàn tay phóng phép của Nyx. Các khung ra chiêu Ma Đạn (missiles*) có điểm `hand` trong atlas nằm đúng bàn tay đang chĩa ra;
+ * khung khác (điểm dò tự động không đáng tin): 1 điểm trước ngực, cao ~0,62 × chiều cao.
+ */
 export function nyxHandPoint(view) {
     if (!view) return { x: 0, y: GROUND_Y + 1.2, z: 0 };
-    const spPt = view.pointWorld?.('hand', { sticky: true }) ?? view.pointWorld?.('palm', { sticky: true });
-    if (spPt) return { x: spPt.x, y: spPt.y, z: view.position.z };
-    const joint = view.parts?.handF ?? view.parts?.handN;
-    if (joint) {
-        const p = new THREE.Vector3();
-        joint.getWorldPosition(p);
-        return { x: p.x, y: p.y, z: view.position.z };
+    const h = view.height ?? 2.3, dir = view.facingLeft ? -1 : 1;
+    const hand = /^missiles/.test(view._frame ?? '') ? view.sprite?.meta?.frames?.[view._frame]?.hand : null;
+    if (hand && view._leanG && view._u && view._spMesh) {
+        const s = view._spMesh.scale, u = view._u;
+        const w = view._leanG.localToWorld(new THREE.Vector3(hand[0] * u * s.x, -hand[1] * u * s.y, 0.2));
+        return { x: w.x, y: w.y, z: w.z };   // giữ cả z: ở góc nhìn chéo tấm tranh quay mặt về camera nên điểm trên tranh lệch khỏi mặt phẳng z của chân
     }
     return {
-        x: view.position.x + (view.facingLeft ? -0.6 : 0.6),
-        y: GROUND_Y + 1.2 + (view._lift ?? 0) + (view._hover ?? 0),
+        x: view.position.x + dir * h * 0.4,
+        y: GROUND_Y + h * 0.62 + (view._lift ?? 0) + (view._hover ?? 0),
         z: view.position.z,
     };
 }
@@ -49,7 +51,7 @@ export function nyxStaffPoint(view) {
         // cùng cách tính với FrameSpriteView.pointWorld: theo đúng tấm tranh đang hiện (lật theo hướng nhìn, nhún, nghiêng người)
         const s = view._spMesh.scale, u = view._u;
         const w = view._leanG.localToWorld(new THREE.Vector3(tip[0] * u * s.x, tip[1] * u * s.y, 0.2));
-        return { x: w.x, y: w.y, z: view.position.z };
+        return { x: w.x, y: w.y, z: w.z };   // giữ cả z: ở góc nhìn chéo tấm tranh quay mặt về camera nên điểm trên tranh lệch khỏi mặt phẳng z của chân
     }
     return {
         x: view.position.x + dir * h * 0.11,
@@ -59,114 +61,76 @@ export function nyxStaffPoint(view) {
 }
 
 // ------------------------------------------------------------
-// 1. KN1: MA ĐẠN TINH TÚ — `missiles` (từng tia custom/void-bolt bay vòng cung) + `burst` (mana-burst)
+// 1. KN1: MA ĐẠN TINH TÚ — `missiles` (5 tia custom/void-missile: hình của "Arcane missiles", mỗi tia 1 đích) + `burst` (mana-burst mỗi tia)
 // ------------------------------------------------------------
+const MISSILE_FAN = [-1.05, 0.7, -0.5, 1.1, -1.4];   // hướng rời tay của từng tia (rad, y xuống dưới) — đúng bộ góc của hiệu ứng gốc
+const PX = 2.9 / 44;                                  // 1 điểm ảnh của hiệu ứng = chừng này đơn vị sân (cỡ chuẩn của pixelLayer)
 /**
- * 1 tia ma đạn: đốm sáng thành hình ở `slot` (sau lưng Nyx), lơ lửng `hold` giây rồi phóng đi theo đường cong tới `getTo()`
- * (đọc vị trí mới nhất của mục tiêu) trong `flight` giây; tới nơi loé 1 chớp nhỏ.
+ * 1 tia ma đạn rời `from` theo hướng `heading`, lượn vòng trên dải lụa xoắn rồi lao vào `getTo()` (đọc vị trí mới nhất của mục tiêu)
+ * sau đúng `flight` giây, nổ chớp nhỏ ở đích. Khung vẽ được dời theo đầu tia nên đích xa bao nhiêu cũng được.
  */
-function spawnVoidBolt(slot, ang, getTo, { hold = 0.3, flight = 0.4, seed = 1 } = {}) {
-    const moteMod = pixelMod('custom/void-mote'), boltMod = pixelMod('custom/void-bolt');
-    if (!moteMod || !boltMod) return;
-    const mote = pixelLayer(moteMod, { front: true, palette: 'arcane', seed, scale: 1.15 });
-    const bolt = pixelLayer(boltMod, { front: true, palette: 'arcane', seed, scale: 1.15 });
-    const g = new THREE.Group();
-    g.add(mote.group); g.add(bolt.group);
-    bolt.group.visible = false;
-    const out = { x: Math.cos(ang), y: Math.sin(ang) };
-    const total = hold + flight;
-    let from = null, p1, p2, to, age = 0, puffT = 0, hit = false;
-    const bez = (t) => {
-        const u = 1 - t;
-        return {
-            x: u * u * u * from.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * to.x,
-            y: u * u * u * from.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * to.y,
-            z: from.z + (to.z - from.z) * t,
-        };
+function spawnVoidMissile(from, getTo, { flight = 0.4, heading = -0.8, seed = 1 } = {}) {
+    const mod = pixelMod('custom/void-missile');
+    if (!mod) return;
+    const to0 = getTo();
+    const side = Math.sign(to0.x - from.x) || 1;
+    const link = {
+        tx: (to0.x - from.x) / PX, ty: -(to0.y - from.y) / PX, flight,
+        heading: side > 0 ? heading : Math.PI - heading,          // đích ở bên trái -> lật quạt hướng rời tay
+        floor: (from.y - GROUND_Y) / PX,
     };
-    addAnim(g, total + 0.02, (p, fx, dt = 0) => {
-        age += dt;
-        if (age < hold) {
-            // thành hình: phình ra rồi lơ lửng
-            const k = Math.min(1, age / 0.12), bob = Math.sin(age * 22 + seed) * 0.04;
-            mote.group.scale.setScalar(0.35 + 0.65 * k);
-            g.position.set(slot.x + out.x * bob, slot.y + out.y * bob, (slot.z ?? 0) + 0.45);
-            if (dt > 0) mote.step(dt);
-            return;
-        }
-        if (!from) {
+    const layer = pixelLayer(mod, { front: true, palette: 'arcane', seed, opts: { link } });
+    const g = layer.group;
+    const z0 = from.z ?? 0;
+    let zTo = to0.z ?? 0, age = 0;
+    g.position.set(from.x, from.y, z0 + 0.45);
+    addAnim(g, flight + 1.2, (p, fx, dt = 0) => {
+        if (!link.arrived) {
             const live = getTo();
-            from = { x: slot.x, y: slot.y, z: slot.z ?? 0 };
-            to = { x: live.x, y: live.y, z: live.z ?? 0 };
-            // vọt ra theo hướng đang chĩa rồi vòng xuống mục tiêu từ phía trên
-            p1 = { x: from.x + out.x * 3.0, y: from.y + out.y * 3.0 };
-            p2 = { x: to.x - Math.sign(to.x - from.x || 1) * 2.2, y: to.y + 3.2 };
-            mote.group.visible = false;
-            bolt.group.visible = true;
+            link.tx = (live.x - from.x) / PX; link.ty = -(live.y - from.y) / PX;
+            zTo = live.z ?? 0;
         }
-        const live = getTo();
-        to.x += (live.x - to.x) * 0.25; to.y += (live.y - to.y) * 0.25; to.z += ((live.z ?? 0) - to.z) * 0.25;
-        const t = Math.min(1, (age - hold) / flight);
-        const e = t * t * (3 - 2 * t) * 0.35 + t * 0.65;
-        const a = bez(e), b = bez(Math.min(1, e + 0.02)), c = bez(Math.max(0, e - 0.02));
-        const dir = e >= 0.98 ? Math.atan2(a.y - c.y, a.x - c.x) : Math.atan2(b.y - a.y, b.x - a.x);
-        g.position.set(a.x, a.y, a.z + 0.45);
-        bolt.group.rotation.z = dir;
-        if (dt > 0) bolt.step(dt);
-        // bụi sáng rớt lại dọc đường bay
-        puffT += dt;
-        if (puffT > 0.03) {
-            puffT = 0;
-            const puff = fxPlane(glowTexture(), 0.34, 0.34, { color: 0xa855f7 });
-            puff.position.set(a.x - Math.cos(dir) * 0.5, a.y - Math.sin(dir) * 0.5, a.z + 0.44);
-            addAnim(puff, 0.28, (q, f2) => { const sc = 1 + q * 1.2; f2.mesh.scale.set(sc, sc, 1); f2.mesh.material.opacity = 0.55 * (1 - q); });
-        }
-        if (t >= 1 && !hit) {
-            hit = true;
-            spawnPixelFx('impacts/hit-spark', { pos: { x: to.x, z: to.z }, palette: 'arcane', scale: 0.75, flip: Math.cos(dir) < 0 });
-            fx.life = fx.age;
-        }
+        if (dt > 0) { age += dt; layer.step(dt); }
+        const k = Math.min(1, age / flight);
+        g.position.set(from.x + link.hx * PX, from.y - link.hy * PX, z0 + (zTo - z0) * k + 0.45);
+        if (link.done) fx.life = fx.age;
     });
 }
 
 /**
- * `missiles`: các tia ma đạn hiện thành vòng cung SAU LƯNG / quanh Nyx rồi phóng LẦN LƯỢT, mỗi tia bay vòng tới mục tiêu riêng.
- * shots: [{ target (view), delay (ms từ lúc ra chiêu tới lúc tia rời chỗ), flight (ms bay) }] · form: ms giơ tay trước khi tia đầu hiện.
+ * `missiles`: các tia ma đạn rời TAY Nyx LẦN LƯỢT, mỗi tia toả ra 1 hướng rồi lượn vòng tới mục tiêu riêng của nó.
+ * shots: [{ target (view), delay (ms từ lúc ra chiêu tới lúc tia rời tay), flight (ms bay) }].
  */
-export function spawnVoidMissiles(casterView, shots, { form = 200, formTime = 300 } = {}) {
+export function spawnVoidMissiles(casterView, shots) {
     if (!casterView || !shots?.length) return;
     const first = shots.find(s => s.target)?.target;
     if (first) casterView.facingLeft = first.position.x < casterView.position.x;
-    const n = shots.length;
     shots.forEach((s, k) => {
         if (!s.target) return;
-        const appear = (form ?? 0) + (k / Math.max(1, n)) * (formTime ?? 0) * 0.8;   // hiện lần lượt trong lúc xếp hàng
         gameTimeout(() => {
             if (casterView.member?.alive === false) return;
-            const dir = casterView.facingLeft ? -1 : 1;
-            const h = casterView.height ?? 2.3;
-            // vòng cung sau lưng: từ chếch trên-trước (~65°) vòng qua đỉnh đầu xuống sau lưng (~195°), lật theo hướng nhìn
-            const f = n > 1 ? k / (n - 1) : 0.5, r = (65 + f * 130) * Math.PI / 180, ang = dir > 0 ? r : Math.PI - r;
-            const cx = casterView.position.x - dir * 0.25, cy = GROUND_Y + h * 0.62 + (casterView._lift ?? 0) + (casterView._hover ?? 0);
-            const slot = { x: cx + Math.cos(ang) * h * 0.78, y: cy + Math.sin(ang) * h * 0.78, z: casterView.position.z };
-            const yOff = 0.75 + ((k * 37) % 5) * 0.1;
-            const t = s.target;
-            spawnVoidBolt(slot, ang, () => ({ x: t.position.x, y: (t.position.y ?? GROUND_Y) + yOff + (t.sprite?.lift ?? 0), z: t.position.z }), {
-                hold: Math.max(0.05, (s.delay - appear) / 1000), flight: Math.max(0.08, (s.flight ?? 400) / 1000), seed: k * 7 + 3,
+            const t = s.target, yOff = 0.8 + ((k * 37) % 5) * 0.1;
+            spawnVoidMissile(nyxHandPoint(casterView), () => ({ x: t.position.x, y: (t.position.y ?? GROUND_Y) + yOff + (t.sprite?.lift ?? 0), z: t.position.z }), {
+                flight: Math.max(0.08, (s.flight ?? 400) / 1000), heading: MISSILE_FAN[k % MISSILE_FAN.length], seed: k * 7 + 3,
             });
-        }, appear);
+        }, s.delay ?? 0);
     });
 }
 
-/** `burst`: Mana Burst nổ tại chỗ mục tiêu của tia CUỐI (1 chớp lớn + 9 ấn chú nổ ~1.8s, giữ nguyên thời lượng gốc) */
-export function spawnVoidBurst(pos) {
+/**
+ * `burst`: Mana Burst nổ tại mục tiêu của TỪNG tia lúc tia đó tới nơi — 4 tia đầu nổ nhỏ, tia cuối (`last`) nổ đủ cỡ
+ * (1 chớp lớn + 9 ấn chú nổ ~1.8s, khớp 9 nhịp sát thương lan của máy chủ).
+ */
+export function spawnVoidBurst(pos, { last = true } = {}) {
     return spawnPixelFx('arcane/mana-burst', {
         pos: { x: pos?.x ?? 0, z: pos?.z ?? 0 },
         palette: 'arcane',
+        scale: last ? 1 : 0.5,
+        seed: last ? undefined : Math.round(((pos?.x ?? 0) * 13 + (pos?.z ?? 0) * 7) % 50) + 60,
     });
 }
 
-/** `bolt`: tia ma đạn vừa đốt Orb của mục tiêu -> chữ nhỏ "−0.3◆" bay lên */
+/** `burst`: tia ma đạn vừa đốt Orb của mục tiêu -> chữ nhỏ "−0.3◆" bay lên */
 export function spawnVoidOrbLoss(pos, orbLost) {
     if (!(orbLost > 0)) return;
     spawnRisingGlyph({ x: pos?.x ?? 0, y: 0, z: pos?.z ?? 0 }, `−${Math.round(orbLost * 10) / 10}◆`, '#e9d5ff', '#6d28d9');
@@ -220,7 +184,7 @@ export function startVoidChannel(casterId, casterIdx, casterView, {
         maxLife: durSec,
         getPos: casterView ? () => {
             const q = nyxStaffPoint(casterView);
-            return { x: q.x - flipSign * 15 * u, y: q.y - 22 * u, z: (q.z ?? 0) + 0.3 };
+            return { x: q.x - flipSign * 15 * u, y: q.y - 22 * u, z: (q.z ?? 0) + 0.05 };
         } : null,
         until: () => state.stopped || (casterView ? casterView.member?.alive === false : false),
     });
@@ -341,7 +305,8 @@ export function spawnVoidPull(x, z, { radius = 8, n = 1, movedViews = [] } = {})
         // vòng ngoài của hiệu ứng rộng 100 px -> phóng để vòng đó trùng bán kính hút
         const scale = (radius ?? 8) / (100 * (2.9 / 44));
         const layer = pixelLayer(mod, { front: true, palette: 'shadow', seed: (n ?? 1) * 3 + 2, scale });
-        layer.group.position.set(x ?? 0, GROUND_Y + HOLE_Y, (z ?? 0) + 0.2);
+        layer.group.position.set(x ?? 0, GROUND_Y + HOLE_Y, (z ?? 0) + 0.6);   // trước đĩa hố đen
+        layer.group.traverse(o => { if (o.isMesh) o.renderOrder = 5; });
         addAnim(layer.group, 1.2, (p, fx, dt = 0) => {
             if (dt > 0) layer.step(dt);
             if (layer.done()) fx.life = fx.age;
@@ -369,7 +334,7 @@ export function spawnVoidPull(x, z, { radius = 8, n = 1, movedViews = [] } = {})
 export function closeVoidHole(casterId, casterIdx, x, z, { radius = 4 } = {}) {
     const key = casterKey(casterId, casterIdx);
     const hole = activeHoles.get(key);
-    spawnPixelFx('shadow/dark-explosion', { pos: { x: x ?? 0, z: z ?? 0 }, palette: 'shadow', scale: Math.max(0.8, (radius ?? 4) / 3.4), maxLife: 1.2 });
+    spawnPixelFx('shadow/dark-explosion', { pos: { x: x ?? 0, z: z ?? 0 }, palette: 'shadow', scale: Math.max(0.6, (radius ?? 4) / 5.5), maxLife: 0.9 });
     if (!hole || hole.broken) return;
     hole.closed = true;
     if (Array.isArray(hole.lashTimes) && hole.lashTimes.length) {

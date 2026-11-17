@@ -203,7 +203,7 @@ test('void_starfall: Nyx chết ở 600 ms → không đợt nào rơi thêm', (
     assert.equal(h.run('nyx.skillCooldowns[1] > T0 + 600'), true);        // hồi chiêu vẫn chạy
 });
 
-test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/860 ms, bay 400 ms), mỗi tia tới 1 đối thủ ngẫu nhiên: ×0.5 + đốt 0,3 Orb; tia cuối tới nơi → 1 Mana Burst ở mục tiêu cuối, 9 nhịp (bắt đầu +400 ms, cách 65 ms) ×0.12 trong bán kính 3', () => {
+test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/860 ms, bay 400 ms), mỗi tia tới 1 đối thủ ngẫu nhiên: ×0.5 + đốt 0,3 Orb + 1 sự kiện burst; tia cuối (last) → 9 nhịp nổ lan ở mục tiêu cuối (bắt đầu +400 ms, cách 65 ms) ×0.12 trong bán kính 3', () => {
     const lastSeen = new Set();
     for (const rnd of [0.5, 0.99]) {   // 2 giá trị ngẫu nhiên khác nhau -> thứ tự mục tiêu khác nhau (không né, không chí mạng)
         const h = harness();
@@ -223,20 +223,20 @@ test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/8
         assert.equal(h.run('nyx.actionUntil - T0'), 900);
         assert.equal(h.run('nyx.skillCooldowns[0] - T0'), 900 + 7000);
         h.run('at(899)');
-        assert.equal(h.fx('bolt').length, 0);
+        assert.equal(h.fx('burst').length, 0);
         assert.deepEqual(json(h, 'foes.map(e => [e.mp, e.hp])'), json(h, 'mp0.map((m, i) => [m, hp0[i]])'));
         // từng tia tới nơi: 1 đòn đơn ×0.5 vào đúng mục tiêu của tia + đốt 0,3 Orb (300 MP; còn ít hơn thì đốt hết phần còn lại)
         const mp = json(h, 'mp0'), dmg = [0, 0, 0];
         shots.forEach((s, k) => {
             const ms = s.delay + s.flight;
             h.run(`at(${ms - 1})`);
-            assert.equal(h.fx('bolt').length, k, `tia ${k + 1} chưa tới`);
-            assert.equal(h.fx('burst').length, 0);
+            assert.equal(h.fx('burst').length, k, `tia ${k + 1} chưa tới`);
             h.run(`at(${ms})`);
-            const bolts = h.fx('bolt');
+            const bolts = h.fx('burst');
             assert.equal(bolts.length, k + 1, `tia ${k + 1} tới nơi ở ${ms} ms`);
             const b = bolts.at(-1), lost = Math.min(mp[s.targetIndex], 300);
-            assert.deepEqual([b.n, b.targetId, b.targetIndex, b.orbLost, b.effects.length], [k + 1, 'p2', s.targetIndex, lost / 1000, 1]);
+            assert.deepEqual([b.n, b.targetId, b.targetIndex, b.orbLost, b.effects.length, b.last], [k + 1, 'p2', s.targetIndex, lost / 1000, 1, k === 4]);
+            assert.deepEqual([b.x, b.z], json(h, `[foes[${s.targetIndex}].x, foes[${s.targetIndex}].z]`));   // nổ Mana Burst tại chỗ mục tiêu của tia đó
             mp[s.targetIndex] -= lost;
             assert.deepEqual(json(h, `hits.filter(x => x.at === ${ms})`).map(x => [x.ti, x.mult, x.aoe]), [[s.targetIndex, 0.5, false]]);
             assert.ok(b.effects[0].damage > 0);
@@ -245,12 +245,10 @@ test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/8
         assert.deepEqual(json(h, 'foes.map(e => e.mp)'), mp);
         assert.deepEqual(json(h, 'foes.map((e, i) => hp0[i] - e.hp)'), dmg);
         assert.equal(json(h, 'mp0').reduce((t, v) => t + v, 0) - mp.reduce((t, v) => t + v, 0) > 0, true);
-        // đúng 1 Mana Burst, ngay lúc tia CUỐI tới nơi (1260 ms), ở chỗ mục tiêu của tia cuối
+        // 5 sự kiện burst (mỗi tia 1 cái), chỉ cái cuối (1260 ms) có last = true -> 9 nhịp nổ lan ở chỗ mục tiêu của tia cuối
         const last = shots.at(-1).targetIndex;
         lastSeen.add(last);
-        const burst = h.fx('burst');
-        assert.equal(burst.length, 1);
-        assert.deepEqual([burst[0].targetId, burst[0].targetIndex, burst[0].x, burst[0].z], ['p2', last, h.run(`foes[${last}].x`), h.run(`foes[${last}].z`)]);
+        assert.deepEqual(h.fx('burst').map(b => b.last), [false, false, false, false, true]);
         // Mana Burst: nhịp n nổ ở 1260 + 400 + (n − 1) × 65 ms lên mục tiêu cuối + đối thủ trong bán kính 3 quanh nó
         const near = json(h, `foes.map((e, i) => i).filter(i => Math.hypot(foes[i].x - foes[${last}].x, foes[i].z - foes[${last}].z) <= 3)`);
         assert.equal(near.includes(h.run('foes.indexOf(rok)')), last === h.run('foes.indexOf(rok)'));   // Rok đứng xa 2 người kia
@@ -267,8 +265,7 @@ test('void_missiles: 5 tia phóng lần lượt (rời tay ở 500/590/680/770/8
         }
         h.run('at(6000)');
         assert.equal(h.fx('burstTick').length, 9);   // đúng 9 nhịp, không hơn
-        assert.equal(h.fx('burst').length, 1);
-        assert.equal(h.fx('bolt').length, 5);
+        assert.equal(h.fx('burst').length, 5);
         assert.deepEqual(json(h, 'foes.map(e => e.mp)'), mp);   // Mana Burst không đốt Orb
     }
     assert.equal(lastSeen.size, 2);   // mục tiêu thật sự theo số ngẫu nhiên: 2 lần thử, tia cuối rơi vào 2 người khác nhau
@@ -279,12 +276,11 @@ test('void_missiles vào quái (maxMp 1000, mp 0): không lỗi, mp vẫn 0; m�
     arena(h, { foes: [['c1_wolf', 7, 0], ['c1_wolf', 9, 0]] });
     assert.deepEqual(json(h, 'foes.map(e => [e.maxMp, e.mp])'), [[1000, 0], [1000, 0]]);
     h.run('nyx.targetIndex = 0; cast(0); at(1260)');
-    const bolts = h.fx('bolt');
+    const bolts = h.fx('burst');
     assert.equal(bolts.length, 5);
     for (const b of bolts) assert.equal(b.orbLost, 0);
     assert.deepEqual([...new Set(bolts.map(b => b.targetIndex))].sort(), [0, 1]);   // 2 đối thủ, 5 tia: lặp lại, cả hai đều trúng
-    assert.equal(h.fx('burst').length, 1);
-    assert.equal(h.fx('burst')[0].targetIndex, bolts.at(-1).targetIndex);
+    assert.deepEqual(bolts.map(b => b.last), [false, false, false, false, true]);
     assert.deepEqual(json(h, 'foes.map(e => e.mp)'), [0, 0]);
     assert.ok(h.run('foes[0].hp') < h.run('foes[0].maxHp'));
     assert.ok(h.run('foes[1].hp') < h.run('foes[1].maxHp'));
@@ -294,11 +290,11 @@ test('void_missiles vào quái (maxMp 1000, mp 0): không lỗi, mp vẫn 0; m�
     assert.deepEqual(json(h, 'foes.map((e, i) => e.hp < hpA[i])'), [true, true]);   // 2 con đứng cách nhau 2 ô: cùng ăn 9 nhịp Mana Burst
     // mục tiêu chết trước khi tia tới: tia nhắm nó tan (không có cú trúng), tia nhắm con kia vẫn trúng, Mana Burst vẫn nổ
     h.run('nyx.skillCooldowns[0] = 0; nyx.targetIndex = 0; cast(0); foes[0].hp = 0; killMember(foes[0], foes); var hp1 = foes[1].hp; at(3000 + 1260)');
-    const second = h.fx('bolt').slice(5);
+    const second = h.fx('burst').slice(5);
     assert.equal(second.length, 5);
     assert.ok(second.some(b => b.targetIndex === 0) && second.some(b => b.targetIndex === 1));
     for (const b of second) assert.equal(b.effects.length, b.targetIndex === 0 ? 0 : 1);
-    assert.equal(h.fx('burst').length, 2);
+    assert.equal(second.at(-1).last, true);
     h.run('at(9000)');
     assert.equal(h.fx('burstTick').length, 18);
     assert.ok(h.run('foes[1].hp') < h.run('hp1'));
@@ -588,8 +584,8 @@ test('void_erosion mức 0 (Nyx dưới cấp 20): không tầng nào, đối th
     const g = harness();
     arena(g, { level: 20, foes: [['c1_wolf', 8, 0], ['elem_golem', 9, 0]] });
     g.run('foes[1].summon = true; __rnd = 0; nyx.targetIndex = 0; cast(0); at(1260)');   // __rnd = 0: sói né được (né 9%)
-    const wolfBolts = g.fx('bolt').filter(b => b.targetIndex === 0);
-    assert.ok(wolfBolts.length >= 1 && g.fx('bolt').some(b => b.targetIndex === 1));
+    const wolfBolts = g.fx('burst').filter(b => b.targetIndex === 0);
+    assert.ok(wolfBolts.length >= 1 && g.fx('burst').some(b => b.targetIndex === 1));
     for (const b of wolfBolts) assert.equal(b.effects[0].isMiss, true);
     assert.equal(g.fx('erode').length, 0);
     g.run('__rnd = 0.5; at(2300); nyx.actionUntil = 0; cast(1); at(2800)');
@@ -978,7 +974,7 @@ test('void_shell: trở lại sau lưng đồng đội đứng sau cùng 3 ô; �
 });
 
 // Bảng sự kiện voidFx (hợp đồng với máy khách): kind -> các trường phải có (ngoài casterId, casterIdx)
-const VOID_FX = { missiles: ['targetId', 'form', 'formTime', 'shots'], bolt: ['n', 'targetId', 'targetIndex', 'orbLost', 'effects'], burst: ['targetId', 'targetIndex', 'x', 'z'], burstTick: ['n', 'effects'],
+const VOID_FX = { missiles: ['targetId', 'form', 'formTime', 'shots'], burst: ['n', 'targetId', 'targetIndex', 'x', 'z', 'orbLost', 'effects', 'last'], burstTick: ['n', 'effects'],
     channel: ['skill', 'duration', 'shell'], starAim: ['x', 'z', 'radius', 'lead', 'waves'], starWave: ['n', 'x', 'z', 'radius', 'effects'], hole: ['x', 'z', 'radius', 'duration', 'pulseTimes', 'lashTimes', 'lashRadius'], pull: ['n', 'x', 'z', 'radius', 'effects', 'moved'], holeEnd: ['x', 'z', 'radius', 'effects'],
     lash: ['n', 'x', 'z', 'radius', 'effects'],
     channelEnd: ['reason'], vanish: ['duration'], return: ['x', 'z', 'hp'], erode: ['targetId', 'targetIndex', 'stacks'] };

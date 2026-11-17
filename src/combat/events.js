@@ -2772,11 +2772,16 @@ function onVoidFx(d) {
 
     switch (d.kind) {
         case 'missiles': {
+<<<<<<< HEAD
             // 5 tia hiện sau lưng Nyx rồi phóng lần lượt, mỗi tia bay vòng tới mục tiêu riêng (số sát thương hiện ở `bolt` lúc từng tia tới nơi)
+=======
+            // 5 tia rời tay Nyx lần lượt, mỗi tia lượn vòng tới mục tiêu riêng (số sát thương + Mana Burst hiện ở `burst` lúc từng tia tới nơi)
+>>>>>>> team/integ
             spawnVoidMissiles(caster, (d.shots ?? []).map(s => ({
                 target: s.targetIndex != null ? getView(s.targetId ?? foeId, s.targetIndex) : null,
                 delay: s.delay ?? 500,
                 flight: s.flight ?? 400,
+<<<<<<< HEAD
             })), { form: d.form ?? 200, formTime: d.formTime ?? 300 });
             break;
         }
@@ -2788,17 +2793,30 @@ function onVoidFx(d) {
                 if (d.orbLost > 0) spawnVoidOrbLoss(target.position, d.orbLost);
             }
             cameraRig.shake(0.06, 60);
+=======
+            })));
+>>>>>>> team/integ
             break;
         }
         case 'burst': {
+            // 1 tia vừa tới nơi: Mana Burst nổ tại mục tiêu của nó (4 tia đầu nổ nhỏ, tia cuối nổ đủ cỡ + mở màn 9 nhịp nổ lan)
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
             const pos = {
-                x: d.x ?? target?.position.x ?? caster?.position.x ?? 0,
-                z: d.z ?? target?.position.z ?? caster?.position.z ?? 0,
+                x: target?.position.x ?? d.x ?? caster?.position.x ?? 0,
+                z: target?.position.z ?? d.z ?? caster?.position.z ?? 0,
             };
+<<<<<<< HEAD
             spawnVoidBurst(pos);
+=======
+            const last = d.last !== false;
+            spawnVoidBurst(pos, { last });
+>>>>>>> team/integ
             showEffects(d.effects);
-            cameraRig.shake(0.14, 140);
+            if (target && (d.effects ?? []).some(e => !e.isMiss)) {
+                target.flashHit?.();
+                if (d.orbLost > 0) spawnVoidOrbLoss(target.position, d.orbLost);
+            }
+            cameraRig.shake(last ? 0.16 : 0.07, last ? 150 : 70);
             break;
         }
         case 'burstTick': {
@@ -2987,6 +3005,8 @@ function onChessFx(d) {
             startKingJudge(d.casterId, d.summonIdx, summon, {
                 duration: d.duration ?? 3000,
             });
+            // vừa niệm: mọi đối thủ bị khiêu khích về phía Vua -> dấu khiêu khích bật trên đầu từng đứa
+            (d.targets ?? []).forEach(i => { const v = getView(d.targetId ?? opponentIdOf(d.casterId), i); if (v) spawnTauntIcon(v); });
             break;
         }
         case 'judgeSlam': {
