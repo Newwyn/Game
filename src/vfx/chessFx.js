@@ -1041,6 +1041,61 @@ export function spawnQueenDance(queenView, {
     }
 }
 
+// ---- Bàn cờ "trận đồ" (17/11/2026): vẽ bằng shader — ô cờ sáng lăn tăn, đường lưới có vệt sáng chạy, vòng trận ở giữa, viền mờ dần ----
+const BOARD_W = 56, BOARD_D = 24, BOARD_COLS = 14, BOARD_ROWS = 6;
+function boardMaterial() {
+    return new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, blending: THREE.AdditiveBlending,
+        uniforms: { uTime: { value: 0 }, uReveal: { value: 0 }, uMix: { value: 0 },
+            uGold: { value: new THREE.Color(0xffc93c) }, uViolet: { value: new THREE.Color(0xb46bff) },
+            uGrid: { value: new THREE.Vector2(BOARD_COLS, BOARD_ROWS) }, uSize: { value: new THREE.Vector2(BOARD_W, BOARD_D) } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: `
+            varying vec2 vUv; uniform float uTime, uReveal, uMix; uniform vec3 uGold, uViolet; uniform vec2 uGrid, uSize;
+            float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+            void main(){
+                vec2 g = vUv * uGrid, cell = floor(g), f = fract(g);
+                vec2 w = (vUv - 0.5) * uSize;                      // toạ độ sân (đơn vị game)
+                float r = length(w * vec2(1.0, 1.6));              // khoảng cách tới tâm (bầu dục theo sân)
+                float chk = mod(cell.x + cell.y, 2.0);
+                // ô cờ: ô sáng / ô tối, mỗi ô nhấp nháy lệch pha + sóng sáng lan từ tâm ra
+                float tw = 0.5 + 0.5 * sin(uTime * 1.7 + hash(cell) * 6.283);
+                float wave = smoothstep(0.0, 1.0, 1.0 - abs(fract(r * 0.07 - uTime * 0.22) - 0.5) * 2.0);
+                float inner = smoothstep(0.0, 0.10, f.x) * smoothstep(0.0, 0.10, f.y) * smoothstep(0.0, 0.10, 1.0 - f.x) * smoothstep(0.0, 0.10, 1.0 - f.y);
+                float tile = inner * mix(0.10, 0.50, chk) * (0.6 + 0.4 * tw) + inner * wave * 0.30;
+                // đường lưới + vệt sáng chạy dọc đường
+                vec2 d = min(f, 1.0 - f);
+                float lx = 1.0 - smoothstep(0.0, 0.045, d.x), ly = 1.0 - smoothstep(0.0, 0.07, d.y);
+                float runX = pow(0.5 + 0.5 * sin(g.y * 2.2 - uTime * 3.0 + cell.x * 1.7), 6.0);
+                float runY = pow(0.5 + 0.5 * sin(g.x * 2.2 + uTime * 2.4 + cell.y * 2.3), 6.0);
+                float line = lx * (0.55 + 1.2 * runX) + ly * (0.55 + 1.2 * runY);
+                // nút giao sáng như đinh trận
+                float node = (1.0 - smoothstep(0.0, 0.16, length(d * vec2(1.0, 1.5)))) * (0.6 + 0.4 * tw);
+                // vòng trận ở giữa: 2 vòng xoay + nan hoa
+                float ang = atan(w.y * 1.6, w.x);
+                float ring1 = 1.0 - smoothstep(0.0, 0.22, abs(r - 7.5));
+                float ring2 = (1.0 - smoothstep(0.0, 0.14, abs(r - 5.6))) * step(0.35, fract(ang * 1.9099 + uTime * 0.25));
+                float ring3 = (1.0 - smoothstep(0.0, 0.10, abs(r - 9.2))) * step(0.55, fract(ang * 3.8197 - uTime * 0.18));
+                float spokes = (1.0 - smoothstep(0.0, 0.05, abs(fract(ang * 1.2732 + uTime * 0.05) - 0.5))) * smoothstep(5.6, 6.0, r) * (1.0 - smoothstep(7.2, 7.5, r));
+                float sigil = ring1 * 0.9 + ring2 * 0.8 + ring3 * 0.6 + spokes * 0.5;
+                // viền bàn cờ sáng + mờ dần ra mép sân
+                vec2 e = min(vUv, 1.0 - vUv) * uSize;
+                float border = (1.0 - smoothstep(0.0, 0.18, abs(min(e.x, e.y) - 0.9))) * 0.9;
+                float fade = smoothstep(0.0, 2.2, min(e.x, e.y));
+                // mở ra từ tâm
+                float open = 1.0 - smoothstep(uReveal * 34.0 - 3.0, uReveal * 34.0, r);
+                float front = (1.0 - smoothstep(0.0, 1.2, abs(r - uReveal * 34.0))) * (1.0 - uReveal) * 1.6;
+                // màu: vàng (Vua) <-> tím (Hậu); cả hai thì ô sáng vàng, ô tối tím
+                vec3 both = mix(uViolet, uGold, chk);
+                vec3 base = uMix < 0.5 ? mix(uGold, both, uMix * 2.0) : mix(both, uViolet, (uMix - 0.5) * 2.0);
+                vec3 hot = mix(base, vec3(1.0, 0.97, 0.85), 0.55);
+                vec3 col = base * tile + hot * (line * 0.8 + node * 0.9 + sigil * 0.8 + border) + hot * front;
+                float a = (tile + line * 0.5 + node * 0.6 + sigil * 0.7 + border) * fade * open + front * fade;
+                gl_FragColor = vec4(col * fade * max(open, front), clamp(a, 0.0, 1.0));
+            }`,
+    });
+}
+
 // ------------------------------------------------------------
 // 8. `board`: Bàn cờ ánh sáng phủ toàn sân khi còn Vua hoặc Hậu
 // ------------------------------------------------------------
@@ -1069,28 +1124,24 @@ export function updateChessBoard(casterId, { king = false, queen = false } = {})
     }
 
     const mode = anyKing && anyQueen ? 'both' : anyQueen ? 'queen' : 'king';
-    const tex = boardTexture(mode);
     if (!boardMesh) {
-        boardMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(46, 20),
-            new THREE.MeshBasicMaterial({
-                map: tex,
-                transparent: true,
-                depthWrite: false,
-                opacity: 0.88,
-                side: THREE.DoubleSide,
-                fog: false,
-            }),
-        );
+        boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_D), boardMaterial());
         boardMesh.rotation.x = -Math.PI / 2;
         boardMesh.position.set(0, GROUND_Y + 0.02, 0);
         boardMesh.renderOrder = 0;
+        boardMesh.userData.born = performance.now();
+        // tự chạy đồng hồ: không cần vòng lặp riêng
+        boardMesh.onBeforeRender = () => {
+            const u = boardMesh?.material.uniforms; if (!u) return;
+            const t = (performance.now() - boardMesh.userData.born) / 1000;
+            u.uTime.value = t;
+            u.uReveal.value = Math.min(1, t / 0.9);
+            u.uMix.value += (boardMesh.userData.mix - u.uMix.value) * 0.06;   // đổi màu êm khi thêm / mất quân chúa
+        };
         scene.add(boardMesh);
-    } else if (boardMode !== mode || !boardMesh.parent) {
-        boardMesh.material.map = tex;
-        boardMesh.material.needsUpdate = true;
-        if (!boardMesh.parent) scene.add(boardMesh);
-    }
+        boardMesh.material.uniforms.uMix.value = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
+    } else if (!boardMesh.parent) scene.add(boardMesh);
+    boardMesh.userData.mix = mode === 'queen' ? 1 : mode === 'both' ? 0.5 : 0;
     boardMode = mode;
     return boardMesh;
 }
