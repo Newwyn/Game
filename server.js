@@ -651,7 +651,10 @@ const CLASS_DEFS = {
         bindTime: 2000, bindDown: 0.30, bindAfter: 2000, bindLock: 500,
         skills: [], passives: []
     },
-    // Vua (quân chúa cánh thủ): cận chiến, cầm kiếm. ĐỢT NÀY chỉ đánh thường — Vương Miện + Phán Quyết làm ở task B4 (con số ghi sẵn theo spec 5.6)
+    // Vua (quân chúa cánh thủ): cận chiến, cầm kiếm. Vương Miện (tự dùng mỗi `crownEvery` ms): cả đội TRỪ Vua +`crownDef` thủ + khiên = (P.DEF + M.DEF) của Vua,
+    //   `crownTime` ms; Vua bị đánh trúng -> ai còn khiên vương miện hồi `crownHeal` máu tối đa (nhiều nhất `crownHealMax` lần / giây); Tốt và Xe: mọi thứ ×`crownGuardMult`.
+    //   Phán Quyết (chiêu 2): niệm `judgeCast` ms không bị ngắt, máu mất lúc niệm tích lại -> chém ×slamMultiplier P.ATK + máu đã mất (trần `judgeCap` máu tối đa),
+    //   vùng trước mặt dài `judgeLength` rộng `judgeWidth`, hất tung `judgeKnockup` ms
     chess_king: {
         name: 'Vua', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '♚', color: '#facc15', dmgType: 'physical', summon: true,
         summonRules: { targetable: true, buffs: true, debuffs: true },
@@ -659,10 +662,13 @@ const CLASS_DEFS = {
         crit: 80, critDmg: 500, acc: 1000, dodge: 30, block: 150, threat: 150,
         atkSpeed: 1300, range: 'melee', atkRange: 2.8, moveSpeed: 0.012, autoHitFrame: 2, autoImpact: 300,
         crownEvery: 15000, crownTime: 8000, crownDef: 0.15, crownHeal: 0.02, crownHealMax: 2, crownGuardMult: 2,
-        judgeCast: 3000, slamMultiplier: 2.0, judgeCap: 0.30, judgeLength: 7, judgeWidth: 5, judgeKnockup: 1000,
+        judgeCast: 3000, slamMultiplier: 2.0, judgeCap: 0.30, judgeLength: 7, judgeWidth: 5, judgeKnockup: 1000, judgeLock: 400,
+        strikeMultiplier: 3.0, mateLift: 1500, mateStun: 1000, mateLock: 400,   // Chiếu Tướng: Hậu nâng mọi đối thủ `mateLift` ms, gươm của Vua ×strikeMultiplier P.ATK, rơi xuống choáng `mateStun` ms
         skills: [], passives: []
     },
-    // Hậu (quân chúa cánh công): pháp sư đánh xa. ĐỢT NÀY chỉ đánh thường — Quang Cầu + Vũ Điệu Quang Cầu làm ở task B5 (con số ghi sẵn theo spec 5.6)
+    // Hậu (quân chúa cánh công): pháp sư đánh xa. Quang Cầu (tự dùng): mỗi `orbEvery` ms thả 1 quả ở chỗ ngẫu nhiên trong vùng đối thủ đứng, sống `orbTime` ms,
+    //   bán kính `orbRadius`, mỗi `orbTick` ms ×tickMultiplier M.ATK + choáng nhẹ `orbStun` ms (mỗi mục tiêu nhiều nhất 1 lần / `orbStunEvery` ms).
+    //   Vũ Điệu Quang Cầu (chiêu 2): niệm `danceCast` ms, thu mọi quả đang có + thêm `danceExtra` quả, bắn hết vào đối thủ ngẫu nhiên (mỗi phát ×burstMultiplier), rơi thành quả mới
     chess_queen: {
         name: 'Hậu', title: 'Triệu hồi', className: 'Triệu Hồi', emoji: '♛', color: '#fde68a', dmgType: 'magic', summon: true,
         summonRules: { targetable: true, buffs: true, debuffs: true },
@@ -670,7 +676,7 @@ const CLASS_DEFS = {
         crit: 100, critDmg: 500, acc: 1000, dodge: 100, block: 0, threat: 100,
         atkSpeed: 1100, range: 'ranged', atkRange: 11, moveSpeed: 0.01, autoHitFrame: 2, autoImpact: 400,
         orbEvery: 3000, orbTime: 10000, orbRadius: 2.5, orbTick: 1000, tickMultiplier: 0.35, orbStun: 200, orbStunEvery: 1500,
-        danceCast: 1000, danceExtra: 2, burstMultiplier: 0.9,
+        danceCast: 1000, danceExtra: 2, burstMultiplier: 0.9, danceLock: 300,
         skills: [], passives: []
     },
     // Brakk (Cuồng Đấu) — class CHIẾN BINH (đô vật), tộc Dragon: máu trâu, quật / dậm đất / hoá khổng lồ.
@@ -866,6 +872,7 @@ function skillsOf(member) {
 
 /** Gán chỉ số nền theo level / bậc / tộc lên nhân vật (giữ tỉ lệ máu hiện tại nếu đang trong trận) */
 function applyProgress(member, hero) {
+    if (member.summon) return;   // quân triệu hồi (thú của Sylva, Golem, quân cờ của Leon...) có chỉ số riêng, không theo tiến trình anh hùng
     const def = CLASS_DEFS[member.classId];
     let st = P.computeStats(def, hero);
     if (hero.gear) st = G.applyGear(st, hero.gear, def.dmgType);   // đồ đang mặc (Cốt truyện / Test)
@@ -1463,6 +1470,11 @@ function getEffectiveStats(member, now) {
             stats.pDef = Math.floor(stats.pDef * (1 - (ef.value ?? 0)));
             stats.mDef = Math.floor(stats.mDef * (1 - (ef.value ?? 0)));
         }
+        if (ef.type === 'chess_crown') {
+            // Vương Miện (quân Vua của Leon): +thủ vật lý, +thủ phép suốt thời gian đội vương miện (khiên vỡ vẫn giữ)
+            stats.pDef = Math.floor(stats.pDef * (1 + (ef.defUp ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * (1 + (ef.defUp ?? 0)));
+        }
         if (ef.type === 'windspirit') {
             // Thần Phong Giáng Thế: +tốc đánh, +P.ATK
             stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.atkSpeedUp ?? 0.3)));
@@ -1510,6 +1522,9 @@ function getEffectiveStats(member, now) {
             stats.atkSpeed = Math.floor(stats.atkSpeed * 0.9);
         }
     });
+
+    // Bàn cờ của Leon — có Hậu: quân cờ +tốc đánh
+    if (member.chessKind && chessBoardFor(member)?.queen) stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + CHESS_BOARD.queenSpeed));
 
     // Xói Mòn Hư Không (Nyx, thiên phú 1): mỗi đối thủ gục +M.ATK · mỗi đồng minh gục +tỉ lệ chí mạng, +sát thương chí mạng (tới hết trận)
     const erosion = (member.voidKills || member.voidAllies) ? talentOf(member, 'void_erosion') : null;
@@ -1572,7 +1587,7 @@ function isBehind(attacker, target) {
 //     khiên còn lại thành "dormant": mất máu khiên nhưng VẪN giữ hiệu ứng buff (vd +thủ, kháng choáng, cánh miễn choáng) tới hết thời gian.
 //   · Khiên ĐẶC TRƯNG (signature, vd Dựng Khiên của Chiến Binh) luôn được dùng, bất kể máu khiên khác nhiều hơn.
 // ============================================================
-const SHIELD_TYPES = new Set(['boss_shield', 'guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield', 'chess_pawn_shield', 'chess_castle']);
+const SHIELD_TYPES = new Set(['boss_shield', 'guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield', 'chess_pawn_shield', 'chess_castle', 'chess_crown', 'chess_sacrifice']);
 const isSignatureShield = (ef) => ef.type === 'guard';
 
 /** Khiên đang hứng sát thương (null nếu không có) */
@@ -1711,6 +1726,9 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Leon — Thành Lũy: đứng sau quân Xe của phe mình · Nhập Thành: đang được Xe che -> nhận ít sát thương hơn
     const wall = chessWall(target);
     if (wall) damage *= 1 - wall;
+    // Bàn cờ của Leon — có Vua: cả phe (anh hùng + quân cờ) nhận ít sát thương hơn · có Hậu: quân cờ gây thêm sát thương
+    if (chessBoardFor(target)?.king) damage *= 1 - CHESS_BOARD.kingReduce;
+    if (attacker.chessKind && chessBoardFor(attacker)?.queen) damage *= 1 + CHESS_BOARD.queenDmg;
     const castle = target.statusEffects?.find(ef => ef.type === 'chess_castle_guard' && ef.endTime > now);
     if (castle) damage *= 1 - (castle.value ?? 0);
     // Thánh Niệm: đồng đội của Tu Sĩ +sát thương (vật lý hay phép theo từng người)
@@ -2871,6 +2889,9 @@ function startBattleLoop(roomId) {
                 });
             }
 
+            // Leon: bàn cờ (báo máy khách khi đổi) + quang cầu của Hậu
+            if (opponentData) processChessTeam(room, playerId, opponentId, now);
+
             // 2. BATTLE LOGIC (Movement & Combat)
             playerData.squad.forEach((member, memberIndex) => {
                 // Linh Hồn Báo Thù (Zerith): linh hồn Thần Chết chiến đấu đủ 7s — kể cả khi Zerith đã được hồi sinh (đánh chung)
@@ -3454,8 +3475,31 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     }
 
     if (member.classId === 'chessmaster') {
-        // Leon (TẠM — AI riêng theo spec 5.8 làm ở task B6): nút nào dùng được (không khoá, quân không đang chờ gọi lại...), đủ Orb, hết hồi thì bấm — nút số lớn trước
-        for (let i = 2; i >= 0; i--) if (ready(i) && skillUsable(member, i)) return i;
+        // Leon (spec 5.8): Chiếu Tướng có là dùng · đồng đội dưới 60% máu -> Nước Cờ Thủ · mở cánh thủ trước nếu đội không có Chiến Binh còn sống
+        //   (ngược lại mở cánh công) -> đủ cánh thì gọi quân chúa -> xây nốt cánh kia · quân chết: gọi lại ngay khi đủ Orb (để dành Orb cho quân đang cần gọi)
+        //   · không còn quân nào cần gọi: chiêu 2 của quân chúa (khi có đối thủ trong vùng), Nước Cờ Công
+        const c = chessState(member), mode = (i) => skillsOf(member)[i]?.mode;
+        const ok = (i) => ready(i) && skillUsable(member, i);
+        const isSummon = (i) => !!CHESS_UNITS[mode(i)];
+        // nút gọi quân đã hết hồi, chỉ còn thiếu Orb -> để dành, không tiêu vào việc khác
+        const needsOrb = (i) => isSummon(i) && skillUsable(member, i) && now >= member.skillCooldowns[i] && !ready(i) && foeInReach(member, null, opponentData.squad, now);
+        if (mode(2) === 'checkmate' && ok(2)) return 2;
+        const hurt = allies.some(a => a.alive && (!a.summon || a.chessKind) && hpPct(a) < 0.6);
+        if (mode(0) === 'guardMove' && hurt && ok(0)) return 0;
+        const first = allies.some(a => a.alive && !a.summon && CLASS_DEFS[a.classId]?.classGroup === 'warrior') ? 1 : 0;
+        if (!c.royalEver) {
+            // chưa có quân chúa lần nào: dồn Orb cho cánh mở đầu, đủ cánh thì gọi quân chúa
+            if (isSummon(first)) return ok(first) ? first : -1;
+            if (isSummon(2)) return ok(2) ? 2 : -1;
+        }
+        for (const i of [2, first, 1 - first]) if (isSummon(i) && ok(i)) return i;
+        if ([2, first, 1 - first].some(needsOrb)) return -1;
+        if ((mode(2) === 'kingSkill' || mode(2) === 'queenSkill') && ok(2)) {
+            const royal = chessPieces(playerData, idx)[mode(2) === 'kingSkill' ? 'king' : 'queen'];
+            if (royal && chessRoyalWorth(royal.unit, opponentData, now)) return 2;
+        }
+        if (mode(1) === 'strikeMove' && ok(1)) return 1;
+        if (mode(0) === 'guardMove' && orbs >= 4 && ok(0)) return 0;   // dư Orb: không để tràn
         return -1;
     }
 
@@ -4272,6 +4316,7 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
         later(delay, () => goblinWardHit(target, attacker, curRoom.clock, ward));
     }
     if (dmg > 0) later(delay, () => onHitTaken(target));
+    if (target.chessKind === 'king' && (dmg > 0 || hit?.absorbed > 0)) later(delay, () => chessKingHit(target));   // Vương Miện: Vua bị đánh trúng -> người đội vương miện hồi máu
     if (oppData.debugGodMode || !(dmg > 0)) { if (after) later(delay, after); return false; }
     target.pendingDmg = (target.pendingDmg || 0) + dmg;
     const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now())
@@ -4866,7 +4911,8 @@ function giantForm(m, now) {
 function ccImmune(m, now) {
     if (m?.ult) return true;
     if (m?.summon && !takesDebuffs(m)) return true;   // triệu hồi KHÔNG nhận debuff (Golem): không dính khống chế
-    if (voidShell(m, now) || isVanished(m, now)) return true;   // Nyx có Vỏ Hư Không đang niệm Sao Rơi / Hố Đen (không bị ngắt niệm) · Nyx đang trong cổng Hư Không
+    if (voidShell(m, now) || isVanished(m, now)) return true;
+    if (m?.chessKind === 'king' && chessJudging(m, now)) return true;   // quân Vua của Leon đang niệm Phán Quyết: không bị ngắt   // Nyx có Vỏ Hư Không đang niệm Sao Rơi / Hố Đen (không bị ngắt niệm) · Nyx đang trong cổng Hư Không
     const g = giantForm(m, now);
     return !!g && now < (g.immuneUntil ?? 0);
 }
@@ -7234,10 +7280,12 @@ function processVoid(room, pid, idx, oppId, now) {
 
 // ============================================================
 // LEON (Kỳ Vương, `chessmaster`) — kỳ thủ gọi 6 quân cờ. ĐỢT 1 (task B1–B3): khai báo + 3 nút đổi theo thế cờ + cánh thủ (Tốt, Xe) + cánh công (Mã, Tượng).
-//   Chưa làm (task B4–B6): chiêu của Vua / Hậu, bàn cờ, Thí Quân, Phong Cấp, Chiếu Tướng, AI riêng — xem CHESS_TODO.
+//   ĐỢT 2 (task B4–B6): Vua (Vương Miện, Phán Quyết), Hậu (Quang Cầu, Vũ Điệu Quang Cầu), bàn cờ, Thí Quân, Phong Cấp, Chiếu Tướng, AI riêng (autoChooseSkill).
 //   Quân cờ là thành viên thật của đội (summon: true, chessKind, ownerIdx = vị trí Leon), ở lại tới khi bị giết; Leon gục thì quân vẫn đánh tiếp.
 //   Sự kiện gửi máy khách: 'chessFx' { casterId, casterIdx (Leon), kind, ... } — kind đã dùng: summon · command · pawnSlash · castle · knightJump · fork ·
-//   drain · drainEnd · bind. Hiệu ứng trạng thái mới: `chess_pawn_shield`, `chess_castle` (khiên) · `chess_castle_guard { value }` (giảm sát thương nhận) ·
+//   drain · drainTick · drainEnd · bind · pawnGuard · crown · judgeStart · judgeSlam · orb · orbTick · orbGone · dance · board · promote · sacrifice · checkmate.
+//   Hiệu ứng trạng thái đợt 2: `chess_crown { hp, maxHp, defUp, heal, x2, kingSlot }`, `chess_sacrifice` (khiên) · `chess_judging { stored }` (Vua đang niệm) ·
+//   `chess_dancing` (Hậu đang niệm). Trên đội: `chessOrbs` (quang cầu), `chessBoardKey`. Hiệu ứng trạng thái đợt 1: `chess_pawn_shield`, `chess_castle` (khiên) · `chess_castle_guard { value }` (giảm sát thương nhận) ·
 //   `chess_drain { targetPid, targetIdx, endTime, next, mode }` (trên Tượng) · `chess_bound { value }` (trên kẻ bị trói: −thủ).
 // ============================================================
 const CHESS_UNITS = { pawn: 'chess_pawn', rook: 'chess_rook', knight: 'chess_knight', bishop: 'chess_bishop', king: 'chess_king', queen: 'chess_queen' };
@@ -7256,8 +7304,9 @@ const CHESS_MODES = {
     queenSkill: { name: 'Vũ Điệu Quang Cầu', orbCost: 2, cooldown: 12000, icon: 'chess_queenskill' },
     checkmate: { name: 'Chiếu Tướng', orbCost: 3, cooldown: 20000, icon: 'chess_checkmate' },
 };
-/** Chế độ CHƯA LÀM (task B4–B6): bấm không làm gì, không trừ Orb, lệnh không được giữ trong hàng đợi. Làm xong chế độ nào thì bỏ khỏi đây */
-const CHESS_TODO = new Set(['kingSkill', 'queenSkill', 'checkmate']);
+/** Bàn cờ ánh sáng (hiện suốt lúc còn Vua hoặc Hậu): có Vua -> cả phe nhận ít hơn kingReduce · có Hậu -> quân cờ +queenDmg sát thương, +queenSpeed tốc đánh */
+const CHESS_BOARD = { kingReduce: 0.15, queenDmg: 0.20, queenSpeed: 0.20 };
+const CHESS_ROYAL_AUTO = 14000;   // có cả Vua và Hậu: mỗi quân chúa tự dùng chiêu 2 của mình mỗi 14 giây
 const CHESS_WINGS = { guard: ['pawn', 'rook'], strike: ['knight', 'bishop'] };   // 2 quân của mỗi cánh, theo thứ tự luân phiên của nước cờ
 const CHESS_MOVE_WING = { guardMove: 'guard', strikeMove: 'strike' };
 const CHESS_RESUMMON = 5000;   // quân chết: chờ 5 giây mới gọi lại được loại quân đó
@@ -7265,10 +7314,11 @@ const CHESS_RESUMMON = 5000;   // quân chết: chờ 5 giây mới gọi lại 
 const CHESS_SPAWN = { pawn: [4, 0], rook: [3, -1.5], knight: [3, 1.5], bishop: [-1, 1.5], king: [5, -1.5], queen: [-1, -1.5] };
 const CHESS_CC = ['stun', 'knockup', 'knocked', 'grabbed', 'frozen'];   // quân đang dính mấy thứ này thì không nhận lệnh / đứt Hút Hồn
 const emitChess = (roomId, data) => io.to(roomId).emit('chessFx', data);
-/** Thế cờ của 1 Leon (tạo khi cần). royalAuto / seatSince: để dành cho task B6 */
+/** Thế cờ của 1 Leon (tạo khi cần). royalAuto: lúc quân chúa được tự dùng chiêu 2 lần tới · royals: số quân chúa đang có · seatSince: lúc bắt đầu có ĐÚNG 1 quân chúa
+ *  (mốc đếm giờ Phong Cấp) · royalEver: đã từng có quân chúa (AI dùng) */
 function chessState(m) {
     return m.chess ??= { ever: { pawn: false, rook: false, knight: false, bishop: false }, firstWing: null, turn: { guard: 0, strike: 0 },
-        cd: {}, deadAt: {}, royalAuto: { king: 0, queen: 0 }, seatSince: 0 };
+        cd: {}, deadAt: {}, royalAuto: { king: 0, queen: 0 }, seatSince: 0, royals: 0, royalEver: false };
 }
 /** Quân còn sống của Leon ở vị trí `idx`: { pawn?: { unit, slot }, rook?, ... } (slot = vị trí quân trong team.squad) */
 function chessPieces(team, idx) {
@@ -7309,27 +7359,24 @@ function chessMover(m, team, idx, wing, now) {
     const p = chessPieces(team, idx)[kind];
     return p && !chessDisabled(p.unit, now) ? { kind, ...p } : null;
 }
-/** Nút `idx` của Leon bấm được lúc này (ngoài Orb / hồi chiêu)? Nút khoá + chế độ chưa làm: không · gọi quân: quân đó chết đủ 5 giây · nước cờ: quân tới lượt nhận lệnh được */
+/** Nút `idx` của Leon bấm được lúc này (ngoài Orb / hồi chiêu)? Nút khoá: không · gọi quân: quân đó chết đủ 5 giây · nước cờ: quân tới lượt nhận lệnh được · chiêu quân chúa: quân chúa rảnh */
 function chessUsable(m, idx) {
     const mode = skillsOf(m)[idx]?.mode, now = curRoom?.clock ?? Date.now();
-    if (!mode || CHESS_MODES[mode]?.locked || CHESS_TODO.has(mode)) return false;
+    if (!mode || CHESS_MODES[mode]?.locked) return false;
     if (CHESS_UNITS[mode]) return now >= (chessState(m).deadAt[mode] ?? -Infinity) + CHESS_RESUMMON;
-    const wing = CHESS_MOVE_WING[mode], at = wing ? locate(m) : null;
-    return !!at && !!chessMover(m, curRoom.players[at.pid], at.idx, wing, now);
+    const at = locate(m);
+    if (!at) return false;
+    const team = curRoom.players[at.pid];
+    if (CHESS_MOVE_WING[mode]) return !!chessMover(m, team, at.idx, CHESS_MOVE_WING[mode], now);
+    // chiêu 2 của quân chúa / Chiếu Tướng: quân chúa phải đang rảnh (không bị khống chế, không đang niệm chiêu khác)
+    const p = chessPieces(team, at.idx), free = (o) => !!o && chessFree(o.unit, now);
+    return mode === 'kingSkill' ? free(p.king) : mode === 'queenSkill' ? free(p.queen) : mode === 'checkmate' ? free(p.king) && free(p.queen) : false;
 }
-/**
- * Gọi 1 quân `kind` cho Leon ở vị trí `idx` (như summonSylvaUnit nhưng giữ M.ATK, không hết giờ, mỗi loại chỉ 1 quân trên sân).
- * Chỉ số riêng của quân + tăng theo cấp Leon. Trả về vị trí quân trong đội (quân loại đó đang sống thì trả về quân đang có).
- */
-function summonChessPiece(room, pid, idx, kind, now) {
-    const team = room.players[pid], m = team?.squad[idx];
+/** Dựng 1 quân cờ `kind` của Leon `m` (vị trí `idx` trong đội) đứng ở (x, z): chỉ số riêng của quân + tăng theo cấp Leon, giữ M.ATK, không hết giờ */
+function chessUnit(room, m, idx, kind, x, z, now) {
     const classId = CHESS_UNITS[kind], d = CLASS_DEFS[classId];
-    if (!m || !d) return -1;
-    const have = chessPieces(team, idx)[kind];
-    if (have) return have.slot;
     const L = Math.max(0, (m.level ?? 1) - 1);
     const stat = (k) => Math.round((d[k] ?? 0) + (d.perLevel?.[k] ?? 0) * L);
-    const side = m.side === 'left' ? 1 : -1, [dx, dz] = CHESS_SPAWN[kind];
     const s = {
         classId, name: d.name, emoji: d.emoji, color: d.color,
         summon: true, chessKind: kind, summonId: (room.summonSeq = (room.summonSeq ?? 0) + 1), ownerIdx: idx,
@@ -7338,14 +7385,30 @@ function summonChessPiece(room, pid, idx, kind, now) {
         pAtk: stat('pAtk'), mAtk: stat('mAtk'), pDef: stat('pDef'), mDef: stat('mDef'),
         crit: d.crit, critDmg: d.critDmg, acc: d.acc, dodge: d.dodge, pen: 0, block: d.block ?? 0, lifesteal: 0, threat: d.threat,
         mpAtk: 0, mpSec: 0, atkSpeed: d.atkSpeed, atkRange: d.atkRange, range: d.range, moveSpeed: d.moveSpeed,
-        alive: true, x: m.x + side * dx, y: 0, z: (m.z || 0) + dz, side: m.side,
+        alive: true, x, y: 0, z, side: m.side,
         state: 'idle', targetIndex: -1, lockedTargetIndex: -1, lastAttackTime: now,
         skillCooldowns: [0, 0, 0], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: [],
         skills: [], passives: [], talentLevels: { 1: 0, 2: 0 },
         summonEnd: Infinity, autos: 0, actionUntil: now + 400, bornAt: now,
     };
+    if (kind === 'queen') s.orbNext = now + d.orbEvery;   // Quang Cầu: quả đầu tiên sau `orbEvery` ms
     for (const k of P.UNIQUE_KEYS) s[k] = 0;
     clampToArena(s);
+    if (kind === 'king' || kind === 'queen') chessState(m).royalEver = true;
+    room.chessOn = true;
+    return s;
+}
+/**
+ * Gọi 1 quân `kind` cho Leon ở vị trí `idx` (như summonSylvaUnit nhưng giữ M.ATK, không hết giờ, mỗi loại chỉ 1 quân trên sân).
+ * Trả về vị trí quân trong đội (quân loại đó đang sống thì trả về quân đang có).
+ */
+function summonChessPiece(room, pid, idx, kind, now) {
+    const team = room.players[pid], m = team?.squad[idx];
+    if (!m || !CLASS_DEFS[CHESS_UNITS[kind]]) return -1;
+    const have = chessPieces(team, idx)[kind];
+    if (have) return have.slot;
+    const side = m.side === 'left' ? 1 : -1, [dx, dz] = CHESS_SPAWN[kind];
+    const s = chessUnit(room, m, idx, kind, m.x + side * dx, (m.z || 0) + dz, now);
     // quân cùng loại đã chết của Leon này: dùng lại đúng ô cũ trong đội
     let slot = team.squad.findIndex(o => !o.alive && o.chessKind === kind && o.ownerIdx === idx);
     if (slot >= 0) team.squad[slot] = s; else { slot = team.squad.length; team.squad.push(s); }
@@ -7357,25 +7420,28 @@ function summonChessPiece(room, pid, idx, kind, now) {
     chessRefresh(m, team, idx, now);
     return slot;
 }
-/** Kỹ năng của Leon (executeSkill): theo chế độ đang có của nút — gọi quân (ra sân sau `impact`) hoặc nước cờ */
+/** Kỹ năng của Leon (executeSkill): theo chế độ đang có của nút — gọi quân (ra sân sau `impact`), nước cờ, chiêu 2 của quân chúa, Chiếu Tướng */
 function castChessSkill(room, pid, idx, oppId, sk, now, effects, extra) {
     const team = room.players[pid], m = team.squad[idx], c = chessState(m);
     const mode = sk.mode ?? null;
-    const done = () => { if (!team.debugNoMana) c.cd[mode] = now + (sk.lock ?? 0) + sk.cooldown; };
     extra.mode = mode;
+    let ok = false;
     if (CHESS_UNITS[mode]) {
-        done();
+        ok = true;
         later(sk.impact ?? 0, () => { if (m.alive && !room.winner) summonChessPiece(room, pid, idx, mode, room.clock); });
         extra.piece = mode; extra.impact = sk.impact ?? 0;
-    } else if (CHESS_MOVE_WING[mode] && chessCommand(room, pid, idx, CHESS_MOVE_WING[mode], now, extra)) {
-        done();
-    } else {
-        // nút khoá / chế độ chưa làm / quân tới lượt không nhận lệnh được (vòng lặp trận đã chặn bằng skillUsable — đây là lưới an toàn): không diễn, không vào hồi
-        const i = skillsOf(m).indexOf(sk);
-        m.actionUntil = now;
-        if (i >= 0) m.skillCooldowns[i] = chessReadyAt(m, mode);
-        extra.failed = true;
-    }
+    } else if (CHESS_MOVE_WING[mode]) ok = chessCommand(room, pid, idx, CHESS_MOVE_WING[mode], now, extra);
+    else if (mode === 'kingSkill' || mode === 'queenSkill') {
+        const royal = chessPieces(team, idx)[mode === 'kingSkill' ? 'king' : 'queen'];
+        ok = !!royal && chessRoyalSkill(room, pid, royal.slot, oppId, now);
+        if (ok) Object.assign(extra, { piece: royal.unit.chessKind, summonIdx: royal.slot });
+    } else if (mode === 'checkmate') ok = chessCheckmate(room, pid, idx, oppId, now, extra);
+    if (ok) { if (!team.debugNoMana) c.cd[mode] = now + (sk.lock ?? 0) + sk.cooldown; return; }
+    // nút khoá / quân tới lượt hay quân chúa không làm theo lệnh được (vòng lặp trận đã chặn bằng skillUsable — đây là lưới an toàn): không diễn, không vào hồi
+    const i = skillsOf(m).indexOf(sk);
+    m.actionUntil = now;
+    if (i >= 0) m.skillCooldowns[i] = chessReadyAt(m, mode);
+    extra.failed = true;
 }
 /**
  * Nước cờ của cánh `wing` ('guard' | 'strike'): 2 quân của cánh luân phiên — lần này quân thứ nhất, lần sau quân thứ hai.
@@ -7400,14 +7466,17 @@ const CHESS_MOVES = {
         s.x += (s.side === 'left' ? 1 : -1) * d.holdStep;
         clampToArena(s);
         s.actionUntil = Math.max(s.actionUntil ?? 0, now + d.holdLock);
-        opp?.squad.forEach(e => {
+        const targets = [];
+        opp?.squad.forEach((e, i) => {
             if (!e.alive || distXZ(e, s.x, s.z || 0) > d.tauntRadius) return;
             if (e.ult) { if (e.ultCCAt !== now) damageJudgmentShield(e, 0, true); return; }   // trùm đang niệm Phán Quyết: đòn khống chế trừ vào khiên niệm
             if (!takesDebuffs(e) || ccImmune(e, now) || isJudged(e, now)) return;             // miễn khống chế: không bị khiêu khích
             e.statusEffects = e.statusEffects.filter(ef => ef.type !== 'taunted');
             e.statusEffects.push({ type: 'taunted', endTime: now + d.tauntTime, duration: d.tauntTime, sourceIndex: slot, by: s.name, debuff: true });
             e.lockedTargetIndex = -1;
+            targets.push(i);
         });
+        emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'pawnGuard', summonIdx: slot, x: s.x, z: s.z || 0, targets });
     },
     /**
      * Xe — Nhập Thành: nhảy tới đồng đội có % máu thấp nhất (anh hùng hoặc quân cờ, trừ chính Xe), đứng chắn phía địch.
@@ -7558,24 +7627,250 @@ function chessAfterAuto(roomId, pid, slot, oppId, targetIdx, now) {
     });
     emitChess(roomId, { casterId: pid, casterIdx: s.ownerIdx, kind: 'pawnSlash', summonIdx: slot, targetId: oppId, targetIndex: targetIdx, effects, shield: hp, impact });
 }
-/** 1 quân cờ của phe `pid` vừa bị giết (killMember): ghi giờ chết (5 giây sau mới gọi lại được), nút của Leon đổi ngay. (Thí Quân — task B6 — nối thêm ở đây) */
+/**
+ * 1 quân cờ của phe `pid` vừa bị giết (killMember): ghi giờ chết (5 giây sau mới gọi lại được), nút của Leon đổi ngay.
+ * Thiên phú 1 — Thí Quân (Leon còn sống): mọi đồng đội còn sống (anh hùng + quân cờ) được khiên `value` máu tối đa của mình `duration` ms, Leon hồi `orb` Orb.
+ */
 function chessOnPieceDeath(room, pid, piece, now) {
     const team = room?.players?.[pid], owner = team?.squad[piece.ownerIdx];
     if (owner?.classId !== 'chessmaster' || !piece.chessKind) return;
     chessState(owner).deadAt[piece.chessKind] = now;
     chessDrainEnd(room, pid, team.squad.indexOf(piece), 'death');   // Tượng đang Hút Hồn: thả mục tiêu
+    piece.statusEffects = piece.statusEffects.filter(e => e.type !== 'chess_judging' && e.type !== 'chess_dancing');
+    const t = owner.alive ? talentOf(owner, 'chess_sacrifice') : null;
+    if (t) {
+        team.squad.forEach(a => {
+            if (!a.alive || (a.summon && !a.chessKind)) return;
+            const hp = Math.round(a.maxHp * t.value);
+            a.statusEffects = a.statusEffects.filter(e => e.type !== 'chess_sacrifice');
+            addShield(a, { type: 'chess_sacrifice', endTime: now + t.duration, duration: t.duration, hp, maxHp: hp }, now);
+        });
+        owner.mp = Math.min(owner.maxMp, owner.mp + t.orb * ORB_COST);
+        emitChess(room.id, { casterId: pid, casterIdx: piece.ownerIdx, kind: 'sacrifice', piece: piece.chessKind });
+    }
     chessRefresh(owner, team, piece.ownerIdx, now);
 }
-/** Mỗi nhịp cho Leon còn sống: làm mới 3 nút theo thế cờ · bỏ khỏi hàng đợi lệnh bấm vào nút khoá / chế độ chưa làm (không tốn Orb, không chặn 2 nút kia) */
+/**
+ * Mỗi nhịp cho Leon còn sống: làm mới 3 nút theo thế cờ · bỏ khỏi hàng đợi lệnh bấm vào nút khoá · gắn `ready: false` lên nút mà bấm lúc này chỉ xếp hàng chờ
+ * (quân vừa chết chưa gọi lại được, quân tới lượt / quân chúa đang bị khống chế hay đang bận) · Phong Cấp · có cả Vua và Hậu: 2 quân chúa tự dùng chiêu 2.
+ */
 function processChess(room, pid, idx, oppId, now) {
     const team = room.players[pid], m = team?.squad[idx];
     if (m?.classId !== 'chessmaster' || !m.alive) return;
+    const c = chessState(m);
+    let p = chessPieces(team, idx);
+    const royals = (p.king ? 1 : 0) + (p.queen ? 1 : 0);
+    if (royals !== c.royals) { c.royals = royals; if (royals === 1) c.seatSince = now; }
+    // Thiên phú 2 — Phong Cấp: có ĐÚNG 1 quân chúa và Tốt còn sống đủ `value` ms (tính từ lúc muộn nhất trong: quân chúa đó ra sân, Tốt ra sân, ghế kia bắt đầu trống)
+    const t2 = talentOf(m, 'chess_promote');
+    if (t2 && royals === 1 && p.pawn && !isJudged(p.pawn.unit, now)) {
+        const since = Math.max((p.king ?? p.queen).unit.bornAt ?? 0, p.pawn.unit.bornAt ?? 0, c.seatSince);
+        if (now - since >= t2.value) { chessPromote(room, pid, p.pawn.slot, p.king ? 'queen' : 'king', now); p = chessPieces(team, idx); c.royals = 2; }
+    }
+    // có cả Vua và Hậu: chiêu 2 riêng của mỗi quân chúa do chúng tự dùng mỗi CHESS_ROYAL_AUTO ms (không tốn Orb; tôn trọng hồi chiêu của nút nếu Leon vừa bấm)
+    if (p.king && p.queen && room.players[oppId]) for (const k of ['king', 'queen']) {
+        if (now < Math.max(c.royalAuto[k] ?? 0, c.cd[k + 'Skill'] ?? 0) || !chessRoyalWorth(p[k].unit, room.players[oppId], now)) continue;
+        if (chessRoyalSkill(room, pid, p[k].slot, oppId, now)) c.royalAuto[k] = now + CHESS_ROYAL_AUTO;
+    }
     chessRefresh(m, team, idx, now);
-    const dead = (k) => { const mode = skillsOf(m)[k]?.mode; return !mode || !!CHESS_MODES[mode]?.locked || CHESS_TODO.has(mode); };
+    const dead = (k) => { const mode = skillsOf(m)[k]?.mode; return !mode || !!CHESS_MODES[mode]?.locked; };
     if (m.queuedSkills.some(dead)) m.queuedSkills = m.queuedSkills.filter(k => !dead(k));
+    m.skills.forEach((sk, i) => { if (!sk.mode || sk.locked) return; if (chessUsable(m, i)) delete sk.ready; else sk.ready = false; });
+}
+/** Mỗi nhịp cho 1 phe: báo máy khách khi bàn cờ đổi (còn Vua / còn Hậu) · quang cầu của Hậu */
+function processChessTeam(room, pid, oppId, now) {
+    const team = room.players[pid];
+    if (!team || (!room.chessOn && !team.chessBoardKey && !team.chessOrbs?.length)) return;
+    const b = chessBoard(team), key = (b.king ? 1 : 0) + (b.queen ? 2 : 0);
+    if ((team.chessBoardKey ?? 0) !== key) {
+        team.chessBoardKey = key;
+        emitChess(room.id, { casterId: pid, casterIdx: Math.max(0, team.squad.findIndex(a => a.classId === 'chessmaster')), kind: 'board', king: b.king, queen: b.queen });
+    }
+    processChessOrbs(room, pid, oppId, now);
+}
+/** Bàn cờ của 1 phe: còn quân Vua / quân Hậu sống (của bất kỳ Leon nào trong phe) */
+function chessBoard(team) {
+    const b = { king: false, queen: false };
+    for (const a of team?.squad ?? []) if (a.alive && (a.chessKind === 'king' || a.chessKind === 'queen')) b[a.chessKind] = true;
+    return b;
+}
+/** Bàn cờ của phe mà `m` thuộc về (null khi phòng chưa từng có quân cờ / không tìm thấy) */
+function chessBoardFor(m) {
+    if (!curRoom?.chessOn) return null;
+    const at = locate(m);
+    return at ? chessBoard(curRoom.players[at.pid]) : null;
+}
+const chessJudging = (s, now) => s?.statusEffects?.find(e => e.type === 'chess_judging' && e.endTime > now);
+/** Quân chúa đang rảnh để nhận chiêu: không bị khống chế, không đang niệm Phán Quyết / Vũ Điệu / Chiếu Tướng */
+const chessFree = (s, now) => s.alive && !chessDisabled(s, now) && now >= (s.royalBusy ?? 0)
+    && !s.statusEffects.some(e => (e.type === 'chess_judging' || e.type === 'chess_dancing') && e.endTime > now);
+/** Đối thủ nằm trong vùng chém của Phán Quyết (trước mặt Vua, dài `judgeLength`, rộng `judgeWidth`) */
+function chessJudgeZone(s, opp, now) {
+    const d = CLASS_DEFS.chess_king, side = s.side === 'left' ? 1 : -1;
+    return foesOf(opp, now).filter(o => { const dx = (o.e.x - s.x) * side; return dx >= 0 && dx <= d.judgeLength && Math.abs((o.e.z || 0) - (s.z || 0)) <= d.judgeWidth / 2; });
+}
+/** Có đáng cho quân chúa dùng chiêu 2 lúc này (AI / tự dùng): Vua — có đối thủ trong vùng chém · Hậu — còn đối thủ chọn được */
+function chessRoyalWorth(s, opp, now) {
+    return s.chessKind === 'king' ? chessJudgeZone(s, opp, now).some(o => canBeTargeted(o.e, now)) : foesOf(opp, now).some(o => canBeTargeted(o.e, now));
+}
+/** Cộng dồn máu Vua đã mất từ lần đo trước vào chess_judging.stored */
+function chessJudgeSample(s, ef) {
+    if (s.hp < ef.lastHp) ef.stored += ef.lastHp - s.hp;
+    ef.lastHp = s.hp;
 }
 /**
- * Mỗi nhịp cho 1 quân cờ còn sống. Tượng — Hút Hồn (tự dùng, `drainEvery` ms 1 lần, tính từ lúc bắt đầu lần trước; lần đầu ngay khi ra sân xong và có mục tiêu trong tầm):
+ * Chiêu 2 của quân chúa ở ô `slot` (Leon bấm nút 3, hoặc quân chúa tự dùng khi có cả Vua và Hậu). Trả về false nếu quân chúa không rảnh.
+ *   Vua — Phán Quyết: niệm `judgeCast` ms (miễn khống chế), máu mất lúc niệm tích lại; hết giờ chém vùng trước mặt ×slamMultiplier P.ATK + máu đã mất (trần `judgeCap`).
+ *   Hậu — Vũ Điệu Quang Cầu: thu mọi quả cầu của mình + `danceExtra` quả, niệm `danceCast` ms rồi bắn hết vào đối thủ ngẫu nhiên; mỗi phát rơi thành 1 quả cầu mới.
+ */
+function chessRoyalSkill(room, pid, slot, oppId, now) {
+    const team = room.players[pid], s = team?.squad[slot], opp = room.players[oppId];
+    if (!s?.alive || !opp || !chessFree(s, now)) return false;
+    if (s.chessKind === 'king') {
+        const d = CLASS_DEFS.chess_king;
+        const ef = { type: 'chess_judging', endTime: now + d.judgeCast, duration: d.judgeCast, stored: 0, lastHp: s.hp };
+        s.statusEffects.push(ef);
+        s.actionUntil = now + d.judgeCast + d.judgeLock;
+        emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'judgeStart', summonIdx: slot, duration: d.judgeCast });
+        later(d.judgeCast, () => {
+            const t = room.clock;
+            if (!s.statusEffects.includes(ef)) return;
+            chessJudgeSample(s, ef);
+            s.statusEffects = s.statusEffects.filter(e => e !== ef);
+            if (!s.alive || room.winner || isJudged(s, t)) return;
+            const pAtk = getEffectiveStats(s, t).stats.pAtk;
+            const mult = d.slamMultiplier + (pAtk > 0 ? Math.min(ef.stored, s.maxHp * d.judgeCap) / pAtk : 0);
+            const effects = chessJudgeZone(s, opp, t).map(o => {
+                const eff = hitTarget(s, o.e, o.i, opp, mult, t, { cc: true, aoe: true, noBlock: true });
+                if (!eff.isMiss && o.e.alive && (o.e.ult || (takesDebuffs(o.e) && !ccImmune(o.e, t)))) knockUp(o.e, d.judgeKnockup);
+                return eff;
+            });
+            emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'judgeSlam', summonIdx: slot, x: s.x, z: s.z || 0, targetId: oppId, effects });
+        });
+        return true;
+    }
+    if (s.chessKind === 'queen') {
+        const d = CLASS_DEFS.chess_queen;
+        const mine = (team.chessOrbs ?? []).filter(o => o.ownerSlot === slot);
+        team.chessOrbs = (team.chessOrbs ?? []).filter(o => o.ownerSlot !== slot);
+        const foes = foesOf(opp, now).filter(o => canBeTargeted(o.e, now));
+        const shots = [], effects = [];
+        if (foes.length) for (let k = 0; k < mine.length + d.danceExtra; k++) {
+            const o = foes[Math.floor(Math.random() * foes.length)];
+            shots.push({ id: (room.chessOrbSeq = (room.chessOrbSeq ?? 0) + 1), targetIndex: o.i, x: o.e.x, z: o.e.z || 0 });
+            effects.push(hitTarget(s, o.e, o.i, opp, d.burstMultiplier, now, { delay: d.danceCast }));
+        }
+        s.statusEffects.push({ type: 'chess_dancing', endTime: now + d.danceCast, duration: d.danceCast });
+        s.actionUntil = now + d.danceCast + d.danceLock;
+        emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'dance', summonIdx: slot, recalled: mine.map(o => o.id), shots, targetId: oppId, effects, castTime: d.danceCast });
+        // mỗi phát trúng rơi xuống chỗ đó thành 1 quả Quang Cầu mới
+        later(d.danceCast, () => { if (s.alive && !room.winner) for (const sh of shots) chessOrbAdd(room, pid, slot, sh.x, sh.z, room.clock, sh.id); });
+        return true;
+    }
+    return false;
+}
+/** Thả 1 quả Quang Cầu của Hậu ở ô `slot` xuống (x, z) */
+function chessOrbAdd(room, pid, slot, x, z, now, id = (room.chessOrbSeq = (room.chessOrbSeq ?? 0) + 1)) {
+    const team = room.players[pid], d = CLASS_DEFS.chess_queen;
+    (team.chessOrbs ??= []).push({ id, ownerSlot: slot, x, z, endTime: now + d.orbTime, next: now + d.orbTick });
+    emitChess(room.id, { casterId: pid, casterIdx: team.squad[slot]?.ownerIdx ?? 0, kind: 'orb', id, x, z, duration: d.orbTime });
+}
+/**
+ * Mỗi nhịp: các quả Quang Cầu của phe `pid`. Mỗi `orbTick` ms mỗi quả gây ×tickMultiplier M.ATK của Hậu lên đối thủ trong `orbRadius` (đứng trong nhiều quả thì ăn đủ
+ * từng quả) + choáng nhẹ `orbStun` ms (mỗi mục tiêu nhiều nhất 1 lần / `orbStunEvery` ms; miễn khống chế thì không choáng). Hết `orbTime` ms thì tan. Hậu gục: quả đã thả vẫn ở lại hết giờ.
+ */
+function processChessOrbs(room, pid, oppId, now) {
+    const team = room.players[pid], opp = room.players[oppId];
+    if (!team?.chessOrbs?.length) return;
+    const d = CLASS_DEFS.chess_queen;
+    for (const o of [...team.chessOrbs]) {
+        const q = team.squad[o.ownerSlot];
+        const gone = () => { team.chessOrbs = team.chessOrbs.filter(x => x !== o); emitChess(room.id, { casterId: pid, casterIdx: q?.ownerIdx ?? 0, kind: 'orbGone', id: o.id }); };
+        if (q?.classId !== 'chess_queen') { gone(); continue; }
+        while (opp && now >= o.next && o.next <= o.endTime) {
+            o.next += d.orbTick;
+            const effects = foesOf(opp, now).filter(f => distXZ(f.e, o.x, o.z) <= d.orbRadius).map(f => {
+                const eff = hitTarget(q, f.e, f.i, opp, d.tickMultiplier, now, { aoe: true, noBlock: true });
+                if (!eff.isMiss && f.e.alive && now >= (f.e.orbStunAt ?? 0) && takesDebuffs(f.e) && !ccImmune(f.e, now)) { applyStun(f.e, d.orbStun, now); f.e.orbStunAt = now + d.orbStunEvery; }
+                return eff;
+            });
+            if (effects.length) emitChess(room.id, { casterId: pid, casterIdx: q.ownerIdx, kind: 'orbTick', id: o.id, targetId: oppId, effects });
+        }
+        if (now >= o.endTime) gone();
+    }
+}
+/** Vương Miện: Vua bị đánh trúng -> ai còn khiên vương miện (của Vua này) hồi `heal` máu tối đa; nhiều nhất `crownHealMax` lần mỗi giây */
+function chessKingHit(king) {
+    const at = king.alive ? locate(king) : null;
+    if (!at) return;
+    const now = curRoom.clock ?? Date.now(), d = CLASS_DEFS.chess_king;
+    king.crownHeals = (king.crownHeals ?? []).filter(t => now - t < 1000);
+    if (king.crownHeals.length >= d.crownHealMax) return;
+    let any = false;
+    for (const a of curRoom.players[at.pid].squad) {
+        const ef = a.alive ? a.statusEffects.find(e => e.type === 'chess_crown' && e.endTime > now && e.hp > 0 && !e.dormant && e.kingSlot === at.idx) : null;
+        if (!ef) continue;
+        healUnit(a, a.maxHp * ef.heal, now);
+        any = true;
+    }
+    if (any) king.crownHeals.push(now);
+}
+/** Vương Miện (Vua tự dùng): cả đội TRỪ Vua (anh hùng + quân cờ) +thủ, khiên = (P.DEF + M.DEF) của Vua; Tốt và Xe: mọi thứ ×crownGuardMult */
+function chessCrown(room, pid, slot, now) {
+    const team = room.players[pid], s = team.squad[slot], d = CLASS_DEFS.chess_king;
+    const st = getEffectiveStats(s, now).stats, base = st.pDef + st.mDef, targets = [];
+    s.crownNext = now + d.crownEvery;
+    team.squad.forEach((a, i) => {
+        if (a === s || !a.alive || (a.summon && !a.chessKind)) return;
+        const k = a.chessKind === 'pawn' || a.chessKind === 'rook' ? d.crownGuardMult : 1;
+        a.statusEffects = a.statusEffects.filter(e => e.type !== 'chess_crown');
+        addShield(a, { type: 'chess_crown', endTime: now + d.crownTime, duration: d.crownTime, hp: base * k, maxHp: base * k,
+            defUp: d.crownDef * k, heal: d.crownHeal * k, x2: k > 1, kingSlot: slot }, now);
+        targets.push(i);
+    });
+    emitChess(room.id, { casterId: pid, casterIdx: s.ownerIdx, kind: 'crown', summonIdx: slot, targets, duration: d.crownTime });
+}
+/**
+ * Thiên phú 2 — Phong Cấp: Tốt ở ô `pawnSlot` hoá thành quân chúa `to` ('king' | 'queen') với đầy đủ chỉ số + chiêu của quân chúa thật, đứng tại chỗ, đầy máu.
+ * Không tính là quân chết (không Thí Quân, không phải chờ 5 giây mới gọi Tốt mới). Có đủ 2 quân chúa: Chiếu Tướng dùng được ngay.
+ */
+function chessPromote(room, pid, pawnSlot, to, now) {
+    const team = room.players[pid], old = team?.squad[pawnSlot];
+    const m = old ? team.squad[old.ownerIdx] : null;
+    if (!old?.alive || old.chessKind !== 'pawn' || m?.classId !== 'chessmaster') return -1;
+    const s = chessUnit(room, m, old.ownerIdx, to, old.x, old.z || 0, now);
+    Object.assign(s, { targetIndex: old.targetIndex, lastAttackTime: old.lastAttackTime });
+    Object.assign(old, { alive: false, hp: 0, state: 'dead', vanished: true, promoted: true, statusEffects: [] });
+    team.squad[pawnSlot] = s;
+    chessState(m).cd.checkmate = 0;   // quân chúa thứ hai xuất hiện: xoá hồi chiêu nút 3
+    emitChess(room.id, { casterId: pid, casterIdx: old.ownerIdx, kind: 'promote', from: pawnSlot, to, summonIdx: pawnSlot });
+    chessRefresh(m, team, old.ownerIdx, now);
+    return pawnSlot;
+}
+/**
+ * Chiếu Tướng (có cả Vua và Hậu): Hậu nâng TẤT CẢ đối thủ lên không `mateLift` ms, gươm ánh sáng của Vua chém xuống ×strikeMultiplier P.ATK của Vua lên mọi đối thủ,
+ * rơi xuống choáng `mateStun` ms. Đối thủ miễn khống chế không bị nâng / choáng nhưng vẫn ăn sát thương.
+ */
+function chessCheckmate(room, pid, idx, oppId, now, extra) {
+    const team = room.players[pid], opp = room.players[oppId], p = chessPieces(team, idx);
+    if (!opp || !p.king || !p.queen || !chessFree(p.king.unit, now) || !chessFree(p.queen.unit, now)) return false;
+    const d = CLASS_DEFS.chess_king, king = p.king.unit;
+    const effects = foesOf(opp, now).map(o => {
+        const eff = hitTarget(king, o.e, o.i, opp, d.strikeMultiplier, now, { cc: true, aoe: true, noBlock: true, delay: d.mateLift });
+        if (o.e.ult) knockUp(o.e, d.mateLift);   // trùm đang niệm Phán Quyết: đòn khống chế trừ vào khiên niệm
+        else if (takesDebuffs(o.e) && !ccImmune(o.e, now)) {
+            knockUp(o.e, d.mateLift);
+            later(d.mateLift, () => { if (o.e.alive && !room.winner) applyStun(o.e, d.mateStun, room.clock); });
+        }
+        return eff;
+    });
+    for (const r of [p.king.unit, p.queen.unit]) { r.royalBusy = now + d.mateLift; r.actionUntil = Math.max(r.actionUntil ?? 0, now + d.mateLift + d.mateLock); }
+    emitChess(room.id, { casterId: pid, casterIdx: idx, kind: 'checkmate', kingIdx: p.king.slot, queenIdx: p.queen.slot, lift: d.mateLift, targetId: oppId, effects });
+    Object.assign(extra, { kingIdx: p.king.slot, queenIdx: p.queen.slot, lift: d.mateLift });
+    return true;
+}
+/**
+ * Mỗi nhịp cho 1 quân cờ còn sống. Vua — Vương Miện (lần đầu ngay khi ra sân xong, rồi mỗi `crownEvery` ms) · Hậu — thả Quang Cầu · Tượng — Hút Hồn (tự dùng, `drainEvery` ms 1 lần, tính từ lúc bắt đầu lần trước; lần đầu ngay khi ra sân xong và có mục tiêu trong tầm):
  *   bám 1 đối thủ `drainTime` ms (ưu tiên anh hùng địch nhiều Orb nhất trong tầm đánh, không có thì mục tiêu đang đánh), mỗi `drainTick` ms hút `drainOrb` Orb
  *   (không chuyển cho ai). Mục tiêu không phải anh hùng / không còn đủ `drainOrb` Orb -> đổi hẳn sang hút máu ×tickMultiplier M.ATK mỗi nhịp, Tượng hồi đúng lượng đó.
  *   Tượng đứng yên lúc hút; bị choáng / mục tiêu gục hoặc không chọn được nữa thì đứt.
@@ -7583,6 +7878,27 @@ function processChess(room, pid, idx, oppId, now) {
 function processChessPiece(room, pid, slot, oppId, now) {
     const s = room.players[pid]?.squad[slot];
     if (!s?.chessKind || !s.alive) return;
+    if (s.chessKind === 'king') {
+        const d = CLASS_DEFS.chess_king, ef = chessJudging(s, now);
+        if (ef) {
+            // đang niệm Phán Quyết: miễn khống chế (gỡ thứ vừa dính), đo máu đã mất
+            if (s.statusEffects.some(e => CHESS_CC.includes(e.type) || e.type === 'taunted')) s.statusEffects = s.statusEffects.filter(e => !CHESS_CC.includes(e.type) && e.type !== 'taunted');
+            chessJudgeSample(s, ef);
+        } else if (now >= (s.crownNext ?? 0) && now >= (s.actionUntil ?? 0) && chessFree(s, now)) chessCrown(room, pid, slot, now);
+        return;
+    }
+    if (s.chessKind === 'queen') {
+        // Quang Cầu: mỗi `orbEvery` ms thả 1 quả ở chỗ ngẫu nhiên trong hộp bao các đối thủ còn sống
+        const d = CLASS_DEFS.chess_queen, opp = room.players[oppId];
+        if (!opp || now < (s.orbNext ?? 0) || !chessFree(s, now)) return;
+        const foes = foesOf(opp, now);
+        if (!foes.length) return;
+        const xs = foes.map(o => o.e.x), zs = foes.map(o => o.e.z || 0);
+        const x0 = Math.min(...xs), z0 = Math.min(...zs);
+        s.orbNext = now + d.orbEvery;
+        chessOrbAdd(room, pid, slot, x0 + Math.random() * (Math.max(...xs) - x0), z0 + Math.random() * (Math.max(...zs) - z0), now);
+        return;
+    }
     if (s.chessKind !== 'bishop') return;
     const d = CLASS_DEFS.chess_bishop, opp = room.players[oppId];
     const ef = s.statusEffects.find(e => e.type === 'chess_drain');
@@ -7601,13 +7917,17 @@ function processChessPiece(room, pid, slot, oppId, now) {
             if (now < ef.next) break;
             toHp();   // (mục tiêu vừa tiêu hết Orb giữa 2 nhịp)
             ef.next += d.drainTick; ef.ticks++;
+            const tick = { casterId: pid, casterIdx: s.ownerIdx, kind: 'drainTick', summonIdx: slot, targetId: ef.targetPid, targetIndex: ef.targetIdx, mode: ef.mode, effects: [] };
             if (ef.mode === 'orb') {
-                if (!team.debugNoMana) tg.mp -= Math.min(tg.mp, d.drainOrb * ORB_COST);
+                tick.orbLost = team.debugNoMana ? 0 : Math.min(tg.mp, d.drainOrb * ORB_COST) / ORB_COST;
+                tg.mp -= tick.orbLost * ORB_COST;
+                emitChess(room.id, tick);
                 toHp();
             } else {
                 const before = tg.hp;
-                hitTarget(s, tg, ef.targetIdx, team, d.tickMultiplier, now, { noBlock: true });
-                healUnit(s, Math.max(0, before - tg.hp), now);
+                tick.effects.push(hitTarget(s, tg, ef.targetIdx, team, d.tickMultiplier, now, { noBlock: true }));
+                tick.heal = healUnit(s, Math.max(0, before - tg.hp), now);
+                emitChess(room.id, tick);
             }
         }
         if (ef.ticks >= ef.maxTicks || now >= ef.endTime) chessDrainEnd(room, pid, slot, 'done');
