@@ -1,5 +1,5 @@
 // Chạy nhiều lượt vẽ Codex, tối đa N lượt cùng lúc: node tools/codex_batch.js <jobs.json> [N=3]
-// jobs.json: [{ "out": "đường/dẫn.png", "prompt": "..." | "@file.txt", "image"?: "ảnh mẫu.png" }, ...] — bỏ qua job đã có file ra
+// jobs.json: [{ "out": "đường/dẫn.png", "prompt": "..." | "@file.txt", "image"?: "ảnh mẫu.png" | ["ảnh 1.png", "ảnh 2.png"] }, ...] — bỏ qua job đã có file ra
 const { spawn } = require('child_process');
 const fs = require('fs');
 const jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).filter(j => !fs.existsSync(j.out));
@@ -9,7 +9,7 @@ function next() {
     while (running < N && i < jobs.length) {
         const j = jobs[i++];
         running++;
-        const p = spawn(process.execPath, [__dirname + '/codex_draw.js', j.out, j.prompt, ...(j.image ? [j.image] : [])], { stdio: ['ignore', 'pipe', 'pipe'] });
+        const p = spawn(process.execPath, [__dirname + '/codex_draw.js', j.out, j.prompt, ...[].concat(j.image ?? [])], { stdio: ['ignore', 'pipe', 'pipe'] });
         let log = '';
         p.stdout.on('data', d => { log += d; }); p.stderr.on('data', d => { log += d; });
         p.on('close', (code) => {

@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-let [out, prompt, refImage] = process.argv.slice(2);   // refImage (tuỳ chọn): ảnh mẫu gửi kèm
+let [out, prompt, ...refImages] = process.argv.slice(2);   // refImages (tuỳ chọn): 1 hay nhiều ảnh mẫu gửi kèm
 if (prompt?.startsWith('@')) prompt = fs.readFileSync(prompt.slice(1), 'utf8').trim();   // đề bài đọc từ file
 if (!out || !prompt) { console.error('Dùng: node tools/codex_draw.js <file_ra.png> "<đề bài>"'); process.exit(1); }
 const GEN = path.join(os.homedir(), '.codex', 'generated_images');
@@ -19,7 +19,7 @@ fs.mkdirSync(cwd, { recursive: true });
 const full = `Use your image generation tool to create exactly ONE image: ${prompt}\nDo not try to save it into the workspace. When done, reply with only the full path of the generated PNG file.`;
 // đề bài gửi qua stdin ('-'): tránh shell cắt câu theo dấu cách (Windows cần shell để chạy codex.cmd)
 const args = ['exec', '-C', `"${cwd}"`, '-s', 'read-only', '-'];
-if (refImage) args.push('--image', `"${path.resolve(refImage)}"`);   // đề bài (stdin '-') đứng TRƯỚC --image
+for (const refImage of refImages) args.push('--image', `"${path.resolve(refImage)}"`);   // đề bài (stdin '-') đứng TRƯỚC --image
 const p = spawn('codex', args, { shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
 p.stdin.end(full);
 let log = '';

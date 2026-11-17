@@ -1,0 +1,116 @@
+{
+    "note": "Leon (Ky Vuong) bac SSS: tranh nen xanh do Codex ve 16/11/2026. Ban co + vuong mien la manh roi, gom ve khung gan nhat.",
+    "atlasScale": 0.75,
+    "maxWidth": 4096,
+    "pad": 6,
+    "calib": "idle1",
+    "key": "green",
+    "footBand": 16,
+    "footMin": 25,
+    "solidFeet": true,
+    "out": "src/assets/sprites/leon_sprite",
+    "meta": "src/characters/sprite/leonSprite.json",
+    "format": "webp",
+    "sheets": {
+        "idle": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-idle.png",
+            "groups": [
+                [
+                    "idle",
+                    4,
+                    "heel"
+                ],
+                [
+                    "ready",
+                    4,
+                    "heel"
+                ]
+            ]
+        },
+        "attack": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-attack.png",
+            "anchor": "heel"
+        },
+        "move": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-move.png",
+            "anchor": "body"
+        },
+        "hurt-stun": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-hurt-stun.png",
+            "groups": [
+                [
+                    "hurt",
+                    4,
+                    "heel"
+                ],
+                [
+                    "stun",
+                    4,
+                    "heel"
+                ]
+            ]
+        },
+        "dead-victory": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-dead-victory.png",
+            "groups": [
+                [
+                    "dead",
+                    4,
+                    "toe"
+                ],
+                [
+                    "victory",
+                    4,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        },
+        "cast-land": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-cast-land.png",
+            "groups": [
+                [
+                    "cast",
+                    4,
+                    "heel"
+                ],
+                [
+                    "land",
+                    4,
+                    "body"
+                ]
+            ],
+            "ground": "group"
+        },
+        "guard": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-guard.png",
+            "anchor": "heel"
+        },
+        "strike": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-strike.png",
+            "anchor": "heel"
+        },
+        "royal": {
+            "scale": 1,
+            "split": true,
+            "file": "art/leon/sprite/sprite-royal.png",
+            "anchor": "heel"
+        }
+    }
+}

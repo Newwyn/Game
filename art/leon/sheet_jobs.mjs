@@ -1,0 +1,87 @@
+// Sinh đề bài vẽ các tấm động tác (bậc SSS) cho Leon, Nyx và 6 quân cờ — theo art/HUONG_DAN_VE_NHAN_VAT.md mục 3–5.
+//   node art/leon/sheet_jobs.mjs   ->  art/leon/jobs_idle.json (vẽ trước) + art/leon/jobs_rest.json (vẽ sau, kèm tấm đứng làm mẫu cỡ)
+//   node tools/codex_batch.js art/leon/jobs_idle.json 3   rồi   node tools/codex_batch.js art/leon/jobs_rest.json 3
+import fs from 'node:fs';
+
+const GRID = 'Canvas 1536x1024, a neat grid of 4 columns x 2 rows = 8 equal cells, read left to right, top row then bottom row. ONE full-body frame per cell, three-quarter side view facing RIGHT, same scale in every frame, the character centered in its cell with its feet near the bottom of the cell, nothing cropped, nothing touching the cell borders. Keep every detail identical between frames: same face, same hair shape, same clothing patterns, same held items; only the pose changes. Held items are drawn in the hands as in the design. NO magic effects, no projectiles, no impact flashes, no glow trails, no speed lines (the game adds all effects). Flat pure green #00FF00 background, no ground shadow, no text, no numbers, no grid lines.';
+const first = (who) => `Sprite sheet for a 2D game. Exactly the same character, outfit, held items, colors and drawing style as the FIRST attached image (${who}). `;
+const SIZE_REF = 'The SECOND attached image is ONLY a reference for size, chibi proportions, line style and shading - do NOT copy its character, colors or outfit. ';
+const OWN_IDLE = 'The SECOND attached image is the idle sprite sheet of this same character: match its size, scale, proportions and every detail exactly. ';
+
+const UNITS = {
+    leon: {
+        dir: 'art/leon/sprite', design: 'art/leon/01-character-sss.png', sizeRef: 'art/ignar/sprite/sprite-idle.png',
+        who: 'Leon, a cheerful young chibi chess master in white-and-gold royal attire; a glowing golden chessboard with a small crown above it floats over his LEFT palm, and his RIGHT hand holds a glowing chess piece',
+        keep: 'In EVERY frame the glowing chessboard with its crown keeps floating just above his LEFT hand. ',
+        sheets: {
+            idle: 'TOP ROW, 4 frames: relaxed standing idle, a gentle breathing loop, friendly smile. BOTTOM ROW, 4 frames: battle-ready stance, knees slightly bent, right hand holding a chess piece up between two fingers, focused confident look, a subtle loop.',
+            attack: '8 frames of ONE basic attack, a quick flick: 1-2 he draws the right hand back with a small chess piece pinched between two fingers; 3 wind-up, body twisting back; 4 the flick - right arm snaps forward, fingers open, the piece is released (do NOT draw the flying piece); 5 arm fully extended forward; 6-7 follow-through; 8 back to the ready stance.',
+            move: '8 frames of a lively run cycle that loops: leaning forward, coat tails and cape swinging, the board floating beside his raised left hand.',
+            'hurt-stun': 'TOP ROW, 4 frames: hit reaction - head and body jerk backward, eyes shut, then recover. BOTTOM ROW, 4 frames: stunned loop - swaying dizzily on his feet, head tilted, eyes as dizzy swirls, arms loose (do not draw stars).',
+            'dead-victory': 'TOP ROW, 4 frames: defeated - staggers, drops to his knees, falls, frame 4 lying on the ground on his side. BOTTOM ROW, 4 frames: victory - tosses a chess piece into the air, catches it, big bright grin and a thumbs-up, a loop.',
+            'cast-land': 'TOP ROW, 4 frames: commanding hold - right arm raised high pointing forward like a general giving an order; frames 3 and 4 are almost identical so the pose can be held. BOTTOM ROW, 4 frames: entering the battle - falling from above with coat flaring, landing in a deep crouch, rising, standing ready.',
+            guard: '8 frames of ONE summoning move: 1-2 his right hand picks a chess piece from the floating board; 3 he lifts it; 4 arm raised; 5 he slams the piece DOWN toward the ground in front of him, body leaning forward (key frame); 6 hand low, fingers open; 7-8 he straightens up and returns to the ready stance.',
+            strike: '8 frames of ONE attack order: 1-2 he pulls his right arm back across his chest with a chess piece in hand; 3 wind-up; 4-5 a wide forward sweep of the right arm, ending with the arm pointing straight ahead, the piece released (key frame 5); 6-7 follow-through with the cape whipping; 8 ready stance.',
+            royal: '8 frames of ONE grand move, a checkmate: 1-2 he takes the king piece from the board; 3-4 he raises it high above his head, standing tall, chin up; 5 he brings it down decisively in front of him, pressing it onto an invisible board, eyes sharp (key frame); 6 holds the pose; 7-8 a confident smile, back to the ready stance.',
+        },
+    },
+    nyx: {
+        dir: 'art/nyx/sprite', design: 'art/nyx/01-character-sss.png', sizeRef: 'art/ignar/sprite/sprite-idle.png',
+        who: 'Nyx, a small chibi female goblin void mage with green skin, long ears, violet eyes, goggles on her forehead, a night-sky robe, a thin dark ring halo behind her back, a short dark-silver staff with a star shard in her RIGHT hand',
+        keep: 'In EVERY frame she holds the short staff in her RIGHT hand and the thin dark ring halo stays behind her back. Do NOT draw the small dark sphere, sparks or any energy in her left hand. ',
+        sheets: {
+            idle: 'TOP ROW, 4 frames: relaxed standing idle, a gentle breathing loop, mischievous grin, robe hem swaying. BOTTOM ROW, 4 frames: battle-ready stance, slightly crouched, staff held forward, left hand open, a subtle loop.',
+            attack: '8 frames of ONE basic attack, a quick staff jab: 1-2 she pulls the staff back; 3 wind-up; 4 she thrusts the staff tip straight forward (key frame, do NOT draw any bolt); 5 staff fully extended; 6-7 recoil; 8 back to the ready stance.',
+            move: '8 frames of a quick scurrying run cycle that loops: small fast steps, leaning forward, robe and hair trailing behind, staff held at her side.',
+            'hurt-stun': 'TOP ROW, 4 frames: hit reaction - she flinches backward, ears down, eyes shut, then recovers. BOTTOM ROW, 4 frames: stunned loop - wobbling on her feet, head tilted, eyes as dizzy swirls, staff drooping (do not draw stars).',
+            'dead-victory': 'TOP ROW, 4 frames: defeated - staggers, drops the staff tip to the ground, falls, frame 4 lying on the ground on her side. BOTTOM ROW, 4 frames: victory - a happy little jump with the staff raised, twirls it, cheeky grin with one fang, a loop.',
+            'cast-land': 'TOP ROW, 4 frames: quick cast hold - left hand thrust forward with fingers spread, staff held back; frames 3 and 4 are almost identical so the pose can be held. BOTTOM ROW, 4 frames: entering the battle - falling from above with the robe billowing, landing in a low crouch, rising, standing ready.',
+            missiles: '8 frames of ONE spell, launching a volley from her open hand: 1-2 she draws the left hand back near her chest; 3 wind-up; 4 she throws the left hand forward with all five fingers spread wide (key frame); 5-6 hand held forward, fingers flicking one after another; 7 arm lowering; 8 ready stance.',
+            starfall: '8 frames of ONE long channel: 1-2 she raises the staff with both hands above her head, looking up at the sky; 3-6 a four-frame LOOP holding the staff high overhead while her robe, hair and ears float upward (these four frames are nearly identical, only the cloth moves); 7 she swings the staff down in front of her; 8 ready stance.',
+            blackhole: '8 frames of ONE long channel: 1-2 she plants her feet wide and points the staff forward with her right hand while her left hand reaches out with fingers curled like gripping something heavy; 3-6 a four-frame LOOP straining to hold that pose, leaning back against a strong pull, robe and hair dragged forward (nearly identical frames, only the cloth moves); 7 she clenches the left fist and yanks it back; 8 ready stance.',
+        },
+    },
+};
+
+const PIECE = 'a living chess piece statue of polished ivory-white stone with gold trim and softly glowing golden seams and eyes';
+const PIECES = {
+    pawn: ['Pawn', 'a small sturdy foot-soldier with a round pawn-head helmet, a short sword in its right hand and a small round buckler on its left arm',
+        'TOP ROW, 4 frames: a wide DIAGONAL sword slash from upper back to lower front (frame 3 is the cut). BOTTOM ROW, 4 frames: it steps forward and plants itself, buckler raised in front, chest out, a defiant taunting stance (frame 4 held).'],
+    rook: ['Rook', 'a big heavy castle-tower guardian carrying one huge tower shield shaped like a castle wall, held with both hands',
+        'TOP ROW, 4 frames: it lifts the huge shield and slams its bottom edge into the ground in front, planting it like a wall (frame 3 is the slam). BOTTOM ROW, 4 frames: a heavy leap - crouch, airborne with the shield held overhead, landing with the shield driven into the ground, braced behind it.'],
+    knight: ['Knight', 'a swift lancer with a noble horse head and a gold mane crest, holding a long lance with a small pennant',
+        'TOP ROW, 4 frames: a high leap - deep crouch, airborne with legs tucked and lance pointing down, diving thrust, landing stab. BOTTOM ROW, 4 frames: it hooks the lance wide to its side and whirls it in a sweeping circle pulling inward (frame 3 is the pull), ending with the lance planted.'],
+    bishop: ['Bishop', 'a mysterious robed mage with a tall pointed mitre hood, a shadowed face with two glowing eyes, holding a tall staff topped with a dark violet crystal',
+        'TOP ROW, 4 frames: it extends the staff forward with both hands and holds it there, robes swaying - a draining channel (frames 2-4 nearly identical, a loop). BOTTOM ROW, 4 frames: it plants the staff upright and raises its free hand, slowly closing the fingers into a fist - a binding gesture (frame 4 held). Do NOT draw the ghostly hands or any magic.'],
+    king: ['King', 'a tall majestic armored king with a cross-topped crown, a long stone cloak with gold edges, and a great two-handed sword',
+        'TOP ROW, 4 frames: a royal blessing - it holds the sword point-down with one hand and raises the other hand high, palm open (frames 3-4 held). BOTTOM ROW, 4 frames: judgement - 1 it lifts the great sword with both hands; 2-3 the sword held high overhead, cloak flaring (nearly identical, a loop); 4 a mighty downward chop with the blade striking the ground in front.'],
+    queen: ['Queen', 'an elegant sorceress with a spiked coronet crown and a long flowing gown flaring like a chess piece base',
+        'TOP ROW, 4 frames: a graceful conjuring wave - one hand sweeps out to the side, palm up, as if setting a small light down in the air (frame 3 is the release). BOTTOM ROW, 4 frames: a spinning dance - arms spread wide, gown twirling around her, then both arms thrust forward (frame 4). Do NOT draw any orbs of light or magic.'],
+};
+for (const [id, [name, desc, skill]] of Object.entries(PIECES)) {
+    UNITS[id] = {
+        dir: `art/leon/${id}`, design: `art/leon/pieces/${id}.png`, sizeRef: null,
+        who: `the chess ${name}: ${PIECE}, ${desc}`,
+        keep: 'It is a statue that moves: keep the stone-and-gold material and its silhouette identical in every frame. Do NOT draw any glowing orbs, ghost hands, sparks or other magic effects. ',
+        sheets: {
+            idle: 'TOP ROW, 4 frames: standing idle, a very slight breathing / hovering loop. BOTTOM ROW, 4 frames: battle-ready stance, weight forward, a subtle loop.',
+            attack: `8 frames of ONE basic attack with its weapon: 1-2 wind-up; 3 the strike begins; 4 the hit (key frame, weapon fully extended toward the right); 5 follow-through; 6-7 recover; 8 ready stance.${id === 'bishop' || id === 'queen' ? ' It is a ranged caster: the strike is a forward thrust of the staff or hand (do NOT draw any bolt).' : ''}`,
+            move: '8 frames of a movement cycle that loops, moving to the right in its own heavy stone way (short hops or sturdy steps).',
+            'hurt-dead': 'TOP ROW, 4 frames: hit reaction - it rocks backward, small stone chips flying off, then steadies. BOTTOM ROW, 4 frames: destroyed - cracks spread, it breaks apart, frame 4 is a small pile of ivory stone rubble with the gold trim lying on top.',
+            skill,
+        },
+    };
+}
+
+const idle = [], rest = [];
+for (const u of Object.values(UNITS)) {
+    fs.mkdirSync(u.dir, { recursive: true });
+    for (const [sheet, text] of Object.entries(u.sheets)) {
+        const out = `${u.dir}/sprite-${sheet}.png`;
+        if (sheet === 'idle') idle.push({ out, image: u.sizeRef ? [u.design, u.sizeRef] : u.design, prompt: first(u.who) + (u.sizeRef ? SIZE_REF : '') + u.keep + GRID + ' ' + text });
+        else rest.push({ out, image: [u.design, `${u.dir}/sprite-idle.png`], prompt: first(u.who) + OWN_IDLE + u.keep + GRID + ' ' + text });
+    }
+}
+fs.writeFileSync('art/leon/jobs_idle.json', JSON.stringify(idle, null, 2));
+fs.writeFileSync('art/leon/jobs_rest.json', JSON.stringify(rest, null, 2));
+console.log('idle:', idle.length, 'tấm · còn lại:', rest.length, 'tấm');

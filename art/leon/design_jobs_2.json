@@ -1,0 +1,22 @@
+[
+  {
+    "out": "art/leon/01-character-ss.png",
+    "image": "art/leon/01-character-s.png",
+    "prompt": "The attached image is the character Leon in his starter outfit. Draw the SAME character again: keep exactly the same face, smile, eye color, hair, body proportions, chibi art style, line art and shading, the same three-quarter side view facing RIGHT and a similar energetic pose. Portrait canvas 1024x1536, full body, transparent background, no ground shadow, no text. Change ONLY the outfit and the chessboard to an upgraded tier-2 look: a knee-length cloak embroidered with a navy-and-white checkerboard pattern with gold trim, worn over a fitted cream vest and white shirt, dark trousers, polished boots with small gold buckles, and a golden knight-shaped brooch instead of the brass one. The chessboard floating above his LEFT palm is now carved from luminous green JADE with a soft glow, with jade chess pieces hovering over it. His RIGHT hand holds a jade pawn between two fingers. Clearly richer than the starter outfit but not royal yet."
+  },
+  {
+    "out": "art/leon/01-character-sss.png",
+    "image": "art/leon/01-character-s.png",
+    "prompt": "The attached image is the character Leon in his starter outfit. Draw the SAME character again: keep exactly the same face, smile, eye color, hair, body proportions, chibi art style, line art and shading, the same three-quarter side view facing RIGHT and a similar confident pose. Portrait canvas 1024x1536, full body, transparent background, no ground shadow, no text. Change ONLY the outfit and the chessboard to his final tier-3 look: elegant white-and-gold royal formal attire - a long white coat with gold embroidery of chess motifs, a short gold-lined white half-cape on one shoulder, white gloves, gold-trimmed boots. Noble but still youthful and cheerful. He does NOT wear any crown on his head. The chessboard floating above his LEFT palm is made of pure golden LIGHT with glowing translucent chess pieces, and a small golden royal CROWN floats in the air above the chessboard (above the board, not on his head). His RIGHT hand holds a glowing white king piece."
+  },
+  {
+    "out": "art/nyx/01-character-ss.png",
+    "image": "art/nyx/01-character-s.png",
+    "prompt": "The attached image is the character Nyx, a small female goblin void mage, in her starter outfit. Draw the SAME character again: keep exactly the same face, grin, glowing violet eyes, green skin, ears, hair, body proportions, chibi art style, line art and shading, the same three-quarter side view facing RIGHT and a similar lively pose. Portrait canvas 1024x1536, full body, transparent background, no ground shadow, no text. Change ONLY the outfit and the staff to an upgraded tier-2 look: a deep purple robe embroidered with silver constellations, a short star-dotted capelet with a hood down, the brass goggles now polished and whole, neat gloves, a tidy belt with a few star charms, proper boots. The SHORT staff in her RIGHT hand is now reinforced with silver bands, and the star shard at its tip glows brighter violet with a few tiny star fragments orbiting it. Her LEFT hand holds a small swirl of violet void energy."
+  },
+  {
+    "out": "art/nyx/01-character-sss.png",
+    "image": "art/nyx/01-character-s.png",
+    "prompt": "The attached image is the character Nyx, a small female goblin void mage, in her starter outfit. Draw the SAME character again: keep exactly the same face, grin, glowing violet eyes, green skin, ears, body proportions, chibi art style, line art and shading, the same three-quarter side view facing RIGHT and a similar confident mischievous pose. Portrait canvas 1024x1536, full body, transparent background, no ground shadow, no text. Change ONLY the outfit, hair tips and the staff to her final tier-3 look: a robe that looks like a living NIGHT SKY, deep indigo fading to black with tiny stars and soft nebula swirls on the fabric, silver crescent ornaments, and a thin dark RING like a small black-hole halo with a glowing violet rim floating behind her back. The tips of her hair fade into starlight. The SHORT staff in her RIGHT hand is now a sleek dark-silver rod that holds the star shard inside a small floating ring, with several small star fragments orbiting it. Her LEFT hand holds a small dark sphere with a bright violet rim."
+  }
+]
