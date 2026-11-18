@@ -1,0 +1,9 @@
+# Draw ONE sprite sheet image (use your image generator). File tools only, stay inside this folder, never Bash.
+
+References in this folder: `01-character-sss.jpg` = the character (YunYou). `ref-sheet.png` = ONLY a reference for sheet layout, size, chibi proportions, line style and shading - do NOT copy its character.
+
+Sprite sheet for a 2D game, file name `yunyou-sheet-idle`. Exactly the same character, outfit, hat, sword, colours and drawing style as `01-character-sss.jpg`: YunYou, a chibi male sword immortal with long loose white hair, plain flowing pure-white silk robes with a thin pale-jade sash, a green jade wide flat-brimmed hat with a sheer white veil, and a green jade jian sword held in his RIGHT hand. Landscape canvas 3:2, a neat grid of 4 columns x 2 rows = 8 equal cells, read left to right, top row then bottom row. ONE full-body frame per cell, three-quarter side view facing RIGHT, same scale in every frame, the character centred in its cell with his feet near the bottom of the cell, nothing cropped (the whole hat, the sword tip and the long hair must be inside the cell), nothing touching the cell borders. Keep every detail identical between frames: same face, same hair, same hat, same robe, same sword; only the pose changes. NO magic effects, no glow trails, no energy wisps, no floating swords, no speed lines (the game adds all effects). Flat pure green #00FF00 background, no ground shadow, no text, no numbers, no grid lines.
+TOP ROW, 4 frames: relaxed standing idle, sword held low pointing down, left hand behind his back, robes and hair swaying gently - a calm breathing loop.
+BOTTOM ROW, 4 frames: battle-ready stance, body turned slightly, sword raised diagonally in front of him, left hand in a two-finger sword seal at chest height, focused calm look - a subtle loop.
+
+Generate it, wait until it is finished, write the saved file path into `sheet-idle-report.md` and stop.

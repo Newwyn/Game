@@ -1,0 +1,11 @@
+{"note": "YunYou (Kiem Tien) bac SSS: Antigravity ve 18/11/2026 (JPG 1264x848 -> scale 1.215)", "atlasScale": 0.75, "maxWidth": 4096, "pad": 6, "calib": "idle1", "key": "alpha", "footBand": 16, "footMin": 25, "solidFeet": true,
+ "out": "src/assets/sprites/yunyou_sprite", "meta": "src/characters/sprite/yunyouSprite.json", "format": "webp",
+ "sheets": {
+  "idle": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-idle.png", "groups": [["idle", 4, "heel"], ["ready", 4, "heel"]]},
+  "attack": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-attack.png", "anchor": "heel"},
+  "move": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-move.png", "anchor": "body"},
+  "hurt-stun": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-hurt-stun.png", "groups": [["hurt", 4, "heel"], ["stun", 4, "heel"]]},
+  "dead-victory": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-dead-victory.png", "groups": [["dead", 4, "toe"], ["victory", 4, "body"]], "ground": "group"},
+  "fly": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-fly.png", "groups": [["takeoff", 4, "body"], ["hover", 4, "body"]], "ground": "group"},
+  "skill": {"scale": 1.215, "split": true, "file": "art/yunyou/keyed/sheet-skill.png", "groups": [["seal", 4, "heel"], ["sky", 4, "heel"]]}
+ }}
