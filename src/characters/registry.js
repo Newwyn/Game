@@ -22,6 +22,7 @@ import { GRIX_SPRITE } from './sprite/grixSprite.js';
 import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
 import { LEON_SPRITE } from './sprite/leonSprite.js';
 import { NYX_SPRITE } from './sprite/nyxSprite.js';
+import { YUNYOU_SPRITE } from './sprite/yunyouSprite.js';
 import { CHESS_PAWN_SPRITE, CHESS_ROOK_SPRITE, CHESS_KNIGHT_SPRITE, CHESS_BISHOP_SPRITE, CHESS_KING_SPRITE, CHESS_QUEEN_SPRITE } from './sprite/chessPieceSprites.js';
 import { WOLF_SPRITE, EAGLE_SPRITE, BEAR_SPRITE } from './sprite/sylvaPetSprites.js';
 import { BRAKK_SPRITE } from './sprite/brakkSprite.js';
@@ -510,6 +511,33 @@ const CHESS_KING = { rig: GOLEM_RIG, clips: golemClips, height: 4.7, shadowSize:
 const CHESS_QUEEN = { rig: GOLEM_RIG, clips: golemClips, height: 4.4, shadowSize: 2.3, locomotion: GOLEM_LOCOMOTION, circleTint: 0xc084fc,
     sprite: CHESS_QUEEN_SPRITE, spriteParam: 'chessPiece', anims: CHESS_PIECE_ANIMS };
 
+// YunYou (Kiếm Tiên) — Cung Thủ đánh xa vật lý, bay trên không không thể bị đánh
+const SWORDSAGE = {
+    rig: IGNAR_RIG,
+    clips: ignarClips,
+    height: 2.9,
+    shadowSize: 1.35,
+    skinKeys: IGNAR_SKINS,
+    defaultSkins: IGNAR_DEFAULT_SKINS,
+    secondary: IGNAR_SECONDARY,
+    locomotion: IGNAR_LOCOMOTION,
+    blink: false,
+    sprite: YUNYOU_SPRITE,
+    spriteParam: 'yunyou',
+    spriteIdleParam: 'yunyouIdle',
+    ghostTint: 0x5eead4,
+    circleTint: 0x2dd4bf,
+    anims: {
+        attack:     { clip: 'attack', hitTime: 0.24 },   // vung kiếm phóng kiếm khí
+        takeoff:    { clip: 'summon', hitTime: 0.2 },    // bay lên không trung
+        land:       { clip: 'land',   hitTime: 0.2 },    // đáp xuống đất
+        seal:       { clip: 'palm',   hitTime: 0.2 },    // kết ấn KN1 / KN2
+        charge:     { clip: 'charge' },                  // niệm Trận Đồ Kiếm (giữ sky1..3)
+        cast:       { clip: 'charge' },
+        skyRelease: { clip: 'bolt',   hitTime: 0.2 },    // giáng đại kiếm cuối (sky4)
+    },
+};
+
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
@@ -526,6 +554,7 @@ export const CHARACTER_VISUALS = {
     summoner: () => SUMMONER,
     voidmage: () => VOIDMAGE,
     chessmaster: () => CHESSMASTER,
+    swordsage: () => SWORDSAGE,
     chess_pawn: () => CHESS_PAWN,
     chess_rook: () => CHESS_ROOK,
     chess_knight: () => CHESS_KNIGHT,

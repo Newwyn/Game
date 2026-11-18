@@ -136,7 +136,7 @@ function equipTabHTML() {
     </div>
     <div class="gr-equip-body">
         <section class="gr-panel">
-            <h3>${h.emoji} ${h.name} <small>${h.title ?? ''} · tộc ${h.race}</small></h3>
+            <h3>${h.emoji} ${h.name} <small>${h.title ?? ''} · ${h.raceLabel ? h.raceLabel : `tộc ${h.race}`}</small></h3>
             <div class="gr-slots">${data.slots.map(sl => {
                 const it = h.equipped[sl.id];
                 return `<div class="gr-slot">

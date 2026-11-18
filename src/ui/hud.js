@@ -541,6 +541,13 @@ function effectInfo(ef, m) {
         case 'chess_crown': return ['👑', '#facc15', 'Vương Miện', `+${pc((ef.defUp ?? 0.15) * (ef.x2 ? 2 : 1))}% P.DEF & M.DEF · Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
         case 'chess_judging': return ['⚔️', '#fde047', 'Phán Quyết', 'Vua đang giơ kiếm tích sát thương, miễn ngắt niệm'];
         case 'chess_sacrifice': return ['🛡️', '#fef08a', 'Thí Quân', `Khiên ${Math.round(ef.hp ?? 0)}/${ef.maxHp ?? 0}`];
+        case 'sword_haste': return ['⚡', '#5eead4', 'Ngự Kiếm Tốc', `+${pc(ef.speedUp ?? 0.8)}% tốc đánh`];
+        case 'sword_multi': return ['🗡️', '#2dd4bf', 'Vạn Kiếm Đồng Quy', 'Đòn đánh thường phóng thêm kiếm tới toàn bộ đối thủ khác'];
+        case 'sword_mark': return ['⚔️', '#5eead4', 'Vết Kiếm', `${ef.stacks ?? 1}/${ef.needed ?? 6} dấu`, true];
+        case 'sword_break': return ['💥', '#2dd4bf', 'Vỡ Giáp', `−${pc(ef.value ?? 0.2)}% thủ vật lý cho mọi đòn`, true];
+        case 'sword_atk': return ['🔥', '#99f6e4', 'Kiếm Khí', `${ef.stacks ?? 1} tầng: +${pc((ef.stacks ?? 1) * (ef.per ?? 0.1))}% công vật lý`];
+        case 'sword_crit': return ['🎯', '#99f6e4', 'Tụ Kiếm Tâm', `${ef.stacks ?? 1} tầng: +${Math.round(((ef.stacks ?? 1) * (ef.per ?? 60)) / 10)}% tỉ lệ chí mạng`];
+        case 'sword_critdmg': return ['✨', '#e6fffb', 'Kiếm Tâm Sắc', `${ef.stacks ?? 1} tầng: +${Math.round(((ef.stacks ?? 1) * (ef.per ?? 80)) / 10)}% sát thương chí mạng`];
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }
@@ -610,8 +617,16 @@ function miniHpBar(m) {
 }
 
 // Tộc / chỉ số riêng của class (bảng tra lấy từ gói progressUpdate)
-function raceEmoji(m) { return progressMeta()?.races?.[m.race]?.emoji ? progressMeta().races[m.race].emoji + ' ' : ''; }
-function raceName(m) { const r = progressMeta()?.races?.[m.race]; return r ? `${r.name} · ${game.classDefs?.[m.classId]?.className ?? ''}` : ''; }
+function raceEmoji(m) {
+    if (m.raceLabel ?? game.classDefs?.[m.classId]?.raceLabel) return '';
+    return progressMeta()?.races?.[m.race]?.emoji ? progressMeta().races[m.race].emoji + ' ' : '';
+}
+function raceName(m) {
+    const lbl = m.raceLabel ?? game.classDefs?.[m.classId]?.raceLabel;
+    if (lbl) return `${lbl} · ${game.classDefs?.[m.classId]?.className ?? ''}`;
+    const r = progressMeta()?.races?.[m.race];
+    return r ? `${r.name} · ${game.classDefs?.[m.classId]?.className ?? ''}` : '';
+}
 
 function statPanelHTML(m, now, key, side) {
     const collapsed = isCollapsed(key, side);

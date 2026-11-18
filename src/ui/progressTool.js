@@ -49,7 +49,7 @@ function talentsHTML(h) {
 
 function heroCard(id, h) {
     const meta = data.meta;
-    const race = meta.races[h.race];
+    const race = h.raceLabel ? { emoji: '', name: h.raceLabel } : meta.races[h.race];
     const cls = meta.classes[h.classGroup];
     const st = h.stats;
     const on = !disabled.has(id);
