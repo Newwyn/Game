@@ -7,43 +7,58 @@
 //   · Nhiệm vụ ẩn: không có trạng thái cho tới khi sự kiện đầu tiên khớp bước đầu -> tự chuyển 'active' (lúc đó mới hiện trong sổ).
 // ============================================================
 const QD = require('./questData1');
+const QD2 = require('./questData2');
 const W = require('./wallet');
 const A = require('./account');
 
 const QUESTS = QD.QUESTS;
-const BY_ID = Object.fromEntries(QUESTS.map(q => [q.id, q]));
+const QUESTS2 = QD2.QUESTS;
+const ALL_QUESTS = [...QUESTS, ...QUESTS2];
+const BY_ID = Object.fromEntries(ALL_QUESTS.map(q => [q.id, q]));
 const DAILY = QD.DAILY;
 const MAIN_TIERS = QD.MAIN_TIERS;
 const mainReward = (st) => MAIN_TIERS[st?.tier] ?? MAIN_TIERS.small;
-let MAIN = [];                      // các bước chính tuyến (game/world.js nạp bằng setMain)
+const TRACKS = {
+    c1: { ch: 'c1', steps: [], idx: 'main', id: 'mainId', prog: 'mainP', rep: 'reported', spot: 'spot' },
+    c2: { ch: 'c2', steps: [], idx: 'main2', id: 'main2Id', prog: 'main2P', rep: 'reported2', spot: 'spot2' },
+};
+let MAIN = [];                      // các bước chính tuyến chương 1 (game/world.js nạp bằng setMain)
 let locate = () => null;            // id NPC / vật -> { scene, kind, id } (game/world.js nạp bằng setLocator)
-const setMain = (steps) => { MAIN = steps; };
+const trackFor = (ch = 'c1') => TRACKS[ch] ?? TRACKS.c1;
+const setMain = (steps, ch = 'c1') => { const tr = TRACKS[ch]; if (!tr) return; tr.steps = steps; if (ch === 'c1') MAIN = steps; };
 const setLocator = (fn) => { locate = fn; };
 
 const clearedId = (pr, id, diff = 'story') => pr.campaign?.cleared?.[diff]?.[id] === true;
 const clearedNo = (pr, n) => clearedId(pr, `c1-${String(n).padStart(2, '0')}`);
-const stageNo = (id) => { const m = /^c1-(\d\d)$/.exec(id ?? ''); return m ? Number(m[1]) : null; };
+const stageNo = (id) => { const m = /^c\d-(\d\d)$/.exec(id ?? ''); return m ? Number(m[1]) : null; };
 const C1_JUMP = /^jump_(ashford|outskirts|forest|road|capital)_/;   // rương phải nhảy mới tới của chương 1
 
 // ---------- trạng thái ----------
-function prepMain(pr) {
+function prepTrack(pr, tr, applyRewards = true) {
     const w = pr.world;
-    const cur = w ? MAIN[w.main] : null;
-    if (w) w.mainId = cur?.id ?? '__done__';
-    if (cur?.kind === 'task') {
+    if (!w) return;
+    const cur = tr.steps[w[tr.idx]];
+    w[tr.id] = cur?.id ?? '__done__';
+    if (applyRewards && cur?.kind === 'task') {
         if (cur.give) for (const it of cur.give) w.bag[it] = true;
         if (cur.tools) for (const [tool, tier] of Object.entries(cur.tools)) require('./gather').giveTool(pr, tool, tier);
     }
 }
+const prepMain = (pr) => { for (const tr of Object.values(TRACKS)) prepTrack(pr, tr, tr.ch === 'c1' || clearedId(pr, 'c1-20')); };
+function ensureTrack(pr, tr) {
+    const w = pr.world, steps = tr.steps;
+    w[tr.spot] ??= {}; w[tr.prog] ??= { n: 0, d: {} };
+    if (!w[tr.rep]) { w[tr.rep] = {}; for (const st of steps) if (st.kind === 'report' && st.stage && clearedId(pr, st.stage)) w[tr.rep][st.report ?? st.no] = true; }   // save cũ: ải đã qua coi như đã báo
+    const curId = w[tr.idx] != null ? (steps[w[tr.idx]]?.id ?? '__done__') : null;
+    if (w[tr.idx] == null || w[tr.id] !== curId) { w[tr.idx] = firstUndone(pr, tr); w[tr.prog] = { n: 0, d: {} }; }   // save cũ: bước của ải đã qua coi như xong, KHÔNG trả bù Kim Cương
+    prepTrack(pr, tr, tr.ch === 'c1' || clearedId(pr, 'c1-20'));
+}
 function ensure(pr) {
     pr.world ??= {};
     const w = pr.world;
-    w.quests ??= {}; w.bag ??= {}; w.qp ??= {}; w.opened ??= {}; w.qnotes ??= []; w.spot ??= {}; w.mainP ??= { n: 0, d: {} };
+    w.quests ??= {}; w.bag ??= {}; w.qp ??= {}; w.opened ??= {}; w.qnotes ??= [];
     pr.flags ??= {};
-    if (!w.reported) { w.reported = {}; for (const st of MAIN) if (st.kind === 'report' && st.stage && clearedId(pr, st.stage)) w.reported[st.report ?? st.no] = true; }   // save cũ: ải đã qua coi như đã báo
-    const curId = w.main != null ? (MAIN[w.main]?.id ?? '__done__') : null;
-    if (w.main == null || w.mainId !== curId) { w.main = firstUndone(pr); w.mainP = { n: 0, d: {} }; }   // save cũ: bước của ải đã qua coi như xong, KHÔNG trả bù Kim Cương
-    prepMain(pr);
+    for (const tr of Object.values(TRACKS)) ensureTrack(pr, tr);
     return w;
 }
 const stateOf = (pr, id) => pr.world?.quests?.[id] ?? null;
@@ -71,7 +86,7 @@ function isOpen(pr, q) {
 }
 function openText(q) {
     const o = q.open ?? {}, out = [];
-    if (o.stage) out.push(`qua ải ${stageNo(o.stage) ?? o.stage}`);
+    if (o.stage) out.push(`qua ải ${stageNo(o.stage) ?? o.stage}${String(o.stage).startsWith('c2-') ? ' chương 2' : ''}`);
     if (o.account) out.push(`cấp tài khoản ${o.account}`);
     if (o.quest) out.push(`xong việc “${BY_ID[o.quest]?.name ?? o.quest}”`);
     return out.length ? `Mở sau khi ${out.join(', ')}` : 'Chưa mở';
@@ -153,7 +168,7 @@ function match(pr, g, ev, p) {
     }
 }
 
-const visibleQuests = () => QUESTS.filter(q => q.type !== 'hidden');
+const visibleQuests = () => ALL_QUESTS.filter(q => q.type !== 'hidden');
 const stepOf = (pr, q) => q.steps[progOf(pr, q.id).i] ?? null;
 function start(pr, q) {
     const w = ensure(pr);
@@ -209,87 +224,94 @@ function complete(pr, wallet, q, rng) {
     return { quest: q.id, rewards: { ...q.reward }, text, flag: q.flag ?? null, account: acc };
 }
 
-// ---------- chính tuyến: thưởng 3 mức theo MAIN_TIERS ----------
-const taskSkipped = (pr, idx) => MAIN.slice(idx + 1).some(x => x.kind === 'clear' && x.stage && clearedId(pr, x.stage));   // save cũ: bước trước ải đã qua coi như xong
-const trustedMain = (pr) => {
+// ---------- chính tuyến: thưởng 3 mức theo MAIN_TIERS (hỗ trợ cả chương 1 & chương 2) ----------
+const taskSkipped = (pr, idx, steps = MAIN) => steps.slice(idx + 1).some(x => x.kind === 'clear' && x.stage && clearedId(pr, x.stage));   // save cũ: bước trước ải đã qua coi như xong
+const trustedMain = (pr, tr = TRACKS.c1) => {
     const w = pr?.world;
-    return w?.main != null && w.mainId === (MAIN[w.main]?.id ?? '__done__') ? w.main : null;
+    return w?.[tr.idx] != null && w[tr.id] === (tr.steps[w[tr.idx]]?.id ?? '__done__') ? w[tr.idx] : null;
 };
-const mainIndex = (pr) => {
-    const t = trustedMain(pr);
-    return Math.min(t ?? firstUndone(pr), MAIN.length);
+const mainIndex = (pr, tr = TRACKS.c1) => {
+    const t = trustedMain(pr, tr);
+    return Math.min(t ?? firstUndone(pr, tr), tr.steps.length);
 };
-function mainDone(pr, st, idx = MAIN.indexOf(st), useCurProg = false) {
+const activeChapter = (pr) => (TRACKS.c2.steps.length && mainIndex(pr, TRACKS.c1) >= TRACKS.c1.steps.length ? 'c2' : 'c1');
+function mainDone(pr, st, idx, useCurProg = false, tr = TRACKS.c1) {
     const w = pr.world ?? {};
+    const i = idx ?? tr.steps.indexOf(st);
     if (!st) return false;
     if (st.kind === 'go') {
         const sk = st.spot ?? st.no;
-        return (sk != null && !!w.spot?.[sk]) || (st.stage ? clearedId(pr, st.stage) : false);
+        return (sk != null && !!w[tr.spot]?.[sk]) || (st.stage ? clearedId(pr, st.stage) : false);
     }
     if (st.kind === 'clear') return !!st.stage && clearedId(pr, st.stage);
     if (st.kind === 'report') {
         const rk = st.report ?? st.no;
-        return !!st.stage && clearedId(pr, st.stage) && !!(rk != null && w.reported?.[rk]);
+        return !!st.stage && clearedId(pr, st.stage) && !!(rk != null && w[tr.rep]?.[rk]);
     }
     if (st.kind === 'task') {
-        if ((st.stage && clearedId(pr, st.stage)) || (idx >= 0 && taskSkipped(pr, idx))) return true;
+        if ((st.stage && clearedId(pr, st.stage)) || (i >= 0 && taskSkipped(pr, i, tr.steps))) return true;
         if (!st.goal) return true;
-        const curIdx = trustedMain(pr) ?? -1;
-        if (!DERIVED.has(st.goal.type) && !(useCurProg && idx === curIdx)) return false;
-        const p = useCurProg && idx === curIdx ? (w.mainP ?? {}) : {};
+        const curIdx = trustedMain(pr, tr) ?? -1;
+        if (!DERIVED.has(st.goal.type) && !(useCurProg && i === curIdx)) return false;
+        const p = useCurProg && i === curIdx ? (w[tr.prog] ?? {}) : {};
         const pg = progress(pr, st.goal, p);
         return pg.have >= pg.need;
     }
     return false;
 }
-function firstUndone(pr) {
+function firstUndone(pr, tr = TRACKS.c1) {
     let i = 0;
-    while (i < MAIN.length && mainDone(pr, MAIN[i], i, false)) i++;
+    while (i < tr.steps.length && mainDone(pr, tr.steps[i], i, false, tr)) i++;
     return i;
 }
 /** Ải bị chặn nếu có bước (trừ bước 'go' của chính ải đó) đứng trước clear(stageId) mà chưa xong */
 function stageBlocked(pr, stageId) {
-    const cIdx = MAIN.findIndex(st => st.kind === 'clear' && st.stage === stageId);
+    const tr = trackFor(String(stageId).startsWith('c2-') ? 'c2' : 'c1');
+    const cIdx = tr.steps.findIndex(st => st.kind === 'clear' && st.stage === stageId);
     if (cIdx < 0) return false;
-    const t = trustedMain(pr);
+    const t = trustedMain(pr, tr);
     for (let i = 0; i < cIdx; i++) {
-        const st = MAIN[i];
+        const st = tr.steps[i];
         if (st.kind === 'go' && st.stage === stageId) continue;
         if (t != null && i < t) continue;
-        if (!mainDone(pr, st, i, t != null && i === t)) return true;
+        if (!mainDone(pr, st, i, t != null && i === t, tr)) return true;
     }
     return false;
 }
 /** Tính lại bước chính tuyến KHÔNG trả thưởng (save cũ / công cụ thử nhảy ải) */
-function resetMain(pr) {
+function resetTrack(pr, tr) {
     const w = ensure(pr);
-    const next = firstUndone(pr);
-    for (let i = 0; i < next && i < MAIN.length; i++) for (const it of MAIN[i].give ?? []) delete w.bag[it];
-    w.main = next;
-    w.mainP = { n: 0, d: {} };
-    prepMain(pr);
+    const next = firstUndone(pr, tr);
+    for (let i = 0; i < next && i < tr.steps.length; i++) for (const it of tr.steps[i].give ?? []) delete w.bag[it];
+    w[tr.idx] = next;
+    w[tr.prog] = { n: 0, d: {} };
+    prepTrack(pr, tr, tr.ch === 'c1' || clearedId(pr, 'c1-20'));
 }
-function advanceMain(pr, wallet) {
-    const w = pr.world;
+function resetMain(pr) {
+    for (const tr of Object.values(TRACKS)) resetTrack(pr, tr);
+}
+function advanceTrack(pr, wallet, tr = TRACKS.c1) {
+    const w = pr.world, steps = tr.steps;
     let n = 0;
-    while (w.main < MAIN.length && mainDone(pr, MAIN[w.main], w.main, true)) {
-        const st = MAIN[w.main];
-        w.main++;                                   // tăng chỉ số trước -> mỗi bước chỉ trả 1 lần
-        w.mainId = MAIN[w.main]?.id ?? '__done__';
+    while (w[tr.idx] < steps.length && mainDone(pr, steps[w[tr.idx]], w[tr.idx], true, tr)) {
+        const st = steps[w[tr.idx]];
+        w[tr.idx]++;                                   // tăng chỉ số trước -> mỗi bước chỉ trả 1 lần
+        w[tr.id] = steps[w[tr.idx]]?.id ?? '__done__';
         if (st.kind === 'task') {
             if (st.goal?.type === 'deliver') for (const it of st.goal.items ?? []) delete w.bag[it];
             for (const it of st.give ?? []) delete w.bag[it];
             if (st.flag) pr.flags[st.flag] = true;
         }
-        w.mainP = { n: 0, d: {} };
+        w[tr.prog] = { n: 0, d: {} };
         const r = mainReward(st);                   // nhỏ: bình EXP nhỏ + vàng · trung bình: + Kim Cương · quan trọng: bình siêu lớn
         grant(pr, wallet, r);
         note(pr, `${st.tier === 'big' ? '🌟' : '⭐'} Chính tuyến: ${st.text} · ${rewardText(r)}`, 'main');
         n++;
     }
-    prepMain(pr);
+    prepTrack(pr, tr, tr.ch === 'c1' || clearedId(pr, 'c1-20'));
     return n;
 }
+const advanceMain = (pr, wallet) => advanceTrack(pr, wallet, TRACKS.c1);
 
 // ---------- việc hằng ngày ----------
 const pad = (n) => String(n).padStart(2, '0');
@@ -372,7 +394,7 @@ function dailyState(pr, now) {
 /** Bước đang làm đã đủ -> sang bước kế; hết bước -> xong (nhiệm vụ ẩn / bước cuối không cần trả). Kèm chính tuyến + kích hoạt nhiệm vụ ẩn tính từ save. */
 function settle(pr, wallet, now = Date.now(), rng = Math.random) {
     const w = ensure(pr), out = [];
-    for (const q of QUESTS) {
+    for (const q of ALL_QUESTS) {
         if (q.type === 'hidden' && !w.quests[q.id] && isOpen(pr, q) && DERIVED.has(q.steps[0].goal.type) && progress(pr, q.steps[0].goal, progOf(pr, q.id)).have > 0) {
             start(pr, q);
             note(pr, `🔮 Phát hiện nhiệm vụ ẩn: ${q.name}`, 'start');
@@ -389,7 +411,8 @@ function settle(pr, wallet, now = Date.now(), rng = Math.random) {
         }
         if (p.i >= q.steps.length) { const r = complete(pr, wallet, q, rng); if (r) out.push(r); }
     }
-    advanceMain(pr, wallet);
+    advanceTrack(pr, wallet, TRACKS.c1);
+    if (activeChapter(pr) === 'c2') advanceTrack(pr, wallet, TRACKS.c2);
     return out;
 }
 /** Sự kiện game -> tiến độ nhiệm vụ đang làm + kích hoạt nhiệm vụ ẩn + việc hằng ngày. Trả danh sách { q, step } vừa tiến. */
@@ -397,12 +420,13 @@ function fire(pr, wallet, ev, now = Date.now(), rng = Math.random) {
     const w = ensure(pr), hits = [];
     const early = settle(pr, wallet, now, rng);   // bước tính thẳng từ save (đã đủ vật, đã qua ải…) sang bước kế trước khi xét sự kiện
     let mainHit = null;
-    const mt = w.main < MAIN.length ? MAIN[w.main] : null;
+    const tr = trackFor(activeChapter(pr));
+    const mt = w[tr.idx] < tr.steps.length ? tr.steps[w[tr.idx]] : null;
     if (mt?.kind === 'task' && mt.goal && !DERIVED.has(mt.goal.type)) {
-        w.mainP ??= { n: 0, d: {} };
-        if (match(pr, mt.goal, ev, w.mainP)) mainHit = mt;
+        w[tr.prog] ??= { n: 0, d: {} };
+        if (match(pr, mt.goal, ev, w[tr.prog])) mainHit = mt;
     }
-    for (const q of QUESTS) {
+    for (const q of ALL_QUESTS) {
         const st = w.quests[q.id];
         if (st === 'done') continue;
         if (st === 'active') {
@@ -421,17 +445,17 @@ function fire(pr, wallet, ev, now = Date.now(), rng = Math.random) {
     return { hits, done, mainHit };
 }
 
-function activeMainTask(pr) {
-    const w = pr.world;
-    const i = mainIndex(pr), t = trustedMain(pr);
-    const st = MAIN[i];
-    return st?.kind === 'task' && !mainDone(pr, st, i, t === i) ? { st, p: t === i ? (w?.mainP ?? {}) : {}, i } : null;
+function activeMainTask(pr, ch = activeChapter(pr)) {
+    const tr = trackFor(ch), w = pr.world;
+    const i = mainIndex(pr, tr), t = trustedMain(pr, tr);
+    const st = tr.steps[i];
+    return st?.kind === 'task' && !mainDone(pr, st, i, t === i, tr) ? { st, p: t === i ? (w?.[tr.prog] ?? {}) : {}, i } : null;
 }
 function activeEntries(pr, includeHidden = true) {
     const w = pr.world ?? {}, out = [];
     const mt = activeMainTask(pr);
     if (mt?.st?.goal) out.push({ type: 'main', st: mt.st, goal: mt.st.goal, p: mt.p });
-    for (const q of QUESTS) {
+    for (const q of ALL_QUESTS) {
         if (!includeHidden && q.type === 'hidden') continue;
         if (w.quests?.[q.id] !== 'active') continue;
         const p = progOf(pr, q.id), st = q.steps[p.i];
@@ -542,12 +566,12 @@ function targetOf(pr, q, p) {
     const st = q.steps[p.i];
     return targetOfGoal(pr, st, st?.goal, p);
 }
-function mainCurrent(pr) {
-    const w = pr.world ?? {};
-    const i = mainIndex(pr), t = trustedMain(pr);
-    const st = MAIN[i];
+function mainCurrent(pr, ch = activeChapter(pr)) {
+    const tr = trackFor(ch), w = pr.world ?? {};
+    const i = mainIndex(pr, tr), t = trustedMain(pr, tr);
+    const st = tr.steps[i];
     if (!st) return null;
-    const p = t === i ? (w.mainP ?? {}) : {};
+    const p = t === i ? (w[tr.prog] ?? {}) : {};
     const pg = st.kind === 'task' && st.goal ? progress(pr, st.goal, p) : null;
     const target = st.kind === 'task' ? targetOfGoal(pr, st, st.goal, p) : null;
     return { i, st, pg, target };
@@ -555,8 +579,10 @@ function mainCurrent(pr) {
 /** Sổ nhiệm vụ gửi client: phụ + nhánh (cả chưa mở) · ẩn (chỉ cái đã tìm ra) · chính tuyến (số bước) · hằng ngày */
 function log(pr, now = Date.now(), npcName = (id) => id) {
     const order = { active: 0, offered: 1, locked: 2, done: 3 };
+    const ch2Open = clearedId(pr, 'c1-20');
+    const source = ch2Open ? ALL_QUESTS : QUESTS;
     const list = [];
-    for (const q of QUESTS) {
+    for (const q of source) {
         const st = stateOf(pr, q.id);
         if (q.type === 'hidden' && !st) continue;   // chưa tìm ra: không lộ
         const state = st === 'done' ? 'done' : st === 'active' ? 'active' : isOpen(pr, q) ? 'offered' : 'locked';
@@ -568,18 +594,19 @@ function log(pr, now = Date.now(), npcName = (id) => id) {
             progress: pg && pg.need > 1 ? { have: pg.have, need: pg.need } : null,
             step: state === 'active' ? { i: p.i + 1, total: q.steps.length } : null,
             target: state === 'offered' ? locate(q.giver) : state === 'active' ? targetOf(pr, q, p) : null,
-            reward: `${rewardText(q.reward)}${q.extra ? ` · ${q.extra}` : ''}`, needNo: state === 'locked' && q.open?.stage ? stageNo(q.open.stage) : null });
+            reward: `${rewardText(q.reward)}${q.extra ? ` · ${q.extra}` : ''}`, needNo: state === 'locked' && q.open?.stage && q.chapter !== 'c2' ? stageNo(q.open.stage) : null });
     }
     list.sort((a, b) => order[a.state] - order[b.state]);
-    const hidden = QUESTS.filter(q => q.type === 'hidden');
-    const i = mainIndex(pr);
-    const cur = mainCurrent(pr);
+    const hidden = source.filter(q => q.type === 'hidden');
+    const ch = activeChapter(pr), tr = trackFor(ch);
+    const i = mainIndex(pr, tr);
+    const cur = mainCurrent(pr, ch);
     return { list, daily: dailyState(pr, now),
         hidden: { found: hidden.filter(q => stateOf(pr, q.id)).length, total: hidden.length },
-        main: { i, total: MAIN.length, reward: MAIN[i] ? rewardText(mainReward(MAIN[i])) : null, tier: MAIN[i]?.tier ?? 'small', text: MAIN[i]?.text ?? null, last: MAIN[i - 1]?.text ?? null,
+        main: { i, total: tr.steps.length, reward: tr.steps[i] ? rewardText(mainReward(tr.steps[i])) : null, tier: tr.steps[i]?.tier ?? 'small', text: tr.steps[i]?.text ?? null, last: tr.steps[i - 1]?.text ?? null,
             ...(cur?.st?.kind === 'task' ? { kind: 'task', progress: cur.pg?.need > 1 ? { have: cur.pg.have, need: cur.pg.need } : null, target: cur.target } : {}) },
         titles: [...(pr.titles ?? [])] };
 }
 
-module.exports = { QUESTS, BY_ID, DAILY, MAIN_TIERS, setMain, setLocator, mainList: () => MAIN, mainCurrent, targetOfGoal, stageBlocked, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
+module.exports = { QUESTS, QUESTS2, ALL_QUESTS, BY_ID, DAILY, MAIN_TIERS, setMain, setLocator, mainList: (ch = 'c1') => trackFor(ch).steps, activeChapter, mainCurrent, targetOfGoal, stageBlocked, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
     markOf, needed, objState, wantsItem, resetMain, takeNotes, note, dayKey, pickDaily, ensureDaily, dailyState, dailyEvent, log, rewardText, grant };

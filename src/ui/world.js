@@ -303,12 +303,12 @@ function quests() {
     const legacy = data?.quests ?? [], ql = data?.qlog;
     if (!ql) return legacy;
     const main = legacy.find(q => q.type === 'main');
-    const inCh1 = ql.main.i < ql.main.total;
-    const stepProg = inCh1 ? (ql.main.progress ?? main?.progress) : null;
+    const inStep = ql.main && ql.main.i < ql.main.total;
+    const stepProg = inStep ? (ql.main.progress ?? main?.progress) : null;
     return [...(main ? [{ ...main,
-        progress: inCh1 ? (stepProg ?? { have: ql.main.i, need: ql.main.total }) : null,
-        step: inCh1 && stepProg ? { i: ql.main.i + 1, total: ql.main.total } : null,
-        reward: inCh1 ? ql.main.reward ? `Bước này: ${ql.main.reward}` : 'Thưởng ải cốt truyện' : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
+        progress: inStep ? (stepProg ?? { have: ql.main.i, need: ql.main.total }) : null,
+        step: inStep && stepProg ? { i: ql.main.i + 1, total: ql.main.total } : null,
+        reward: inStep ? ql.main.reward ? `Bước này: ${ql.main.reward}` : 'Thưởng ải cốt truyện' : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
 }
 // màu dấu ! / ? theo loại nhiệm vụ: vàng chính tuyến · xanh lá phụ · tím nhánh
 const MARK_COLOR = { main: '#facc15', side: '#4ade80', branch: '#c084fc' };

@@ -130,11 +130,11 @@ test('quest log: every story stage, target, shape and side ordering is valid', (
                 const taskLog = Wd.questLog(pr)[0];
                 assert.equal(taskLog.obj, Q.mainList()[pr.world.main].text);
             }
-            if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang chương 2
+            if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang điểm truyện ải 1 chương 2 ở Rừng Sylvaren
                 assert.equal(log[0].state, 'active');
                 assert.equal(log[0].title, 'Chương 2 · Ải 1: Biên giới sương bạc');
-                assert.equal(log[0].target, null);   // rừng chưa có Bảng ải -> hướng dẫn dùng 📖 Chọn ải, không bắt về kinh thành
-                assert.match(log[0].obj, /Chọn ải/);
+                assert.deepEqual(log[0].target, { scene: 'sylvaren', kind: 'obj', id: 'sp2_border' });
+                assert.equal(log[0].obj, Wd.STORY_SPOTS2[1].go);
             }
             const ranks = log.slice(1).map(q => rank[q.state]);
             assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));

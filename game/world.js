@@ -11,6 +11,7 @@ const CHAPTER = require('./chapter1');
 const CHAPTER2 = require('./chapter2');
 const Q = require('./quests');          // 📜 bộ máy nhiệm vụ (phụ / nhánh / ẩn / hằng ngày / bước chính tuyến)
 const QD = require('./questData1');
+const QD2 = require('./questData2');
 const GA = require('./gather');         // 🧺 hái lượm, dụng cụ, câu cá, ghi chép, chỗ leo
 const CK = require('./cooking');        // 🍲 nấu ăn
 // Dùng cùng dữ liệu sinh với client, tránh giữ tọa độ của vùng cũ khi dịch chuyển.
@@ -227,8 +228,9 @@ Object.assign(SCENES, {
 // Song song với Bảng ải: mỗi ải chính có 1 điểm trên bản đồ (gặp NPC hoặc tới đúng chỗ) -> xem lời trước ải -> mở BẢNG ẢI đúng ải đó.
 //   npc: nói chuyện với NPC đó khi ải này là ải kế tiếp · obj: vật hiện ra trên bản đồ (vị trí ở src/world/mapsExtra.js)
 //   ải 2 dùng sự kiện phục kích 'ambush' có sẵn · ải 18: Elise mở phần ĐỐI CHẤT (trình chứng cứ — game/evidence.js) trước
-// 📜 vật / người của nhiệm vụ chương 1 (game/questData1.js QUEST_OBJECTS · vị trí ở src/world/mapsExtra.js)
+// 📜 vật / người của nhiệm vụ (chương 1 & chương 2 · vị trí ở src/world/mapsExtra.js)
 for (const [id, list] of Object.entries(QD.QUEST_OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
+for (const [id, list] of Object.entries(QD2.QUEST_OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
 const QUEST_TYPES = new Set(['pickup', 'spot', 'person', 'gather', 'dailyBoard']);
 // 🧺 điểm hái / chặt / đập / câu, ghi chép, bếp, bàn dụng cụ, chỗ leo, rương ẩn (game/gather.js OBJECTS · vị trí ở src/world/mapsExtra.js)
 for (const [id, list] of Object.entries(GA.OBJECTS)) SCENES[id].objects.push(...list.map(o => ({ ...o })));
@@ -257,10 +259,13 @@ const STORY_SPOTS = {
     19: { obj: 'sp_tower', scene: 'capital', label: 'Cầu thang tháp hiệu lệnh', go: 'Lên tháp hiệu lệnh phía bắc' },
     20: { obj: 'sp_tower', scene: 'capital', label: 'Đỉnh tháp hiệu lệnh', go: 'Lên đỉnh tháp hiệu lệnh' },
 };
-/** ải chính chương 1 chỉ bắt đầu được từ bản đồ (gặp NPC / tới đúng chỗ) -> { 'c1-01': 'Gặp Rok…', … } cho Bảng ải ghi gợi ý */
+const STORY_SPOTS2 = QD2.STORY_SPOTS;
+const REPORTS2 = QD2.REPORTS;
+/** ải chính chỉ bắt đầu được từ bản đồ (gặp NPC / tới đúng chỗ) -> { 'c1-01': 'Gặp Rok…', 'c2-01': '…' } cho Bảng ải ghi gợi ý */
 function spotHints() {
     const out = { 'c1-02': 'Ra cánh đồng Ngoại ô — có tiếng ồn…' };
     for (const [no, sp] of Object.entries(STORY_SPOTS)) out[`c1-${String(no).padStart(2, '0')}`] = sp.go;
+    for (const [no, sp] of Object.entries(STORY_SPOTS2)) out[`c2-${String(no).padStart(2, '0')}`] = sp.go;
     return out;
 }
 // vật điều tra (chứng cứ ẩn — game/evidence.js, clue): hiện sau ải needNo, nhặt xong thì biến mất
@@ -270,9 +275,11 @@ const CLUES = [
     { id: 'clue_ledger', scene: 'ashford', label: 'Phiến đá kho giam', needNo: 10 },
     { id: 'clue_poster', scene: 'capital', label: 'Áp phích trên tường', needNo: 13 },
 ];
-for (const [no, sp] of Object.entries(STORY_SPOTS)) {
-    if (!sp.obj || SCENES[sp.scene].objects.some(o => o.id === sp.obj)) continue;
-    SCENES[sp.scene].objects.push({ id: sp.obj, type: 'story', label: sp.label, stages: Object.entries(STORY_SPOTS).filter(([, x]) => x.obj === sp.obj).map(([n]) => +n) });
+for (const [ch, spots] of [['c1', STORY_SPOTS], ['c2', STORY_SPOTS2]]) {
+    for (const [, sp] of Object.entries(spots)) {
+        if (!sp.obj || SCENES[sp.scene].objects.some(o => o.id === sp.obj)) continue;
+        SCENES[sp.scene].objects.push({ id: sp.obj, type: 'story', chapter: ch, label: sp.label, stages: Object.entries(spots).filter(([, x]) => x.obj === sp.obj).map(([n]) => +n) });
+    }
 }
 for (const c of CLUES) SCENES[c.scene].objects.push({ id: c.id, type: 'clue', label: c.label, needNo: c.needNo });
 /** Ải chương 1 kế tiếp (Cốt truyện) — null nếu đã xong cả 20 */
@@ -280,7 +287,13 @@ function nextStoryNo(pr) {
     for (let n = 1; n <= 20; n++) if (!cleared(pr, n)) return n;
     return null;
 }
+function nextStoryNo2(pr) {
+    if (!cleared(pr, 20)) return null;
+    for (let n = 1; n <= 20; n++) if (!clearedId(pr, `c2-${String(n).padStart(2, '0')}`)) return n;
+    return null;
+}
 const storyStageId = (n) => `c1-${String(n).padStart(2, '0')}`;
+const storyStageId2 = (n) => `c2-${String(n).padStart(2, '0')}`;
 
 // ---------- VỀ BÁO LẠI (sau trận) ----------
 // Thắng ải lần đầu: chỉ phần lời xảy ra TẠI CHỖ (post[n].slice(0, from)) phát ngay; phần còn lại diễn ra ở nơi khác
@@ -300,15 +313,32 @@ function pendingReport(pr) {
     for (const n of Object.keys(REPORTS).map(Number).sort((a, b) => a - b)) if (cleared(pr, n) && !done[n]) return n;
     return null;
 }
+function pendingReport2(pr) {
+    if (!cleared(pr, 20)) return null;
+    const done = pr.world?.reported2 ?? {};
+    for (const n of Object.keys(REPORTS2).map(Number).sort((a, b) => a - b)) if (clearedId(pr, storyStageId2(n)) && !done[n]) return n;
+    return null;
+}
+function reportFor(id) {
+    const m = /^c([12])-(\d\d)$/.exec(id ?? '');
+    if (!m) return null;
+    const ch = Number(m[1]), no = Number(m[2]), rep = (ch === 2 ? REPORTS2 : REPORTS)[no];
+    return rep ? { ch, no, ...rep } : null;
+}
 /** Ải kế tiếp đang chờ ở điểm truyện (null khi còn phải về báo lại hoặc chưa xong bước nhiệm vụ trước ải) */
 function storyNo(pr) {
     if (pendingReport(pr)) return null;
     const n = nextStoryNo(pr);
     return n && !Q.stageBlocked(pr, storyStageId(n)) ? n : null;
 }
+function storyNo2(pr) {
+    if (pendingReport(pr) || pendingReport2(pr)) return null;
+    const n = nextStoryNo2(pr);
+    return n && !Q.stageBlocked(pr, storyStageId2(n)) ? n : null;
+}
 /** Lời sau trận phát NGAY tại chỗ (server.js dùng khi thắng lần đầu) — null = phát hết như cũ */
-function postNow(n, lines) {
-    const r = REPORTS[n];
+function postNow(nOrId, lines) {
+    const r = typeof nOrId === 'string' ? reportFor(nOrId) : REPORTS[nOrId];
     return r ? (lines ?? []).slice(0, r.from) : null;
 }
 /** Đánh dấu mọi ải đã qua là đã báo lại (công cụ thử nhảy ải / save cũ) */
@@ -316,11 +346,14 @@ function syncReports(pr) {
     const w = ensureWorld(pr);
     w.reported = {};
     for (const n of Object.keys(REPORTS)) if (cleared(pr, +n)) w.reported[n] = true;
+    w.reported2 = {};
+    for (const n of Object.keys(REPORTS2)) if (clearedId(pr, storyStageId2(+n))) w.reported2[n] = true;
     Q.resetMain(pr);   // bước chính tuyến tính lại theo ải đã qua, KHÔNG trả bù Kim Cương
 }
 
 // 📜 các bước chính tuyến (mỗi bước +20 Kim Cương) dựng từ điểm truyện + ải + về báo lại
-Q.setMain(QD.mainSteps(STORY_SPOTS, REPORTS, CHAPTER.stages));
+Q.setMain(QD.mainSteps(STORY_SPOTS, REPORTS, CHAPTER.stages), 'c1');
+Q.setMain(QD2.mainSteps(STORY_SPOTS2, REPORTS2, CHAPTER2.stages), 'c2');
 /** Chỗ của NPC / vật / vật nhặt ('item:<mã>') trên bản đồ -> mục tiêu "Tự đi tới" của sổ nhiệm vụ */
 Q.setLocator((id) => {
     if (!id) return null;
@@ -386,12 +419,14 @@ Object.assign(NPCS.rok,{showWhen:{until:'c1-10'}});
 Object.assign(NPCS.guard,{showWhen:{from:'c1-10',until:'c1-12'}});
 Object.assign(NPCS.nun,{showWhen:{from:'c1-13',until:'c1-15'}});
 Object.assign(NPCS.elise,{showWhen:{from:'c1-14',until:'c1-20'}});
+const chStage = (ch, n) => (ch === 'c2' && n <= 0 ? 'c1-20' : `${ch}-${String(n).padStart(2, '0')}`);
 for(const s of Object.values(SCENES)) for(const o of s.objects) if(o.type==='story') {
-    const first=Math.min(...o.stages),last=Math.max(...o.stages);
-    o.showWhen={from:stage(first-1),until:stage(last)};
+    const ch=o.chapter??'c1',first=Math.min(...o.stages),last=Math.max(...o.stages);
+    o.showWhen={from:chStage(ch,first-1),until:chStage(ch,last)};
 }
 function shown(pr,def,id) {
     if(Object.entries(REPORTS).some(([n,r])=>r.npc===id&&cleared(pr,+n)&&!pr.world?.reported?.[n])) return true;
+    if(Object.entries(REPORTS2).some(([n,r])=>r.npc===id&&clearedId(pr,storyStageId2(+n))&&!pr.world?.reported2?.[n])) return true;
     const c=def?.showWhen;
     if(!c) return true;
     if(NPCS[id]===def && Q.needed(pr,id)) return true;   // nhiệm vụ đang cần người này (giao / trả / hỏi chuyện)
@@ -405,7 +440,7 @@ const QUESTS = {
     aeris: { needStage: 'c2-04', items: ['glowshroom'], flag: 'nam_phat_quang', reward: { gold: 2000, diamond: 20 } },
     oren: { needStage: 'c2-14', items: ['startome'], flag: 'lang_elf_co', reward: { gold: 3000, diamond: 30 } },
 };
-const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược', glowshroom: 'Nấm phát quang', startome: 'Sách sao cổ', ...QD.ITEM_NAMES };
+const ITEM_NAMES = { hammer: 'Búa của bác Borin', wheat: 'Lúa mì vàng', mushroom: 'Nấm sương', herb: 'Thảo dược', glowshroom: 'Nấm phát quang', startome: 'Sách sao cổ', ...QD.ITEM_NAMES, ...QD2.ITEM_NAMES };
 const questOpen = (pr, q) => (q.needStage ? clearedId(pr, q.needStage) : cleared(pr, q.needNo));
 const questNeedText = (q) => (q.needStage ? `ải ${c2no(q.needStage)} chương 2` : `ải ${q.needNo}`);
 
@@ -438,6 +473,7 @@ function ensureWorld(pr) {
     Object.assign(w, landing(w.scene, w.x, w.y)); w.face ??= START.face;
     w.opened ??= {}; w.mineAt ??= {}; w.quests ??= {}; w.bag ??= {}; w.talked ??= {};
     if (!w.reported) { w.reported = {}; for (const n of Object.keys(REPORTS)) if (cleared(pr, +n)) w.reported[n] = true; }   // save cũ: các ải đã qua coi như đã báo
+    if (!w.reported2) { w.reported2 = {}; for (const n of Object.keys(REPORTS2)) if (clearedId(pr, storyStageId2(+n))) w.reported2[n] = true; }
     pr.flags ??= {};
     pr.items ??= {};
     w.gather ??= {};
@@ -474,6 +510,7 @@ const EVENT_LINES = {
 };
 const EVENT_STAGE = { jess: 'c1-02' };
 for (let n = 1; n <= 20; n++) EVENT_STAGE[`s${n}`] = `c1-${String(n).padStart(2, '0')}`;
+for (let n = 1; n <= 20; n++) EVENT_STAGE[`c2_${n}`] = `c2-${String(n).padStart(2, '0')}`;
 EVENT_LINES.jess = require('./story').pre[2];   // cùng lời trước ải 2 trong cốt truyện (không viết 2 bản)
 
 /** Lời thoại NPC theo tiến trình -> { lines: [[người nói, lời]], quest?: 'offer'|'active'|'turnin'|'done', event? } */
@@ -485,7 +522,13 @@ function npcDialog(pr, id) {
     if (rn && REPORTS[rn].npc === id) {
         const S = require('./story'), r = REPORTS[rn];
         const lines = [...(S.post[rn] ?? []).slice(r.from), ...(r.ending ? S.ending : [])].map(l => [...l]);
-        return { lines: lines.length ? lines : [['npc', '…']], report: rn, cutscene: r.cutscene ?? null };
+        return { lines: lines.length ? lines : [['npc', '…']], report: rn, reportCh: 1, cutscene: r.cutscene ?? null };
+    }
+    const rn2 = !rn ? pendingReport2(pr) : null;
+    if (rn2 && REPORTS2[rn2].npc === id) {
+        const S = require('./story'), sid = storyStageId2(rn2), r = REPORTS2[rn2];
+        const lines = [...(S.postFor(sid) ?? []).slice(r.from), ...(r.ending ? (S.endingFor(sid) ?? []) : [])].map(l => [...l]);
+        return { lines: lines.length ? lines : [['npc', '…']], report: rn2, reportCh: 2, cutscene: r.cutscene ?? null };
     }
     const n = storyNo(pr), sp = n && STORY_SPOTS[n];
     if (sp?.npc === id) {
@@ -493,6 +536,11 @@ function npcDialog(pr, id) {
         if (n === 18 && pr.flags?.trial_score == null)   // Elise: đối chất trước nhà vua (trình chứng cứ) rồi mới vào đại sảnh
             return { lines: [['elise', 'Phụ vương đồng ý cho đối chất trong đêm nay. Trước mặt các đại thần, chứng cứ của các bạn phải thật chắc.'], ['elise', 'Các bạn sẵn sàng chưa?']], event: 'trial' };
         return { lines: (n === 18 ? pre.slice(4) : pre).map(l => [...l]), event: `s${n}` };
+    }
+    const n2 = !n ? storyNo2(pr) : null, sp2 = n2 && STORY_SPOTS2[n2];
+    if (sp2?.npc === id) {
+        const pre = require('./story').preFor(storyStageId2(n2)) ?? [];
+        return { lines: pre.map(l => [...l]), event: `c2_${n2}` };
     }
     if (id === 'sera') {
         if (!cleared(pr, 7)) return { lines: [me('…')] };   // chưa được cứu (bị ẩn trên bản đồ)
@@ -621,7 +669,7 @@ function interact0(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), r
         const d = npcDialog(pr, targetId);
         if (d.event || d.report) Q.dailyEvent(pr, wallet, { type: 'talk', who: targetId }, now);
         if (d.event === 'trial') return ok({ lines: d.lines, present: E.trialPayload(pr) });   // khung đối chất (client) -> presentTrial
-        if (d.report) { w.reported[d.report] = true; return ok({ lines: d.lines, cutscene: d.cutscene }); }   // về báo lại -> mở ải kế tiếp
+        if (d.report) { (d.reportCh === 2 ? w.reported2 : w.reported)[d.report] = true; return ok({ lines: d.lines, cutscene: d.cutscene }); }   // về báo lại -> mở ải kế tiếp
         if (d.event) return ok({ lines: d.lines, startStage: EVENT_STAGE[d.event] });
         // 📜 bộ máy nhiệm vụ: trả / làm bước -> nhận nhiệm vụ mới (3 việc cũ borin / lena / sera cũng chạy ở đây, giữ nguyên cờ)
         const qr = Q.talk(pr, wallet, targetId, now, rng);
@@ -708,9 +756,11 @@ function interact0(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), r
         return ok({ text: c2 ? 'Mặt nước đài phun rẽ ra — bậc thang dẫn xuống Gốc Cây Mẹ! Mở nhánh ải mới!' : 'Phiến đá trượt sang một bên — lối xuống hầm mộ! Mở nhánh ải mới!', flag: o.flag });
     }
     if (o.type === 'story') {
-        const n = storyNo(pr);
-        if (!o.stages.includes(n)) return no('Xung quanh yên ắng…');
-        return ok({ lines: (require('./story').pre[n] ?? []).map(l => [...l]), startStage: storyStageId(n) });
+        const ch = o.chapter === 'c2' ? 2 : 1;
+        const n = ch === 2 ? storyNo2(pr) : storyNo(pr);
+        if (!n || !o.stages.includes(n)) return no('Xung quanh yên ắng…');
+        const sid = ch === 2 ? storyStageId2(n) : storyStageId(n);
+        return ok({ lines: (require('./story').preFor(sid) ?? []).map(l => [...l]), startStage: sid });
     }
     if (o.type === 'clue') {
         if (!cleared(pr, o.needNo)) return no('Chưa thấy gì đáng chú ý…');
@@ -743,7 +793,8 @@ function interact(pr, wallet, sceneId, targetId, data = {}, now = Date.now(), rn
     if (!r.ok) return r;
     const w = pr.world, o = findObj(sceneId, targetId);
     const n = r.startStage ? require('./story').stageNo(r.startStage) : null;
-    if (n && r.startStage.startsWith('c1-')) w.spot[n] = true;   // đã tới điểm truyện của ải n
+    if (n && r.startStage.startsWith('c1-')) w.spot[n] = true;   // đã tới điểm truyện của ải n (chương 1)
+    if (n && r.startStage.startsWith('c2-')) { w.spot2 ??= {}; w.spot2[n] = true; }   // điểm truyện chương 2
     if (r.present) w.spot[18] = true;
     if (o && !r.puzzle) {
         if (o.type === 'chest') Q.fire(pr, wallet, { type: 'chest', id: o.id }, now, rng);
@@ -821,21 +872,13 @@ function questLog(pr) {
         desc: !next || next.no >= 13 ? 'Mang bằng chứng về Ashford tới kinh thành Valoria trước khi chiến tranh nổ ra.' : next.no <= 2 ? 'Cùng Rok giữ làng Ashford khỏi lũ Goblin.' : next.no <= 7 ? 'Lần theo dấu nữ tu Sera và những người bị Goblin bắt đi.' : next.no <= 10 ? 'Giữ Ashford trước cuộc tấn công của Skarn.' : 'Theo Đường Vương Đạo, mang chứng cứ lên kinh thành.',
         state: next ? 'active' : 'done', obj: 'Đã hoàn thành chương 1', progress: null, target: null,
         reward: 'Phần thưởng ải cốt truyện', needNo: null };
-    // chương 1 xong -> nhiệm vụ chính chuyển sang chương 2 (vùng Elf)
-    const next2 = !next && CHAPTER2.stages.find(s2 => !clearedId(pr, s2.id));
-    if (next2) {
-        Object.assign(main, { title: `Chương 2 · Ải ${next2.no}: ${next2.name}`, state: 'active',
-            desc: next2.no <= 12 ? 'Tiến vào Rừng Thiêng Sylvaren, tìm em gái Lyra và kẻ đang đầu độc khu rừng.' : 'Vạch trần âm mưu của sứ giả Varkos ở Thành cây Lunaria.',
-            obj: `Mở Bảng ải (hoặc 📖 Chọn ải → Chương 2) và đánh ải ${next2.no}: ${next2.name}`,
-            target: next2.no >= 13 && sceneOpen(pr, 'lunaria') ? { scene: 'lunaria', kind: 'obj', id: 'lun_board' } : null });   // rừng Sylvaren chưa có Bảng ải -> dùng 📖 Chọn ải, không bắt về kinh thành
-        if (!main.target) main.obj = `Bấm 📖 Chọn ải (thanh dưới màn hình) → Chương 2, đánh ải ${next2.no}: ${next2.name}`;
-    } else if (!next) Object.assign(main, { title: 'Chương 2 · Tiếng Gọi Rừng Thiêng', obj: 'Đã hoàn thành chương 2' });
-    // vừa thắng ải có phần "về báo lại": chính tuyến chỉ tới NPC đó trước (ải 20: về cung gặp Elise trước khi sang chương 2)
     const rn = pendingReport(pr);
+    const next2 = !next && CHAPTER2.stages.find(s2 => !clearedId(pr, s2.id));
+    const rn2 = !next && !rn ? pendingReport2(pr) : null;
     if (rn && sceneOpen(pr, REPORTS[rn].scene)) {
-        Object.assign(main, { state: 'active', title: rn === 20 ? "Chương 1 · Hồi kết" : `Chương 1 · Sau ải ${rn}`, target: { scene: REPORTS[rn].scene, kind: 'npc', id: REPORTS[rn].npc }, obj: REPORTS[rn].go });
+        Object.assign(main, { state: 'active', title: rn === 20 ? 'Chương 1 · Hồi kết' : `Chương 1 · Sau ải ${rn}`, target: { scene: REPORTS[rn].scene, kind: 'npc', id: REPORTS[rn].npc }, obj: REPORTS[rn].go });
     } else if (next) {
-        const curMain = Q.mainCurrent(pr);
+        const curMain = Q.mainCurrent(pr, 'c1');
         if (curMain?.st?.kind === 'task') {
             const t = curMain.target;
             Object.assign(main, {
@@ -858,7 +901,32 @@ function questLog(pr) {
                 main.obj = 'Ra cánh đồng Ngoại ô — có tiếng ồn…';
             }
         }
-    }
+    } else if (rn2 && sceneOpen(pr, REPORTS2[rn2].scene)) {
+        Object.assign(main, { state: 'active', title: rn2 === 20 ? 'Chương 2 · Hồi kết' : `Chương 2 · Sau ải ${rn2}`,
+            desc: 'Trở về gặp người dẫn đường vùng Elf để tiếp tục hành trình.',
+            target: { scene: REPORTS2[rn2].scene, kind: 'npc', id: REPORTS2[rn2].npc }, obj: REPORTS2[rn2].go });
+    } else if (next2) {
+        Object.assign(main, { title: `Chương 2 · Ải ${next2.no}: ${next2.name}`, state: 'active',
+            desc: next2.no <= 12 ? 'Tiến vào Rừng Thiêng Sylvaren, tìm em gái Lyra và kẻ đang đầu độc khu rừng.' : 'Vạch trần âm mưu của Sứ giả Malkor ở Thành cây Lunaria.' });
+        const curMain2 = Q.mainCurrent(pr, 'c2');
+        if (curMain2?.st?.kind === 'task') {
+            const t = curMain2.target;
+            Object.assign(main, {
+                obj: curMain2.st.text,
+                progress: curMain2.pg?.need > 1 ? { have: curMain2.pg.have, need: curMain2.pg.need } : null,
+                target: t && sceneOpen(pr, t.scene) ? t : null,
+            });
+        } else {
+            const sp2 = STORY_SPOTS2[next2.no];
+            if (sp2 && sceneOpen(pr, sp2.scene)) {
+                main.target = sp2.npc ? { scene: sp2.scene, kind: 'npc', id: sp2.npc } : { scene: sp2.scene, kind: 'obj', id: sp2.obj };
+                main.obj = sp2.go;
+            } else {
+                main.target = next2.no >= 13 && sceneOpen(pr, 'lunaria') ? { scene: 'lunaria', kind: 'obj', id: 'lun_board' } : null;
+                main.obj = main.target ? `Mở Bảng ải và đánh ải ${next2.no}: ${next2.name}` : `Bấm 📖 Chọn ải (thanh dưới màn hình) → Chương 2, đánh ải ${next2.no}: ${next2.name}`;
+            }
+        }
+    } else if (!next) Object.assign(main, { title: 'Chương 2 · Tiếng Gọi Rừng Thiêng', state: 'done', obj: 'Đã hoàn thành chương 2', progress: null, target: null });
     const order = { active: 0, offered: 1, locked: 2, done: 3 };
     return [main, ...sides.sort((a, b) => order[a.state] - order[b.state])];
 }
@@ -886,7 +954,7 @@ function worldState(pr, now = Date.now()) {
                     : o.type === 'item' ? (w.quests[o.quest] === 'active' && !w.bag[o.item] ? 'ready' : 'hidden')
                     : o.type === 'puzzle' ? (pr.flags[{ well: 'gieng_co', pages: 'trang_sach', moon: 'suoi_trang' }[o.puzzle]] ? 'done' : ((o.needNo && !cleared(pr, o.needNo)) || (o.needStage && !clearedId(pr, o.needStage)) ? 'locked' : 'ready'))
                     : o.type === 'secret' ? (pr.flags[o.flag] ? 'done' : ((o.needStage ? clearedId(pr, o.needStage) : cleared(pr, o.needNo)) ? 'ready' : 'hidden'))
-                    : o.type === 'story' ? (o.stages.includes(storyNo(pr)) ? 'ready' : 'hidden')
+                    : o.type === 'story' ? (o.stages.includes(o.chapter === 'c2' ? storyNo2(pr) : storyNo(pr)) ? 'ready' : 'hidden')
                     : o.type === 'clue' ? (cleared(pr, o.needNo) && !E.has(pr, E.clueEvidence(o.id)?.id) ? 'ready' : 'hidden')
                     : o.type === 'event' ? eventState(pr, o.event)
                     : 'ready';
@@ -932,5 +1000,5 @@ function presentTrial(pr, wallet, answers = {}) {
         lines: [...r.lines, ...tail].map(l => [...l]), startStage: 'c1-18' });
 }
 
-module.exports = { fish, shown, presentTrial, nextStoryNo, spotHints, REPORTS, pendingReport, postNow, syncReports, STORY_SPOTS, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
+module.exports = { fish, shown, presentTrial, nextStoryNo, nextStoryNo2, storyNo, storyNo2, spotHints, REPORTS, REPORTS2, pendingReport, pendingReport2, reportFor, postNow, syncReports, STORY_SPOTS, STORY_SPOTS2, CLUES, MOON_ANSWER, clearedId, AREAS, SCENES, NPCS, QUESTS, ITEM_NAMES, START, WELL_SYMBOLS, WELL_ANSWER, PAGES, RHYME, MINE_COOLDOWN, EVENT_STAGE,
     QUEST_TYPES, sceneSpawn, landing, ensureWorld, areaOpen, sceneOpen, npcDialog, move, interact, worldState, questLog, fill, setPlayer, eventState };
