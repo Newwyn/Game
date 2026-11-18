@@ -5,6 +5,44 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 18/11/2026 — Chính tuyến đi qua mọi bản đồ (chương 1 + chương 2) · anh hùng mới YunYou · luật 3 phút · dọn thư mục
+
+Từ hôm nay Antigravity (Gemini 4 Hydrogen) viết phần lớn mã, Claude viết đề bài, chạy test, soát và bấm thử; Codex / Antigravity vẽ tranh. Quy định mới của người chơi: hình, icon, hiệu ứng KHÔNG dựng bằng code nữa — dùng tranh vẽ (Codex / Antigravity / Flow / Meshy) và hiệu ứng pixelfx.
+Kiểm tra: `npm test` 300/300 qua, `npx vite build` qua.
+
+### 1. Nhiệm vụ chính tuyến (Nhiệm vụ truyền thuyết)
+- **Bộ máy** (`game/quests.js`): bước chính tuyến có thêm kiểu `task` (dùng chung các loại mục tiêu của nhiệm vụ phụ: nói chuyện, nhặt, giao, xem dấu vết, tới nơi, đứng yên, thắng trận, dùng chiêu, mở rương, đọc chứng cứ). Dùng chung cho nhiều chương. Ải không vào được khi chưa làm xong các bước đứng trước. Save cũ tự nhảy tới đúng bước, không trả bù thưởng.
+- **Chương 1** (`game/questData1.js`): 77 bước = 46 bước cũ + 31 việc mới xen giữa 20 ải, 10 kiểu việc, đi lần lượt làng → ngoại ô → rừng → lò rèn → quán Lena → nhà bà Mira → Đường Vương Đạo → kinh thành → thư khố → nhà thờ → cung điện (sảnh ngai, phòng hội đồng, tẩm cung, ban công). Các việc thong thả trong cung điện đặt TRƯỚC ải 18; sau ải 18–19 chỉ còn bước gấp.
+- **Chương 2 — vùng Elf** (`game/questData2.js`, mới): 68 bước, 24 việc, 9 kiểu việc, Sylvaren (ải 1–12) rồi Lunaria (ải 13–20); điểm truyện cho từng ải, 4 chỗ về báo lại, thêm 4 việc phụ + 1 việc ẩn. Hết chương 1 chính tuyến tự nối sang chương 2.
+- Đã bấm thử thật: chương 1 tới bước 4/77 (gặp Rok → ải 1 → báo Bà Mira → hỏi lão Gus), chương 2 tới bước 1/68. CHƯA bấm thử các ải sau đó (mới có test tự động).
+- Tool thử: dịch chuyển xong thì tính lại bước chính tuyến.
+
+### 2. Anh hùng mới: YUNYOU — Kiếm Tiên (`swordsage`, giá 1200)
+Bản thiết kế: `docs/superpowers/specs/2026-11-18-yunyou-design.md`. Tranh: `art/yunyou/` (đề bài vẽ trong `art/yunyou/prompts/`). Hiệu ứng: `src/vfx/swordFx.js`. Bài kiểm tra: `tests/swordsage.test.js`.
+- **Con người:** ẩn sĩ nam, tóc trắng xõa, áo lụa trắng, nón và kiếm ngọc bích (bậc S / SS tóc đen, nón tre). Tộc hiển thị "Không rõ" (chỉ số tính như tộc Người). Cùng hệ thợ săn với Lyra, sát thương vật lý, **tốc đánh nhanh nhất game (700 ms)**.
+- **Bay:** gặp địch thì bay lên cao, đứng trên luồng kiếm khí, **không ai đánh trúng** (đòn đơn, diện rộng, khống chế đều không chạm tới); vẫn nhận đủ buff / hồi máu / khiên của đồng đội. Đồng đội chết hết thì đáp xuống và ở dưới đất tới hết trận. Đội chỉ có một mình thì không bay. PvP: hai YunYou đánh trúng nhau được.
+  - Trên hình anh ta **lượn qua lại trên đầu đội địch** (chỉ là hình, vị trí thật trên máy chủ đứng yên); đòn thường xuất phát từ chỗ đang lượn. Độ cao cố định (góc chéo 7,4 · góc ngang 6,8), không theo zoom. Camera tự nâng khung khi có YunYou đang bay để luôn thấy anh ta.
+  - Đang bay thì **đánh được mọi đối thủ trên sân** (không giới hạn tầm, không đuổi theo).
+- **Chiêu 1 Ngự Kiếm Tốc** (1 Orb): +80% tốc đánh 6 giây.
+- **Chiêu 2 Vạn Kiếm Đồng Quy** (2 Orb, 8 giây): 7 thanh kiếm linh lần lượt hiện sau lưng; mỗi đòn thường phóng thêm kiếm tới MỌI đối thủ khác (50% → 70% theo cấp chiêu).
+- **Chiêu 3 Trận Đồ Kiếm** (4 Orb): YunYou chỉ tạo ra một VÒNG kiếm trận trên không rồi đánh tiếp; vòng đứng yên, tự xoay, tự niệm 2 giây, bắn kiếm liên tục 5 giây (10 đợt ×0,25 lên mọi đối thủ trong vùng), cuối cùng một thanh gươm lớn bay chậm 1,2 giây rồi nổ ×3, chắc chắn bạo kích. Choáng YunYou không huỷ được vòng; anh ta chết thì vòng tan.
+- **Thiên phú 1 Vết Kiếm:** đủ 6 nhát trúng → Vỡ Giáp −20/25/30% thủ vật lý 6 giây cho mọi người đánh; mỗi lần gây Vỡ Giáp +10% tấn công (tối đa 3 tầng, 8 giây).
+- **Thiên phú 2 Kiếm Tâm:** mỗi đòn không bạo kích +6/8% tỉ lệ bạo kích (về 0 khi bạo kích); mỗi lần bạo kích +8/10% sát thương bạo kích (tối đa 5 tầng, 8 giây).
+- CHƯA xem tận mắt: đáp xuống khi đồng đội chết hết, PvP hai YunYou, nút AUTO, đường kiếm khí lúc bay quá mục tiêu. Tranh bậc S / SS chưa có tấm động tác (mọi bậc đang dùng bộ SSS).
+
+### 3. Luật trận đấu
+- **Mọi trận 3 phút** (đồng hồ hiện ở mọi chế độ). **PvE** (ải, nhánh, hầm ngục, đánh quái ngoài bản đồ): hết giờ là thua. **PvP:** hết giờ thì **Sinh Tử** — mọi tướng và vật triệu hồi còn sống mất 5% máu tối đa mỗi 0,5 giây (hồi máu / khiên không cứu, YunYou đang bay cũng mất) tới khi một bên hết tướng; cùng gục một nhịp thì bên còn nhiều % máu hơn thắng. **Bỏ luật Sinh Tử 1 đấu 1 sau 15 giây.** Đấu tập / Test không tính giờ. (`tests/battle-timer.test.js`) — chưa ngồi chờ đủ 3 phút trong trận thật.
+- **Nút ↩ Quay lại** (phím Esc) ở màn Chọn chế độ: lỡ bấm Menu lúc đang đánh / đang ở bản đồ thì quay về đúng chỗ cũ; trận không bị huỷ; chọn chế độ khác khi trận còn chạy sẽ hỏi "Rời trận đang đánh?" ngay trên trang.
+- **Camera trận:** không lùi xa hơn mức mặc định; bấm thẻ nhân vật thì camera dời tâm về người đó ở cả hai góc nhìn (giữ nguyên độ rộng khung).
+
+### 4. Dọn thư mục
+- Xoá: thư mục `demo/` (5 ảnh cũ) và `Claude outputs/`, `TIEP_TUC.md`, `xem_thu_ignar.bat`, bộ cài cũ `release/`, file nháp khi vẽ YunYou (log, ảnh soi, bản bị loại), 2 hình YunYou không còn dùng, 6 nhánh + thư mục làm việc tạm đã ghép.
+- Chuyển 4 tài liệu kế hoạch từ `demo/` sang `docs/` (`KE_HOACH_NHIEM_VU_CHUONG_1.md`, `Y_TUONG_TAI_NGUYEN_VA_TRANG_BI.md`, `DEMO_LOI_THOAI.md`, `BAO_CAO_BAN_DO.md`).
+- Còn lại chưa đụng: thư mục `.team/wt/palacekit` (có 121 thay đổi chưa lưu của một phiên làm việc khác) và nhánh `thu/rok-xuong-mem`.
+
+### 5. Đang bàn dở
+- Nhân vật thứ 16: Elf nam tu sĩ chiến, dáng nhỏ nhắn nhưng đã mấy ngàn tuổi, tóc vàng mắt xanh vô hồn, lạnh lùng, lơ lửng, đánh phép bằng cây thánh giá khổng lồ. Claude đã đề xuất bộ chiêu (Phán Xét / Xiềng Thánh / Thánh Lễ, thiên phú Dấu Tội / Đức Tin Tuyệt Đối) và tên (Elior / Caelum) — chờ người chơi duyệt. Mục tiêu: đủ 20 nhân vật.
+
 ## 16–17/11/2026 — Hai anh hùng mới: LEON (Kỳ Thủ, gọi quân cờ) và NYX (nữ Goblin pháp sư Hư Không)
 
 > Làm tiếp ở máy khác: đọc `docs/LAM_TIEP_LEON_NYX.md` (việc còn lại, cách mở game thử, cách vẽ bằng Flow / Meshy).

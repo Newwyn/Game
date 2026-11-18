@@ -1,5 +1,5 @@
 // ============================================================
-// 📜 DỮ LIỆU NHIỆM VỤ CHƯƠNG 1 (bộ máy: game/quests.js · kế hoạch: demo/KE_HOACH_NHIEM_VU_CHUONG_1.md)
+// 📜 DỮ LIỆU NHIỆM VỤ CHƯƠNG 1 (bộ máy: game/quests.js · kế hoạch: docs/KE_HOACH_NHIEM_VU_CHUONG_1.md)
 //   type: 'side' (phụ) · 'branch' (chuỗi nhánh, kết bằng 1 ải) · 'hidden' (ẩn: không có dấu, tự kích hoạt)
 //   open: { stage: 'c1-04', account: 5, quest: '<id đã xong>' } — điều kiện mở
 //   steps: làm lần lượt; goal xem game/quests.js (talk / deliver / collect / interact / reach / clearStage / flag /
