@@ -573,10 +573,24 @@ body.selecting-squad #top-bar, body.selecting-squad #top-left-controls { visibil
 /* 🧪 Thử nhanh (màn chọn chế độ) */
 /* nút mở 🧪 Tool thử (dải "Thử nhanh" cũ đã gom vào src/ui/testHub.js) */
 .mm-test { margin: 22px auto 0; text-align: center; font-size: 13px; }
+.mm-pills { margin: 22px auto 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+.mm-pills .mm-test { margin: 0; }
+.mm-return { text-align: center; font-size: 13px; }
+.mm-nav { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+.mm-nav .mm-back { margin-top: 0; }
 .mm-t { background: rgba(51,65,85,.7); border: 1px dashed rgba(250,204,21,.45); color: #e2e8f0; border-radius: 999px; padding: 6px 14px; font: inherit; cursor: pointer; }
 .mm-t:hover { border-color: #facc15; }
 .mm-t small { color: #94a3b8; margin-left: 4px; }
 .mm-back { margin-top: 22px; background: transparent; border: 1.5px solid rgba(148,163,184,.4); color: #cbd5e1; border-radius: 10px; padding: 9px 18px; font-family: inherit; cursor: pointer; }
+.mm-confirm-backdrop { position: fixed; inset: 0; background: rgba(2,6,23,.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+.mm-confirm-box { width: min(360px, 100%); background: rgba(15,23,42,.97); border: 1.5px solid rgba(248,113,113,.55); border-radius: 16px; padding: 20px 22px; text-align: center; color: #f8fafc; box-shadow: 0 20px 60px rgba(0,0,0,.65); }
+.mm-confirm-box h2 { margin: 0 0 8px; font-size: 19px; color: #fca5a5; }
+.mm-confirm-box p { margin: 0 0 18px; font-size: 13px; color: #cbd5e1; line-height: 1.45; }
+.mm-confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.mm-c-btn { flex: 1; padding: 10px 14px; border-radius: 10px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; border: 1.5px solid transparent; transition: transform .1s, filter .15s; }
+.mm-c-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.mm-c-btn.stay { background: rgba(51,65,85,.85); border-color: rgba(148,163,184,.5); color: #e2e8f0; }
+.mm-c-btn.leave { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #fca5a5; color: #fff; }
 
 /* Chọn đội 1P vs 2P */
 .ss-dual { display: flex; align-items: stretch; gap: clamp(6px, 0.8vw, 12px); min-width: 0; }

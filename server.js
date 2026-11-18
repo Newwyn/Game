@@ -2158,6 +2158,7 @@ io.on('connection', (socket) => {
 
         rooms[roomId] = {
             id: roomId,
+            mode: 'pvp',
             status: 'starting',
             isBotMatch: false,
             players: {
@@ -2395,6 +2396,11 @@ io.on('connection', (socket) => {
         stopLoop(room);
         room.mode = data.mode;
         room.status = 'selecting';
+        room.winner = null;
+        room.pending = [];
+        room.stageTimer = null;
+        room.stageTimeout = false;
+        room.suddenDeath = null;
         socket.emit('squadSelect', squadSelectPayload(socket.progressKey, room.mode));
     });
     socket.on('backToMenu', () => {
@@ -2402,9 +2408,14 @@ io.on('connection', (socket) => {
         if (!room || !room.players[socket.id]) return;
         finishStage(room, false);   // đang đánh ải Cốt truyện mà về Menu = bỏ trận (hoàn chi phí − 1)
         stopLoop(room);
+        cancelRoomJudgments(room);
+        cancelRoomSwordFormations(room, 'battleEnd');
         room.status = 'menu';
         room.winner = null;
         room.pending = [];
+        room.stageTimer = null;
+        room.stageTimeout = false;
+        room.suddenDeath = null;
         io.to(socket.roomId).emit('pauseState', { paused: false, isBotMatch: room.isBotMatch });
         socket.emit('mainMenu', {});
     });
@@ -2887,7 +2898,7 @@ function startBattleLoop(roomId) {
         room.interval = null;
     }
 
-    room.stageTimer = null; room.stageTimeout = false;
+    room.stageTimer = null; room.stageTimeout = false; room.suddenDeath = null;
     const tickRate = 50; // 50ms per tick
 
     room.interval = setInterval(() => {
@@ -5298,21 +5309,35 @@ function bossInShape(e, shape) {
 // BOSS_SKILLS_END
 
 // JUDGMENT_RUNTIME_BEGIN
+function isTimedMode(room) {
+    return !!room && !['test', 'prologue', 'menu'].includes(room.mode);
+}
+function isPvPRoom(room) {
+    if (!room) return false;
+    if (room.mode === 'duel_hero' || room.mode === 'pvp') return true;
+    if (['campaign', 'duel_monster', 'dungeon', 'wild', 'test', 'prologue', 'menu'].includes(room.mode)) return false;
+    const list = Object.values(room.players || {});
+    return room.isBotMatch === false || (list.length >= 2 && list.every(p => !p.isNPC));
+}
 function processStageTimer(room) {
-    if (room.mode !== 'campaign' || room.status !== 'active' || room.winner) return false;
+    if (!isTimedMode(room) || room.status !== 'active' || room.winner) return false;
     const now = room.clock;
-    room.stageTimer ??= { endsAt: now + STAGE_TIME_LIMIT_MS, next: now };
+    room.stageTimer ??= { endsAt: now + STAGE_TIME_LIMIT_MS, next: now, expired: false };
     const leftMs = Math.max(0, room.stageTimer.endsAt - now);
-    if (now >= room.stageTimer.next || leftMs === 0) {
+    if ((leftMs > 0 && now >= room.stageTimer.next) || (leftMs === 0 && !room.stageTimer.expired)) {
         io.to(room.id).emit('battleTimer', { limitMs: STAGE_TIME_LIMIT_MS, leftMs });
         room.stageTimer.next = now + JUDGMENT.timerEventMs;
     }
     if (leftMs > 0) return false;
-    const winnerId = Object.keys(room.players).find(id => room.players[id].isNPC);
-    const loserId = Object.keys(room.players).find(id => !room.players[id].isNPC);
+    room.stageTimer.expired = true;
+    if (isPvPRoom(room)) return false;
+    const ids = Object.keys(room.players || {});
+    const winnerId = ids.find(id => room.players[id].isNPC) ?? ids[1];
+    const loserId = ids.find(id => !room.players[id].isNPC && id !== winnerId) ?? ids[0];
     if (!winnerId || !loserId) return false;
     room.winner = winnerId; room.stageTimeout = true;
     cancelRoomJudgments(room);
+    if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
     io.to(room.id).emit('battleEnd', { winnerId, loserId, timeout: true });
     finishStage(room, false);
     return true;
@@ -8575,38 +8600,79 @@ function addPoison(caster, target, stacks, now) {
     checkVenomRot(caster, target, poison, now);
 }
 // ============================================================
-// LUẬT SINH TỬ (27/10/2026): trên sân chỉ còn 1 đấu 1 (mỗi bên đúng 1 TƯỚNG còn sống — triệu hồi không tính, không bị trừ máu)
-//   suốt `after` ms mà chưa ai thắng -> CẢ HAI mất `pct` máu TỐI ĐA mỗi `every` ms (trừ thẳng vào máu: bỏ qua khiên,
-//   giáp, Đêm Tử Thần...) cho tới khi 1 bên gục (cùng gục 1 nhịp = hoà). Đổi người (hồi sinh, triệu hồi...) -> đếm lại.
-//   Tool "bất tử" (debugGodMode) vẫn giữ: bên đó không mất máu.
+// LUẬT SINH TỬ THEO THỜI GIAN (PvP, hết 3 phút):
+//   Hết 180s ở mọi chế độ PvP (bao gồm Đấu với tướng `duel_hero` và PvP 2 người), TẤT CẢ đơn vị còn sống ở cả 2 bên
+//   (tướng LẪN triệu hồi) đều mất 5% máu tối đa mỗi 0,5 giây trực tiếp (bỏ qua khiên, hồi máu không dừng được,
+//   YunYou đang bay trên không vẫn mất máu; tôn trọng cờ bất tử debugGodMode / socketGod) cho tới khi 1 bên hết tướng.
+//   Nếu tướng cuối cùng của CẢ 2 bên cùng gục trong 1 nhịp Sinh Tử -> không xử hoà: bên có tướng cuối giữ tỉ lệ
+//   máu còn lại (hp / maxHp) trước nhịp đó CAO HƠN sẽ thắng; nếu tỉ lệ bằng nhau, người chơi đầu tiên của phòng (ids[0]) xử thua.
 // ============================================================
-const SUDDEN_DEATH = { after: 15000, every: 500, pct: 0.05 };
+const SUDDEN_DEATH = { every: 500, pct: 0.05 };
+function applySuddenDeathDamage(m, dmg, team) {
+    m.hp = Math.max(0, m.hp - dmg);
+    if (m.hp === 0) {
+        if (Array.isArray(m.statusEffects)) killMember(m, team.squad);
+        else m.alive = false;
+    } else if (Array.isArray(m.statusEffects)) {
+        afterHpLoss(m);
+    }
+}
 function processSuddenDeath(room, now) {
-    if (room.winner || room.status !== 'active') return;
-    if (room.mode === 'test') return;   // chế độ Test (có tool): không áp Sinh Tử — chỉ trong ĐẤU
-    const ids = Object.keys(room.players);
+    if (!room || room.winner || room.status !== 'active') return;
+    if (!isTimedMode(room) || !isPvPRoom(room) || !room.stageTimer?.expired) return;
+    const ids = Object.keys(room.players || {});
     if (ids.length !== 2) return;
-    const alive = ids.map(id => room.players[id].squad.filter(m => m.alive && !m.summon));   // chỉ đếm TƯỚNG (triệu hồi không tính)
-    if (!alive.every(a => a.length === 1)) { room.suddenDeath = null; return; }
-    const [a, b] = [alive[0][0], alive[1][0]];
     let sd = room.suddenDeath;
-    if (!sd || sd.a !== a || sd.b !== b) sd = room.suddenDeath = { a, b, since: now, on: false, next: 0 };
-    if (now < sd.since + SUDDEN_DEATH.after) return;
+    if (!sd) sd = room.suddenDeath = { on: false, next: now };
     if (!sd.on) {
         sd.on = true; sd.next = now;
-        io.to(room.id).emit('suddenDeath', { kind: 'start' });
+        io.to(room.id).emit('suddenDeath', { kind: 'start', reason: 'time' });
     }
     while (now >= sd.next && !room.winner) {
         sd.next += SUDDEN_DEATH.every;
+        // Lưu tỉ lệ máu (hp / maxHp) cao nhất của tướng còn sống mỗi bên TRƯỚC nhịp để phân xử nếu cùng gục hết trong nhịp này;
+        // bằng nhau -> người chơi đầu tiên trong phòng (ids[0]) thua để luôn có người thắng.
+        const preFrac = {};
+        for (const pid of ids) {
+            const heroes = room.players[pid].squad.filter(m => m?.alive && !m.summon);
+            preFrac[pid] = heroes.length
+                ? Math.max(...heroes.map(m => (m.maxHp > 0 ? m.hp / m.maxHp : 0)))
+                : -1;
+        }
         const hits = [];
-        ids.forEach((pid, k) => {
-            const team = room.players[pid], m = alive[k][0];
-            if (!m.alive || team.debugGodMode || socketGod(team)) return;
-            const dmg = Math.max(1, Math.round(m.maxHp * SUDDEN_DEATH.pct));
-            dealDamage(m, dmg, team);
-            hits.push({ targetId: pid, targetIndex: team.squad.indexOf(m), damage: dmg });
-        });
+        const prevRoom = curRoom;
+        curRoom = room;
+        try {
+            for (const pid of ids) {
+                const team = room.players[pid];
+                if (team.debugGodMode || socketGod(team)) continue;
+                for (let idx = 0, n = team.squad.length; idx < n; idx++) {
+                    const m = team.squad[idx];
+                    if (!m?.alive) continue;
+                    const dmg = Math.max(1, Math.round(m.maxHp * SUDDEN_DEATH.pct));
+                    applySuddenDeathDamage(m, dmg, team);
+                    hits.push({ targetId: pid, targetIndex: idx, damage: dmg });
+                }
+            }
+        } finally {
+            curRoom = prevRoom;
+        }
         if (hits.length) io.to(room.id).emit('suddenDeath', { kind: 'tick', hits });
+        const dead = ids.filter(id => room.players[id].squad.filter(m => !m.summon).every(m => !m?.alive));
+        if (dead.length >= 2) {
+            const winnerId = preFrac[ids[0]] > preFrac[ids[1]] ? ids[0] : ids[1];
+            const loserId = winnerId === ids[0] ? ids[1] : ids[0];
+            ids.forEach(id => room.players[id].squad.forEach((m, i) => {
+                if (m?.summon && m.alive && typeof vanishSummon === 'function') vanishSummon(room, id, i, 'ownerDefeated');
+            }));
+            broadcastState(room.id);
+            room.winner = winnerId;
+            cancelRoomJudgments(room);
+            if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
+            io.to(room.id).emit('battleEnd', { winnerId, loserId, suddenDeath: true });
+            finishStage(room, !room.players[winnerId]?.isNPC);
+            return;
+        }
         checkWinCondition(room.id);
     }
 }

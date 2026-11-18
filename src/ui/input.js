@@ -13,6 +13,7 @@ import { GAME_SPEEDS, timeState } from '../config.js';
 import { toggleStatPanel, setAllStatPanels, toggleAllAuto } from './hud.js';
 import { setDisabledHeroes } from './progressTool.js';
 import { toggleEmit } from './testHubCore.mjs';
+import { isModeMenuOpen, isBattleLive, openModeMenu } from './modeMenu.js';
 
 // Tốc độ trận người chơi chọn (nhớ theo trình duyệt), gửi lên server mỗi khi vào trận
 const SPEED_KEY = 'loc.gameSpeed';
@@ -106,7 +107,16 @@ const ACTIONS = {
     // Hai lệnh dưới còn nút trong bảng "Chi tiết nhân vật" của Tool thử (progressTool.js).
     toggleMember: (classId) => net.debugAction('toggleMember', classId),
     debugKill: (classId) => net.debugAction('kill', classId),
-    backToMenu: () => net.backToMenu(),
+    backToMenu: () => {
+        if (isBattleLive()) {
+            openModeMenu({
+                source: 'battle',
+                onReturn: () => document.body.classList.remove('selecting-squad'),
+            });
+            return;
+        }
+        net.backToMenu();
+    },
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
     cycleFxLevel: () => {
         const i = FX_LEVELS.indexOf(settings.fxLevel);
@@ -121,6 +131,7 @@ const ACTIONS = {
 
 function onKeyDown(e) {
     if (e.repeat) return; // giữ phím không xếp skill liên tục
+    if (isModeMenuOpen()) return;
     if (isBattleResultOpen() && (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyR')) {
         e.preventDefault();
         requestReset();
