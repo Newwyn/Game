@@ -32,7 +32,7 @@ export const CAMERA_MODES = {
     explore: { pitchDeg: 48, fov: 42, lookHeight: 0.8, baseDist: 15 },
 };
 
-const ZOOM_MIN = 0.5, ZOOM_MAX = 2.4;   // (17/11/2026) nới biên zoom: lăn chuột lùi xa / vào gần hơn
+const ZOOM_MIN = 0.5, ZOOM_MAX = 1.0;   // (18/11/2026) người chơi: không cho lùi camera xa hơn mức mặc định (mức tự canh vừa cả hai đội); vẫn zoom vào gần được
 // Góc nhìn trận người chơi chọn (phím V đổi, nhớ lại lần sau). Mặc định 'explore' = nhìn từ trên xuống chéo — người chơi thích góc này (17/11/2026).
 const CAM_KEY = 'battle_cam';
 export const battleCamMode = () => { try { return localStorage.getItem(CAM_KEY) === 'combat' ? 'combat' : 'explore'; } catch { return 'explore'; } };
