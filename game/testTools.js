@@ -96,6 +96,7 @@ function apply(pr, d, heroIds) {
             const need = WD.AREAS[scene.area].needNo;
             const index = scene.needStage ? stages.findIndex(s => s.id === scene.needStage) + 1 : need;
             clearThrough(pr, stages.slice(0, Math.max(need, index)));
+            WD.syncReports(pr);   // các ải vừa cho qua coi như đã về báo lại -> chính tuyến nhảy tới đúng bước
             Object.assign(WD.ensureWorld(pr), { ...WD.sceneSpawn(d.scene), scene: d.scene });
             pr.world.teleportVersion = (pr.world.teleportVersion ?? 0) + 1;
             break;
