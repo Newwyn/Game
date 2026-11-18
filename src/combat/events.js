@@ -22,7 +22,7 @@ import {
     spawnRoarHit,
     spawnArrow, spawnArcArrow, spawnMissileArrow, spawnWindHit, spawnLightOrb, spawnLightBurst, spawnHealLight, spawnAngel, spawnReviveLight, spawnPierceWind, spawnChargeWind, spawnBigArrowBlast,
 } from '../vfx/vfx.js';
-import { SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../config.js';
+import { GROUND_Y, SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../config.js';
 import {
     spawnFireball, spawnFireExplosion, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
     spawnPillarHit, spawnSummonCircle, spawnFireWings, spawnPalmFlash,
@@ -111,7 +111,8 @@ function damageType({ dodged, isMiss, isCrit, isBlock, isMagic }, forceCrit = fa
     return isMagic ? 'magic' : 'normal';   // sát thương phép: số xanh dương, vật lý: số đỏ
 }
 
-const chestOf = (v, dy = 1.0) => ({ x: v.position.x, y: v.position.y + dy + (v.sprite?.lift ?? 0), z: v.position.z });   // + độ cao đang bay (Đại Bàng)
+const hoverPos = (v) => ({ x: v.position.x, y: v.position.y + (v._hover ?? 0) + (v._lift ?? 0), z: v.position.z });
+const chestOf = (v, dy = 1.0) => ({ x: v.position.x, y: v.position.y + dy + (v.sprite?.lift ?? 0) + (v._hover ?? 0) + (v._lift ?? 0), z: v.position.z });   // + độ cao đang bay (Đại Bàng / YunYou)
 /** Điểm bắn tên của Xạ Thủ: chỗ tên rời cung trên tranh (điểm 'bow' của khung nhả, Lyra bản sprite);
  *  bản khung xương: trước ngực, theo hướng mặt, cộng độ cao đang bay */
 const bowPoint = (v) => {
@@ -122,10 +123,11 @@ const bowPoint = (v) => {
 /** Hiện số sát thương của 1 effect lên view (kể cả phần khiên hứng) */
 function showHit(target, e, { fx = true, size = 1 } = {}) {
     if (!target) return;
-    if (e.absorbed > 0) { target.onGuardHit?.(); spawnDamageNumber(target.position, e.absorbed, 'absorb'); if (!e.damage) return; }
-    spawnDamageNumber(target.position, e.damage, damageType(e));
+    const hp = hoverPos(target);
+    if (e.absorbed > 0) { target.onGuardHit?.(); spawnDamageNumber(hp, e.absorbed, 'absorb'); if (!e.damage) return; }
+    spawnDamageNumber(hp, e.damage, damageType(e));
     if (e.isMiss) return;
-    if (fx) spawnLyraArrowHit(target.position, { size });   // trúng tên gió (tranh Lyra bản 3)
+    if (fx) spawnLyraArrowHit(hp, { size });   // trúng tên gió (tranh Lyra bản 3)
     target.flashHit();
 }
 
@@ -374,17 +376,17 @@ function onAutoAttack(data) {
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             const from = {
-                x: attackerView.position.x + (attackerView.facingLeft ? -0.45 : 0.45),
-                y: 0.1 + (attackerView._hover ?? 0) + (attackerView._lift ?? 0) + (attackerView.height ?? 2.9) * 0.42,
+                x: attackerView.position.x + (attackerView.facingLeft ? -0.5 : 0.5),
+                y: GROUND_Y + (attackerView._hover ?? 0) + (attackerView._lift ?? 0) + (attackerView.height ?? 2.9) * 0.52,
                 z: attackerView.position.z ?? 0,
             };
             const to = {
                 x: target.position.x,
-                y: 0.1 + (target._hover ?? 0) + (target._lift ?? 0) + (target.height ?? 2.6) * 0.45,
+                y: GROUND_Y + (target._hover ?? 0) + (target._lift ?? 0) + (target.sprite?.lift ?? 0) + (target.height ?? 2.6) * 0.48,
                 z: target.position.z ?? 0,
             };
             spawnSwordAutoProjectile(from, to, {
-                duration: 0.24, crit: !!data.isCrit,
+                duration: 0.24, crit: !!data.isCrit, targetView: target,
                 onHit: () => showHit(target, { ...data, isMiss: data.dodged }, { fx: false }),
             });
         };
@@ -2303,6 +2305,7 @@ export function registerCombatEvents(hooks = {}) {
 
     socket.on('battleStart', (data) => {
         clearChessFx();
+        clearSwordFx();
         buildBattleScene(data);
         Object.values(game.views ?? {}).flat().forEach(v => { if (v?.member?.summon) ensureSummonTag(v); });
         hooks.onBattleStart?.(data);
@@ -2473,6 +2476,8 @@ function onCastStart(data) {
         v.playAction?.('charge', { hold: true });   // giữ tư thế sky1..3 trong lúc niệm 2s
         if (data.x != null) spawnSkyFormation(data.casterId, data.casterIdx, data.x, data.z ?? 0, {
             radius: data.radius ?? 8,
+            castTime: data.castTime ?? 2000,
+            casterView: v,
             duration: ((data.castTime ?? 2000) + (def.ticks ?? 5) * (def.tickGap ?? 1000)) / 1000 + 0.5,
         });
         return;
@@ -2959,7 +2964,7 @@ function onSwordFx(d) {
     switch (d.kind) {
         case 'takeoff': {
             caster?.playAction?.('takeoff');
-            if (caster) spawnPixelFx('impacts/hit-spark', { pos: caster.position, palette: JADE_PAL, scale: 0.95 });
+            if (caster) spawnPixelFx('impacts/hit-spark', { view: caster, follow: true, palette: JADE_PAL, scale: 0.95 });
             break;
         }
         case 'land': {
@@ -2985,7 +2990,12 @@ function onSwordFx(d) {
         case 'formationStart': {
             if (d.x != null) {
                 const durSec = Math.max(3, ((d.castTime ?? 2000) + 5600) / 1000);
-                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, { radius: d.radius ?? 8, duration: durSec });
+                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, {
+                    radius: d.radius ?? 8,
+                    castTime: d.castTime ?? 2000,
+                    casterView: caster,
+                    duration: durSec,
+                });
             }
             break;
         }
@@ -2993,7 +3003,12 @@ function onSwordFx(d) {
             caster?.releaseHold?.('charge');
             if (d.x != null) {
                 const rainSec = Math.max(2, (((d.ticks ?? 5) * (d.tickGap ?? 1000)) + 900) / 1000);
-                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, { radius: d.radius ?? 8, duration: rainSec });
+                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, {
+                    radius: d.radius ?? 8,
+                    castTime: 0,
+                    casterView: caster,
+                    duration: rainSec,
+                });
             }
             break;
         }
@@ -3003,7 +3018,12 @@ function onSwordFx(d) {
             break;
         }
         case 'rainTick': {
-            spawnSwordRainTick(d.x ?? 0, d.z ?? 0, d.radius ?? 8);
+            spawnSwordRainTick(d.x ?? 0, d.z ?? 0, {
+                radius: d.radius ?? 8,
+                casterId: d.casterId,
+                casterIdx: d.casterIdx,
+                casterView: caster,
+            });
             showEffects(d.effects);
             cameraRig.shake(0.08, 90);
             break;
@@ -3011,25 +3031,26 @@ function onSwordFx(d) {
         case 'finalSword': {
             caster?.releaseHold?.('charge');
             caster?.playAction?.('skyRelease');
+            endSkyFormation(d.casterId, d.casterIdx);
             spawnFinalGiantSword(d.x ?? 0, d.z ?? 0, {
-                onImpact: () => {
-                    showEffects(d.effects);
-                    cameraRig.shake(0.26, 240);
-                    endSkyFormation(d.casterId, d.casterIdx);
-                },
+                radius: d.radius ?? 8,
+                casterId: d.casterId,
+                casterIdx: d.casterIdx,
+                casterView: caster,
+                onImpact: () => showEffects(d.effects),
             });
             break;
         }
         case 'mark': {
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
-            if (target) spawnPixelFx('impacts/hit-spark', { pos: target.position, palette: JADE_PAL, scale: 0.65 });
+            if (target) spawnPixelFx('impacts/hit-spark', { view: target, follow: false, pos: target.position, palette: JADE_PAL, scale: 0.65 });
             break;
         }
         case 'break': {
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
             if (target) {
-                spawnRisingGlyph(target.position, 'VỠ GIÁP!', '#5eead4', '#0f172a');
-                spawnPixelFx('impacts/crit-hit', { pos: target.position, palette: JADE_PAL, scale: 1.05 });
+                spawnRisingGlyph(hoverPos(target), 'VỠ GIÁP!', '#5eead4', '#0f172a');
+                spawnPixelFx('impacts/crit-hit', { view: target, follow: false, pos: target.position, palette: JADE_PAL, scale: 1.05 });
             }
             break;
         }
