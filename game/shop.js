@@ -3,7 +3,7 @@
 // ============================================================
 const W = require('./wallet');
 
-const PRICES = { mage: 600, alchemist: 600, reaper: 800, wrestler: 800, dancer: 800, summoner: 800, voidmage: 1000, elementalist: 1200, chessmaster: 1200 };
+const PRICES = { mage: 600, alchemist: 600, reaper: 800, wrestler: 800, dancer: 800, summoner: 800, voidmage: 1000, elementalist: 1200, chessmaster: 1200, swordsage: 1200 };
 
 function list(pr) {
     return Object.entries(PRICES).map(([id, price]) => ({ id, price, owned: !!pr.owned?.includes(id) }));

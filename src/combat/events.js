@@ -94,6 +94,11 @@ import {
     updateChessBoard, spawnPawnPromote, spawnChessSacrifice, spawnCheckmate,
     clearChessFx,
 } from '../vfx/chessFx.js';
+import {
+    spawnSwordAutoProjectile, spawnSwordHaste, spawnSwordFan, spawnExtraSwords,
+    spawnSkyFormation, endSkyFormation, spawnSwordRainTick, spawnFinalGiantSword,
+    clearSwordFx, JADE_PAL,
+} from '../vfx/swordFx.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
 
@@ -362,6 +367,32 @@ function onAutoAttack(data) {
         return;
     }
 
+    // YunYou (Kiếm Tiên): phóng kiếm / kiếm khí ngọc nhạt (nâng theo _hover nếu đang bay)
+    if (atkClass === 'swordsage') {
+        const fire = () => {
+            autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
+            const target = getView(data.targetId, data.targetIndex);
+            if (!target) return;
+            const from = {
+                x: attackerView.position.x + (attackerView.facingLeft ? -0.45 : 0.45),
+                y: 0.1 + (attackerView._hover ?? 0) + (attackerView._lift ?? 0) + (attackerView.height ?? 2.9) * 0.42,
+                z: attackerView.position.z ?? 0,
+            };
+            const to = {
+                x: target.position.x,
+                y: 0.1 + (target._hover ?? 0) + (target._lift ?? 0) + (target.height ?? 2.6) * 0.45,
+                z: target.position.z ?? 0,
+            };
+            spawnSwordAutoProjectile(from, to, {
+                duration: 0.24, crit: !!data.isCrit,
+                onHit: () => showHit(target, { ...data, isMiss: data.dodged }, { fx: false }),
+            });
+        };
+        if (attackerView.isBusy) { fire(); return; }
+        attackerView.playAction('attack', { onHit: fire });
+        return;
+    }
+
     // Xạ Thủ: nhả tên tại khoảnh khắc ra đòn, sát thương hiện khi mũi tên tới nơi
     if (attacker.squad?.[data.attackerIndex]?.classId === 'archer') {
         const fire = () => {
@@ -527,6 +558,15 @@ function onSkillExecuted(data) {
             spawnFireWings(caster.position, { dir: caster.facingLeft ? -1 : 1 });
             if (IGNAR_PIXEL) spawnPixelFx('fire/fire-ring', { pos: caster.position, scale: 1.1, maxLife: 2 });   // + vòng lửa lan ra quanh chân
             cameraRig.shake(0.2, 220);
+            break;
+        case 'sword_haste':
+            caster.playAction('seal', { onHit: () => spawnSwordHaste(caster, data.duration ?? 6000) });
+            break;
+        case 'sword_multi':
+            caster.playAction('seal', { onHit: () => spawnSwordFan(data.casterId, data.casterIdx, caster, data.duration ?? 8000) });
+            break;
+        case 'sword_formation':
+            caster.releaseHold?.('charge');
             break;
         case 'heal':
         case 'holy_shield':
@@ -2351,11 +2391,12 @@ export function registerCombatEvents(hooks = {}) {
             showDamage: (view, e) => showHit(view, { ...e, isCrit: true }),
         });
     });
-    socket.on('battleEnd', () => { clearBossUlt(); clearChessFx(); });
-    socket.on('mainMenu', () => { clearBossUlt(); clearChessFx(); });
+    socket.on('battleEnd', () => { clearBossUlt(); clearChessFx(); clearSwordFx(); });
+    socket.on('mainMenu', () => { clearBossUlt(); clearChessFx(); clearSwordFx(); });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('voidFx', (d) => onVoidFx(d));
     socket.on('chessFx', (d) => onChessFx(d));
+    socket.on('swordFx', (d) => onSwordFx(d));
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
@@ -2426,6 +2467,14 @@ function onCastStart(data) {
         v.playAction?.('cast', { hold: true });
         v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
         spawnRisingSparkles(v.position, { count: 8, color: 0xfde047, radius: 0.85 });
+        return;
+    }
+    if (v && def?.type === 'sword_formation') {
+        v.playAction?.('charge', { hold: true });   // giữ tư thế sky1..3 trong lúc niệm 2s
+        if (data.x != null) spawnSkyFormation(data.casterId, data.casterIdx, data.x, data.z ?? 0, {
+            radius: data.radius ?? 8,
+            duration: ((data.castTime ?? 2000) + (def.ticks ?? 5) * (def.tickGap ?? 1000)) / 1000 + 0.5,
+        });
         return;
     }
     if (!v || def?.type !== 'charged_shot') return;
@@ -2887,6 +2936,101 @@ function onVoidFx(d) {
         case 'erode': {
             const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
             if (target) spawnVoidErode(target, { stacks: d.stacks ?? 1 });
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+/** Sự kiện riêng của YunYou (Kiếm Tiên, swordsage): bay lên / đáp đất, kiếm phụ, trận đồ mưa kiếm, Vết Kiếm Vỡ Giáp */
+function onSwordFx(d) {
+    if (!d || typeof d.kind !== 'string') return;
+    const caster = d.casterId != null && d.casterIdx != null ? getView(d.casterId, d.casterIdx) : null;
+    const opponentId = opponentIdOf(d.casterId);
+    const foeId = d.targetId ?? opponentId;
+    const showEffects = (effects) => {
+        (effects ?? []).forEach(e => {
+            const t = getView(e.targetId ?? foeId, e.targetIndex);
+            if (t) showHit(t, e, { fx: false });
+        });
+    };
+
+    switch (d.kind) {
+        case 'takeoff': {
+            caster?.playAction?.('takeoff');
+            if (caster) spawnPixelFx('impacts/hit-spark', { pos: caster.position, palette: JADE_PAL, scale: 0.95 });
+            break;
+        }
+        case 'land': {
+            caster?.playAction?.('land');
+            if (caster) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, palette: JADE_PAL, scale: 0.9 });
+            break;
+        }
+        case 'haste':
+        case 'fanOn':
+            // Ngự Kiếm Tốc & Quạt 7 kiếm đã bật qua skillExecuted
+            break;
+        case 'extraSwords': {
+            const items = (d.effects ?? []).map(eff => ({
+                targetView: getView(eff.targetId ?? foeId, eff.targetIndex),
+                eff,
+            })).filter(it => it.targetView);
+            spawnExtraSwords(d.casterId, d.casterIdx, caster, items, {
+                duration: Math.max(0.16, (d.delay ?? 240) / 1000),
+                onImpact: (tv, eff) => showHit(tv, eff, { fx: false }),
+            });
+            break;
+        }
+        case 'formationStart': {
+            if (d.x != null) {
+                const durSec = Math.max(3, ((d.castTime ?? 2000) + 5600) / 1000);
+                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, { radius: d.radius ?? 8, duration: durSec });
+            }
+            break;
+        }
+        case 'formationRain': {
+            caster?.releaseHold?.('charge');
+            if (d.x != null) {
+                const rainSec = Math.max(2, (((d.ticks ?? 5) * (d.tickGap ?? 1000)) + 900) / 1000);
+                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, { radius: d.radius ?? 8, duration: rainSec });
+            }
+            break;
+        }
+        case 'formationEnd': {
+            caster?.releaseHold?.('charge');
+            endSkyFormation(d.casterId, d.casterIdx);
+            break;
+        }
+        case 'rainTick': {
+            spawnSwordRainTick(d.x ?? 0, d.z ?? 0, d.radius ?? 8);
+            showEffects(d.effects);
+            cameraRig.shake(0.08, 90);
+            break;
+        }
+        case 'finalSword': {
+            caster?.releaseHold?.('charge');
+            caster?.playAction?.('skyRelease');
+            spawnFinalGiantSword(d.x ?? 0, d.z ?? 0, {
+                onImpact: () => {
+                    showEffects(d.effects);
+                    cameraRig.shake(0.26, 240);
+                    endSkyFormation(d.casterId, d.casterIdx);
+                },
+            });
+            break;
+        }
+        case 'mark': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            if (target) spawnPixelFx('impacts/hit-spark', { pos: target.position, palette: JADE_PAL, scale: 0.65 });
+            break;
+        }
+        case 'break': {
+            const target = d.targetIndex != null ? getView(foeId, d.targetIndex) : null;
+            if (target) {
+                spawnRisingGlyph(target.position, 'VỠ GIÁP!', '#5eead4', '#0f172a');
+                spawnPixelFx('impacts/crit-hit', { pos: target.position, palette: JADE_PAL, scale: 1.05 });
+            }
             break;
         }
         default:

@@ -658,7 +658,8 @@ export class CutoutCharacterView extends CharacterView {
         const praying = alive && effs.some(e => e.type === 'praying' && e.endTime > now);
         // Đêm Tử Thần (Zerith): bay lơ lửng + Hộ Vệ Thần Chết sau lưng + hào quang đỏ thẫm
         const night = alive && effs.some(e => e.type === 'reaper_form' && e.endTime > now);
-        this._updateWindSpirit(dt, wind || praying || night, charging);
+        if (this.member.classId === 'swordsage') this._updateSwordFlight(dt, alive && !!this.member.airborne);
+        else this._updateWindSpirit(dt, wind || praying || night, charging);
         this._updateReaperNight(dt, night);
         this._updateReaperGhost(dt);
         // Brakk: dạng Khổng Lồ (to dần + hào quang rồng lửa, 5s đầu có vương miện miễn khống chế) + vòm khiên vảy rồng
@@ -893,6 +894,20 @@ export class CutoutCharacterView extends CharacterView {
         W.drawn.material.opacity = 0.9 * W.k * W.c;
         W.ring.material.opacity = 0.5 * W.k;
         W.ring.rotation.z += dt * 2.5;
+    }
+
+    /** YunYou (Kiếm Tiên): bay lơ lửng mượt + hiệu ứng gió/năng lượng ngọc nhạt lặp dưới chân (pixelfx) */
+    _updateSwordFlight(dt, on) {
+        this._hover = (this._hover ?? 0) + ((on ? 0.95 : 0) - (this._hover ?? 0)) * Math.min(1, dt * 6);
+        if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.01) {
+            this._barHover = this._hover;
+            this.setBarHeight(GROUND_Y + this.height + 0.35 + this._hover);
+        }
+        this._pixDt = dt;
+        this._pixStatus('_pixSwordFly', on, 'water/ripples', {
+            palette: ['#042f2e', '#115e59', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#e6fffb'],
+            seed: 3, scale: 0.44,
+        });
     }
 
     /** Niệm: giữ động tác 'pray' suốt lúc niệm (sau mỗi lần hồi máu / khiên thì quay lại niệm); hết niệm thì thả */

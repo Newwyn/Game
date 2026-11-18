@@ -13,7 +13,7 @@ import { tierPortrait } from '../characters/sprite/tiers.js';
 const TAVERN_BG = import.meta.glob('../assets/world/tavern.webp', { eager: true, import: 'default' });
 let root = null, data = null, tab = 'dungeon', onBack = null, notice = null, heroSel = null, confirmBuy = null;
 const fmt = (n) => Number(n ?? 0).toLocaleString('vi-VN');
-const face = (id, emoji) => { const u = tierPortrait(id) ?? PORTRAITS[`../assets/portraits/${id}.png`]; return u ? `<img src="${u}" alt="">` : `<span>${emoji ?? '⚔️'}</span>`; };   // hình đúng bậc S / SS
+const face = (id, emoji) => { const u = tierPortrait(id) ?? PORTRAITS[`../assets/portraits/${id}.png`]; return u ? `<img src="${u}" alt="">` : `<span>${emoji ?? '⚔️'}</span>`; };   // hình đúng bậc S / SS / SSS
 
 function el() {
     if (root) return root;

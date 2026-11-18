@@ -520,6 +520,43 @@ const CLASS_DEFS = {
               desc: 'Trên sân có đúng 1 quân chúa: Tốt còn sống đủ 12s hoá thành Hậu (khi đang có Vua, chưa có Hậu) · Mã còn sống đủ 12s hoá thành Vua (khi đang có Hậu, chưa có Vua) · thiên phú cấp 2: chỉ cần 10s · quân chúa mới có đầy đủ sức mạnh · ô của quân vừa phong trống lại, gọi được quân mới · ghế nào trống là phong tiếp, không giới hạn số lần' },
         ]
     },
+    // YunYou (Kiếm Tiên) — class CUNG THỦ, dùng chỉ số tộc Human (race: 'human'), hiển thị raceLabel: 'Không rõ'.
+    //   Ngoài giao tranh đi bộ; khi kẻ địch đầu tiên vào tầm đánh -> bay lên (`airborne = true`, đứng yên trên không) nếu còn đồng đội không phải triệu hồi sống.
+    //   Trên không: không ai phe địch nhắm hay đánh trúng được (trừ YunYou phe địch CŨNG đang bay); khi hết đồng đội không phải triệu hồi -> đáp đất ngay tới hết trận.
+    swordsage: {
+        name: 'YunYou', title: 'Kiếm Tiên', className: 'Cung Thủ', emoji: '🗡️', color: '#2dd4bf', dmgType: 'physical',
+        classGroup: 'archer', race: 'human', raceLabel: 'Không rõ',
+        // statMul: giữ HP / thủ & sát thương mỗi nhát thấp hơn Lyra ở mọi cấp (kể cả sau bonus ×1,05 của Human), bù lại tốc đánh nhanh nhất (700 ms)
+        statMul: { maxHp: 0.85, pDef: 0.80, mDef: 0.75, pAtk: 0.88 },
+        maxHp: 800, maxMp: 5000, pAtk: 150, mAtk: 0, pDef: 30, mDef: 40,
+        crit: 250, critDmg: 500, acc: 1100, dodge: 120, pen: 0, block: 0, lifesteal: 0,
+        threat: 100,
+        mpAtk: 200, mpSec: 100,
+        atkSpeed: 700, range: 'ranged', atkRange: 11, moveSpeed: 0.01,
+        autoHitFrame: 2,
+        autoImpact: 240, // ms: phóng kiếm khí ngọc nhạt
+        skills: [
+            // Ngự Kiếm Tốc: buff tức thì +80% tốc đánh trong 6 giây
+            { name: 'Ngự Kiếm Tốc', orbCost: 1, cooldown: 12000, castTime: 0, type: 'sword_haste', duration: 6000,
+              speedUp: 0.8, active: 'sword_haste', activeColor: '#2dd4bf', castRange: 99, impact: 0, lock: 0 },
+            // Vạn Kiếm Đồng Quy: buff tức thì 8 giây — mỗi đòn đánh thường phóng thêm kiếm tới TẤT CẢ kẻ địch khác (50% -> 70% đòn thường theo bậc)
+            { name: 'Vạn Kiếm Đồng Quy', orbCost: 2, cooldown: 16000, castTime: 0, type: 'sword_multi', duration: 8000,
+              extraMultiplier: 0.5, byRank: { extraMultiplier: [0.5, 0.57, 0.63, 0.7] }, active: 'sword_multi', activeColor: '#5eead4', castRange: 99, impact: 0, lock: 0 },
+            // Trận Đồ Kiếm: niệm 2s (trên không không bị ngắt; dưới đất bị choáng là huỷ), mưa kiếm 5 giây (mỗi giây ×0.5 P.ATK vùng rất rộng), kết bằng đại kiếm ×3 luôn chí mạng
+            { name: 'Trận Đồ Kiếm', orbCost: 4, cooldown: 24000, castTime: 2000, type: 'sword_formation', castRange: 99,
+              ticks: 5, tickGap: 1000, tickMultiplier: 0.5, finalMultiplier: 3, radius: 8, impact: 0, lock: 0 },
+        ],
+        passives: [
+            // Thiên phú 1 — Vết Kiếm Vỡ Giáp: mỗi nhát kiếm trúng đích (thường, kiếm phụ, mưa kiếm, đại kiếm) gắn 1 dấu Vết Kiếm; đủ 6 dấu -> Vỡ Giáp 6s (−20/25/30% P.DEF trước MỌI người đánh) & YunYou +10% P.ATK 8s (tối đa 3)
+            { name: 'Vết Kiếm Vỡ Giáp', type: 'sword_mark', talent: 1, marksNeeded: 6, breakDuration: 6000,
+              atkUp: 0.10, atkMax: 3, atkDuration: 8000, levels: { value: [0.20, 0.25, 0.30] },
+              desc: 'Mỗi nhát kiếm trúng đích (đánh thường, kiếm phụ, mưa kiếm, đại kiếm) gắn 1 dấu Vết Kiếm · đủ 6 dấu: tiêu thụ gây Vỡ Giáp 6s (−{value%} P.DEF trước MỌI đòn đánh), đồng thời YunYou +10% P.ATK trong 8s (cộng dồn tối đa 3 lần)' },
+            // Thiên phú 2 — Kiếm Tâm Thông Minh: mỗi đòn không chí mạng +{value‰} tỉ lệ chí mạng (đặt lại khi chí mạng); mỗi đòn chí mạng +{critDmg‰} sát thương chí mạng trong 8s (tối đa 5 tầng, làm mới khi chí mạng)
+            { name: 'Kiếm Tâm Thông Minh', type: 'sword_focus', talent: 2, maxStacks: 5, duration: 8000,
+              levels: { value: [60, 80], critDmg: [80, 100] },
+              desc: 'Mỗi đòn kiếm không chí mạng: +{value‰} tỉ lệ chí mạng cho các đòn kế tiếp (đặt lại về 0 khi chí mạng) · mỗi đòn chí mạng: +{critDmg‰} sát thương chí mạng trong 8s (tối đa 5 tầng, làm mới khi chí mạng)' },
+        ]
+    },
     // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 25s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
     //   tính thắng thua) nhưng không có thẻ HUD, không được hồi sinh. Chỉ số tính theo pháp sư lúc gọi (xem summonGolem).
     //   Cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
@@ -855,7 +892,7 @@ const CLASS_DEFS = {
 
 // We will use 1 Assassins if TEST_MODE is active
 // Elarion ('elementalist'): đang dùng HÌNH TẠM (chờ tranh — art/elarion/PROMPTS.md)
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage'];
 
 // ============================================================
 // GAME STATE
@@ -901,6 +938,7 @@ function applyProgress(member, hero) {
     member.skinRank = hero.skin && skinsFor(hero.rank).includes(hero.skin) ? SKIN_RANK[hero.skin] : null;   // tranh người chơi chọn (trang Nhân vật)
     member.skillLevel = hero.rank + 1;
     member.race = def.race;
+    member.raceLabel = def.raceLabel ?? null;
     member.skills = P.scaleSkills(def.skills ?? [], hero.rank);
     // Elarion: 10 phép (nhân theo bậc như kỹ năng) — phép đang ghép được chép vào nút KN2
     if (def.spells) member.spells = Object.fromEntries(Object.entries(def.spells).map(([k, sp]) =>
@@ -1040,6 +1078,7 @@ function createSquad(side, disabled = [], heroes = null) {
             skillCooldowns: [0, 0, 0], queuedSkills: [], castingSkillId: null, castEndTime: 0, statusEffects: []
         };
         applyProgress(m, heroes?.[classId] ?? { level: 1, rank: 0 });
+        if (classId === 'swordsage') m.airborne = false;
         m.hp = m.maxHp;
         // Mọi tướng vào trận có sẵn 1,5 Orb; tộc Human — Thích Nghi: cộng thêm MP
         m.mp = START_MP;
@@ -1092,7 +1131,8 @@ function squadSelectPayload(key, mode = 'test') {
             const st = h.gear ? G.applyGear(P.computeStats(def, h), h.gear, def.dmgType) : P.computeStats(def, h);   // có đồ đang mặc
             return {
                 id, name: def.name, title: def.title, className: def.className, emoji: def.emoji, color: def.color,
-                race: P.RACE_DEFS[def.race]?.name ?? '', raceEmoji: P.RACE_DEFS[def.race]?.emoji ?? '',
+                race: def.raceLabel ?? (P.RACE_DEFS[def.race]?.name ?? ''), raceEmoji: def.raceLabel ? '' : (P.RACE_DEFS[def.race]?.emoji ?? ''),
+                raceLabel: def.raceLabel ?? null,
                 level: h.level, rankName: P.RANKS[h.rank].name, rank: h.rank, dmgType: def.dmgType,
                 hp: st.maxHp, atk: Math.max(st.pAtk ?? 0, st.mAtk ?? 0), range: def.atkRange,
                 skills: def.skills.map(sk => sk.name),
@@ -1280,7 +1320,7 @@ function gearPayload(pr) {
                 twoText: G.SETS[sid].twoText, fourText: G.SETS[sid].fourText }));
             return {
                 id, name: def.name, title: def.title, emoji: def.emoji, color: def.color, level: h.level, rankName: P.RANKS[h.rank].name,
-                race: P.RACE_DEFS[def.race]?.name ?? '', dmgType: def.dmgType,
+                race: def.raceLabel ?? (P.RACE_DEFS[def.race]?.name ?? ''), raceLabel: def.raceLabel ?? null, dmgType: def.dmgType,
                 base: P.computeStats(def, h), stats: G.applyGear(P.computeStats(def, h), h.gear, def.dmgType),
                 equipped: Object.fromEntries(G.SLOTS.map(sl => [sl, slots[sl] && pr.gear.items[slots[sl]] ? G.describe(pr.gear.items[slots[sl]]) : null])),
                 sets,
@@ -1358,7 +1398,7 @@ function progressPayload(key) {
         heroes[id] = {
             ...h, name: def.name, title: def.title, rankName: P.RANKS[h.rank].name, skillLevel: h.rank + 1, cap: P.RANKS[h.rank].cap,
             expNext: P.expToNext(h.level), stats: G.applyGear(P.computeStats(def, h), heroWithGear(pr, id).gear, def.dmgType),
-            race: def.race, classGroup: def.classGroup,
+            race: def.race, raceLabel: def.raceLabel ?? null, classGroup: def.classGroup,
             talents: talentInfo(def, h),
             rankCheck: P.checkRankUp(h, pr.items),
         };
@@ -1537,6 +1577,12 @@ function getEffectiveStats(member, now) {
             stats.pAtk = Math.floor(stats.pAtk * 1.2);
             stats.atkSpeed = Math.floor(stats.atkSpeed * 0.9);
         }
+        // ---- YunYou (Kiếm Tiên) ----
+        if (ef.type === 'sword_haste') stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.speedUp ?? 0.8)));
+        if (ef.type === 'sword_break') stats.pDef = Math.floor(stats.pDef * (1 - (ef.value ?? 0)));
+        if (ef.type === 'sword_atk') stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.per ?? 0.1) * (ef.stacks ?? 1)));
+        if (ef.type === 'sword_crit') stats.crit += (ef.per ?? 0) * (ef.stacks ?? 1);
+        if (ef.type === 'sword_critdmg') stats.critDmg += (ef.per ?? 0) * (ef.stacks ?? 1);
     });
 
     // Bàn cờ của Leon — có Hậu: quân cờ +tốc đánh
@@ -1655,9 +1701,8 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     const isMagical = (opts.dmgType ?? CLASS_DEFS[attacker.classId]?.dmgType) === 'magic';
     // Kỹ năng đánh DƯỚI ĐẤT (ground) không trúng mục tiêu đang bay (VD Lyra khi có Vệ Thần Gió)
     if (opts.ground && isAirborne(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical };
-    // Đang bị Thần Chết phán quyết (trên không) / vừa hồi sinh (Thiên Thần Hộ Mệnh, 2s): miễn mọi sát thương
-    //   Nyx đang trong cổng Hư Không (Mượn Mạng): cũng miễn mọi sát thương
-    if (isJudged(target, now) || hasReviveGuard(target, now) || isVanished(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, immune: true };
+    // Đang bị Thần Chết phán quyết (trên không) / vừa hồi sinh (Thiên Thần Hộ Mệnh, 2s) / Nyx trong cổng Hư Không / YunYou đang bay: miễn mọi sát thương (trừ PvP 2 YunYou cùng bay)
+    if (isJudged(target, now) || hasReviveGuard(target, now) || isVanished(target, now) || swordFlyImmune(target, attacker)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, immune: true };
     // TÀNG HÌNH (mọi kỹ năng tàng hình): chỉ trúng đòn DIỆN RỘNG (AOE); đòn đơn mục tiêu trượt
     if (!opts.aoe && isStealthed(target, now)) return { damage: 0, isMiss: true, isBlock: false, isCrit: false, isMagic: isMagical, stealthMiss: true };
     // Hơi Nước Bỏng (Elarion): kẻ đứng trong mây đánh trượt thêm
@@ -1785,9 +1830,11 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
         shield.hp -= absorbed;
         if (shield.type === 'guard') shield.absorbed += absorbed;
         const rest = finalDamage - absorbed;
+        if (!opts.noSwordFocus) swordOnHitCrit(attacker, isCrit, now);
         return { damage: rest, absorbed, isMiss: false, isBlock: rest === 0 || isBlock, isCrit, isMagic: isMagical, guarded: shield.type === 'guard', shared };
     }
 
+    if (!opts.noSwordFocus) swordOnHitCrit(attacker, isCrit, now);
     return { damage: finalDamage, cc, isMiss: false, isBlock, isCrit, isMagic: isMagical, shared };
 }
 
@@ -1796,9 +1843,19 @@ function raceTrait(m) {
     return P.RACE_DEFS[CLASS_DEFS[m.classId]?.race]?.trait ?? null;
 }
 
-/** Đang bay (Thần Phong Giáng Thế) -> né kỹ năng đánh dưới đất */
+const isSwordAirborne = (m) => !!m?.airborne;
+const swordDuel = (a, b) => !!(a && b && a !== b && a.side && b.side && a.side !== b.side
+    && a.classId === 'swordsage' && b.classId === 'swordsage' && a.airborne && b.airborne);
+/** YunYou đang bay -> miễn mọi đòn / hiệu ứng từ phe địch (trừ đồng đội, hoặc YunYou phe địch CŨNG đang bay) */
+function swordFlyImmune(target, attacker = null) {
+    if (!isSwordAirborne(target)) return false;
+    if (attacker && attacker.side && target.side && attacker.side === target.side) return false;
+    return !swordDuel(attacker, target);
+}
+
+/** Đang bay (Thần Phong Giáng Thế / Thánh Niệm / Đêm Tử Thần / YunYou) -> né kỹ năng đánh dưới đất */
 function isAirborne(m, now) {
-    return m.statusEffects?.some(ef => (ef.type === 'windspirit' || ef.type === 'praying' || ef.type === 'reaper_form') && ef.endTime > now);
+    return isSwordAirborne(m) || m.statusEffects?.some(ef => (ef.type === 'windspirit' || ef.type === 'praying' || ef.type === 'reaper_form') && ef.endTime > now);
 }
 
 /** Tầm đánh hiện tại (Thần Phong Giáng Thế cộng thêm tầm) */
@@ -1812,17 +1869,18 @@ function attackRangeOf(m, now) {
 function isStealthed(m, now) {
     return !!m.statusEffects?.some(ef => ef.type === 'stealth' && ef.endTime > now);
 }
-function canBeTargeted(m, now) {
-    if (!m.alive) return false;
+function canBeTargeted(m, now, attacker = null) {
+    if (!m?.alive) return false;
     if (isJudged(m, now)) return false;   // đang bị Thần Chết nhấc lên không trung
     if (isVanished(m, now)) return false; // Nyx đang trong cổng Hư Không (Mượn Mạng)
+    if (swordFlyImmune(m, attacker)) return false;   // YunYou đang bay: chỉ YunYou phe địch CŨNG đang bay mới nhắm được
     if (m.hp - (m.pendingDmg || 0) <= 0 && !reaperForm(m, now)) return false; // đã trúng đòn chí tử đang bay tới -> bỏ qua, đánh con khác (Đêm Tử Thần: không chết)
     const stealthInfo = m.statusEffects.find(ef => ef.type === 'stealth');
     return !(stealthInfo && stealthInfo.endTime > now);
 }
 
-function findLowestHpTarget(enemySquad, now) {
-    const alive = enemySquad.filter(m => canBeTargeted(m, now));
+function findLowestHpTarget(enemySquad, now, attacker = null) {
+    const alive = enemySquad.filter(m => canBeTargeted(m, now, attacker));
     if (alive.length === 0) return null;
 
     if (Math.random() < 0.05) {
@@ -1845,7 +1903,7 @@ function findLowestHpTarget(enemySquad, now) {
 // ------------------------------------------------------------
 const TARGET_STICKY = 1.5;
 function findBestTarget(attacker, enemySquad, now, current = null) {
-    const alive = enemySquad.filter(m => canBeTargeted(m, now));
+    const alive = enemySquad.filter(m => canBeTargeted(m, now, attacker));
     if (alive.length === 0) return null;
     const dist = (m) => Math.hypot(attacker.x - m.x, (attacker.z || 0) - (m.z || 0));
     const range = (attacker.atkRange != null ? attackRangeOf(attacker, now) : 2.4) + 0.3;
@@ -2941,6 +2999,8 @@ function startBattleLoop(roomId) {
                 processFireWard(roomId, playerId, memberIndex, opponentId, now);
                 // Nyx: Vỏ Hư Không gỡ khống chế lúc niệm · đang trong cổng Hư Không (Mượn Mạng): không hành động
                 if (processVoid(room, playerId, memberIndex, opponentId, now)) return;
+                // YunYou (Kiếm Tiên): gặp địch trong tầm + còn đồng đội không phải triệu hồi -> bay lên; hết đồng đội -> đáp đất tới hết trận
+                processYunYou(room, playerId, memberIndex, opponentId, now);
                 // Đang bị Thần Chết phán quyết: lơ lửng, không làm gì, không nhận hiệu ứng mới
                 if (processJudged(member, now)) return;
 
@@ -2992,6 +3052,10 @@ function startBattleLoop(roomId) {
                     if (rainOf(member, now)) endRain(room, playerId, memberIndex, 'stun');   // Elarion: ngắt mưa giông
                     if (beamOf(member, now)) endBeam(room, playerId, memberIndex, 'stun');   // Elarion: ngắt SolarBeam
                     if (voidChannel(member, now)) endVoidChannel(room, playerId, memberIndex, 'stun');   // Nyx: ngắt niệm Sao Rơi / Hố Đen (các đợt chưa rơi bị huỷ)
+                    if (member.classId === 'swordsage' && member.swordCastSpot) {
+                        member.swordCastSpot = null;
+                        emitSword(roomId, { kind: 'formationEnd', casterId: playerId, casterIdx: memberIndex, reason: 'stun' });
+                    }
                     member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'goblin_float');
                     member.state = 'stunned';
                     member.castingSkillId = null;
@@ -3084,11 +3148,11 @@ function startBattleLoop(roomId) {
                 let target;
                 const taunt = member.statusEffects.find(ef => ef.type === 'taunted' && ef.endTime > now);
                 const taunter = taunt ? opponentData.squad[taunt.sourceIndex] : null;
-                if (taunter && taunter.alive && canBeTargeted(taunter, now)) {
+                if (taunter && taunter.alive && canBeTargeted(taunter, now, member)) {
                     target = taunter; // bị Khiêu Khích: buộc đánh người khiêu khích
                 } else if (member.lockedTargetIndex >= 0 && opponentData.squad[member.lockedTargetIndex]?.alive) {
                     target = opponentData.squad[member.lockedTargetIndex];
-                    if (!canBeTargeted(target, now)) {
+                    if (!canBeTargeted(target, now, member)) {
                         member.lockedTargetIndex = -1;
                         target = findBestTarget(member, opponentData.squad, now);
                     }
@@ -3099,7 +3163,7 @@ function startBattleLoop(roomId) {
                 // Đại Bàng — Ưng Nhãn: mỗi đòn đánh (lúc sắp ra đòn) chọn 1 đối thủ NGẪU NHIÊN trên cả bản đồ
                 if (!taunter && member.statusEffects.some(ef => ef.type === 'eagle_eye' && ef.endTime > now)
                     && now - member.lastAttackTime >= getEffectiveStats(member, now).stats.atkSpeed) {
-                    const pool = opponentData.squad.filter(e => canBeTargeted(e, now));
+                    const pool = opponentData.squad.filter(e => canBeTargeted(e, now, member));
                     if (pool.length) target = pool[Math.floor(Math.random() * pool.length)];
                 }
                 const targetIdx = target ? opponentData.squad.indexOf(target) : -1;
@@ -3134,7 +3198,7 @@ function startBattleLoop(roomId) {
                     const hasEnoughMana = canUse(skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
-                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole', 'chess_guard', 'chess_strike', 'chess_royal'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen tự chọn chỗ đông đối thủ nhất, niệm tại chỗ
+                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole', 'chess_guard', 'chess_strike', 'chess_royal', 'sword_haste', 'sword_multi', 'sword_formation'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen · YunYou: đứng tại chỗ dùng chiêu
                         const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now);
                         
                         const dx = target ? target.x - member.x : 0;
@@ -3144,6 +3208,7 @@ function startBattleLoop(roomId) {
                         if (!target && !isSelfBuff) {
                             // wait for target
                         } else if (target && dist2D > reqRange && !isSelfBuff) {
+                            if (isSwordAirborne(member)) { member.state = 'idle'; return; }   // YunYou đang bay: đứng yên trên không
                             // move to range to cast
                             member.state = 'moving';
                             const dirX = dx / dist2D;
@@ -3166,9 +3231,18 @@ function startBattleLoop(roomId) {
                                 member.castingSkillId = skillIdxToCast;
                                 member.castEndTime = now + castMs;
                                 if (skillDef.type === 'goblin_detonate') member.statusEffects.push({ type: 'goblin_float', endTime: now + castMs + skillDef.impact + 300 });
+                                let spot = null;
+                                if (skillDef.type === 'sword_formation') {
+                                    spot = bestCluster(member, opponentData?.squad ?? [], skillDef.castRange, skillDef.radius, now)
+                                        ?? (target ? { x: target.x, z: target.z || 0 } : { x: member.x + (member.side === 'left' ? 1 : -1) * 8, z: member.z || 0 });
+                                    member.swordCastSpot = spot;
+                                    emitSword(roomId, { kind: 'formationStart', casterId: playerId, casterIdx: memberIndex, targetId: opponentId,
+                                        x: spot.x, z: spot.z, radius: skillDef.radius, castTime: castMs, ticks: skillDef.ticks, tickGap: skillDef.tickGap });
+                                }
                                 io.to(roomId).emit('castStart', { 
                                     casterId: playerId, casterIdx: memberIndex, 
-                                    skillIdx: skillIdxToCast, castTime: castMs 
+                                    skillIdx: skillIdxToCast, castTime: castMs,
+                                    ...(spot ? { x: spot.x, z: spot.z, radius: skillDef.radius } : {})
                                 });
                                 return; // Stop here, now we are casting
                             } else {
@@ -3188,6 +3262,7 @@ function startBattleLoop(roomId) {
                 const dist2D = Math.sqrt(dx * dx + dz * dz);
 
                 if (dist2D > attackRangeOf(member, now)) {
+                    if (isSwordAirborne(member)) { member.state = 'idle'; return; }   // YunYou đang bay: đứng yên tại chỗ trên không
                     member.state = 'moving';
                     const dirX = dx / dist2D;
                     const dirZ = dz / dist2D;
@@ -3234,6 +3309,8 @@ function startBattleLoop(roomId) {
                         }
                         if (member.classId === 'alchemist' && !result.isMiss)
                             later(def.autoImpact, () => addPoison(member, target, 1, room.clock));
+                        if (member.classId === 'swordsage' && !result.isMiss)
+                            later(def.autoImpact ?? 240, () => swordApplyMark(member, target, room.clock));
                         member.lastAttackTime = now;
                         golemAfterAuto(roomId, playerId, memberIndex, opponentId, now);   // Golem: Hào Quang Sét giật · cứ 2 đòn -> 1 kỹ năng
                         sylvaAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);   // Sói / Đại Bàng: cứ 4 đòn -> 1 kỹ năng
@@ -3241,6 +3318,7 @@ function startBattleLoop(roomId) {
                         elemAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);   // Elarion — Tốc Lôi: chưởng 2 lần
                         archerExtraShots(roomId, playerId, memberIndex, opponentId, targetIdx, now);
                         reaperCleave(roomId, playerId, memberIndex, opponentId, targetIdx, now);
+                        swordAfterAuto(roomId, playerId, memberIndex, opponentId, targetIdx, now);
                     }
                 }
             });
@@ -3266,7 +3344,7 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     const has = (m, type, minLeft = 0) => m.statusEffects.some(ef => ef.type === type && ef.endTime > now + minLeft);
     const dist = (a, b) => Math.hypot(a.x - b.x, (a.z || 0) - (b.z || 0));
     const enemies = opponentData.squad.filter(m => m.alive);
-    const targetable = enemies.filter(m => canBeTargeted(m, now));
+    const targetable = enemies.filter(m => canBeTargeted(m, now, member));
     if (targetable.length === 0) return -1;
     const allies = playerData.squad;
     // quái ĐANG ĐÁNH đồng đội số i: nhắm vào người đó VÀ đã áp sát trong tầm đánh (quái còn đang chạy tới thì chưa tính)
@@ -3535,6 +3613,15 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         return -1;
     }
 
+    if (member.classId === 'swordsage') {
+        // YunYou: bật KN1 & KN2 ngay khi hết hồi chiêu và có địch trong tầm · KN3 khi có ≥ 2 địch sống (hoặc có trùm)
+        const hasBoss = enemies.some(e => e.boss || CLASS_DEFS[e.classId]?.boss);
+        if (ready(2) && (enemies.length >= 2 || hasBoss)) return 2;
+        if (ready(1)) return 1;
+        if (ready(0)) return 0;
+        return -1;
+    }
+
     // Lớp khác (chưa có AI riêng): ưu tiên kỹ năng mạnh nhất đang sẵn sàng
     for (let i = skillsOf(member).length - 1; i >= 0; i--) if (ready(i)) return i;
     return -1;
@@ -3719,7 +3806,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     } else if (skillDef.type === 'taunt') {
         // Khiêu Khích: quái trong bán kính phải đánh người dùng
         opponentData.squad.forEach((enemy, i) => {
-            if (!enemy.alive || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.radius) return;
+            if (!enemy.alive || isSwordAirborne(enemy) || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.radius) return;
             enemy.statusEffects = enemy.statusEffects.filter(ef => ef.type !== 'taunted');
             enemy.statusEffects.push({ type: 'taunted', endTime: now + skillDef.duration, sourceIndex: casterIdx, defDown: skillDef.defDown ?? 0, by: member.name ?? 'Rok' });
             enemy.lockedTargetIndex = -1;
@@ -3774,7 +3861,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
                     const t = curRoom?.clock ?? now;
                     const hit = [];
                     opponentData.squad.forEach((e, i) => {
-                        if (e === target || !e.alive || isJudged(e, t)) return;
+                        if (e === target || !e.alive || isJudged(e, t) || isSwordAirborne(e)) return;
                         if (Math.hypot(e.x - lx, (e.z || 0) - lz) > skillDef.quakeRadius) return;
                         applyStun(e, skillDef.quakeStun, t);
                         hit.push(i);
@@ -3861,6 +3948,9 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     } else if (skillDef.type?.startsWith('void_')) {
         // ---- Nyx: Ma Đạn Tinh Tú · Sao Rơi · Hố Đen ----
         castVoidSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
+    } else if (skillDef.type?.startsWith('sword_')) {
+        // ---- YunYou (Kiếm Tiên): Ngự Kiếm Tốc · Vạn Kiếm Đồng Quy · Trận Đồ Kiếm ----
+        castSwordSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
     } else if (skillDef.type?.startsWith('chess_')) {
         // ---- Leon: gọi quân / Nước Cờ Thủ / Nước Cờ Công (theo chế độ đang có của nút) ----
         castChessSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
@@ -3882,7 +3972,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             // Chốt tầng độc lúc nổ; độc mới lây không bị tiêu thụ trong cùng vụ nổ.
             const victims = opponentData.squad.flatMap((e, i) => {
                 const poison = poisonOf(e, t);
-                return e.alive && poison ? [{ e, i, poison, stacks: poison.stacks }] : [];
+                return e.alive && poison && !isSwordAirborne(e) ? [{ e, i, poison, stacks: poison.stacks }] : [];
             });
             for (const { e, i, poison, stacks } of victims) {
                 if (!e.alive) continue;
@@ -3895,7 +3985,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
             for (const { e, i } of spreads) {
                 const toIndexes = [];
                 opponentData.squad.forEach((other, j) => {
-                    if (!other.alive || other === e || Math.hypot(other.x - e.x, (other.z || 0) - (e.z || 0)) > skillDef.spreadRadius) return;
+                    if (!other.alive || other === e || isSwordAirborne(other) || Math.hypot(other.x - e.x, (other.z || 0) - (e.z || 0)) > skillDef.spreadRadius) return;
                     addPoison(member, other, skillDef.spreadStacks, t);
                     toIndexes.push(j);
                 });
@@ -4007,7 +4097,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         const impact = form ? skillDef.formImpact : skillDef.impact;
         const slamAt = impact + skillDef.slamDelay;
         squad.forEach((e, i) => {
-            if (!e.alive) return;   // diện rộng: trúng cả người tàng hình
+            if (!e.alive || isSwordAirborne(e)) return;   // diện rộng: trúng cả người tàng hình (trừ YunYou đang bay)
             const fx = (e.x - member.x) * dir;
             if (fx < -1 || Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) > (form ? skillDef.formRadius : skillDef.radius)) return;
             // Đêm Tử Thần: Lưỡi Hái Hất Hồn PHÁ SẠCH KHIÊN mục tiêu mang Ấn Tử (cả nhát hất lên lẫn nhát bổ xuống)
@@ -4065,7 +4155,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         // chấn động lúc chạm đất: mọi quái khác quanh điểm quật
         const cx = target && grabbed?.grab ? target.x : landX + dir * 1.3;
         squad.forEach((e, i) => {
-            if (!e.alive || e === target) return;
+            if (!e.alive || e === target || isSwordAirborne(e)) return;
             if (Math.hypot(e.x - cx, (e.z || 0) - landZ) > radius) return;
             effects.push({ ...hitTarget(member, e, i, opponentData, aoeMult, now, { cc: skillHasCC(skillDef), delay: skillDef.impact, aoe: true }), shock: true });
         });
@@ -4077,7 +4167,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         const giant = !!giantForm(member, now);
         const ku = skillDef.knockup;
         opponentData.squad.forEach((e, i) => {
-            if (!e.alive || Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) > skillDef.radius) return;
+            if (!e.alive || isSwordAirborne(e) || Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) > skillDef.radius) return;
             const eff = hitTarget(member, e, i, opponentData, skillDef.multiplier, now, { cc: skillHasCC(skillDef), delay: skillDef.impact, aoe: true });
             const up = !eff.isMiss && ccTime(e, ku, now) > 0;
             if (!eff.isMiss) later(skillDef.impact, () => knockUp(e, ku));
@@ -4232,7 +4322,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         });
     } else if (skillDef.type === 'aoe_damage') {
         opponentData.squad.forEach((enemy, i) => {
-            if (enemy.alive) {
+            if (enemy.alive && !isSwordAirborne(enemy)) {
                 const result = calculateDamage(member, enemy, skillDef.multiplier, now, { cc: skillHasCC(skillDef) });
                 const dmg = result.damage;
                 
@@ -4340,7 +4430,7 @@ function socketGod(team) {
     return Object.entries(curRoom?.players ?? {}).some(([id, player]) => player === team && io.sockets.sockets.get(id)?.testGod);
 }
 function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
-    if (socketGod(oppData)) return false;
+    if (socketGod(oppData) || swordFlyImmune(target, attacker)) return false;
     // Phản độc đúng lúc đòn chạm; giữ tham chiếu giáp cho đòn vừa phá hết máu khiên.
     if (attacker && hit && !hit.isMiss && (dmg > 0 || hit.absorbed > 0)) {
         const now = curRoom?.clock;
@@ -4356,7 +4446,7 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
     later(delay, () => {
         target.pendingDmg = Math.max(0, (target.pendingDmg || 0) - dmg);
         const tt = curRoom?.clock ?? Date.now();
-        if (target.alive && !oppData.debugGodMode && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt) && !isVanished(target, tt)) {
+        if (target.alive && !oppData.debugGodMode && !socketGod(oppData) && !isJudged(target, tt) && !hasReviveGuard(target, tt) && !isVanished(target, tt) && !swordFlyImmune(target, attacker)) {
             if (damageJudgmentShield(target, dmg, !!hit?.cc)) { after?.(); return; }
             const vulnerable = target.statusEffects.some(e => e.type === 'judgment_broken' && e.endTime > tt);
             let hp = target.hp - Math.round(dmg * (vulnerable ? 1 + JUDGMENT.vulnerability : 1));
@@ -4408,7 +4498,7 @@ function archerExtraShots(roomId, casterId, casterIdx, opponentId, targetIdx, no
         const dir = target ? (Math.sign(target.x - member.x) || 1) : (member.side === 'left' ? 1 : -1);
         const line = () => opp.squad
             .map((e, i) => ({ e, i }))
-            .filter(({ e }) => e.alive && (e.x - member.x) * dir > -0.5 && Math.abs(e.x - member.x) <= passive.range);
+            .filter(({ e }) => e.alive && !isSwordAirborne(e) && (e.x - member.x) * dir > -0.5 && Math.abs(e.x - member.x) <= passive.range);
         // mũi gió xuyên quét ngang 14 đơn vị trong 320ms: quái xa trúng sau
         const sweep = (k) => ({ e }) => 120 + k * 110 + (Math.abs(e.x - member.x) / passive.range) * 320;
         let k = shots.length;
@@ -4424,6 +4514,7 @@ function archerExtraShots(roomId, casterId, casterIdx, opponentId, targetIdx, no
 // ============================================================
 /** Choáng `ms` (đã trừ Kiên Cường); không rút ngắn choáng dài hơn đang có */
 function applyStun(enemy, ms, now) {
+    if (isSwordAirborne(enemy)) return;
     if (enemy.ult) { if (enemy.ultCCAt !== now) damageJudgmentShield(enemy, 0, true); return; }
     const end = now + ccTime(enemy, ms, now);
     const cur = enemy.statusEffects.find(ef => ef.type === 'stun' && ef.endTime > now);
@@ -4471,7 +4562,7 @@ function castTimeOf(member, skillDef, now) {
 const inFireGod = (m, now) => m.statusEffects?.some(ef => ef.type === 'fire_god' && ef.endTime > now);
 /** Điểm rơi tốt nhất: quanh con quái (trong tầm `range` của người dùng) có nhiều quái nhất trong bán kính `radius` */
 function bestCluster(member, squad, range, radius, now) {
-    const list = squad.filter(m => canBeTargeted(m, now));
+    const list = squad.filter(m => canBeTargeted(m, now, member));
     if (!list.length) return null;
     const near = list.filter(m => Math.hypot(m.x - member.x, (m.z || 0) - (member.z || 0)) <= range);
     const pool = near.length ? near : list;
@@ -4497,7 +4588,7 @@ function fireAoe(roomId, casterId, casterIdx, opponentId, x, z, radius, mult, ki
     const now = room.clock ?? Date.now();
     const effects = [];
     opp.squad.forEach((e, i) => {
-        if (!e.alive || Math.hypot(e.x - x, (e.z || 0) - z) > radius) return;
+        if (!e.alive || isSwordAirborne(e) || Math.hypot(e.x - x, (e.z || 0) - z) > radius) return;
         const eff = hitTarget(member, e, i, opp, mult, now, { noBlock: true, aoe: true });
         if (!eff.isMiss) onHit?.(e);
         effects.push(eff);
@@ -4535,7 +4626,7 @@ function fireGodAttack(roomId, casterId, casterIdx, opponentId, targetIdx, now) 
         const IMPACT = 200 + 260;
         const effects = [hitTarget(member, target, targetIdx, opp, sk.palmMultiplier, now, { delay: IMPACT })];
         opp.squad.forEach((e, i) => {
-            if (i === targetIdx || !e.alive || Math.hypot(e.x - target.x, (e.z || 0) - (target.z || 0)) > sk.splashRadius) return;
+            if (i === targetIdx || !e.alive || isSwordAirborne(e) || Math.hypot(e.x - target.x, (e.z || 0) - (target.z || 0)) > sk.splashRadius) return;
             effects.push(hitTarget(member, e, i, opp, sk.splashMultiplier, now, { delay: IMPACT, noBlock: true, aoe: true }));
         });
         io.to(roomId).emit('fireGod', { casterId, casterIdx, kind: 'palm', targetIndex: targetIdx, effects });
@@ -4568,7 +4659,7 @@ function guardBurst(roomId, casterId, casterIdx, opponentId, now, final = false)
     const opp = room.players[opponentId];
     const effects = [];
     opp.squad.forEach((enemy, i) => {
-        if (!enemy.alive || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.burstRadius) return;
+        if (!enemy.alive || isSwordAirborne(enemy) || Math.hypot(enemy.x - member.x, (enemy.z || 0) - (member.z || 0)) > skillDef.burstRadius) return;
         const result = calculateDamage(member, enemy, skillDef.burstMultiplier, now, { aoe: true });
         if (!result.isMiss) {
             if (!opp.debugGodMode && !socketGod(opp)) {
@@ -4639,7 +4730,7 @@ function endGuard(squad, casterIdx) {
 function planReaperDash(member, squad, sk, now) {
     const from = { x: member.x, z: member.z || 0 };
     const list = squad.map((e, i) => ({ e, i })).filter(o => canBeTargeted(o.e, now));
-    const all = squad.map((e, i) => ({ e, i })).filter(o => o.e.alive);   // đường lướt là đòn diện rộng: trúng cả người tàng hình
+    const all = squad.map((e, i) => ({ e, i })).filter(o => o.e.alive && !isSwordAirborne(o.e));   // đường lướt là đòn diện rộng: trúng cả người tàng hình (trừ YunYou đang bay)
     const lineHits = (ux, uz, maxLen) => all.map(o => {
         const px = o.e.x - from.x, pz = (o.e.z || 0) - from.z;
         return { ...o, along: px * ux + pz * uz, lat: Math.abs(px * uz - pz * ux) };
@@ -4779,6 +4870,29 @@ function killMember(target, squad) {
     }
     // Xói Mòn Hư Không (Nyx): anh hùng / quái gục (triệu hồi không tính) -> Nyx phe kia +M.ATK, Nyx cùng phe +chí mạng
     if (!target.summon && curRoom) { const at = locate(target); if (at) voidOnDeath(curRoom, at.pid, target); }
+    // YunYou gục giữa lúc niệm Trận Đồ Kiếm: tắt vòng trận trên trời
+    if (target.classId === 'swordsage') {
+        target.airborne = false;
+        if (target.swordCastSpot) {
+            target.swordCastSpot = null;
+            const at = locate(target);
+            if (at && curRoom?.id) emitSword(curRoom.id, { kind: 'formationEnd', casterId: at.pid, casterIdx: at.idx, reason: 'death' });
+        }
+    }
+    // Đồng đội (không phải triệu hồi) vừa gục -> nếu YunYou trong đội không còn đồng đội sống nào thì ĐÁP ĐẤT NGAY trong cùng nhịp (ở dưới đất tới hết trận)
+    if (!target.summon && squad) {
+        const hasOther = (m) => squad.some(a => a !== m && a.alive && !a.summon);
+        for (const m of squad) {
+            if (m.classId !== 'swordsage' || !m.alive || hasOther(m)) continue;
+            const wasAir = !!m.airborne;
+            m.airborne = false;
+            m.swordGrounded = true;
+            if (wasAir) {
+                const at = locate(m);
+                if (at && curRoom?.id) emitSword(curRoom.id, { kind: 'land', casterId: at.pid, casterIdx: at.idx });
+            }
+        }
+    }
     // Quân cờ của Leon bị giết: nút của Leon về "gọi quân đó" (chờ 5 giây mới gọi lại được)
     if (target.chessKind && curRoom) { const at = locate(target); if (at) chessOnPieceDeath(curRoom, at.pid, target, curRoom.clock ?? Date.now()); }
     breakRokLink(target, squad);
@@ -4831,7 +4945,7 @@ function processDeathJudgement(roomId, casterId, casterIdx, opponentId, now) {
     member.markNext = now + t.every;
     const targetIndices = [];
     opp.squad.forEach((e, i) => {
-        if (isJudged(e, now)) return;   // đang bị phán quyết: không nhận thêm hiệu ứng
+        if (isJudged(e, now) || isSwordAirborne(e)) return;   // đang bị phán quyết / YunYou đang bay: không nhận thêm hiệu ứng
         e.statusEffects = e.statusEffects.filter(ef => !(ef.type === 'death_mark' && ef.owner === member.side));
         if (!e.alive) return;
         e.statusEffects.push({ type: 'death_mark', endTime: now + 350 + t.duration, duration: t.duration, execute: t.value, healCut: t.healCut ?? 0, owner: member.side, debuff: true, noCleanse: true });
@@ -4844,6 +4958,7 @@ function processDeathJudgement(roomId, casterId, casterIdx, opponentId, now) {
 }
 /** Hất tung 1 mục tiêu `ms` (đã trừ kháng khống chế) */
 function knockUp(e, ms) {
+    if (isSwordAirborne(e)) return;
     if (e.ult) { if (e.ultCCAt !== curRoom.clock) damageJudgmentShield(e, 0, true); return; }
     if (!e.alive) return;
     const t = curRoom?.clock ?? Date.now();
@@ -4863,7 +4978,7 @@ function reaperCleave(roomId, casterId, casterIdx, opponentId, targetIdx, now) {
     if (!target || !sk) return;
     const effects = [];
     opp.squad.forEach((e, i) => {
-        if (i === targetIdx || !e.alive || Math.hypot(e.x - target.x, (e.z || 0) - (target.z || 0)) > sk.cleaveRadius) return;
+        if (i === targetIdx || !e.alive || isSwordAirborne(e) || Math.hypot(e.x - target.x, (e.z || 0) - (target.z || 0)) > sk.cleaveRadius) return;
         effects.push(hitTarget(member, e, i, opp, sk.cleaveMultiplier, now, { delay: CLASS_DEFS.reaper.autoImpact, noBlock: true, aoe: true }));
     });
     sendReaperFx(roomId, { kind: 'cleave', casterId, casterIdx, targetId: opponentId, targetIndex: targetIdx, effects });
@@ -4942,6 +5057,7 @@ function giantForm(m, now) {
 /** Đang miễn mọi khống chế / hiệu ứng bất lợi (5 giây đầu Khổng Lồ) */
 function ccImmune(m, now) {
     if (m?.ult) return true;
+    if (isSwordAirborne(m)) return true;   // YunYou đang bay: miễn mọi khống chế / kéo / đẩy / khiêu khích từ phe địch
     if (m?.summon && !takesDebuffs(m)) return true;   // triệu hồi KHÔNG nhận debuff (Golem): không dính khống chế
     if (voidShell(m, now) || isVanished(m, now)) return true;
     if (m?.chessKind === 'king' && chessJudging(m, now)) return true;   // quân Vua của Leon đang niệm Phán Quyết: không bị ngắt   // Nyx có Vỏ Hư Không đang niệm Sao Rơi / Hố Đen (không bị ngắt niệm) · Nyx đang trong cổng Hư Không
@@ -5173,7 +5289,7 @@ function bossNextTime(skill, now, previous, phase2) {
     return previous ?? now + (skill.first ?? skill.cooldown);
 }
 function bossTargets(squad, mode, origin, count = 1, random = Math.random) {
-    const living = squad.map((e, i) => ({ e, i })).filter(({ e }) => e.alive && !e.summon);
+    const living = squad.map((e, i) => ({ e, i })).filter(({ e }) => e.alive && !e.summon && !isSwordAirborne(e));
     if (mode === 'random') {
         for (let i = living.length - 1; i > 0; i--) {
             const j = Math.floor(random() * (i + 1));
@@ -5270,7 +5386,7 @@ function processJudgment(room, pid, idx, oppId, now) {
         m.ult = null; m.bossCasts = 0; m.actionUntil = now; m.state = 'idle';
         const team = room.players[oppId], effects = [], diff = judgmentDifficulty(room.stage?.diff);
         team.squad.forEach((e, i) => {
-            if (!e.alive || e.summon || isVanished(e, now)) return;   // (Nyx đang trong cổng Hư Không: không ai đánh được)
+            if (!e.alive || e.summon || isVanished(e, now) || isSwordAirborne(e)) return;   // (Nyx trong cổng Hư Không / YunYou đang bay: không ai đánh được)
             const damage = team.debugGodMode || socketGod(team) ? 0 : Math.min(e.hp, blastDamage(e.maxHp, diff));
             e.hp = Math.max(0, e.hp - damage);
             if (e.hp === 0) killMember(e, team.squad);
@@ -5361,7 +5477,7 @@ function processBossSkills(room, pid, idx, oppId, now) {
                 if (sk.id === 'pounce' && targets[0].e.alive) { m.x = targets[0].e.x + 0.8; m.z = targets[0].e.z || 0; clampToArena(m); }
                 if (sk.id === 'dash') { m.x = shapes[0].toX; m.z = shapes[0].toZ; clampToArena(m); }
                 opp.squad.forEach((e, i) => {
-                    if (!e.alive || e.summon || !(sk.id === 'pounce' ? e === targets[0].e : shapes.some(shape => bossInShape(e, shape)))) return;
+                    if (!e.alive || e.summon || isSwordAirborne(e) || !(sk.id === 'pounce' ? e === targets[0].e : shapes.some(shape => bossInShape(e, shape)))) return;
                     const hit = hitTarget(m, e, i, opp, sk.multiplier, time, { dmgType: sk.magic ? 'magic' : 'physical', aoe: sk.id !== 'pounce', ground: sk.id !== 'pounce' });
                     effects.push(hit);
                     if (!hit.isMiss && e.alive) {
@@ -5572,7 +5688,7 @@ function processFireWard(roomId, pid, idx, oppId, now) {
     const opp = rooms[roomId].players[oppId];
     const stunned = [];
     opp.squad.forEach((e, i) => {
-        if (!e.alive || isJudged(e, now) || Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) > w.stunRadius) return;
+        if (!e.alive || isJudged(e, now) || isSwordAirborne(e) || Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) > w.stunRadius) return;
         applyStun(e, w.stun, now);
         stunned.push(i);
     });
@@ -5586,7 +5702,7 @@ const _judgeKeep = new WeakMap();   // hiệu ứng được giữ lại trong l
 function checkJudgement(target) {
     if (!target?.alive || !curRoom) return;
     const now = curRoom.clock ?? Date.now();
-    if (target.ult || isJudged(target, now) || reaperForm(target, now)) return;
+    if (target.ult || isJudged(target, now) || reaperForm(target, now) || isSwordAirborne(target)) return;
     if (hasReviveGuard(target, now) || isVanished(target, now)) return;   // 2 giây bất tử sau hồi sinh (Sera) kháng luôn phán quyết · Nyx trong cổng Hư Không: không ai đụng tới
     const mark = target.statusEffects.find(ef => ef.type === 'death_mark' && ef.endTime > now);
     if (target.ult || !mark || target.hp / target.maxHp >= mark.execute) return;
@@ -5653,7 +5769,7 @@ const DANCE_NUM = { dance_tide: 1, dance_flow: 2, dance_god: 3 };
 const FOE_REACH_SLACK = 0.3;   // dư một chút cho khỏi chập chờn đúng mép tầm đánh
 function foeInReach(member, skillType, oppSquad, now) {
     const r = attackRangeOf(member, now) + FOE_REACH_SLACK;
-    return (oppSquad ?? []).some(e => canBeTargeted(e, now) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
+    return (oppSquad ?? []).some(e => canBeTargeted(e, now, member) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
 }
 /** Hệ số tốc độ hồi Orb (MP mỗi giây + MP mỗi đòn): Elarion — Tốc Lôi ×2, mỗi tầng Cộng Hưởng Lôi +10/15/20% */
 function orbRegenMult(m, now) {
@@ -5771,7 +5887,7 @@ function processDance(roomId, pid, idx, oppId, now) {
     const tide = danceOn(m, 'dance_tide', now), flow = danceOn(m, 'dance_flow', now), god = danceOn(m, 'dance_god', now);
     m.danceKey = danceKeyOf(m, now);
     const allies = team.squad.filter(a => a.alive);
-    const foes = opp.squad.filter(e => e.alive && !isJudged(e, now));
+    const foes = opp.squad.filter(e => e.alive && !isJudged(e, now) && !isSwordAirborne(e));
     const sks = skillsOf(m);
     // ---- Lưu Thủy: đốt Orb hồi máu cả đội ----
     if (flow) {
@@ -6044,7 +6160,7 @@ function processElementalist(roomId, pid, idx, oppId, now) {
 
 /** Đóng băng = choáng (đứng im, bị ngắt niệm) + lớp băng phủ người. Trả về thời gian thật sự bị đóng băng */
 function applyFreeze(e, ms, now) {
-    if (!e.alive) return 0;
+    if (!e.alive || isSwordAirborne(e)) return 0;
     if (e.ult) { if (e.ultCCAt !== now) damageJudgmentShield(e, 0, true); return 0; }
     const dur = ccTime(e, ms, now);
     if (dur <= 0) return 0;
@@ -6058,13 +6174,13 @@ function putEffect(m, ef) {
     m.statusEffects = m.statusEffects.filter(x => x.type !== ef.type);
     m.statusEffects.push(ef);
 }
-const foesOf = (opp, now) => opp.squad.map((e, i) => ({ e, i })).filter(o => o.e.alive && !isJudged(o.e, now) && !isVanished(o.e, now));
+const foesOf = (opp, now, attacker = null) => opp.squad.map((e, i) => ({ e, i })).filter(o => o.e.alive && !isJudged(o.e, now) && !isVanished(o.e, now) && !swordFlyImmune(o.e, attacker));
 const distXZ = (a, x, z) => Math.hypot(a.x - x, (a.z || 0) - z);
 
 /** Giáp Băng Sét: ai đánh trúng pháp sư (khi còn hiệu lực) bị sét giật + choáng — mỗi người tối đa 1 lần / counterEvery */
 function wardCounter(attacker, mage, now) {
     const ward = mage.statusEffects?.find(e => e.type === 'storm_ward' && e.endTime > now);
-    if (!ward || !attacker?.alive || !mage.alive || !curRoom) return;
+    if (!ward || !attacker?.alive || !mage.alive || !curRoom || swordFlyImmune(attacker, mage)) return;
     const at = locate(attacker), mt = locate(mage);
     if (!at || !mt || at.pid === mt.pid) return;
     ward.hitAt ??= {};
@@ -6085,7 +6201,7 @@ function wardCounter(attacker, mage, now) {
  *  Bị giải hiệu ứng (mọi cách) thì mất tầng, đếm lại. Trả về thời gian đóng băng nếu vừa đủ tầng (0 nếu chưa) */
 const CHILL = { per: 0.02, time: 5000, max: 5, freeze: 1500 };
 function addChill(e, now, n = 1) {
-    if (!e?.alive || !takesDebuffs(e)) return 0;
+    if (!e?.alive || !takesDebuffs(e) || isSwordAirborne(e)) return 0;
     const cur = e.statusEffects.find(x => x.type === 'chill' && x.endTime > now);
     const stacks = (cur?.stacks ?? 0) + n;
     if (stacks >= CHILL.max) {
@@ -6519,7 +6635,7 @@ function wolfHowl(room, pid, slot, oppId, now) {
     if (!w?.alive || !opp) return;
     const targetIndexes = [];
     opp.squad.forEach((e, i) => {
-        if (!e.alive || !takesDebuffs(e)) return;
+        if (!e.alive || !takesDebuffs(e) || isSwordAirborne(e)) return;
         e.statusEffects = e.statusEffects.filter(ef => ef.type !== 'wolf_howl');
         e.statusEffects.push({ type: 'wolf_howl', endTime: now + d.howlTime, duration: d.howlTime, value: d.howlDown, debuff: true });
         targetIndexes.push(i);
@@ -7360,6 +7476,181 @@ function processVoid(room, pid, idx, oppId, now) {
 }
 
 // ============================================================
+// KIẾM TIÊN (YunYou, `swordsage`) — bay trên không không thể bị đánh / nhắm, ngoại lệ PvP 2 YunYou cùng bay
+//   Sự kiện gửi máy khách 'swordFx' { casterId, casterIdx, kind, ... } — kind:
+//     takeoff · land · haste · fanOn · extraSwords · formationStart · formationRain · formationEnd · rainTick · finalSword · mark · break
+//   Hiệu ứng trạng thái: `sword_haste` (+80% tốc đánh 6s) · `sword_multi` (kiếm phụ toàn địch 8s) ·
+//     `sword_mark { stacks }` (trên địch: đủ 6 tiêu thụ -> `sword_break`) · `sword_break { value }` (−P.DEF 6s cho MỌI đòn) ·
+//     `sword_atk { stacks, per }` (+10% P.ATK 8s, tối đa 3) · `sword_crit { stacks, per }` (+tỉ lệ CM) · `sword_critdmg { stacks, per }` (+STCM 8s, tối đa 5)
+// ============================================================
+const emitSword = (roomId, data) => io.to(roomId).emit('swordFx', data);
+
+/** Mỗi nhịp cho YunYou: kiểm tra bay lên khi địch vào tầm đánh / đáp đất khi hết đồng đội không phải triệu hồi */
+function processYunYou(room, pid, idx, oppId, now) {
+    const team = room.players[pid], m = team?.squad[idx];
+    if (!m || m.classId !== 'swordsage' || !m.alive) return;
+    const opp = room.players[oppId];
+    const hasAlly = team.squad.some(a => a !== m && a.alive && !a.summon);
+    if (m.airborne) {
+        if (!hasAlly) {
+            m.airborne = false;
+            m.swordGrounded = true;
+            emitSword(room.id, { kind: 'land', casterId: pid, casterIdx: idx });
+        }
+        return;
+    }
+    if (m.swordGrounded) return;
+    if (!hasAlly) {
+        m.swordGrounded = true;
+        return;
+    }
+    const range = attackRangeOf(m, now);
+    const enemyInRange = opp?.squad?.some(e => e.alive && canBeTargeted(e, now, m) && Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= range);
+    if (enemyInRange) {
+        m.airborne = true;
+        emitSword(room.id, { kind: 'takeoff', casterId: pid, casterIdx: idx });
+    }
+}
+
+/** Thiên phú 1 — Vết Kiếm Vỡ Giáp: mỗi nhát kiếm trúng đích +1 Vết Kiếm; đủ 6 dấu tiêu thụ -> Vỡ Giáp 6s + YunYou +10% P.ATK 8s (tối đa 3) */
+function swordApplyMark(attacker, enemy, now) {
+    if (!attacker || attacker.classId !== 'swordsage') return 0;
+    const t = talentOf(attacker, 'sword_mark');
+    if (!t || !enemy?.alive || !takesDebuffs(enemy) || swordFlyImmune(enemy, attacker)) return 0;
+    let mark = enemy.statusEffects.find(e => e.type === 'sword_mark' && e.endTime > now);
+    if (!mark) {
+        enemy.statusEffects = enemy.statusEffects.filter(e => e.type !== 'sword_mark');
+        mark = { type: 'sword_mark', stacks: 0, needed: t.marksNeeded, endTime: Number.MAX_SAFE_INTEGER, debuff: true };
+        enemy.statusEffects.push(mark);
+    }
+    mark.stacks = (mark.stacks ?? 0) + 1;
+    const from = locate(attacker), to = locate(enemy);
+    if (mark.stacks >= t.marksNeeded) {
+        enemy.statusEffects = enemy.statusEffects.filter(e => e !== mark);
+        enemy.statusEffects = enemy.statusEffects.filter(e => e.type !== 'sword_break');
+        enemy.statusEffects.push({ type: 'sword_break', value: t.value, endTime: now + t.breakDuration, duration: t.breakDuration, debuff: true });
+        if (attacker.alive) {
+            let atk = attacker.statusEffects.find(e => e.type === 'sword_atk' && e.endTime > now);
+            if (!atk) {
+                attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'sword_atk');
+                atk = { type: 'sword_atk', stacks: 0, per: t.atkUp, maxStacks: t.atkMax };
+                attacker.statusEffects.push(atk);
+            }
+            atk.per = t.atkUp;
+            atk.maxStacks = t.atkMax;
+            atk.stacks = Math.min(t.atkMax, atk.stacks + 1);
+            atk.endTime = now + t.atkDuration;
+            atk.duration = t.atkDuration;
+        }
+        if (curRoom?.id) emitSword(curRoom.id, { kind: 'break', casterId: from?.pid, casterIdx: from?.idx, targetId: to?.pid, targetIndex: to?.idx, value: t.value });
+        return 0;
+    }
+    if (curRoom?.id) emitSword(curRoom.id, { kind: 'mark', casterId: from?.pid, casterIdx: from?.idx, targetId: to?.pid, targetIndex: to?.idx, stacks: mark.stacks });
+    return mark.stacks;
+}
+
+/** Thiên phú 2 — Kiếm Tâm Thông Minh: đòn không chí mạng +tỉ lệ chí mạng (đặt lại khi chí mạng); đòn chí mạng +sát thương chí mạng 8s (tối đa 5, làm mới) */
+function swordOnHitCrit(attacker, isCrit, now) {
+    if (!attacker || attacker.classId !== 'swordsage') return;
+    const t = talentOf(attacker, 'sword_focus');
+    if (!t) return;
+    if (isCrit) {
+        attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'sword_crit');
+        let cd = attacker.statusEffects.find(e => e.type === 'sword_critdmg' && e.endTime > now);
+        if (!cd) {
+            attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'sword_critdmg');
+            cd = { type: 'sword_critdmg', stacks: 0, per: t.critDmg, maxStacks: t.maxStacks };
+            attacker.statusEffects.push(cd);
+        }
+        cd.per = t.critDmg;
+        cd.maxStacks = t.maxStacks;
+        cd.stacks = Math.min(t.maxStacks, cd.stacks + 1);
+        cd.endTime = now + t.duration;
+        cd.duration = t.duration;
+    } else {
+        let cr = attacker.statusEffects.find(e => e.type === 'sword_crit' && e.endTime > now);
+        if (!cr) {
+            attacker.statusEffects = attacker.statusEffects.filter(e => e.type !== 'sword_crit');
+            cr = { type: 'sword_crit', stacks: 0, per: t.value };
+            attacker.statusEffects.push(cr);
+        }
+        cr.per = t.value;
+        cr.stacks = (cr.stacks ?? 0) + 1;
+        cr.endTime = Number.MAX_SAFE_INTEGER;
+    }
+}
+
+/** Kỹ năng của YunYou (executeSkill) */
+function castSwordSkill(room, pid, idx, oppId, sk, now, effects, extra) {
+    const team = room.players[pid], opp = room.players[oppId], m = team.squad[idx];
+    const base = { casterId: pid, casterIdx: idx };
+    const lock = sk.lock ?? 0;
+    if (sk.type === 'sword_haste') {
+        m.statusEffects = m.statusEffects.filter(e => e.type !== 'sword_haste');
+        m.statusEffects.push({ type: 'sword_haste', endTime: now + lock + sk.duration, duration: sk.duration, speedUp: sk.speedUp });
+        effects.push({ targetIndex: idx, ally: true });
+        extra.duration = sk.duration;
+        emitSword(room.id, { ...base, kind: 'haste', duration: sk.duration, speedUp: sk.speedUp });
+    } else if (sk.type === 'sword_multi') {
+        m.statusEffects = m.statusEffects.filter(e => e.type !== 'sword_multi');
+        m.statusEffects.push({ type: 'sword_multi', endTime: now + lock + sk.duration, duration: sk.duration, extraMultiplier: sk.extraMultiplier });
+        effects.push({ targetIndex: idx, ally: true });
+        extra.duration = sk.duration;
+        extra.extraMultiplier = sk.extraMultiplier;
+        emitSword(room.id, { ...base, kind: 'fanOn', duration: sk.duration, extraMultiplier: sk.extraMultiplier });
+    } else if (sk.type === 'sword_formation') {
+        const curBest = bestCluster(m, opp.squad, sk.castRange, sk.radius, now);
+        const saved = m.swordCastSpot;
+        m.swordCastSpot = null;
+        const savedHasFoe = saved && opp.squad.some(e => e.alive && !isJudged(e, now) && !isVanished(e, now) && !swordFlyImmune(e, m) && distXZ(e, saved.x, saved.z) <= sk.radius);
+        const spot = savedHasFoe ? saved : (curBest ?? saved ?? { x: m.x + (m.side === 'left' ? 1 : -1) * 8, z: m.z || 0 });
+        extra.formation = { x: spot.x, z: spot.z, radius: sk.radius, ticks: sk.ticks, tickGap: sk.tickGap };
+        emitSword(room.id, { ...base, kind: 'formationRain', targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, ticks: sk.ticks, tickGap: sk.tickGap });
+        const pool = (t) => opp.squad.map((e, i) => ({ e, i }))
+            .filter(o => o.e.alive && !isJudged(o.e, t) && !isVanished(o.e, t) && !swordFlyImmune(o.e, m) && distXZ(o.e, spot.x, spot.z) <= sk.radius);
+        for (let k = 0; k < sk.ticks; k++) {
+            later(k * sk.tickGap, () => {
+                const t = room.clock;
+                if (room.winner) return;
+                const hits = pool(t).map(o => {
+                    const eff = hitTarget(m, o.e, o.i, opp, sk.tickMultiplier, t, { aoe: true, noBlock: true });
+                    if (!eff.isMiss) swordApplyMark(m, o.e, t);
+                    return eff;
+                });
+                emitSword(room.id, { ...base, kind: 'rainTick', n: k + 1, targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, effects: hits });
+            });
+        }
+        later(sk.ticks * sk.tickGap, () => {
+            const t = room.clock;
+            if (room.winner) return;
+            const hits = pool(t).map(o => {
+                const eff = hitTarget(m, o.e, o.i, opp, sk.finalMultiplier, t, { aoe: true, noBlock: true, forceCrit: true });
+                if (!eff.isMiss) swordApplyMark(m, o.e, t);
+                return eff;
+            });
+            emitSword(room.id, { ...base, kind: 'finalSword', targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, effects: hits });
+        });
+    }
+}
+
+/** Sau đòn đánh thường của YunYou: đang bật Vạn Kiếm Đồng Quy -> phóng thêm kiếm tới TẤT CẢ đối thủ khác */
+function swordAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
+    const room = rooms[roomId], opp = room?.players[oppId], m = room?.players[pid]?.squad[idx];
+    if (!m || m.classId !== 'swordsage' || !opp) return;
+    const multi = m.statusEffects.find(e => e.type === 'sword_multi' && e.endTime > now);
+    if (!multi) return;
+    const delay = CLASS_DEFS.swordsage.autoImpact ?? 240;
+    const extraShots = [];
+    opp.squad.forEach((e, i) => {
+        if (i === targetIdx || !canBeTargeted(e, now, m)) return;
+        const eff = hitTarget(m, e, i, opp, multi.extraMultiplier, now, { isSkill: false, delay });
+        if (!eff.isMiss) later(delay, () => swordApplyMark(m, e, room.clock));
+        extraShots.push(eff);
+    });
+    if (extraShots.length) emitSword(roomId, { kind: 'extraSwords', casterId: pid, casterIdx: idx, targetId: oppId, delay, effects: extraShots });
+}
+
+// ============================================================
 // LEON (Kỳ Vương, `chessmaster`) — kỳ thủ gọi 6 quân cờ. ĐỢT 1 (task B1–B3): khai báo + 3 nút đổi theo thế cờ + cánh thủ (Tốt, Xe) + cánh công (Mã, Tượng).
 //   ĐỢT 2 (task B4–B6): Vua (Vương Miện, Phán Quyết), Hậu (Quang Cầu, Vũ Điệu Quang Cầu), bàn cờ, Thí Quân, Phong Cấp, Chiếu Tướng, AI riêng (autoChooseSkill).
 //   Quân cờ là thành viên thật của đội (summon: true, chessKind, ownerIdx = vị trí Leon), ở lại tới khi bị giết; Leon gục thì quân vẫn đánh tiếp.
@@ -7620,7 +7911,7 @@ const CHESS_MOVES = {
         s.actionUntil = Math.max(s.actionUntil ?? 0, now + d.holdLock);
         const targets = [];
         opp?.squad.forEach((e, i) => {
-            if (!e.alive || distXZ(e, s.x, s.z || 0) > d.tauntRadius) return;
+            if (!e.alive || isSwordAirborne(e) || distXZ(e, s.x, s.z || 0) > d.tauntRadius) return;
             if (e.ult) { if (e.ultCCAt !== now) damageJudgmentShield(e, 0, true); return; }   // trùm đang niệm Phán Quyết: đòn khống chế trừ vào khiên niệm
             if (!takesDebuffs(e) || ccImmune(e, now) || isJudged(e, now)) return;             // miễn khống chế: không bị khiêu khích
             e.statusEffects = e.statusEffects.filter(ef => ef.type !== 'taunted');
@@ -8217,7 +8508,7 @@ function poisonOf(m, now) {
     return m.statusEffects?.find(ef => ef.type === 'poison' && ef.endTime > now && ef.stacks > 0);
 }
 function addPoison(caster, target, stacks, now) {
-    if (!target.alive) return;
+    if (!target.alive || swordFlyImmune(target, caster)) return;
     const at = locate(caster);
     if (!at) return;
     const venom = talentOf(caster, 'goblin_venom');
@@ -8293,7 +8584,7 @@ function goblinArea(room, casterId, casterIdx, opponentId, c, sk, bog) {
     if (!caster || !opp) return;
     const t = room.clock, effects = [];
     opp.squad.forEach((enemy, i) => {
-        if (!enemy.alive || Math.hypot(enemy.x - c.x, (enemy.z || 0) - c.z) > sk.radius) return;
+        if (!enemy.alive || isSwordAirborne(enemy) || Math.hypot(enemy.x - c.x, (enemy.z || 0) - c.z) > sk.radius) return;
         const effect = hitTarget(caster, enemy, i, opp, bog ? sk.tickMultiplier : sk.multiplier, t, { noBlock: true, aoe: true });
         effects.push(effect);
         if (!effect.isMiss && enemy.alive) {
@@ -8341,7 +8632,7 @@ function checkGoblinWard(m) {
 }
 // Đòn phá giáp vẫn phản độc; không tính đòn trượt hay sát thương độc định kỳ.
 function goblinWardHit(m, attacker, now, hitWard) {
-    if (!m.alive || !attacker.alive || !(goblinWardOf(m, now) || (hitWard && hitWard.endTime > now))) return;
+    if (!m.alive || !attacker.alive || swordFlyImmune(attacker, m) || !(goblinWardOf(m, now) || (hitWard && hitWard.endTime > now))) return;
     const at = locate(m), to = locate(attacker), t = talentOf(m, 'goblin_ward');
     if (!at || !to || at.pid === to.pid || !t) return;
     const key = `${to.pid}:${to.idx}`;
@@ -8372,7 +8663,7 @@ function processGoblinWard(room, pid, idx, oppId, now) {
     if (!m.alive || !t) return;
     const stunnedIndexes = [], poisonedIndexes = [];
     room.players[oppId]?.squad.forEach((enemy, i) => {
-        if (!enemy.alive || Math.hypot(enemy.x - m.x, (enemy.z || 0) - (m.z || 0)) > t.radius) return;
+        if (!enemy.alive || isSwordAirborne(enemy) || Math.hypot(enemy.x - m.x, (enemy.z || 0) - (m.z || 0)) > t.radius) return;
         addPoison(m, enemy, t.burstStacks, now);
         poisonedIndexes.push(i);
         applyStun(enemy, t.stun, now);
@@ -8383,7 +8674,7 @@ function processGoblinWard(room, pid, idx, oppId, now) {
 // Grix: chọn n kẻ địch NGẪU NHIÊN trong tầm (không có ai trong tầm -> lấy mọi địch chọn được), ưu tiên mỗi phát 1 người khác nhau;
 //   ít địch hơn n thì bốc lại ngẫu nhiên. Điểm rơi lệch nhẹ ±0,4 quanh chân địch cho tự nhiên.
 function randomFoes(member, squad, range, n, now) {
-    const all = squad.filter(e => canBeTargeted(e, now));
+    const all = squad.filter(e => canBeTargeted(e, now, member));
     const inRange = all.filter(e => Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= range);
     const pool = inRange.length ? inRange : all;
     if (!pool.length) return [];

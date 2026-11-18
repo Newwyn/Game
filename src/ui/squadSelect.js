@@ -12,7 +12,7 @@ import { tierUrls, setHeroRanks, tierPortrait } from '../characters/sprite/tiers
 import { pouchEditorHTML, onPouchClick } from './mealPouch.js';   // 🎒 túi đồ ăn (tối đa 3 món mang vào ải)
 
 const PORTRAITS = import.meta.glob('../assets/portraits/*.png', { eager: true, import: 'default' });
-const portrait = (id, rank) => tierPortrait(id, rank ?? undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình theo bậc S / SS
+const portrait = (id, rank) => tierPortrait(id, rank ?? undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình theo bậc S / SS / SSS (YunYou dùng ảnh sprite cắt sẵn)
 const RANK_COLORS = ['#94a3b8', '#60a5fa', '#c084fc', '#fbbf24'];
 const MODE_TITLE = {
     test: '🧪 TEST · CHỌN ĐỘI HÌNH',
@@ -21,7 +21,7 @@ const MODE_TITLE = {
     campaign: '📖 CỐT TRUYỆN · CHỌN ĐỘI HÌNH',
 };
 
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage'];
 const FALLBACK_HEROES = {
     assassin: { id: 'assassin', name: 'Jessica', title: 'Lôi Ám', className: 'Sát Thủ', emoji: '🥷', color: '#1e293b', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1260, atk: 231 },
     warrior: { id: 'warrior', name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 3360, atk: 158 },
@@ -36,6 +36,7 @@ const FALLBACK_HEROES = {
     summoner: { id: 'summoner', name: 'Sylva', title: 'Lâm Linh', className: 'Triệu Hồi Sư', emoji: '🦌', color: '#16a34a', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 950, atk: 190 },
     voidmage: { id: 'voidmage', name: 'Nyx', title: 'Hư Không', className: 'Phù Thủy', emoji: '🌌', color: '#6d28d9', race: 'Goblin', raceEmoji: '👺', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 900, atk: 230 },
     chessmaster: { id: 'chessmaster', name: 'Leon', title: 'Kỳ Vương', className: 'Kỳ Thủ', emoji: '♟️', color: '#eab308', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1000, atk: 170 },
+    swordsage: { id: 'swordsage', name: 'YunYou', title: 'Kiếm Tiên', className: 'Cung Thủ', emoji: '🗡️', color: '#2dd4bf', race: 'Không rõ', raceEmoji: '', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1071, atk: 139 },
 };
 
 let lastProgress = null;
@@ -62,10 +63,16 @@ function buildHeroForCampaign(id, providedHero) {
             base.hp = ph.stats.maxHp ?? base.hp;
             base.atk = Math.max(ph.stats.pAtk ?? 0, ph.stats.mAtk ?? 0) || base.atk;
         }
-        const raceDef = lastProgress?.meta?.races?.[ph.race ?? def?.race];
-        if (raceDef) {
-            base.race = raceDef.name ?? base.race;
-            base.raceEmoji = raceDef.emoji ?? base.raceEmoji;
+        const label = ph.raceLabel ?? def?.raceLabel;
+        if (label) {
+            base.race = label;
+            base.raceEmoji = '';
+        } else {
+            const raceDef = lastProgress?.meta?.races?.[ph.race ?? def?.race];
+            if (raceDef) {
+                base.race = raceDef.name ?? base.race;
+                base.raceEmoji = raceDef.emoji ?? base.raceEmoji;
+            }
         }
     }
     if (providedHero && typeof providedHero === 'object') {

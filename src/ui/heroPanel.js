@@ -17,7 +17,7 @@ const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, imp
 const ATLAS = import.meta.glob('../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const ATLAS_META = import.meta.glob('../characters/sprite/*Sprite{,_s,_ss}.json', { eager: true, import: 'default' });
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou' };
 
 // mô tả ngắn 3 kỹ năng (số liệu ở cấp kỹ năng 1)
 const SKILL_DESC = {
@@ -34,6 +34,7 @@ const SKILL_DESC = {
     wrestler: ['Túm quái quật xuống đất (180% công), choáng 1 giây, chấn động quái gần đó.', 'Bật cao dậm đất: hất tung quái xung quanh, Brakk nhận khiên 25% máu.', 'Hoá Khổng Lồ 10 giây: +50% máu, +40% thủ, 5 giây đầu miễn mọi hiệu ứng xấu.'],
     voidmage: ['Phóng lần lượt 5 tia Hư Không từ bàn tay, mỗi tia lượn vòng tới một kẻ địch ngẫu nhiên, gây sát thương và đốt 0,3 Orb; tia cuối nổ 9 ấn chú gây sát thương lan.', 'Niệm 5 giây, sao rơi ngay từ đầu: 4 đợt xuống chỗ đông địch nhất, gây choáng 0,5 giây; đợt 2 và 4 chắc chắn chí mạng.', 'Niệm 5 giây mở hố đen lớn dần: 3 nhịp hút (tầm hút rộng dần) giật kẻ địch về tâm, gây sát thương và choáng 0,5 giây; hố khép lại nổ một đòn, rồi xúc tu bóng tối trồi lên quất 3 đợt diện rộng.'],
     chessmaster: ['Cánh Thủ: gọi Tốt (1 Orb) rồi gọi Xe (3 Orb); đủ cả hai thì ra lệnh Nước Cờ Thủ (2 Orb, hồi 6 giây) luân phiên Giữ Lối của Tốt và Nhập Thành của Xe — nước cờ của mỗi quân hồi riêng 10 giây, quân tới lượt chưa hồi xong thì quân kia đi thay.', 'Cánh Công: gọi Mã (1 Orb — Mã hiện ở cuối đội hình rồi lao thẳng vào kẻ địch đầu tiên trên đường) rồi gọi Tượng (3 Orb); đủ cả hai thì ra lệnh Nước Cờ Công (2 Orb, hồi 6 giây) luân phiên Chiếu Đôi của Mã và Trói Buộc của Tượng — nước cờ của mỗi quân hồi riêng 10 giây. Tượng còn tự dùng Hút Cạn mỗi 12 giây: niệm 2 giây hút Orb / máu của mọi kẻ địch, xong thì đòn thường thành Đĩa Năng Lượng mạnh hơn trong 8 giây.', 'Quân Chúa: mở khi cánh đã chọn đủ 2 quân để gọi Vua hoặc Hậu (4 Orb), dùng tuyệt kỹ riêng (3 Orb, hồi 6 giây — Phán Quyết của Vua khiêu khích mọi kẻ địch suốt lúc niệm), hoặc hợp kích Chiếu Tướng (4 Orb, hồi 10 giây) khi có cả hai. Gọi quân của cánh nào trước thì cánh kia khoá tới khi có quân chúa.'],
+    swordsage: ['Thúc linh kiếm vận tốc cực hạn: YunYou nhận +80% tốc đánh trong 6 giây.', 'Sau lưng hiện quạt 7 thanh kiếm trong 8 giây: mỗi đòn đánh thường phóng thêm kiếm tới tất cả các đối thủ khác (50%–70% công vật lý theo bậc, cộng Vết Kiếm).', 'Niệm 2 giây mở pháp trận trên trời tại vùng đông địch nhất: mưa kiếm rơi 5 đợt mỗi giây (50% công vật lý), sau đó giáng đại kiếm khổng lồ (300% công vật lý) chắc chắn chí mạng.'],
 };
 const STAT_ROWS = [
     ['maxHp', 'Máu tối đa'], ['pAtk', 'Công vật lý'], ['mAtk', 'Công phép'], ['pDef', 'Thủ vật lý'], ['mDef', 'Thủ phép'],
@@ -107,7 +108,7 @@ function heroHTML() {
             <div class="hp-card" style="--c:${h.color}">
                 <span class="hp-face big">${portrait(h.id)}</span>
                 <div class="hp-id"><h3>${h.emoji ?? ''} ${h.name} <small>· ${h.title}</small></h3>
-                    <p>${RACE_VI[h.race] ?? h.race} · ${h.className} · ${h.dmgType === 'magic' ? 'Sát thương phép' : 'Sát thương vật lý'} · ${h.range === 'melee' ? 'Cận chiến' : 'Đánh xa'}</p>
+                    <p>${h.raceLabel ?? RACE_VI[h.race] ?? h.race} · ${h.className} · ${h.dmgType === 'magic' ? 'Sát thương phép' : 'Sát thương vật lý'} · ${h.range === 'melee' ? 'Cận chiến' : 'Đánh xa'}</p>
                     <div class="hp-lv"><b>Lv ${h.level}</b><span class="hp-rank" style="--rc:${RANK_COLORS[h.rank]}">${h.rankName}</span>
                         <div class="hp-exp"><i style="width:${h.expNext ? Math.min(100, Math.round(100 * h.exp / h.expNext)) : 100}%"></i></div>
                         <small>${h.level >= h.cap ? `Đầy cấp bậc ${h.rankName} (Lv${h.cap}) — cần đột phá` : `EXP ${fmt(h.exp)} / ${fmt(h.expNext)}`}</small></div>
@@ -130,7 +131,7 @@ function statsHTML(h) {
     return `<div class="hp-stats">${STAT_ROWS.filter(([k]) => k !== (h.dmgType === 'magic' ? 'pAtk' : 'mAtk') || (h.stats?.[k] ?? 0) > 0).map(([k, label, kind]) => {
         const b = h.base?.[k] ?? 0, v = h.stats?.[k] ?? 0, diff = k === 'atkSpeed' ? b - v : v - b;
         return `<div class="hp-stat"><span>${label}</span><b>${statVal(h.stats, k, kind)}</b>${diff > 0 ? `<em>+${kind === 'pct' ? `${(diff / 10).toFixed(1).replace('.', ',')}%` : kind === 'spd' ? '' : fmt(diff)} đồ</em>` : ''}</div>`;
-    }).join('')}</div><p class="hp-note">Số màu xanh = phần cộng thêm từ trang bị. Chỉ số còn tăng theo tộc (${RACE_VI[h.race] ?? h.race}), cấp, bậc và độ thân mật ở quán ăn.</p>`;
+    }).join('')}</div><p class="hp-note">Số màu xanh = phần cộng thêm từ trang bị. Chỉ số còn tăng theo tộc (${h.raceLabel ?? RACE_VI[h.race] ?? h.race}), cấp, bậc và độ thân mật ở quán ăn.</p>`;
 }
 function skillsHTML(h) {
     const desc = SKILL_DESC[h.id] ?? [];
@@ -141,8 +142,11 @@ function skillsHTML(h) {
             <div><b>${sk.name}</b> <small>${['Kỹ năng 1', 'Kỹ năng 2', 'Tuyệt kỹ'][i]} · Lv${h.skillLevel}</small>
             <p>${desc[i] ?? ''}</p><span class="hp-tags"><i>💠 ${cost(sk)}</i><i>⏱ ${sk.cooldown ? `Hồi ${Math.round(sk.cooldown / 1000)} giây` : 'Không hồi chiêu'}</i></span></div></div>`;
     }).join('')}
-    ${(h.talents ?? []).map(t => `<div class="hp-skill talent${t.level ? '' : ' locked'}"><span class="hp-sk-ic tal">${t.level ? '🌟' : '🔒'}</span>
-        <div><b>${t.name}</b> <small>Thiên phú ${t.slot} · ${t.level ? `Lv${t.level}/${t.max}` : `mở ở Lv${t.unlockAt}`}</small><p>${t.desc}</p></div></div>`).join('')}
+    ${(h.talents ?? []).map(t => {
+        const tart = SKILL_ART[`../assets/skills/${h.id}_t${t.slot}.webp`];
+        return `<div class="hp-skill talent${t.level ? '' : ' locked'}"><span class="hp-sk-ic tal"${tart ? ` style="background-image:url(${tart})"` : ''}>${tart ? (t.level ? '' : '🔒') : (t.level ? '🌟' : '🔒')}</span>
+        <div><b>${t.name}</b> <small>Thiên phú ${t.slot} · ${t.level ? `Lv${t.level}/${t.max}` : `mở ở Lv${t.unlockAt}`}</small><p>${t.desc}</p></div></div>`;
+    }).join('')}
     <p class="hp-note">Kỹ năng lên cấp khi đột phá bậc (Thường → S → SS → SSS).</p></div>`;
 }
 function gearHTML(h) {
@@ -163,8 +167,10 @@ function atlasFrame(id, tier) {
     const art = ART[id];
     if (!art) return null;
     const suffix = tier === 'sss' ? '' : `_${tier}`;
-    const meta = ATLAS_META[`../characters/sprite/${art}Sprite${suffix}.json`];
-    const url = ATLAS[`../assets/sprites/${art}${suffix}_sprite.webp`];
+    const hasTier = ATLAS_META[`../characters/sprite/${art}Sprite${suffix}.json`] && ATLAS[`../assets/sprites/${art}${suffix}_sprite.webp`];
+    const useSuffix = hasTier ? suffix : '';
+    const meta = ATLAS_META[`../characters/sprite/${art}Sprite${useSuffix}.json`];
+    const url = ATLAS[`../assets/sprites/${art}${useSuffix}_sprite.webp`];
     const f = meta?.frames?.idle1 ?? meta?.frames?.[Object.keys(meta?.frames ?? {})[0]];
     if (!meta || !url || !f) return null;
     const [x, y, w, hh] = f.rect, [W, H] = meta.size, k = 150 / hh;

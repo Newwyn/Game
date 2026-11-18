@@ -55,6 +55,7 @@ const HERO_NAMES = {
     summoner: { name: 'Sylva', emoji: '🦌', title: 'Triệu Hồi Sư' },
     voidmage: { name: 'Nyx', emoji: '🌌', title: 'Phù Thủy' },
     chessmaster: { name: 'Leon', emoji: '♟️', title: 'Kỳ Thủ' },
+    swordsage: { name: 'YunYou', emoji: '🗡️', title: 'Cung Thủ' },
 };
 
 /** Dữ liệu mặc định 20 ải + 5 nhánh Chương 1 (theo CHUONG_1_TOC_NGUOI.md) */

@@ -7,10 +7,12 @@
 // ============================================================
 const IMG = import.meta.glob('../../assets/sprites/*_{s,ss}_sprite.webp', { eager: true, import: 'default' });
 const META = import.meta.glob('./*Sprite_{s,ss}.json', { eager: true, import: 'default' });
+const SSS_IMG = import.meta.glob('../../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
+const SSS_META = import.meta.glob('./*Sprite.json', { eager: true, import: 'default' });
 
 // classId -> tên thư mục tranh
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou' };
 
 /** Bậc (0 Thường · 1 S · 2 SS · 3 SSS) -> hậu tố tranh, null = tranh gốc */
 export const tierOf = (rank) => (rank == null || rank >= 3 ? null : rank >= 2 ? 'ss' : 's');
@@ -26,11 +28,19 @@ export function setHeroRanks(progress) {
 const portraitCache = new Map();
 export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
     const t = tierOf(rank), art = ART[classId];
-    if (!t || !art) return null;
-    const image = IMG[`../../assets/sprites/${art}_${t}_sprite.webp`], meta = META[`./${art}Sprite_${t}.json`];
+    if (!art) return null;
+    let image = t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
+    let meta = t ? META[`./${art}Sprite_${t}.json`] : null;
+    let key = t ? `${art}_${t}` : `${art}_sss`;
+    // YunYou (chưa có tranh S/SS riêng): mọi bậc tạm dùng bộ SSS
+    if ((!image || !meta) && classId === 'swordsage') {
+        image = SSS_IMG[`../../assets/sprites/${art}_sprite.webp`];
+        meta = SSS_META[`./${art}Sprite.json`];
+        key = `${art}_sss`;
+    }
+    if (!image || !meta) return null;
     const f = meta?.frames?.idle1 ?? (meta && Object.values(meta.frames)[0]);
-    if (!image || !f?.rect) return null;
-    const key = `${art}_${t}`;
+    if (!f?.rect) return null;
     const c = portraitCache.get(key);
     if (typeof c === 'string') return c;
     if (!c) {
