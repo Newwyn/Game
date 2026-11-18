@@ -160,6 +160,10 @@ function updateCamera() {
         return;
     }
 
+    // (18/11/2026) góc ngang cũng bám riêng nhân vật khi bấm thẻ: ôm khung hẹp quanh người đó (camera tự về mức gần nhất)
+    const followed = cameraRig.followIdx >= 0 ? game.views[me]?.[cameraRig.followIdx] : null;
+    if (followed && followed.member?.alive) { cameraRig.frame(followed.position.x - 3, followed.position.x + 3, followed.position.z ?? avgZ); return; }
+
     const opponentId = Object.keys(game.views).find(id => id !== me);
     const enemies = aliveViews(opponentId);
     let group = mine;
