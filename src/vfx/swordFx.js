@@ -29,8 +29,8 @@ const RIM_FX_COUNT = 6;
 
 /** Độ cao bay CỐ ĐỊNH theo chế độ camera — không phụ thuộc zoom hay vị trí camera */
 export const SWORD_FLIGHT_HEIGHT = {
-    explore: 3.6, // Ở zoom mặc định (baseDist=15, pitch=48°), đỉnh mũ (~ndc 0.87) vừa dưới mép trên khung hình
-    combat: 2.8,  // Ở góc ngang (pitch=14°, minDist=13), giữ trọn mũ & thanh máu
+    explore: 6.6, // Ở zoom mặc định (baseDist=15, pitch=48°), đỉnh mũ (~ndc 0.87) vừa dưới mép trên khung hình
+    combat: 5.6,  // Ở góc ngang (pitch=14°, minDist=13), giữ trọn mũ & thanh máu
 };
 
 export function swordFlightHeight(mode = cameraRig.getMode()) {
