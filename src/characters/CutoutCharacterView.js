@@ -997,7 +997,7 @@ export class CutoutCharacterView extends CharacterView {
     _stepSwordPatrolBounds(dt) {
         const subSteps = dt > 0.04 ? Math.min(4, Math.ceil(dt / 0.04)) : 1;
         const h = dt / subSteps;
-        const vMax = 2.2;
+        const vMax = 3.4;
         const turnZone = 0.15;
         for (let s = 0; s < subSteps; s++) {
             const lo = this._patrolLo ?? (this.basePos.x - 1.5);
