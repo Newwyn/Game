@@ -144,7 +144,9 @@ function onAutoAttack(data) {
     const attacker = game.roomData?.players?.[data.attackerId];
     if (!attackerView || !attacker) return;
 
-    attackerView.startLunge(attackerView.facingLeft ? -1 : 1); // lao về phía đang nhìn (kể cả khi đứng sau lưng địch)
+    const preTarget = attacker.squad?.[data.attackerIndex]?.classId === 'swordsage' ? getView(data.targetId, data.targetIndex) : null;
+    if (preTarget) attackerView.faceTargetForSwordAction?.(preTarget);
+    if (!attackerView._swordPosActive) attackerView.startLunge(attackerView.facingLeft ? -1 : 1); // lao về phía đang nhìn (kể cả khi đứng sau lưng địch)
 
     const onHit = () => {
         const target = getView(data.targetId, data.targetIndex);
@@ -372,10 +374,11 @@ function onAutoAttack(data) {
 
     // YunYou (Kiếm Tiên): phóng kiếm / kiếm khí ngọc nhạt (nâng theo _hover nếu đang bay; bật KN2 thì nhấp quạt 7 kiếm)
     if (atkClass === 'swordsage') {
-        const fire = () => {
+        const fire = (minHold = 0) => {
+            const target = getView(data.targetId, data.targetIndex);
+            if (target) attackerView.faceTargetForSwordAction?.(target, { minHold });
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
             if (hasSwordFan(data.attackerId, data.attackerIndex)) flashSwordFan(data.attackerId, data.attackerIndex);
-            const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             const from = {
                 x: attackerView.position.x + (attackerView.facingLeft ? -0.5 : 0.5),
@@ -392,8 +395,8 @@ function onAutoAttack(data) {
                 onHit: () => showHit(target, { ...data, isMiss: data.dodged }, { fx: false }),
             });
         };
-        if (attackerView.isBusy) { fire(); return; }
-        attackerView.playAction('attack', { onHit: fire });
+        if (attackerView.isBusy) { fire(0.34); return; }
+        attackerView.playAction('attack', { onHit: () => fire(0.22) });
         return;
     }
 
@@ -564,12 +567,15 @@ function onSkillExecuted(data) {
             cameraRig.shake(0.2, 220);
             break;
         case 'sword_haste':
+            caster.faceTargetForSwordAction?.();
             caster.playAction('seal', { onHit: () => spawnSwordHaste(caster, data.duration ?? 6000) });
             break;
         case 'sword_multi':
+            caster.faceTargetForSwordAction?.();
             caster.playAction('seal', { onHit: () => spawnSwordFan(data.casterId, data.casterIdx, caster, data.duration ?? 8000) });
             break;
         case 'sword_formation':
+            caster.faceTargetForSwordAction?.(data.formation?.x);
             caster.playAction?.('seal');
             break;
         case 'heal':
@@ -2960,8 +2966,14 @@ function onSwordFx(d) {
             break;
         }
         case 'land': {
-            caster?.playAction?.('land');
-            if (caster) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, palette: JADE_PAL, scale: 0.9 });
+            if (caster?.beginSwordLanding) {
+                caster.beginSwordLanding(() => {
+                    if (caster.position) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, palette: JADE_PAL, scale: 0.9 });
+                });
+            } else {
+                caster?.playAction?.('land');
+                if (caster) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, palette: JADE_PAL, scale: 0.9 });
+            }
             break;
         }
         case 'haste':

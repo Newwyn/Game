@@ -32,6 +32,7 @@ import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
 import { makeSwordFlightQi, swordFlightHeight } from '../vfx/swordFx.js';
+import { game, opponentIdOf } from '../state.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
@@ -897,15 +898,277 @@ export class CutoutCharacterView extends CharacterView {
         W.ring.rotation.z += dt * 2.5;
     }
 
-    /** YunYou (Kiếm Tiên): bay ở độ cao thế giới cố định theo chế độ camera (không bám theo zoom/frustum) */
+    syncFromServer(member, players, playerId, ...rest) {
+        if (playerId !== undefined) this._ownerId = playerId;
+        if (players) this._players = players;
+        const holdFacing = member?.classId === 'swordsage' && this._swordHoldFacing;
+        const prevFacing = this.facingLeft;
+        super.syncFromServer(member, players, playerId, ...rest);
+        if (holdFacing) this.facingLeft = prevFacing;
+    }
+
+    _findOwnerId() {
+        if (this._ownerId) return this._ownerId;
+        for (const [pid, arr] of Object.entries(game.views ?? {})) {
+            if (Array.isArray(arr) && arr.includes(this)) {
+                this._ownerId = pid;
+                return pid;
+            }
+        }
+        for (const [pid, pl] of Object.entries(game.roomData?.players ?? {})) {
+            if (pl?.squad?.some(m => m.side === this.member?.side && m.classId === this.member?.classId
+                && m.x === this.member?.x && (m.z || 0) === (this.member?.z || 0))) {
+                return pid;
+            }
+        }
+        return null;
+    }
+
+    _swordEnemyTargets() {
+        const ownerId = this._findOwnerId();
+        const oppId = ownerId ? opponentIdOf(ownerId) : Object.keys(game.views ?? {}).find(
+            id => game.views[id]?.some(v => v !== this && v?.member?.side !== this.member?.side)
+        );
+        if (!oppId) return null;
+        const pts = [];
+        const views = game.views?.[oppId];
+        if (Array.isArray(views) && views.length) {
+            for (const v of views) {
+                if (!v?.member?.alive) continue;
+                pts.push({ x: v.basePos?.x ?? v.position.x, z: v.basePos?.z ?? v.position.z ?? 0 });
+            }
+        } else {
+            const squad = game.roomData?.players?.[oppId]?.squad;
+            if (Array.isArray(squad)) {
+                for (const e of squad) {
+                    if (!e?.alive) continue;
+                    pts.push({ x: e.x ?? 0, z: e.z ?? 0 });
+                }
+            }
+        }
+        if (!pts.length) return null;
+        let minX = Infinity, maxX = -Infinity, sumZ = 0, nearestX = pts[0].x, bestD = Infinity;
+        const cx = this.root.position.x;
+        for (const p of pts) {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            sumZ += p.z;
+            const d = Math.abs(p.x - cx);
+            if (d < bestD) { bestD = d; nearestX = p.x; }
+        }
+        return { lo: minX - 1.5, hi: maxX + 1.5, z: sumZ / pts.length - 0.5, midX: 0.5 * (minX + maxX), nearestX };
+    }
+
+    /** Quay YunYou về phía mục tiêu trong thời gian clip đánh thường / tung chiêu rồi quay lại hướng bay */
+    faceTargetForSwordAction(targetOrX, { minHold = 0, duration = 0.28 } = {}) {
+        if (this.member?.classId !== 'swordsage') return;
+        let tx = typeof targetOrX === 'number' ? targetOrX : (targetOrX?.position?.x ?? targetOrX?.basePos?.x);
+        if (!Number.isFinite(tx)) tx = this._swordEnemyTargets()?.nearestX;
+        if (!Number.isFinite(tx) || Math.abs(tx - this.root.position.x) <= 0.05) return;
+        const dirLeft = tx < this.root.position.x;
+        this.facingLeft = dirLeft;
+        this.flip.scale.x = dirLeft ? -1 : 1;
+        this._swordActionFace = {
+            dirLeft,
+            timer: duration,
+            maxTimer: Math.max(0.95, minHold + 0.15),
+            minTimer: minHold,
+            waitClip: true,
+            seenClip: !!this._oneShot,
+        };
+    }
+
+    /** Hẹn hạ cánh sau khi YunYou bay lượn về lại phía trên vị trí thật trên server */
+    beginSwordLanding(onLand) {
+        if (this.member?.classId !== 'swordsage') { onLand?.(); return; }
+        this._pendingLandCb = onLand ?? null;
+        this._swordPlayLandAnim = true;
+        if (!this._swordPosActive && (this._swordFlyT ?? 0) <= 0.01) {
+            this._swordPlayLandAnim = false;
+            const cb = this._pendingLandCb;
+            this._pendingLandCb = null;
+            this.playAction?.('land');
+            cb?.();
+            return;
+        }
+        this._swordLandRequested = true;
+    }
+
+    _stepSwordPatrolBounds(dt) {
+        const subSteps = dt > 0.04 ? Math.min(4, Math.ceil(dt / 0.04)) : 1;
+        const h = dt / subSteps;
+        const vMax = 2.2;
+        const turnZone = 0.15;
+        for (let s = 0; s < subSteps; s++) {
+            const lo = this._patrolLo ?? (this.basePos.x - 1.5);
+            const hi = Math.max(lo + 1.0, this._patrolHi ?? (this.basePos.x + 1.5));
+            const stopDist = Math.min(1.6, Math.max(0.5, (hi - lo) * 0.34));
+            const dir = this._patrolDir >= 0 ? 1 : -1;
+            const goalX = dir > 0 ? hi : lo;
+            const rem = (goalX - this._patrolX) * dir;
+            const effRem = Math.max(0, rem - turnZone);
+            const desiredVx = effRem > 0
+                ? dir * vMax * Math.sin(Math.min(1, effRem / stopDist) * (Math.PI * 0.5))
+                : 0;
+            this._patrolVx += (desiredVx - this._patrolVx) * Math.min(1, h * 3.8);
+            this._patrolX += this._patrolVx * h;
+
+            if (rem <= turnZone && Math.abs(this._patrolVx) <= 0.24) {
+                this._patrolDir = -dir;
+            }
+
+            const targetZ = this._patrolGoalZ ?? this.basePos.z;
+            const dz = targetZ - this._patrolZ;
+            const desiredVz = Math.abs(dz) > 0.01 ? THREE.MathUtils.clamp(dz * 2.6, -1.8, 1.8) : 0;
+            this._patrolVz += (desiredVz - this._patrolVz) * Math.min(1, h * 4.2);
+            this._patrolZ += this._patrolVz * h;
+        }
+    }
+
+    _stepSwordPoint(dt, targetX, targetZ, maxSpeed = 2.2) {
+        const subSteps = dt > 0.04 ? Math.min(4, Math.ceil(dt / 0.04)) : 1;
+        const h = dt / subSteps;
+        for (let s = 0; s < subSteps; s++) {
+            const dx = targetX - this._patrolX;
+            const dz = targetZ - this._patrolZ;
+            const dist = Math.hypot(dx, dz);
+            const speed = dist > 0.02 ? Math.min(maxSpeed, dist * 3.0) : 0;
+            const desiredVx = dist > 0.02 ? (dx / dist) * speed : 0;
+            const desiredVz = dist > 0.02 ? (dz / dist) * speed : 0;
+            const alpha = Math.min(1, h * 4.5);
+            this._patrolVx += (desiredVx - this._patrolVx) * alpha;
+            this._patrolVz += (desiredVz - this._patrolVz) * alpha;
+            this._patrolX += this._patrolVx * h;
+            this._patrolZ += this._patrolVz * h;
+        }
+    }
+
+    _updateSwordActionFacing(dt) {
+        if (!this._swordActionFace) return false;
+        const af = this._swordActionFace;
+        af.timer -= dt;
+        af.maxTimer -= dt;
+        af.minTimer = Math.max(0, (af.minTimer ?? 0) - dt);
+        if (this._oneShot) af.seenClip = true;
+        const active = (af.waitClip && af.seenClip && !!this._oneShot && af.maxTimer > 0)
+            || (!af.seenClip && af.timer > 0)
+            || af.minTimer > 0;
+        if (active) {
+            this.facingLeft = af.dirLeft;
+            return true;
+        }
+        this._swordActionFace = null;
+        return false;
+    }
+
+    /** YunYou (Kiếm Tiên): bay ở độ cao cố định, lượn tuần tra mượt trên đầu nhóm địch, hướng quay & bóng chiếu theo vị trí hiển thị */
     _updateSwordFlight(dt, on) {
+        const alive = !!this.member?.alive;
+        let phase = this._swordPhase ?? 'ground';
+        const landReq = !!this._swordLandRequested;
+        if (!alive) {
+            this._pendingLandCb = null;
+            this._swordLandRequested = false;
+            this._swordPlayLandAnim = false;
+            if ((this._swordFlyT ?? 0) > 0 || phase !== 'ground') phase = 'descending';
+        } else if (on && !landReq) {
+            if (phase === 'ground' || phase === 'descending' || phase === 'returning') {
+                phase = (this._swordFlyT ?? 0) < 0.999 ? 'takeoff' : 'patrol';
+            }
+        } else if (phase === 'takeoff') {
+            phase = this._swordPosActive ? 'returning' : 'descending';
+        } else if (phase === 'patrol') {
+            phase = 'returning';
+        }
+        this._swordPhase = phase;
+
         const prevT = this._swordFlyT ?? 0;
-        this._swordFlyT = on
-            ? Math.min(1, prevT + dt * 2.0)
-            : Math.max(0, prevT - dt * 2.22);
+        if (phase === 'takeoff') {
+            this._swordFlyT = Math.min(1, prevT + dt * 2.0);
+            this._patrolX = this.basePos.x;
+            this._patrolZ = this.basePos.z;
+            this._patrolVx = 0;
+            this._patrolVz = 0;
+            this._patrolLo = this._patrolHi = this._patrolGoalZ = null;
+            this._swordPosActive = false;
+            this._swordHoldFacing = false;
+            if (this._swordFlyT >= 1) {
+                this._swordPhase = 'patrol';
+                this._swordPosActive = true;
+                this._swordHoldFacing = true;
+                const targets = this._swordEnemyTargets();
+                if (targets) {
+                    this._patrolLo = targets.lo;
+                    this._patrolHi = targets.hi;
+                    this._patrolGoalZ = targets.z;
+                    this._patrolDir = targets.midX >= this._patrolX ? 1 : -1;
+                } else {
+                    this._patrolDir = this.facingLeft ? -1 : 1;
+                }
+                if (!this._swordActionFace) this.facingLeft = this._patrolDir < 0;
+            }
+        } else if (phase === 'patrol') {
+            this._swordFlyT = 1;
+            this._swordPosActive = true;
+            this._swordHoldFacing = true;
+            const targets = this._swordEnemyTargets();
+            if (targets) {
+                if (this._patrolLo == null) {
+                    this._patrolLo = targets.lo;
+                    this._patrolHi = targets.hi;
+                    this._patrolGoalZ = targets.z;
+                } else {
+                    const bAlpha = 1 - Math.exp(-3.5 * dt);
+                    this._patrolLo += (targets.lo - this._patrolLo) * bAlpha;
+                    this._patrolHi += (targets.hi - this._patrolHi) * bAlpha;
+                    this._patrolGoalZ += (targets.z - this._patrolGoalZ) * bAlpha;
+                }
+                this._stepSwordPatrolBounds(dt);
+            } else {
+                this._patrolLo = this._patrolHi = this._patrolGoalZ = null;
+                this._stepSwordPoint(dt, this.basePos.x, this.basePos.z, 2.2);
+            }
+        } else if (phase === 'returning') {
+            this._swordFlyT = 1;
+            this._swordPosActive = true;
+            this._swordHoldFacing = true;
+            this._stepSwordPoint(dt, this.basePos.x, this.basePos.z, 3.8);
+            if (Math.hypot(this.basePos.x - this._patrolX, this.basePos.z - this._patrolZ) <= 0.18) {
+                this._patrolX = this.basePos.x;
+                this._patrolZ = this.basePos.z;
+                this._patrolVx = 0;
+                this._patrolVz = 0;
+                this._swordPhase = 'descending';
+                this._swordHoldFacing = false;
+                this._swordLandRequested = false;
+            }
+        } else if (phase === 'descending') {
+            this._swordLandRequested = false;
+            this._swordHoldFacing = false;
+            if (alive) {
+                this._patrolX = this.basePos.x;
+                this._patrolZ = this.basePos.z;
+            }
+            this._swordFlyT = Math.max(0, prevT - dt * 2.22);
+            if (this._swordFlyT <= 0 && alive) {
+                this._swordPhase = 'ground';
+                this._swordPosActive = false;
+                this._swordActionFace = null;
+            }
+        } else {
+            this._swordFlyT = 0;
+            this._swordPosActive = false;
+            this._swordHoldFacing = false;
+        }
+
+        if (this._swordPhase === 'descending' && alive && this._swordPlayLandAnim) {
+            this._swordPlayLandAnim = false;
+            this.playAction?.('land');
+        }
+
         const ease = this._swordFlyT * this._swordFlyT * (3 - 2 * this._swordFlyT);
         const feetBase = GROUND_Y + (this._lift ?? 0);
-        if (on && ease > 0.001) {
+        if (ease > 0.001 && this._swordPhase !== 'descending') {
             const desired = swordFlightHeight();
             if (this._swordBaseHover == null || !prevT) this._swordBaseHover = desired;
             else this._swordBaseHover += (desired - this._swordBaseHover) * Math.min(1, dt * 6);
@@ -913,16 +1176,38 @@ export class CutoutCharacterView extends CharacterView {
             this._swordBaseHover = null;
         }
         const targetHover = this._swordBaseHover ?? swordFlightHeight();
-        const bob = Math.sin(this._time * 2.5) * 0.06 * ease;
+        const bob = Math.sin(this._time * ((Math.PI * 2) / 3.0)) * 0.12 * ease;
         this._hover = ease > 0 ? Math.max(0, targetHover * ease + bob) : 0;
         this.stand.position.y = feetBase + this._hover;
-        this.shadow.scale.setScalar(1 - Math.min(0.7, (this._lift + this._hover) / 10));
+
+        if (this._swordPosActive && Number.isFinite(this._patrolX) && Number.isFinite(this._patrolZ)) {
+            this.root.position.set(this._patrolX, 0, this._patrolZ);
+        }
+        if ((this._swordPhase === 'descending' || phase === 'descending') && this._swordFlyT <= 0.15 && this._pendingLandCb) {
+            const cb = this._pendingLandCb;
+            this._pendingLandCb = null;
+            if (alive) cb();
+        }
+
+        const actionFacing = this._updateSwordActionFacing(dt);
+        if (!actionFacing && this._swordHoldFacing && Math.abs(this._patrolVx ?? 0) > 0.08) {
+            this.facingLeft = this._patrolVx < 0;
+        }
+        this.flip.scale.x = this.facingLeft ? -1 : 1;
+
+        const shadowScale = this._swordFlyT > 0
+            ? Math.max(0.55, 1 - Math.min(0.45, (this._lift + this._hover) / 14))
+            : (1 - Math.min(0.7, (this._lift + this._hover) / 10));
+        this.shadow.scale.setScalar(shadowScale);
+        if (this.shadow) this.shadow.material.opacity = (1 - 0.3 * ease) * this.opacity;
+        if (this.teamDisc) {
+            this.teamDisc.material.opacity *= 1 - 0.45 * ease;
+            this.teamDisc.scale.setScalar(1 + 0.14 * ease);
+        }
         if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.002) {
             this._barHover = this._hover;
             this.setBarHeight(GROUND_Y + this.height + 0.35 + this._hover);
         }
-        if (this.teamDisc) this.teamDisc.material.opacity *= 1 - 0.5 * ease;
-        if (this.shadow) this.shadow.material.opacity = (1 - 0.35 * ease) * this.opacity;
         if (ease > 0.01 && !this._swordQi) {
             this._swordQi = makeSwordFlightQi(this.height);
             this.flip.add(this._swordQi.group);

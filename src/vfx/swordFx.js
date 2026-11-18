@@ -27,10 +27,10 @@ const FAN_COUNT = 7;
 const ORBIT_SWORDS = 8;
 const RIM_FX_COUNT = 6;
 
-/** Độ cao bay CỐ ĐỊNH theo chế độ camera — không phụ thuộc zoom hay vị trí camera */
+/** Độ cao bay CỐ ĐỊNH theo chế độ camera — chọn mức cao nhất giữ trọn mũ trong khung ở zoom mặc định (kể cả biên độ nhấp nhô ±0.12) */
 export const SWORD_FLIGHT_HEIGHT = {
-    explore: 6.6, // Ở zoom mặc định (baseDist=15, pitch=48°), đỉnh mũ (~ndc 0.87) vừa dưới mép trên khung hình
-    combat: 5.6,  // Ở góc ngang (pitch=14°, minDist=13), giữ trọn mũ & thanh máu
+    explore: 7.4, // Đỉnh nhấp nhô 6.92 (< 7.0 mốc cắt chóp mũ); với pitch=48°, fov=42°, lookHeight=1.6, d≈22.2, H≤2.90 giữ ndc_y ≤ 0.99
+    combat: 6.8,  // Đỉnh nhấp nhô 6.22; với pitch=14°, fov=38°, lookHeight=1.3, d≈22.3+, trọn sprite (H≤2.98) giữ ndc_y ≤ 0.99
 };
 
 export function swordFlightHeight(mode = cameraRig.getMode()) {
@@ -138,12 +138,13 @@ export function spawnSwordAutoProjectile(from, to, { duration = 0.24, length = 1
     const w = h * aspectOf(tex, 0.18);
     const m = artQuad(tex, w, h, { opacity: 0.96, additive: true, renderOrder: 8 });
     const dx = to.x - from.x, dy = to.y - from.y, dz = (to.z ?? 0) - (from.z ?? 0);
-    // ảnh yunyou_sword.webp mũi kiếm hướng LÊN (+Y) -> trừ PI/2 để mũi kiếm hướng về mục tiêu
+    // ảnh yunyou_sword.webp mũi kiếm hướng LÊN (+Y) -> trừ PI/2 để mũi kiếm hướng về mục tiêu (cắm thẳng xuống / bắn ngược); lật X khi bay sang trái
     m.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+    const flipX = dx < 0 ? -1 : 1;
     let hit = false;
     addAnim(m, duration, (p, fx) => {
         const s = 0.9 + 0.15 * Math.sin(p * Math.PI);
-        fx.mesh.scale.set(s, s, 1);
+        fx.mesh.scale.set(s * flipX, s, 1);
         fx.mesh.position.set(from.x + dx * p, from.y + dy * p, (from.z ?? 0) + dz * p + 0.45);
         fx.mesh.material.opacity = (p > 0.85 ? (1 - p) / 0.15 : 1) * 0.96;
         if (p >= 1 && !hit) {
@@ -168,7 +169,7 @@ export function spawnSwordHaste(casterView, durationMs = 6000) {
     if (!casterView) return;
     spawnPixelFx('impacts/hit-spark', {
         view: casterView,
-        follow: false,
+        follow: true,
         palette: JADE_PAL,
         scale: 1.0 * kFx(),
     });
@@ -258,16 +259,27 @@ export function spawnSwordFan(casterId, casterIdx, casterView, durationMs = 8000
         exiting: false,
         exitAge: 0,
         endAt: gameNow() + durationMs,
+        /** Đồng bộ vị trí/hướng quạt 7 kiếm theo vị trí & hướng quay hiển thị hiện tại của YunYou */
+        syncPose() {
+            const dir = casterView.facingLeft ? -1 : 1;
+            const pCenter = tiltedOffsetPos(casterView, -dir * 0.16, H * 0.36, -0.36);
+            group.position.set(pCenter.x, pCenter.y, pCenter.z);
+            group.rotation.x = pCenter.tilt;
+            group.scale.set(dir, 1, 1);
+        },
         /** Lấy toạ độ thế giới ở đầu/giữa thân thanh kiếm thứ `slotIdx` để bắn kiếm phụ */
         slotWorldPoint(slotIdx = 3) {
+            entry.syncPose();
             const sl = slots[slotIdx] ?? slots[3];
-            if (!sl || !group.parent) return tiltedOffsetPos(casterView, -0.2, H * 0.55, -0.2);
+            const dir = casterView.facingLeft ? -1 : 1;
+            if (!sl || !group.parent) return tiltedOffsetPos(casterView, -dir * 0.2, H * 0.55, -0.2);
             group.updateMatrixWorld(true);
             const v = new THREE.Vector3(0, H * 0.18, 0.05);
             sl.holder.localToWorld(v);
             return { x: v.x, y: v.y, z: v.z };
         },
     };
+    entry.syncPose();
     activeFans.set(key, entry);
 
     const appearDur = 0.24;
@@ -294,11 +306,7 @@ export function spawnSwordFan(casterId, casterIdx, casterView, durationMs = 8000
         }
 
         entry.flash = Math.max(0, entry.flash - dt * 4.2);
-        const dir = casterView.facingLeft ? -1 : 1;
-        const pCenter = tiltedOffsetPos(casterView, -dir * 0.16, H * 0.36, -0.36);
-        group.position.set(pCenter.x, pCenter.y, pCenter.z);
-        group.rotation.x = pCenter.tilt;
-        group.scale.set(dir, 1, 1);
+        entry.syncPose();
 
         const aspectScaleX = aspectOf(tex, fallbackAspect) / fallbackAspect;
         for (const sl of slots) {
