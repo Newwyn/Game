@@ -31,6 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
+import { makeSwordFlightQi } from '../vfx/swordFx.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
@@ -716,7 +717,7 @@ export class CutoutCharacterView extends CharacterView {
         if (this._stars) {
             this._stars.visible = stunned;
             if (stunned) {
-                this._stars.position.set(0, GROUND_Y + this.height + 0.1, 0.3);
+                this._stars.position.set(0, GROUND_Y + this.height + 0.1 + (this._hover ?? 0) + (this._lift ?? 0), 0.3);
                 this._stars.children.forEach((s, i) => {
                     const a = this._time * 5 + (i / 4) * Math.PI * 2;
                     s.position.set(Math.cos(a) * 0.45, Math.sin(a) * 0.12, Math.sin(a) * 0.3);
@@ -896,18 +897,28 @@ export class CutoutCharacterView extends CharacterView {
         W.ring.rotation.z += dt * 2.5;
     }
 
-    /** YunYou (Kiếm Tiên): bay lơ lửng mượt + hiệu ứng gió/năng lượng ngọc nhạt lặp dưới chân (pixelfx) */
+    /** YunYou (Kiếm Tiên): bay lơ lửng cao 2.8 đơn vị (~0.5s cất/hạ cánh, vừa trọn khung hình ở cả 2 góc cam) + dải kiếm khí dưới chân */
     _updateSwordFlight(dt, on) {
-        this._hover = (this._hover ?? 0) + ((on ? 0.95 : 0) - (this._hover ?? 0)) * Math.min(1, dt * 6);
-        if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.01) {
+        const prevT = this._swordFlyT ?? 0;
+        this._swordFlyT = on
+            ? Math.min(1, prevT + dt * 2.0)
+            : Math.max(0, prevT - dt * 2.22);
+        const ease = this._swordFlyT * this._swordFlyT * (3 - 2 * this._swordFlyT);
+        const bob = Math.sin(this._time * 2.5) * 0.08 * ease;
+        this._hover = 2.8 * ease + bob;
+        if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.002) {
             this._barHover = this._hover;
             this.setBarHeight(GROUND_Y + this.height + 0.35 + this._hover);
         }
-        this._pixDt = dt;
-        this._pixStatus('_pixSwordFly', on, 'water/ripples', {
-            palette: ['#042f2e', '#115e59', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#e6fffb'],
-            seed: 3, scale: 0.44,
-        });
+        if (this.teamDisc) this.teamDisc.material.opacity *= 1 - 0.5 * ease;
+        if (this.shadow) this.shadow.material.opacity = (1 - 0.35 * ease) * this.opacity;
+        if (ease > 0.01 && !this._swordQi) {
+            this._swordQi = makeSwordFlightQi(this.height);
+            this.flip.add(this._swordQi.group);
+        }
+        if (this._swordQi) {
+            this._swordQi.update(dt, { k: ease, time: this._time, opacity: this.opacity });
+        }
     }
 
     /** Niệm: giữ động tác 'pray' suốt lúc niệm (sau mỗi lần hồi máu / khiên thì quay lại niệm); hết niệm thì thả */
@@ -1142,7 +1153,7 @@ export class CutoutCharacterView extends CharacterView {
             if (!o) return null;
             o.k += ((on ? 1 : 0) - o.k) * Math.min(1, dt * rate);
             if (!on && o.k < 0.03) { o.dispose(); this[key] = null; return null; }
-            o.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+            o.group.position.set(0, GROUND_Y + (this._lift ?? 0) + (this._hover ?? 0), 0);
             return o;
         };
         const frozen = effs.some(e => e.type === 'frozen' && e.endTime > now) && effs.some(e => e.type === 'stun' && e.endTime > now);
@@ -1175,7 +1186,7 @@ export class CutoutCharacterView extends CharacterView {
             if (!o) return null;
             o.k += ((on ? 1 : 0) - o.k) * Math.min(1, dt * rate);
             if (!on && o.k < 0.03) { o.dispose(); this[key] = null; return null; }
-            o.group.position.set(0, GROUND_Y + (this._lift ?? 0), 0);
+            o.group.position.set(0, GROUND_Y + (this._lift ?? 0) + (this._hover ?? 0), 0);
             return o;
         };
         // giáp nước (Hòa Âm 1+2): luôn dùng bong bóng nước quanh người, sáng theo máu giáp còn lại
@@ -1303,7 +1314,7 @@ export class CutoutCharacterView extends CharacterView {
         O.group.children.forEach((sp, i) => {
             const a = this._time * 2.2 + (i / 3) * TAU;
             const r = 0.95 * (0.6 + 0.4 * O.k);
-            sp.position.set(Math.cos(a) * r, GROUND_Y + h * (0.42 + 0.1 * Math.sin(a * 1.5 + i)), Math.sin(a) * r * 0.7 + 0.05);
+            sp.position.set(Math.cos(a) * r, GROUND_Y + (this._hover ?? 0) + (this._lift ?? 0) + h * (0.42 + 0.1 * Math.sin(a * 1.5 + i)), Math.sin(a) * r * 0.7 + 0.05);
             sp.material.opacity = O.k * (0.75 + 0.25 * Math.sin(a)); // phía sau người mờ hơn
             sp.material.rotation = Math.sin(a) * 0.25;
         });
