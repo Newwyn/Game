@@ -380,10 +380,14 @@ function onAutoAttack(data) {
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
             if (hasSwordFan(data.attackerId, data.attackerIndex)) flashSwordFan(data.attackerId, data.attackerIndex);
             if (!target) return;
+            // đang lượn: lấy đúng chỗ đang bay (root có thể vừa bị đặt lại về vị trí máy chủ trong khung hình này)
+            const flying = attackerView._swordPosActive && Number.isFinite(attackerView._patrolX);
+            const ax = flying ? attackerView._patrolX : attackerView.position.x;
+            const az = flying ? attackerView._patrolZ : (attackerView.position.z ?? 0);
             const from = {
-                x: attackerView.position.x + (attackerView.facingLeft ? -0.5 : 0.5),
+                x: ax + (attackerView.facingLeft ? -0.5 : 0.5),
                 y: GROUND_Y + (attackerView._hover ?? 0) + (attackerView._lift ?? 0) + (attackerView.height ?? 2.9) * 0.52,
-                z: attackerView.position.z ?? 0,
+                z: az,
             };
             const to = {
                 x: target.position.x,
