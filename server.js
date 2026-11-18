@@ -5289,7 +5289,7 @@ function bossNextTime(skill, now, previous, phase2) {
     return previous ?? now + (skill.first ?? skill.cooldown);
 }
 function bossTargets(squad, mode, origin, count = 1, random = Math.random) {
-    const living = squad.map((e, i) => ({ e, i })).filter(({ e }) => e.alive && !e.summon && !isSwordAirborne(e));
+    const living = squad.map((e, i) => ({ e, i })).filter(({ e }) => e.alive && !e.summon && !e.airborne);
     if (mode === 'random') {
         for (let i = living.length - 1; i > 0; i--) {
             const j = Math.floor(random() * (i + 1));
@@ -5386,7 +5386,7 @@ function processJudgment(room, pid, idx, oppId, now) {
         m.ult = null; m.bossCasts = 0; m.actionUntil = now; m.state = 'idle';
         const team = room.players[oppId], effects = [], diff = judgmentDifficulty(room.stage?.diff);
         team.squad.forEach((e, i) => {
-            if (!e.alive || e.summon || isVanished(e, now) || isSwordAirborne(e)) return;   // (Nyx trong cổng Hư Không / YunYou đang bay: không ai đánh được)
+            if (!e.alive || e.summon || isVanished(e, now) || e.airborne) return;   // (Nyx trong cổng Hư Không / YunYou đang bay: không ai đánh được)
             const damage = team.debugGodMode || socketGod(team) ? 0 : Math.min(e.hp, blastDamage(e.maxHp, diff));
             e.hp = Math.max(0, e.hp - damage);
             if (e.hp === 0) killMember(e, team.squad);
@@ -5477,7 +5477,7 @@ function processBossSkills(room, pid, idx, oppId, now) {
                 if (sk.id === 'pounce' && targets[0].e.alive) { m.x = targets[0].e.x + 0.8; m.z = targets[0].e.z || 0; clampToArena(m); }
                 if (sk.id === 'dash') { m.x = shapes[0].toX; m.z = shapes[0].toZ; clampToArena(m); }
                 opp.squad.forEach((e, i) => {
-                    if (!e.alive || e.summon || isSwordAirborne(e) || !(sk.id === 'pounce' ? e === targets[0].e : shapes.some(shape => bossInShape(e, shape)))) return;
+                    if (!e.alive || e.summon || e.airborne || !(sk.id === 'pounce' ? e === targets[0].e : shapes.some(shape => bossInShape(e, shape)))) return;
                     const hit = hitTarget(m, e, i, opp, sk.multiplier, time, { dmgType: sk.magic ? 'magic' : 'physical', aoe: sk.id !== 'pounce', ground: sk.id !== 'pounce' });
                     effects.push(hit);
                     if (!hit.isMiss && e.alive) {

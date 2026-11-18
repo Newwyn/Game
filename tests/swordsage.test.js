@@ -257,20 +257,21 @@ test('airborne miễn mọi đòn đánh, kỹ năng đơn, AoE, khống chế, 
     assert.equal(h.run("yy.statusEffects.some(e => e.type === 'stun' || e.type === 'taunted')"), false);
     assert.equal(h.run('yy.x'), airX, 'Hố Đen không kéo được YunYou đang bay');
 
-    // Đồng minh heal & buff vẫn tác dụng lên YunYou đang bay!
+    // Đồng minh heal & buff vẫn tác dụng lên YunYou đang bay (đặt đồng minh lại đủ máu để kiểm tra cả chiêu đơn supportTarget lẫn chiêu cả đội)
     h.run(`
-        ally('priest').mp = ally('priest').maxMp;
-        ally('warrior').mp = ally('warrior').maxMp;
-        ally('dancer').mp = ally('dancer').maxMp;
-        executeSkill('fixture', 'p1', team.indexOf(ally('priest')), 'p2', 0);
+        team.forEach(a => { if (a !== yy) { a.alive = true; a.hp = a.maxHp; a.statusEffects = []; a.mp = a.maxMp; } });
+        yy.hp = ${hpHalf};
         executeSkill('fixture', 'p1', team.indexOf(ally('priest')), 'p2', 1);
-        executeSkill('fixture', 'p1', team.indexOf(ally('warrior')), 'p2', 1);
+        executeSkill('fixture', 'p1', team.indexOf(ally('priest')), 'p2', 0);
+        at(5900);
+        executeSkill('fixture', 'p1', team.indexOf(ally('priest')), 'p2', 2);
+        executeSkill('fixture', 'p1', team.indexOf(ally('warrior')), 'p2', 2);
         executeSkill('fixture', 'p1', team.indexOf(ally('dancer')), 'p2', 2);
-        at(6500);
+        at(6600);
     `);
     assert.ok(h.run('yy.hp > ' + hpHalf), 'Seraphine phải hồi máu được cho YunYou đang bay');
     const types = json(h, 'yy.statusEffects.map(e => e.type)');
-    for (const need of ['holy_shield', 'guard_aura', 'water_god']) {
+    for (const need of ['holy_shield', 'pray_blessing', 'guard_aura', 'water_god']) {
         assert.ok(types.includes(need), `thiếu buff đồng minh ${need} trên YunYou đang bay`);
     }
 });
@@ -285,8 +286,8 @@ test('hết đồng minh -> YunYou đáp đất -> quái nhắm & kết thúc tr
     assert.equal(h.run('yy.airborne'), true);
     h.run('kill(ally("warrior"), team)');
     assert.equal(h.run('yy.airborne'), false);
-    tick(6);
-    assert.ok(h.run('foes.some(f => f.alive && canBeTargeted(yy, room.clock, f))'));
+    assert.equal(h.run('foes.every(f => f.alive && canBeTargeted(yy, room.clock, f) && findBestTarget(f, team, room.clock) === yy)'), true);
+    for (let i = 0; i < 60 && h.run('yy.hp === yy.maxHp'); i++) tick(1);
     assert.ok(h.run('yy.hp < yy.maxHp'), 'quái phải đánh trúng YunYou sau khi đáp đất');
     // Chạy tiếp tới khi có người thắng
     for (let i = 0; i < 400 && !h.run('room.winner'); i++) tick(5);
@@ -539,7 +540,8 @@ test('TP2 Kiếm Tâm Thông Minh: mở ở Lv40 (+6/8% tỉ lệ CM mỗi đòn
         h.run('at(11999)');
         assert.equal(h.run('getEffectiveStats(yy, room.clock).stats.critDmg'), baseCd + 5 * cdPer);
         h.run('at(12000)');
-        assert.equal(h.run("yy.statusEffects.some(e => e.type === 'sword_critdmg')"), false, 'hết 8s từ lần CM cuối phải mất buff STCM');
+        assert.equal(h.run("yy.statusEffects.some(e => e.type === 'sword_critdmg' && e.endTime > room.clock)"), false, 'hết 8s từ lần CM cuối phải mất buff STCM');
+        assert.equal(h.run('getEffectiveStats(yy, room.clock).stats.critDmg'), baseCd);
     }
 });
 
