@@ -1860,8 +1860,9 @@ function isAirborne(m, now) {
     return isSwordAirborne(m) || m.statusEffects?.some(ef => (ef.type === 'windspirit' || ef.type === 'praying' || ef.type === 'reaper_form') && ef.endTime > now);
 }
 
-/** Tầm đánh hiện tại (Thần Phong Giáng Thế cộng thêm tầm) */
+/** Tầm đánh hiện tại (YunYou đang bay: không giới hạn tầm · Ưng Nhãn: cả bản đồ · Thần Phong Giáng Thế cộng thêm tầm) */
 function attackRangeOf(m, now) {
+    if (isSwordAirborne(m)) return Infinity;
     if (m.statusEffects?.some(ef => ef.type === 'eagle_eye' && ef.endTime > now)) return 99;   // Ưng Nhãn (Đại Bàng): tầm cả bản đồ
     const w = m.statusEffects?.find(ef => ef.type === 'windspirit' && ef.endTime > now);
     return m.atkRange + (w?.rangeUp ?? 0);
@@ -3209,7 +3210,7 @@ function startBattleLoop(roomId) {
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
                         const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole', 'chess_guard', 'chess_strike', 'chess_royal', 'sword_haste', 'sword_multi', 'sword_formation'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen · YunYou: đứng tại chỗ dùng chiêu
-                        const reqRange = skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now);
+                        const reqRange = isSwordAirborne(member) ? Infinity : (skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now));
                         
                         const dx = target ? target.x - member.x : 0;
                         const dz = target ? target.z - member.z : 0;

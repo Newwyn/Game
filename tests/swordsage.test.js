@@ -659,3 +659,140 @@ test('AUTO 2v2 & PvP (2 YunYou): autoChooseSkill dùng đủ 3 kỹ năng, trậ
         assert.ok(h.run('room.winner'), 'trận PvP có 2 YunYou phải kết thúc sạch, không deadlock');
     }
 });
+
+// ============================================================
+// 8. Tầm đánh vô hạn khi đang bay · đi bộ vào tầm trước khi bay · đáp đất quay lại tầm thường
+// ============================================================
+test('swordsage đang bay có tầm vô hạn (đánh & dùng chiêu tới mọi địch ở xa không đổi vị trí, chuyển mục tiêu khi địch chết), trước khi bay & sau khi đáp đất phải đi bộ vào tầm 11', () => {
+    // 8a. Đi bộ khi địch xa ngoài tầm (còn 1 đồng minh) -> vào tầm là bay -> đánh địch xa ngoài tầm (giữ nguyên x/z)
+    //     -> địch đó chết chuyển ngay sang địch xa kế tiếp -> đáp đất: không đánh địch xa cho tới khi đi bộ vào tầm 11
+    {
+        const h = harness();
+        arena(h, {
+            level: 20, rank: 1,
+            allies: ['warrior'],
+            foes: [['monster_dummy', 20, 0], ['monster_dummy', 45, 4]],
+            yyX: 0,
+        });
+        const yi = h.run('YI');
+        const yyAutos = () => h.evs('autoAttack').filter(e => e.attackerId === 'p1' && e.attackerIndex === yi);
+        const tick = realLoop(h);
+
+        // Trước khi vào tầm: đi bộ về phía địch, chưa bay và chưa đánh
+        tick(5);
+        assert.equal(h.run('yy.airborne'), false);
+        assert.ok(h.run('yy.x > 0'), 'trước khi bay YunYou phải đi bộ tiến lại gần địch');
+        assert.equal(h.run('yy.state'), 'moving');
+        assert.equal(yyAutos().length, 0, 'ngoài tầm trên mặt đất chưa được đánh');
+
+        // Đi bộ tiếp tới khi kẻ địch đầu tiên vào tầm đánh thường (<= 11) -> lập tức bay lên
+        for (let i = 0; i < 40 && !h.run('yy.airborne'); i++) tick(1);
+        assert.equal(h.run('yy.airborne'), true, 'khi kẻ địch đầu tiên vào tầm đánh phải bay lên');
+        assert.equal(h.fx('takeoff').length, 1);
+        const airX = h.run('yy.x');
+        const airZ = h.run('yy.z');
+        assert.ok(20 - airX <= 11 && 20 - airX > 10, 'chỉ bay lên ngay khi địch vừa vào tầm 11');
+
+        // Đẩy đồng minh về sau (vẫn sống) và đặt cả 2 địch rất xa ngoài tầm 11; foe[0] còn ít máu để hạ nhanh
+        h.run('ally("warrior").x = -20; foes[0].x = 40; foes[0].z = 0; foes[0].hp = 1; foes[0].maxHp = 1; foes[1].x = 45; foes[1].z = 4; foes[1].hp = 5000; foes[1].maxHp = 5000;');
+        const beforeFar = yyAutos().length;
+        tick(16); // +800 ms (> atkSpeed 700 ms) -> đánh trúng foe[0] ở x=40 (xa ngoài tầm 11)
+        const afterFoe0 = yyAutos().slice(beforeFar);
+        assert.ok(afterFoe0.some(e => e.targetIndex === 0) || h.run('!foes[0].alive'), 'đang bay phải đánh được địch ở rất xa (x=40)');   // foe[0] chỉ có 1 máu: bị hạ ngay đòn đầu (có thể không kịp ghi vào danh sách đòn thường)
+        assert.equal(h.run('yy.x'), airX, 'đang bay x không được thay đổi');
+        assert.equal(h.run('yy.z'), airZ, 'đang bay z không được thay đổi');
+
+        // Khi foe[0] chết, lập tức chuyển sang foe[1] ở (45, 4) và đánh mà không di chuyển
+        tick(20); // +1000 ms -> autoImpact 240 ms hạ foe[0], nhịp tiếp theo đánh foe[1]
+        assert.equal(h.run('foes[0].alive'), false, 'foe[0] phải bị hạ');
+        assert.ok(yyAutos().slice(beforeFar).some(e => e.targetIndex === 1), 'mục tiêu xa chết phải chuyển ngay sang địch xa kế tiếp');
+        assert.ok(h.run('foes[1].hp < 5000'), 'foe[1] ở xa phải nhận sát thương');
+        assert.equal(h.run('yy.x'), airX, 'chuyển mục tiêu trên không x vẫn đứng yên');
+        assert.equal(h.run('yy.z'), airZ, 'chuyển mục tiêu trên không z vẫn đứng yên');
+
+        // Giết đồng minh cuối cùng -> đáp đất: địch ở xa KHÔNG bị đánh cho tới khi đi bộ vào lại tầm 11
+        h.run('kill(ally("warrior"), team)');
+        assert.equal(h.run('yy.airborne'), false);
+        assert.equal(h.run('yy.swordGrounded'), true);
+        assert.equal(h.fx('land').length, 1);
+
+        const beforeLand = yyAutos().length;
+        tick(20); // +1000 ms -> đi bộ được 10 ô, vẫn còn cách foe[1] > 25 ô (> 11)
+        assert.equal(yyAutos().length, beforeLand, 'sau khi đáp đất không được đánh địch ngoài tầm 11');
+        assert.ok(h.run('yy.x > ' + airX), 'sau khi đáp đất phải đi bộ tiến lại gần địch');
+        assert.equal(h.run('yy.state'), 'moving');
+
+        // Đi bộ tiếp tới khi vào tầm 11 -> đánh lại bình thường
+        for (let i = 0; i < 80 && yyAutos().length === beforeLand; i++) tick(1);
+        assert.ok(yyAutos().length > beforeLand, 'khi đi bộ vào tới tầm 11 sau đáp đất phải đánh lại');
+        assert.ok(h.run('Math.hypot(foes[1].x - yy.x, foes[1].z - yy.z) <= 11'), 'chỉ được đánh khi đã vào trong tầm đánh 11');
+        assert.equal(h.run('yy.airborne'), false);
+    }
+
+    // 8b. Kỹ năng khi đang bay với địch ngoài tầm thường & tâm Trận Đồ Kiếm ở đúng tâm địch còn sống;
+    //     trước khi bay (ngoài tầm trên đất) kỹ năng đợi chưa thi triển cho tới khi đi vào tầm
+    {
+        const h = harness();
+        arena(h, {
+            level: 20, rank: 1,
+            allies: ['warrior'],
+            foes: [['monster_dummy', 25, -4], ['monster_dummy', 37, 4]],
+            yyX: 0,
+        });
+        const tick = realLoop(h);
+
+        // Đang trên mặt đất và mọi địch đều ngoài tầm (25 > 11): xếp hàng kỹ năng không được kích hoạt, mà đi bộ vào tầm
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [0];');
+        tick(3);
+        assert.equal(h.run('yy.airborne'), false);
+        assert.equal(h.fx('haste').length, 0, 'trên mặt đất ngoài tầm chưa được bật KN1');
+        assert.ok(h.run('yy.x > 0'), 'phải đi bộ vào tầm dù đang xếp hàng kỹ năng');
+
+        // Kéo địch vào tầm để bay lên (lúc này kiểm tra riêng pha bay với địch xa)
+        h.run('yy.queuedSkills = []; foes[0].x = yy.x + 10;');
+        tick(1);
+        assert.equal(h.run('yy.airborne'), true);
+
+        // Đưa lại cả 2 địch ra rất xa ngoài tầm 11 (kể cả > 99) -> vẫn bật đủ S3, S2, S1 và đứng yên tại chỗ
+        const airX = h.run('yy.x'), airZ = h.run('yy.z');
+        h.run('ally("warrior").x = -30; foes[0].x = 25; foes[0].z = -4; foes[1].x = 125; foes[1].z = 4;');
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [2];');
+        tick(1);
+        assert.equal(h.fx('formationStart').length, 1, 'đang bay phải bật được KN3 dù mọi địch đều xa ngoài tầm');
+        assert.ok(Math.abs(h.fx('formationStart')[0].x - (25 + 125) / 2) < 1e-6, 'tâm Trận Đồ Kiếm phải là tâm của nhóm địch còn sống lúc cast');
+        assert.ok(Math.abs(h.fx('formationStart')[0].z - (-4 + 4) / 2) < 1e-6);
+
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [1];');
+        tick(1);
+        assert.equal(h.fx('fanOn').length, 1, 'đang bay phải bật được KN2 dù mọi địch đều xa ngoài tầm');
+
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [0];');
+        tick(1);
+        assert.equal(h.fx('haste').length, 1, 'đang bay phải bật được KN1 dù mọi địch đều xa ngoài tầm');
+
+        // Đánh thường dưới buff KN2 -> phóng kiếm phụ tới cả địch còn lại ở x=125, không di chuyển
+        tick(15);
+        assert.ok(h.fx('extraSwords').length >= 1, 'KN2 trên không phải phóng kiếm phụ tới địch ở xa');
+        assert.equal(h.run('yy.x'), airX);
+        assert.equal(h.run('yy.z'), airZ);
+    }
+
+    // 8c. Trận AUTO trước nhóm địch đứng tản ra khắp sân (kèm địch xa ngoài tầm đánh thường) phải kết thúc có người thắng
+    {
+        const h = harness();
+        arena(h, {
+            level: 50, rank: 2,
+            allies: ['warrior'],
+            foes: [['monster_tank', 15, -5], ['monster_archer', 32, 6], ['monster_archer', 40, -6], ['monster_supporter', 44, 4]],
+            foeLevel: 35,
+            yyX: -8,
+        });
+        h.run('room.players.p1.autoMode = true; yy.mp = yy.maxMp;');
+        const tick = realLoop(h);
+        tick(1);
+        assert.equal(h.run('yy.airborne'), false, 'đầu trận địch còn xa ngoài tầm -> chưa bay ngay');
+        for (let i = 0; i < 1200 && !h.run('room.winner'); i++) tick(2);
+        assert.equal(h.run('room.winner'), 'p1', 'trận AUTO trước nhóm địch tản ra phải kết thúc có đội thắng');
+        assert.ok(h.fx('takeoff').length >= 1, 'YunYou phải đi bộ vào tầm rồi bay lên');
+    }
+});
