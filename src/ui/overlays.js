@@ -67,15 +67,16 @@ function onCountdown(data) {
     }
 }
 
-/** Luật Sinh Tử bắt đầu (1 đấu 1 quá 15s): chữ lớn giữa màn hình 1,6s (dùng chung khung chữ đếm ngược) */
+/** Luật Sinh Tử bắt đầu (hết 3 phút ở PvP): chữ lớn giữa màn hình 1,6s (dùng chung khung chữ đếm ngược) */
 function onSuddenDeath(data) {
     if (data.kind !== 'start') return;
     const overlay = $('countdown-overlay');
     const text = $('countdown-text');
     overlay.style.display = 'flex';
-    text.textContent = '⚔️ SINH TỬ!';
+    const msg = data.reason === 'time' ? '⏰ Hết 3 phút — SINH TỬ!' : '⚔️ SINH TỬ!';
+    text.textContent = msg;
     playBeep(300, 'sawtooth', 0.4);
-    setTimeout(() => { if (text.textContent === '⚔️ SINH TỬ!') overlay.style.display = 'none'; }, 1600);
+    setTimeout(() => { if (text.textContent === msg) overlay.style.display = 'none'; }, 1600);
 }
 
 function onPauseState(data) {
@@ -129,7 +130,9 @@ function showBattleEnd(data) {
     if (sub) {
         sub.textContent = isWin
             ? 'Tuyệt vời! Đội hình của bạn đã tiêu diệt toàn bộ đối thủ.'
-            : 'Đội hình của bạn đã bị tiêu diệt hoàn toàn trong giao tranh.';
+            : (data?.timeout
+                ? 'Hết 3 phút thi đấu — đội hình của bạn bị xử thua do hết giờ.'
+                : 'Đội hình của bạn đã bị tiêu diệt hoàn toàn trong giao tranh.');
     }
     const retry = $('btn-retry');
     if (retry) {

@@ -18,13 +18,21 @@ const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Mat
 function hide() { if (el) el.className = ''; }
 
 export function setupBattleTimer() {
+    let curMode = null;
     socket.on('battleTimer', ({ leftMs, limitMs } = {}) => {
         if (leftMs == null) return;
         const b = box();
         b.textContent = `⏱ ${fmt(leftMs)}`;
-        b.title = `Mỗi ải tối đa ${Math.round((limitMs ?? 180000) / 60000)} phút — hết giờ là thua`;
+        const mins = Math.round((limitMs ?? 180000) / 60000);
+        const isPvp = curMode === 'duel_hero' || curMode === 'pvp';
+        b.title = isPvp
+            ? `Mỗi trận tối đa ${mins} phút — hết giờ vào Sinh Tử!`
+            : `Mỗi trận tối đa ${mins} phút — hết giờ là thua`;
         b.className = `on${leftMs <= 30000 ? ' low' : ''}${leftMs <= 10000 ? ' crit' : ''}`;
     });
     for (const ev of ['battleEnd', 'mainMenu', 'stageResult', 'campaignState']) socket.on(ev, hide);
-    socket.on('battleStart', (d) => { if (d?.mode !== 'campaign') hide(); });
+    socket.on('battleStart', (d) => {
+        curMode = d?.mode ?? null;
+        hide();
+    });
 }

@@ -83,7 +83,7 @@ test('campaign timer pauses, loses once, cancels channel, resets and excludes ot
     assert.equal(h.events.find(e => e.name === 'battleEnd').data.timeout, true);
     h.run('room.winner = null; startBattleLoop(room.id); processStageTimer(room)');
     assert.equal(h.events.at(-1).data.leftMs, 180000);
-    for (const mode of ['test', 'duel_monster', 'duel_hero', 'prologue', 'menu']) {
+    for (const mode of ['test', 'prologue', 'menu']) {
         const count = h.events.length;
         h.run(`room.mode = '${mode}'; room.clock += 180000; processStageTimer(room)`);
         assert.equal(h.events.length, count);

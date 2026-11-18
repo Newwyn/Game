@@ -8,12 +8,17 @@ import '../styles/account.css';
 // ============================================================
 import { net, socket } from '../net/socket.js';
 import { openCampaignSquadSelect } from './squadSelect.js';
-import { showModeMenu, unlockText } from './modeMenu.js';
+import { showModeMenu, openModeMenu, unlockText } from './modeMenu.js';
 import { hideBattleResult, afterBattleEnd } from './overlays.js';
 import { showGear } from './gear.js';
 import { showWorld, hideWorld } from './world.js';
 import { playStory, stageBackdrop } from './story.js';
 import { showExtras } from './extras.js';
+
+let skipNextForfeitResult = false;
+export function suppressForfeitResult(on = true) {
+    skipNextForfeitResult = on;
+}
 
 const STAMINA_MAX = 360;
 const STAMINA_REGEN_SEC = 300;
@@ -534,7 +539,7 @@ export function openWorldHub() {
         stages: () => { hideWorld(); net.campaignOpen(); showCampaign(); },
         gear: () => { hideWorld(); showGear(() => openWorldHub()); },
         extras: (tab) => { hideWorld(); showExtras(() => openWorldHub(), tab); },
-        back: () => { showModeMenu(); net.backToMenu(); },
+        back: () => openModeMenu({ source: 'world', onReturn: openWorldHub }),
         // sự kiện trên bản đồ (bị Goblin vây, hộ tống Seraphine…) -> vào thẳng màn chọn đội của ải đó
         stage: (id) => { hideWorld(); pendingWorldStage = id; net.campaignOpen(String(id).slice(0, 2)); },   // điểm truyện / sự kiện trên bản đồ -> mở Bảng ải đúng chương
         // 🌾 cỏ cao: đánh luôn bằng đội lần trước, xong quay lại bản đồ
@@ -593,8 +598,7 @@ function onScreenClick(e) {
         confirmBuyOpen = false;
         errorText = null;
         hideCampaign();
-        showModeMenu();
-        net.backToMenu();
+        openModeMenu({ source: 'campaign', onReturn: () => showCampaign() });
         return;
     }
     if (e.target.closest('[data-cp-error-close]')) {
@@ -873,6 +877,11 @@ export function setupCampaign() {
     });
 
     socket.on('stageResult', (data) => {
+        if (skipNextForfeitResult) {
+            skipNextForfeitResult = false;
+            hideResult();
+            return;
+        }
         // thắng ải lần đầu: lời thoại sau ải (kết chương sau ải 20) rồi mới hiện bảng kết quả
         hideBattleResult();   // bảng chung không hiện nữa — dùng bảng kết quả ải
         afterBattleEnd(() => {
@@ -882,6 +891,7 @@ export function setupCampaign() {
     });
 
     socket.on('battleStart', (data) => {
+        skipNextForfeitResult = false;
         if (data?.mode === 'campaign') {
             if (data.stage) lastSelectedStage = data.stage;
             hideCampaign();
