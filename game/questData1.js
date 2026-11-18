@@ -16,6 +16,7 @@ const ITEM_NAMES = {
     q_lua: 'Bó lúa mì', q_nam: 'Nấm rơm', q_cui: 'Bó củi', q_quang: 'Quặng xanh', q_thu: 'Thư của chị Hanna', q_meo: 'Mèo mướp',
     q_trang1: 'Trang sổ lương', q_trang2: 'Trang sổ lương', q_trang3: 'Trang sổ lương',
     q_chan1: 'Tấm chăn', q_chan2: 'Tấm chăn', q_chan3: 'Tấm chăn', q_chan4: 'Tấm chăn', q_chan5: 'Tấm chăn', q_hoa: 'Hoa chuông trắng',
+    q_chung_thu: 'Thư giới thiệu của Nhà thờ',
 };
 
 // Vật / người thêm trên bản đồ cho nhiệm vụ (game/world.js gộp vào SCENES):
@@ -26,6 +27,9 @@ const QUEST_OBJECTS = {
     // (13/11/2026) cung điện Valoria — vị trí nằm ngay trong bản vẽ phòng (tools/palace_rooms.py), không ở mapsExtra.js
     palace_in: [
         { id: 'ngai_kiem', type: 'spot', always: true, label: 'Tấm bảng dưới chân ngai', lines: ['Tấm bảng đồng dưới chân ngai: “Mỗi lưỡi kiếm ở đây từng thuộc về một người ngã xuống khi giữ cổng thành. Ai ngồi lên ngai này phải nhớ đủ tên họ.”', 'Nhìn kỹ thì trên từng lưỡi kiếm đều khắc một cái tên nhỏ xíu.'] },
+    ],
+    cathedral_in: [
+        { id: 'pk_chung_thu', type: 'pickup', item: 'q_chung_thu', main: true, label: 'Thư giới thiệu của Nhà thờ' },
     ],
     palace_council: [
         { id: 'kiem_vo_danh', type: 'spot', always: true, label: 'Thanh kiếm treo riêng', lines: ['Một thanh kiếm cũ treo riêng một góc, lưỡi nhẵn, không khắc gì.', 'Tấm thẻ gỗ bên dưới ghi: “Của người lính cãi lệnh để cứu dân làng Ashford. Tên đã bị xoá khỏi sổ. Kiếm thì còn đây.”'] },
@@ -437,14 +441,135 @@ const MAIN_TIERS = {
     mid: { gold: 500, diamond: 30, items: { exp_big: 1 } },
     big: { gold: 1500, diamond: 100, items: { exp_huge: 1 } },
 };
+const CLEAR_SCENE = {
+    1: 'ashford', 2: 'outskirts', 3: 'forest', 4: 'outskirts', 5: 'forest', 6: 'outskirts', 7: 'forest', 8: 'forest', 9: 'ashford', 10: 'ashford',
+    11: 'road', 12: 'road', 13: 'capital', 14: 'capital', 15: 'capital', 16: 'capital', 17: 'capital', 18: 'palace_in', 19: 'capital', 20: 'capital',
+};
+const MAIN_TASKS_AFTER = {
+    1: [
+        { id: 't01_out_farmer', map: 'outskirts', text: 'Ra Ngoại ô hỏi lão Gus về hướng lũ Goblin rút chạy',
+            goal: { type: 'talk', who: ['farmer'] },
+            say: { farmer: ['Lũ Goblin vừa đốt góc ruộng phía đông rồi kéo nhau trốn vào bụi lúa!', 'Cẩn thận đấy {cau}, hình như phía trước vẫn có kẻ mai phục!'] } },
+    ],
+    2: [
+        { id: 't02_for_reach', map: 'forest', text: 'Vào bìa tây Rừng Sương tìm dấu chân của Seraphine',
+            goal: { type: 'reach', scene: 'forest', x: 4, y: 11, r: 1 } },
+    ],
+    3: [
+        { id: 't03_fge_mae', map: 'forge_in', text: 'Vào Lò rèn gặp Mae hỏi vì sao bác Borin chưa đốt lò',
+            goal: { type: 'talk', who: ['mae'] },
+            say: { mae: ['Thầy Borin vừa ra trước cửa lò nhìn phía mỏ đá suốt từ sáng.', 'Thầy bảo có mấy kẻ lén lấy mất đồ nghề. {Cau} ra hỏi thầy xem sao!'] } },
+    ],
+    4: [
+        { id: 't04_clue_wheel', map: 'forest', text: 'Điều tra Vết bánh xe sâu gần bìa Rừng Sương',
+            goal: { type: 'readClues', clues: ['clue_wheel'] } },
+    ],
+    5: [
+        { id: 't05_out_win', map: 'outskirts', text: 'Đánh lui toán quái ngoài ruộng lúa Ngoại ô (thắng 1 trận)',
+            goal: { type: 'winBattles', n: 1 }, at: { scene: 'outskirts', x: 29, y: 10 } },
+    ],
+    6: [
+        { id: 't06_clue_arrows', map: 'outskirts', text: 'Điều tra Đống tro trạm canh phía đông Ngoại ô',
+            goal: { type: 'readClues', clues: ['clue_arrows'] } },
+    ],
+    7: [
+        { id: 't07_for_skills', map: 'forest', text: 'Luyện phối hợp trong Rừng Sương: dùng 3 lần kỹ năng trong trận',
+            goal: { type: 'useSkills', n: 3 }, at: { scene: 'forest', x: 11, y: 16 } },
+    ],
+    8: [
+        { id: 't08_tav_bard', map: 'tavern_in', text: 'Vào Quán cô Lena hỏi Finn về tin đồn phía bắc',
+            goal: { type: 'talk', who: ['bard'] },
+            say: { bard: ['Khách đi buôn từ đèo bắc kể tối qua thấy nhiều bó đuốc tiến gần làng lắm.', 'Làng mình nên kiểm tra lại đồ tiếp tế ngay trước khi trời tối.'] } },
+        { id: 't09_tav_chest', map: 'tavern_in', text: 'Mở rương tiếp tế trong Quán cô Lena',
+            goal: { type: 'openChests', ids: ['tavern_chest'] } },
+    ],
+    9: [
+        { id: 't10_mira_shelf', map: 'mira_in', text: 'Vào nhà Bà Mira xem Giá sách ghi chép chuyện cũ',
+            goal: { type: 'interact', obj: 'mira_shelf', n: 1 } },
+        { id: 't11_mira_ella', map: 'mira_in', text: 'Dặn dò bé Ella ở yên trong nhà Bà Mira trước giờ giữ làng',
+            goal: { type: 'talk', who: ['ella'] },
+            say: { ella: ['Cháu nhớ rồi, cháu sẽ đóng chặt cửa sổ và không chạy ra cổng đâu.', '{Anh} nhớ nhắc cả anh Rok cẩn thận nữa nhé!'] } },
+    ],
+    10: [
+        { id: 't12_clue_ledger', map: 'ashford', text: 'Điều tra Phiến đá kho giam ở Ashford trước khi rời làng',
+            goal: { type: 'readClues', clues: ['clue_ledger'] } },
+        { id: 't13_fge_anvil', map: 'forge_in', text: 'Ghé Lò rèn kiểm tra Đe rèn bác Borin trước khi lên Đường Vương Đạo',
+            goal: { type: 'interact', obj: 'forge_anvil', n: 1 } },
+    ],
+    11: [
+        { id: 't14_road_basim', map: 'road', text: 'Hỏi ông Basim trên Đường Vương Đạo vì sao trạm biên bị chặn',
+            goal: { type: 'talk', who: ['merchant'] },
+            say: { merchant: ['Xe hàng nào tới trạm kia cũng bị giữ lại, bảo là tìm gián điệp.', 'Gần Cầu Đá có một chiếc rương tiếp tế rơi lại đấy, {cau} xem thử đi.'] } },
+        { id: 't15_road_chest', map: 'road', text: 'Mở rương tiếp tế gần Cầu Đá trên Đường Vương Đạo',
+            goal: { type: 'openChests', ids: ['bridge_chest'] } },
+    ],
+    12: [
+        { id: 't16_cap_guard', map: 'capital', text: 'Hỏi anh lính gác gần cổng Nam về tình hình kinh thành Valoria',
+            goal: { type: 'talk', who: ['villager_m2'] },
+            say: { villager_m2: ['Trong chợ đang rối lắm, nhiều kẻ lạ tung tin đồn nhảm từ sáng tới giờ.', '{Cau} cẩn thận bước qua quảng trường đừng để bị xô đẩy nhé.'] } },
+    ],
+    13: [
+        { id: 't17_clue_poster', map: 'capital', text: 'Điều tra Tờ áp phích trên tường gần khu chợ kinh thành',
+            goal: { type: 'readClues', clues: ['clue_poster'] } },
+    ],
+    14: [
+        { id: 't18_arc_note', map: 'archive_in', text: 'Vào Thư khố Hoàng gia đọc Biên niên sử và bản đồ cũ',
+            goal: { type: 'interact', obj: 'archive_note', n: 1 } },
+        { id: 't19_arc_chest', map: 'archive_in', text: 'Mở rương lưu trữ trong Thư khố Hoàng gia',
+            goal: { type: 'openChests', ids: ['archive_chest'] } },
+        { id: 't20_cat_anna', map: 'cathedral_in', text: 'Vào Nhà thờ lớn Valoria gặp Sơ Anna hỏi tin về Sera',
+            goal: { type: 'talk', who: ['sister_anna'] },
+            say: { sister_anna: ['Ngọn Lửa Thánh vẫn soi đường cho những người bị hại.', 'Ta đã viết sẵn một lá Thư giới thiệu của Nhà thờ để {cau} trình vào cung điện sau khi dẹp yên kho lưu trữ.'] } },
+    ],
+    15: [
+        { id: 't21_cat_collect', map: 'cathedral_in', text: 'Nhặt Thư giới thiệu của Nhà thờ tại Nhà thờ lớn Valoria',
+            goal: { type: 'collect', items: ['q_chung_thu'] } },
+        { id: 't22_pal_deliver', map: 'palace_in', text: 'Vào Sảnh ngai Cung điện trình Thư giới thiệu cho Vệ binh hoàng cung',
+            goal: { type: 'deliver', npc: 'palace_guard_left', items: ['q_chung_thu'] },
+            say: { palace_guard_left: ['Có dấu của Nhà thờ lớn đây rồi. Mời đoàn bước vào trong Sảnh ngai.', 'Nhớ đọc Chiếu chỉ hoàng gia bên bệ tường trước khi gặp lão Corvin nhé.'] } },
+        { id: 't23_pal_note', map: 'palace_in', text: 'Đọc Chiếu chỉ hoàng gia trong Sảnh ngai Cung điện',
+            goal: { type: 'interact', obj: 'palace_note', n: 1 } },
+    ],
+    16: [
+        { id: 't24_cou_scribe', map: 'palace_council', text: 'Sang Phòng hội đồng gặp Ông Bertram hỏi về sổ lương biên giới',
+            goal: { type: 'talk', who: ['palace_scribe'] },
+            say: { palace_scribe: ['Bộ chỉ huy cứ hối xuất thêm lương, nhưng khoản cũ đi đâu thì chẳng ai ký nhận rõ.', 'Biên bản họp dang dở trên bàn có ghi lại cuộc tranh luận đó, {cau} xem đi.'] } },
+        { id: 't25_cou_note', map: 'palace_council', text: 'Đọc Biên bản họp dang dở trong Phòng hội đồng',
+            goal: { type: 'interact', obj: 'palace_council_note', n: 1 } },
+        { id: 't26_king_talk', map: 'palace_king', text: 'Lên Tẩm cung tầng 3 hỏi thăm sức khoẻ Vua Aldric II trước buổi đối chất',
+            goal: { type: 'talk', who: ['king_aldric'] },
+            say: { king_aldric: ['Ta yếu đi nhanh quá, lại hay chóng mặt trước mỗi buổi triều.', 'Cây đèn cạnh giường là quà dâng hồi đầu năm, mà sao ta thấy nó chẳng ấm chút nào, {cau} thử xem qua giúp ta.'] } },
+    ],
+    17: [
+        { id: 't27_king_lamp', map: 'palace_king', text: 'Kiểm tra Đèn Hộ Mệnh cạnh giường trong Tẩm cung nhà vua',
+            goal: { type: 'interact', obj: 'den_ho_menh', n: 1 } },
+        { id: 't28_bal_guard', map: 'palace_balcony', text: 'Ra Ban công thượng uyển hỏi Vệ binh ban công về bố phòng quanh kinh thành',
+            goal: { type: 'talk', who: ['palace_guard_balcony'] },
+            say: { palace_guard_balcony: ['Từ đây nhìn ra rõ hết hướng chợ và Tháp hiệu lệnh phía bắc đó {cau}.', 'Đứng sát lan can vài giây nhìn xuống, thấy ngay lính bộ chỉ huy dạo này đổi gác rất lạ.'] } },
+        { id: 't29_bal_stand', map: 'palace_balcony', text: 'Đứng yên 3 giây bên lan can Ban công thượng uyển quan sát kinh thành',
+            goal: { type: 'standOn', scene: 'palace_balcony', x: 5, y: 2, sec: 3 } },
+    ],
+    18: [
+        { id: 't30_pal_urg', map: 'palace_in', text: 'Nghe Vệ binh sảnh ngai chỉ gấp hướng rút chạy của Valdric',
+            goal: { type: 'talk', who: ['palace_guard_right'] },
+            say: { palace_guard_right: ['Khẩn cấp! Valdric vừa phá vòng vây chạy thẳng về hướng Tháp hiệu lệnh phía bắc!', 'Đoàn mau đuổi theo hắn ngay đừng để hắn lên kịp đỉnh tháp!'] } },
+    ],
+    19: [
+        { id: 't31_cap_stairs', map: 'capital', text: 'Vượt qua vòng lửa tiếp cận chân Tháp hiệu lệnh phía bắc',
+            goal: { type: 'reach', scene: 'capital', x: 42, y: 10, r: 6 } },
+    ],
+};
 function mainSteps(spots, reports, stages) {
     const out = [];
-    for (const s of stages) {
-        const n = s.no, sp = spots[n], rep = reports[n];
-        out.push({ id: `go${n}`, kind: 'go', no: n, text: n === 2 ? 'Ra cánh đồng Ngoại ô, có tiếng ồn' : sp?.go ?? `Tới chỗ bắt đầu ải ${n}` });
-        out.push({ id: `clear${n}`, kind: 'clear', no: n, text: `Vượt ải ${n}: ${s.name}` });
-        if (rep) out.push({ id: `report${n}`, kind: 'report', no: n, text: rep.go });
+    for (let i = 0; i < stages.length; i++) {
+        const s = stages[i], n = s.no, sp = spots[n], rep = reports[n];
+        const stageName = String(s.name ?? '').replace(/\s*—\s*/g, ': ');
+        out.push({ id: `go${n}`, kind: 'go', no: n, stage: s.id, map: n === 2 ? 'outskirts' : sp?.scene ?? 'ashford', text: n === 2 ? 'Ra cánh đồng Ngoại ô, có tiếng ồn' : sp?.go ?? `Tới chỗ bắt đầu ải ${n}` });
+        out.push({ id: `clear${n}`, kind: 'clear', no: n, stage: s.id, map: CLEAR_SCENE[n] ?? 'ashford', text: `Vượt ải ${n}: ${stageName}` });
+        if (rep) out.push({ id: `report${n}`, kind: 'report', no: n, stage: s.id, map: rep.scene, text: rep.go });
         out[out.length - 1].tier = MAIN_BIG.includes(n) ? 'big' : MAIN_MID.includes(n) ? 'mid' : 'small';   // chỉ MỐC CUỐI của mỗi ải (qua ải, hoặc về báo lại nếu có) mới trả Kim Cương
+        const nextStage = stages[i + 1]?.id;
+        for (const t of MAIN_TASKS_AFTER[n] ?? []) out.push({ kind: 'task', tier: 'small', stage: nextStage, ...t });
     }
     return out;
 }

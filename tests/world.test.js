@@ -3,10 +3,33 @@ const assert = require('node:assert/strict');
 const Wd = require('../game/world');
 const C = require('../game/campaign');
 
+const Q = require('../game/quests');
+const P = require('../progression');
+
 const fresh = () => { const pr = C.ensureCampaign({}, 0); Wd.ensureWorld(pr); return pr; };
-const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; Wd.syncReports(pr); };   // coi như đã về báo lại sau mỗi ải
+const clear = (pr, n) => { for (let i = 1; i <= n; i++) pr.campaign.cleared.story[`c1-${String(i).padStart(2, '0')}`] = true; delete pr.account; C.ensureCampaign(pr, 0); Wd.syncReports(pr); };   // coi như đã về báo lại sau mỗi ải
 const wallet = (pr) => pr.wallet;
 const quest = (pr, id) => Wd.questLog(pr).find(q => q.id === id);
+function completeStageTasks(pr) {
+    for (let guard = 0; guard < 10; guard++) {
+        const cur = Q.mainCurrent(pr);
+        if (!cur || cur.st.kind !== 'task') break;
+        const { st } = cur, g = st.goal, tg = cur.target;
+        if (['talk', 'deliver', 'interact', 'collect', 'readClues', 'openChests'].includes(g.type)) {
+            assert.ok(tg && (tg.kind === 'npc' || tg.kind === 'obj'), `${st.id} target`);
+            assert.equal(Wd.interact(pr, wallet(pr), tg.scene, tg.id, {}, 1000, () => 0.5).ok, true, `${st.id} interact`);
+        } else if (g.type === 'reach') {
+            Q.pos(pr, wallet(pr), g.scene, g.x, g.y, 1000);
+        } else if (g.type === 'standOn') {
+            Q.pos(pr, wallet(pr), g.scene, g.x, g.y, 1000);
+            Q.pos(pr, wallet(pr), g.scene, g.x, g.y, 1000 + g.sec * 1000 + 500);
+        } else if (g.type === 'winBattles' || g.type === 'useSkills') {
+            Q.battle(pr, wallet(pr), { id: 'c1-01', diff: 'story', win: true, squad: 2, deaths: 0, skills: g.type === 'useSkills' ? (g.n ?? 1) : 0, kills: 3 }, 1000);
+        } else {
+            throw new Error(`Chưa hỗ trợ loại task ${g.type} ở ${st.id}`);
+        }
+    }
+}
 
 test('quest log: fresh and legacy saves are read without mutation', () => {
     for (const pr of [{}, fresh()]) {
@@ -26,11 +49,14 @@ test('quest log: fresh and legacy saves are read without mutation', () => {
 test('quest log: ambush (ải 2) rồi Sera chỉ xuất hiện khi được cứu (ải 7) — việc thuốc cho nhà cứu tế', () => {
     const pr = fresh();
     clear(pr, 1);
+    assert.deepEqual(quest(pr, 'main').target, { scene: 'outskirts', kind: 'npc', id: 'farmer' });
+    Wd.interact(pr, wallet(pr), 'outskirts', 'farmer');
     assert.deepEqual(quest(pr, 'main').target, { scene: 'outskirts', kind: 'obj', id: 'ambush' });
     clear(pr, 6);
     const giver = { scene: 'ashford', kind: 'npc', id: 'sera' };
     assert.equal(quest(pr, 'sera').state, 'locked');   // Sera còn bị giam
     assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, true);
+    Wd.interact(pr, wallet(pr), 'outskirts', 'clue_arrows');
     assert.deepEqual(quest(pr, 'main').target, { scene: 'forest', kind: 'obj', id: 'sp_swamp' });   // ải 7: lối mòn vào đầm lầy (hoặc Bảng ải)
     clear(pr, 7);
     assert.equal(Wd.worldState(pr, 0).scenes.ashford.npcs.find(n => n.id === 'sera').hidden, false);
@@ -100,16 +126,15 @@ test('quest log: every story stage, target, shape and side ordering is valid', (
             assert.deepEqual(pr, before);
             assert.equal(log.filter(q => q.type === 'main').length, 1);
             if (n < 20) assert.equal(log[0].title, `Chương 1 · Ải ${n + 1}: ${stages[n].name}`);
-            if (n >= 2 && n < 20) {   // chính tuyến chỉ tới điểm truyện của ải kế tiếp (Bảng ải chỉ để đánh lại)
-                const sp = Wd.STORY_SPOTS[n + 1];
-                assert.deepEqual(log[0].target, sp.npc ? { scene: sp.scene, kind: 'npc', id: sp.npc } : { scene: sp.scene, kind: 'obj', id: sp.obj });
-                assert.equal(log[0].obj, sp.go);   // ải này chỉ bắt đầu từ bản đồ — không nhắc Bảng ải
+            if (n >= 1 && n < 20) {
+                const taskLog = Wd.questLog(pr)[0];
+                assert.equal(taskLog.obj, Q.mainList()[pr.world.main].text);
             }
-            if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang chương 2
+            if (n === 20) {   // xong chương 1 -> nhiệm vụ chính chuyển sang điểm truyện ải 1 chương 2 ở Rừng Sylvaren
                 assert.equal(log[0].state, 'active');
                 assert.equal(log[0].title, 'Chương 2 · Ải 1: Biên giới sương bạc');
-                assert.equal(log[0].target, null);   // rừng chưa có Bảng ải -> hướng dẫn dùng 📖 Chọn ải, không bắt về kinh thành
-                assert.match(log[0].obj, /Chọn ải/);
+                assert.deepEqual(log[0].target, { scene: 'sylvaren', kind: 'obj', id: 'sp2_border' });
+                assert.equal(log[0].obj, Wd.STORY_SPOTS2[1].go);
             }
             const ranks = log.slice(1).map(q => rank[q.state]);
             assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b));
@@ -118,8 +143,17 @@ test('quest log: every story stage, target, shape and side ordering is valid', (
                 if (!q.target) continue;
                 const { scene, kind, id } = q.target;
                 assert.ok(Wd.SCENES[scene]);
-                assert.ok(kind === 'npc' ? Wd.SCENES[scene].npcs.includes(id) : Wd.SCENES[scene].objects.some(o => o.id === id));
+                assert.ok(kind === 'npc' ? Wd.SCENES[scene].npcs.includes(id)
+                    : kind === 'obj' ? Wd.SCENES[scene].objects.some(o => o.id === id)
+                    : kind === 'tile' && Number.isInteger(q.target.x) && Number.isInteger(q.target.y));
             }
+        }
+        if (n >= 2 && n < 20) {   // làm thật các bước task trước ải n + 1 -> chính tuyến trỏ tới điểm truyện của ải kế tiếp
+            completeStageTasks(pr);
+            const sp = Wd.STORY_SPOTS[n + 1];
+            const afterLog = Wd.questLog(pr);
+            assert.deepEqual(afterLog[0].target, sp.npc ? { scene: sp.scene, kind: 'npc', id: sp.npc } : { scene: sp.scene, kind: 'obj', id: sp.obj });
+            assert.equal(afterLog[0].obj, sp.go);
         }
     }
 });
@@ -176,10 +210,12 @@ test('rương 1 lần · mạch đá hồi 4 giờ', () => {
     assert.match(Wd.interact(pr, wallet(pr), 'outskirts', 'mine', {}, 61000, () => 0).why, /phút/);
 });
 
-test('sự kiện Jessica (ải 2): chưa qua ải 1 thì yên ắng, sau đó mở trận, xong thì hết', () => {
+test('sự kiện Jessica (ải 2): chưa qua ải 1 hay chưa hỏi lão Gus thì yên ắng, sau đó mở trận, xong thì hết', () => {
     const pr = fresh();
     assert.equal(Wd.interact(pr, wallet(pr), 'outskirts', 'ambush').ok, false);
     clear(pr, 1);
+    assert.equal(Wd.interact(pr, wallet(pr), 'outskirts', 'ambush').ok, false);   // chưa nói chuyện với lão Gus (t01) -> chưa mở ải 2
+    Wd.interact(pr, wallet(pr), 'outskirts', 'farmer');
     const r = Wd.interact(pr, wallet(pr), 'outskirts', 'ambush');
     assert.equal(r.startStage, 'c1-02');
     assert.ok(r.lines.some(([who]) => who === 'stranger'));
@@ -234,6 +270,8 @@ test('điểm truyện: NPC / vật mở đúng ải kế tiếp; điều tra ch
     const pr = fresh();
     assert.equal(Wd.interact(pr, wallet(pr), 'ashford', 'rok').startStage, 'c1-01');   // ải 1: gặp Rok
     clear(pr, 2);
+    assert.equal(Wd.worldState(pr, 0).scenes.forest.objects.find(o => o.id === 'sp_bandage').state, 'hidden');   // chưa xong task 2->3
+    Q.pos(pr, wallet(pr), 'forest', 4, 11, 0);
     assert.equal(Wd.worldState(pr, 0).scenes.forest.objects.find(o => o.id === 'sp_bandage').state, 'ready');
     assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'sp_bandage').startStage, 'c1-03');
     assert.equal(Wd.interact(pr, wallet(pr), 'forest', 'sp_wolf').ok, false);   // chưa tới ải 5
@@ -245,6 +283,11 @@ test('điểm truyện: NPC / vật mở đúng ải kế tiếp; điều tra ch
     assert.equal(Wd.worldState(pr, 0).evidence.count, 1);
     clear(pr, 17);
     for (const id of ['lot_numbers', 'withdraw_order', 'target_board', 'grain_transfer']) pr.evidence[id] = true;
+    assert.equal(Wd.presentTrial(pr, pr.wallet, {}).ok, false);   // chưa xong 3 bước task trước ải 18 (t27..t29)
+    Wd.interact(pr, wallet(pr), 'palace_king', 'den_ho_menh');
+    Wd.interact(pr, wallet(pr), 'palace_balcony', 'palace_guard_balcony');
+    Q.pos(pr, wallet(pr), 'palace_balcony', 5, 2, 1000);
+    Q.pos(pr, wallet(pr), 'palace_balcony', 5, 2, 4500);
     const t = Wd.interact(pr, wallet(pr), 'capital', 'elise');
     assert.ok(t.present && t.present.questions.length === 4);
     const before = pr.wallet.diamond;
@@ -257,7 +300,7 @@ test('điểm truyện: NPC / vật mở đúng ải kế tiếp; điều tra ch
     assert.equal(again.rewards.diamond ?? 0, 0);   // thưởng chỉ lần đầu
 });
 
-test('về báo lại sau trận: phần lời ở nơi khác chuyển sang NPC ngoài bản đồ, báo xong mới mở ải kế tiếp', () => {
+test('về báo lại sau trận: phần lời ở nơi khác chuyển sang NPC ngoài bản đồ, báo xong mới mở bước tiếp', () => {
     const S = require('../game/story');
     const pr = fresh();
     clear(pr, 0);
@@ -273,6 +316,8 @@ test('về báo lại sau trận: phần lời ở nơi khác chuyển sang NPC 
     assert.equal(r.ok, true);
     assert.deepEqual(r.lines, S.post[1].slice(4).map(l => [...l]));
     assert.equal(Wd.pendingReport(pr), null);
+    assert.equal(Wd.worldState(pr).scenes.outskirts.objects.find(o => o.id === 'ambush').state, 'later');   // cần hỏi lão Gus trước khi mở ambush
+    Wd.interact(pr, pr.wallet, 'outskirts', 'farmer');
     assert.equal(Wd.worldState(pr).scenes.outskirts.objects.find(o => o.id === 'ambush').state, 'ready');
 });
 

@@ -91,7 +91,7 @@ export function trackerHTML(quest, daily = null) {
         </div>
         <div class="ql-trk-obj">
             <span class="ql-trk-obj-text">${esc(quest.obj || '')}</span>
-            ${hasProg ? `<span class="ql-trk-prog">${quest.type === 'main' ? 'Bước ' : ''}${have}/${need}</span>` : ''}
+            ${hasProg ? `<span class="ql-trk-prog">${quest.type === 'main' ? (quest.step ? `Bước ${Number(quest.step.i) || 1}/${Number(quest.step.total) || 1} · ` : 'Bước ') : ''}${have}/${need}</span>` : ''}
         </div>
         ${hasProg ? `<div class="ql-trk-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>` : ''}
         <div class="ql-trk-actions">

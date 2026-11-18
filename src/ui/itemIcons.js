@@ -72,6 +72,9 @@ const DRAW = {
     q_hoa: (g) => { g.l('#166534', 8, 15, 8, 6); g.e('#22c55e', 11, 11, 2, 1); for (const [x, y] of [[5, 5], [10, 4], [8, 8]]) { g.e(K, x, y, 3, 3); g.e('#f8fafc', x, y, 2, 2); g.r('#fde68a', x, y + 2, 1, 1); } },
     glowshroom: (g) => { DRAW.nam(g); g.e('#67e8f9', 8, 6, 5, 2); g.r('#fff', 6, 5, 2, 1); },
     startome: (g) => { g.r(K, 2, 2, 12, 13); g.r('#1e3a8a', 3, 3, 10, 11); g.r('#fde68a', 7, 5, 2, 5); g.r('#fde68a', 5, 7, 6, 1); g.r('#93c5fd', 3, 3, 1, 11); },
+    q_mat_na: (g) => { g.e(K, 8, 8, 6, 6); g.e('#eab308', 8, 8, 5, 5); g.e('#fef08a', 7, 7, 3, 2); g.r(K, 5, 7, 2, 2); g.r(K, 9, 7, 2, 2); g.r('#dc2626', 7, 10, 2, 1); },
+    q_tinh_dau: (g) => { g.r(K, 6, 1, 4, 3); g.r('#92400e', 7, 2, 2, 2); g.e(K, 8, 10, 5, 5); g.e('#67e8f9', 8, 10, 4, 4); g.e('#cffafe', 7, 9, 2, 2); },
+    q_chia_thap: (g) => { g.e(K, 5, 5, 3, 3); g.e('#fde047', 5, 5, 2, 2); g.r('#ca8a04', 5, 5, 1, 1); g.r(K, 7, 5, 7, 2); g.r('#fde047', 8, 5, 5, 1); g.r('#fde047', 11, 7, 1, 2); g.r('#fde047', 13, 7, 1, 2); },
     // ----- dụng cụ (3 bậc: gỗ / sắt / thép) -----
     ...Object.fromEntries(['pick', 'axe', 'rod'].flatMap(k => [1, 2, 3].map(t => [`tool_${k}${t}`, tool(k, t)]))),
     // ----- vật trên bản đồ -----
@@ -114,7 +117,8 @@ const DRAW = {
 };
 // mã trong túi dùng lại hình: vật nhiệm vụ nhiều món cùng loại, vật kiểu cũ
 const ALIAS = { q_lua: 'lua', wheat: 'lua', q_nam: 'nam', mushroom: 'nam', herb: 'thao', q_trang1: 'q_trang', q_trang2: 'q_trang', q_trang3: 'q_trang',
-    q_chan1: 'q_chan', q_chan2: 'q_chan', q_chan3: 'q_chan', q_chan4: 'q_chan', q_chan5: 'q_chan' };
+    q_chan1: 'q_chan', q_chan2: 'q_chan', q_chan3: 'q_chan', q_chan4: 'q_chan', q_chan5: 'q_chan', q_chung_thu: 'q_thu',
+    q_nhua_cay: 'mat', q_linhthao1: 'thao', q_linhthao2: 'thao', q_linhthao3: 'thao' };
 const keyOf = (k) => (DRAW[k] ? k : ALIAS[k] ?? null);
 export const hasIcon = (key) => !!keyOf(key);
 

@@ -1310,10 +1310,10 @@ function finishStage(room, win) {
     res.newFeatures = [...C.features(pr)].filter(f => !before.has(f));
     if (win && res.firstClear && diff === 'story') {
         let lines = STORY.postFor(id), ending = STORY.endingFor(id) ?? [];
-        // chương 1: phần lời diễn ra ở nơi khác -> NPC ngoài bản đồ ("về báo lại", game/world.js REPORTS)
-        const n1 = id.startsWith('c1-') ? STORY.stageNo(id) : null, rep = n1 && WD.REPORTS[n1];
+        // phần lời diễn ra ở nơi khác -> NPC ngoài bản đồ ("về báo lại", game/world.js REPORTS / REPORTS2)
+        const rep = WD.reportFor(id);
         if (rep) {
-            lines = [...WD.postNow(n1, lines), ['sys', `📍 ${rep.go}`]];
+            lines = [...WD.postNow(id, lines), ['sys', `📍 ${rep.go}`]];
             if (rep.ending) ending = [];
         }
         const found = EV.grantStage(pr, id);   // 🔎 chứng cứ nhận được ở ải này
@@ -2479,7 +2479,7 @@ io.on('connection', (socket) => {
     };
     const itemOf = (pr, id) => pr.gear.items[id];
     // ---------- BẢN ĐỒ THẾ GIỚI: đi lại giữa các màn, nói chuyện NPC, rương, mỏ đá, câu đố ----------
-    const QUEST_SPEAKER = { mira: 'mira', borin: 'borin', lena: 'lena', elise: 'elise', corvin: 'corvin', rok: 'warrior', jessica: 'assassin', sera: 'priest' };   // NPC -> chân dung trong khung truyện
+    const QUEST_SPEAKER = { mira: 'mira', borin: 'borin', lena: 'lena', elise: 'elise', corvin: 'corvin', rok: 'warrior', jessica: 'assassin', sera: 'priest', aeris: 'aeris', oren: 'oren' };   // NPC -> chân dung trong khung truyện
     const worldPayload = (pr) => {
         const state = WD.worldState(pr, Date.now());
         return { ...state, quests: state.quests.map(q => ({ ...q,
@@ -2583,7 +2583,7 @@ io.on('connection', (socket) => {
         if (!r.ok) return socket.emit('worldResult', { ok: false, text: WD.fill(r.why, pr.player), target: d.target });
         P.saveAll(PROGRESS);
         const speakers = speakersFor(pr);
-        if (r.npcName) speakers.npc = { ...(STORY.SPEAKERS[QUEST_SPEAKER[d.target]] ?? { emoji: '💬' }), name: r.npcName };   // 📜 lời nhận / trả nhiệm vụ phát bằng khung truyện
+        if (r.npcName) speakers.npc = { ...(STORY.SPEAKERS[QUEST_SPEAKER[d.target]] ?? (WD.NPCS[d.target]?.art ? { sheet: WD.NPCS[d.target].art } : { emoji: '💬' })), name: r.npcName };   // 📜 lời nhận / trả nhiệm vụ phát bằng khung truyện
         socket.emit('worldResult', { ...r, account: undefined, lines: fillLines(r.lines, pr), text: r.text && WD.fill(r.text, pr.player), speakers, target: d.target });
         socket.emit('worldState', worldPayload(pr));
     });
