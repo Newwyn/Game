@@ -58,8 +58,54 @@ test('dữ liệu: 18 phụ · 7 nhánh · 10 ẩn; thưởng đúng khung; mọ
     // 2 ải nhánh mới
     assert.equal(C.findStage('c1-n6').flag, 'kiem_doi_truong');
     assert.equal(C.findStage('c1-n7').flag, 'ten_bi_gach');
-    // chính tuyến: khoảng 45 bước
-    assert.equal(Q.mainList().length, 46);
+    // chính tuyến: 46 bước gốc + 25–35 bước task xen giữa các ải
+    const main = Q.mainList(), tasks = main.filter(st => st.kind === 'task');
+    assert.ok(tasks.length >= 25 && tasks.length <= 35, `số bước task (${tasks.length}) phải trong 25–35`);
+    assert.equal(main.length, 46 + tasks.length);
+    assert.ok(main.findIndex(st => st.id === 'clear1') <= 1, 'ải 1 tối đa 1 bước ngắn trước trận đầu');
+    const mainTypes = tasks.map(st => st.goal?.type);
+    assert.ok(new Set(mainTypes).size >= 8, `cần >= 8 loại mục tiêu khác nhau (đang có ${new Set(mainTypes).size})`);
+    for (let i = 2; i < mainTypes.length; i++) assert.ok(!(mainTypes[i] === mainTypes[i - 1] && mainTypes[i] === mainTypes[i - 2]), `lặp 3 lần liên tiếp: ${mainTypes[i]}`);
+    for (const st of main) {
+        assert.ok(!String(st.text ?? '').includes('—'), `${st.id}: text có gạch dài`);
+        for (const t of Object.values(st.say ?? {}).flat()) assert.ok(!t.includes('—'), `${st.id}: lời có gạch dài`);
+        assert.ok(!/[{}]/.test(st.text ?? ''), `${st.id}: text chứa dấu ngoặc nhọn chưa điền`);
+        if (st.kind !== 'task') continue;
+        const g = st.goal;
+        for (const id of g.who ?? (g.npc ? [g.npc] : [])) assert.ok(allNpc.has(id) || allObj.get(id)?.type === 'person', `${st.id}: ${id}`);
+        for (const it of g.items ?? []) assert.ok(items.has(it) || (st.give ?? []).includes(it), `${st.id}: vật ${it}`);
+        for (const id of g.objs ?? (g.obj ? [g.obj] : [])) assert.ok(allObj.has(id), `${st.id}: ${id}`);
+        if (g.clues) for (const cid of g.clues) assert.ok(allObj.has(cid), `${st.id}: manh mối ${cid}`);
+        if (g.stage) assert.ok(stages.has(g.stage), `${st.id}: ải ${g.stage}`);
+        if (st.at?.obj) assert.ok(W.SCENES[st.at.scene]?.objects.some(o => o.id === st.at.obj), `${st.id} at`);
+        if (st.at?.npc) assert.ok(W.SCENES[st.at.scene]?.npcs.includes(st.at.npc), `${st.id} at npc`);
+    }
+    // giữa 2 ải có 1–3 bước task
+    for (let n = 1; n < 20; n++) {
+        const a = main.findIndex(st => st.id === `clear${n}`), b = main.findIndex(st => st.id === `go${n + 1}`);
+        const between = main.slice(a + 1, b).filter(st => st.kind === 'task');
+        assert.ok(between.length >= 1 && between.length <= 3, `ải ${n}->${n + 1}: ${between.length} task`);
+    }
+    // thứ tự lần đầu đi qua các bản đồ chương 1 theo lộ trình cốt truyện + mỗi bản đồ >= 2 bước chính tuyến
+    const CH1_ORDER = [
+        'ashford', 'outskirts', 'forest', 'forge_in', 'tavern_in', 'mira_in',
+        'road', 'capital', 'archive_in', 'cathedral_in', 'palace_in',
+        'palace_council', 'palace_king', 'palace_balcony',
+    ];
+    const firstAll = [], perMap = {};
+    for (const st of main) {
+        if (!st.map) continue;
+        perMap[st.map] = (perMap[st.map] ?? 0) + 1;
+        if (!firstAll.includes(st.map)) firstAll.push(st.map);
+    }
+    assert.deepEqual(firstAll, CH1_ORDER);
+    for (const m of CH1_ORDER) assert.ok((perMap[m] ?? 0) >= 2, `bản đồ ${m} chỉ có ${perMap[m] ?? 0} bước`);
+    // các bước cung điện yên tĩnh (phòng hội đồng, tẩm cung, đèn hộ mệnh, ban công) đều nằm TRƯỚC ải 18; sau ải 18 & 19 tối đa 1 bước khẩn cấp
+    const idx18 = main.findIndex(st => st.id === 'go18'), idx19 = main.findIndex(st => st.id === 'go19'), idx20 = main.findIndex(st => st.id === 'go20');
+    for (const m of ['palace_council', 'palace_king', 'palace_balcony']) assert.ok(firstAll.indexOf(m) < idx18 && main.findLastIndex(st => st.map === m) < idx18, `${m} phải xong trước ải 18`);
+    assert.equal(main.findIndex(st => st.goal?.obj === 'den_ho_menh') < idx18, true);
+    assert.ok(main.slice(main.findIndex(st => st.id === 'clear18') + 1, idx19).filter(st => st.kind === 'task').length <= 1);
+    assert.ok(main.slice(main.findIndex(st => st.id === 'clear19') + 1, idx20).filter(st => st.kind === 'task').length <= 1);
 });
 
 test('phụ: nhận ở người giao (!) -> nhặt vật -> trả (?) -> thưởng đúng 1 lần, tải lại vẫn giữ', () => {
@@ -196,7 +242,8 @@ test('mục tiêu đếm trong trận / lò rèn: useSkills, enhanceGear, standO
 
 test('chính tuyến: thưởng 3 mức (nhỏ / trung bình / quan trọng), mỗi bước trả đúng 1 lần; bảng góc luôn có bước hiện tại', () => {
     const pr = fresh(), d0 = pr.wallet.diamond, g0 = pr.wallet.gold, e0 = pr.items?.exp_small ?? 0;
-    assert.deepEqual(W.worldState(pr, NOW).qlog.main, { i: 0, total: 46, reward: '+150 Vàng · +1 Bình EXP nhỏ', tier: 'small', text: 'Gặp Rok ở cổng đông làng', last: null });
+    const total = Q.mainList().length;
+    assert.deepEqual(W.worldState(pr, NOW).qlog.main, { i: 0, total, reward: '+150 Vàng · +1 Bình EXP nhỏ', tier: 'small', text: 'Gặp Rok ở cổng đông làng', last: null });
     assert.equal(act(pr, 'ashford', 'rok').startStage, 'c1-01');          // bước 1 (nhỏ): bình EXP nhỏ + vàng, KHÔNG có Kim Cương
     assert.deepEqual([pr.wallet.diamond, pr.wallet.gold, pr.items.exp_small], [d0, g0 + 150, e0 + 1]);
     act(pr, 'ashford', 'rok'); act(pr, 'ashford', 'rok');                 // bấm lại không được thêm
@@ -210,32 +257,144 @@ test('chính tuyến: thưởng 3 mức (nhỏ / trung bình / quan trọng), m�
     assert.equal(W.questLog(pr)[0].obj, W.REPORTS[1].go);                 // bảng CHÍNH TUYẾN ở góc
     act(pr, 'ashford', 'mira');                                           // bước 3: về báo lại (ải 1 là mức nhỏ)
     assert.equal(pr.wallet.diamond, d0 + 50);
-    assert.equal(pr.world.main, 3);
-    const again = JSON.parse(JSON.stringify(pr));
-    W.worldState(again, NOW); Q.settle(again, again.wallet, NOW);
-    assert.equal(again.wallet.diamond, d0 + 50);
-    // cả chương: 3 bước quan trọng (bình siêu lớn) + 8 bước trung bình + 35 bước nhỏ = 540 Kim Cương
+    assert.equal(Q.mainList()[pr.world.main].id, 't01_out_farmer');
+    // cả chương: 3 bước quan trọng (bình siêu lớn) + 8 bước trung bình + (còn lại) bước nhỏ = 540 Kim Cương
     const tiers = Q.mainList().map(st => st.tier ?? 'small'), count = (t) => tiers.filter(x => x === t).length;
-    assert.deepEqual([count('big'), count('mid'), count('small')], [3, 8, 35]);
+    assert.deepEqual([count('big'), count('mid'), count('small')], [3, 8, total - 11]);
     assert.equal(count('big') * Q.MAIN_TIERS.big.diamond + count('mid') * Q.MAIN_TIERS.mid.diamond, 540);
     assert.ok(Q.MAIN_TIERS.big.items.exp_huge && Q.MAIN_TIERS.mid.items.exp_big && !Q.MAIN_TIERS.small.diamond);
+    assert.ok(Q.mainList().filter(st => st.kind === 'task').every(st => (st.tier ?? 'small') === 'small'));
     // ải 2 là mức trung bình: bước cuối của ải trả Kim Cương + bình lớn
     const last2 = Q.mainList().filter(st => st.no === 2).at(-1);
     assert.equal(last2.tier, 'mid');
 });
 
+test('chính tuyến bước task: chặn ải trước khi xong, đếm tiến độ (reach/winBattles/useSkills/openChests/enhanceGear/collect/deliver/standOn), trả thưởng 1 lần', async () => {
+    const pr = fresh();
+    act(pr, 'ashford', 'rok'); win(pr, 'c1-01'); act(pr, 'ashford', 'mira');
+    // chưa nói chuyện với lão Gus -> ải 2 bị chặn
+    assert.equal(Q.stageBlocked(pr, 'c1-02'), true);
+    assert.equal(W.eventState(pr, 'jess'), 'later');
+    assert.equal(act(pr, 'outskirts', 'ambush').ok, false);
+    assert.equal(npc(pr, 'outskirts', 'farmer').mark, '?');
+    assert.equal(npc(pr, 'outskirts', 'farmer').mk, 'main');
+    const g0 = pr.wallet.gold;
+    const tr = act(pr, 'outskirts', 'farmer');
+    assert.ok(tr.lines.length >= 2);
+    assert.equal(pr.wallet.gold, g0 + 150);
+    Q.settle(pr, pr.wallet, NOW);
+    assert.equal(pr.wallet.gold, g0 + 150);                                // không trả 2 lần
+    assert.equal(Q.stageBlocked(pr, 'c1-02'), false);
+    assert.equal(W.eventState(pr, 'jess'), 'ready');
+    // ải 2 -> 3: reach (forest 4,11) -> mở sp_bandage
+    win(pr, 'c1-02'); act(pr, 'ashford', 'mira');
+    assert.equal(Q.stageBlocked(pr, 'c1-03'), true);
+    Q.pos(pr, pr.wallet, 'forest', 4, 11, NOW);
+    assert.equal(Q.stageBlocked(pr, 'c1-03'), false);
+    assert.equal(obj(pr, 'forest', 'sp_bandage').state, 'ready');
+    // winBattles (t05_out_win sau ải 5)
+    clear(pr, 5);
+    assert.equal(Q.mainList()[pr.world.main].id, 't05_out_win');
+    assert.equal(Q.stageBlocked(pr, 'c1-06'), true);
+    win(pr, 'c1-01', { skills: 0 });
+    assert.equal(Q.stageBlocked(pr, 'c1-06'), false);
+    assert.equal(Q.mainList()[pr.world.main].id, 'go6');
+    // useSkills (t07_for_skills sau ải 7: tiến độ 2/3 -> 3/3) + kiểm tra UI tracker/log
+    clear(pr, 7);
+    assert.equal(Q.mainList()[pr.world.main].id, 't07_for_skills');
+    assert.deepEqual(W.questLog(pr)[0].target, { scene: 'forest', kind: 'tile', x: 11, y: 16 });
+    win(pr, 'c1-01', { skills: 2 });
+    const st7 = W.worldState(pr, NOW);
+    assert.deepEqual(st7.qlog.main.progress, { have: 2, need: 3 });
+    assert.deepEqual(st7.quests[0].progress, { have: 2, need: 3 });
+    const { trackerHTML, questLogHTML } = await import('../src/ui/questLog.js');
+    const uiMain = { ...st7.quests[0], step: { i: st7.qlog.main.i + 1, total: st7.qlog.main.total } };
+    assert.match(trackerHTML(uiMain, st7.qlog.daily), /2\/3/);
+    assert.match(questLogHTML([uiMain], { tab: 'main', sel: 'main', qlog: st7.qlog }), /2 \/ 3/);
+    assert.equal(Q.stageBlocked(pr, 'c1-08'), true);
+    win(pr, 'c1-01', { skills: 1 });
+    assert.equal(Q.stageBlocked(pr, 'c1-08'), false);
+    assert.equal(obj(pr, 'forest', 'sp_grix').state, 'ready');
+    // talk + openChests (t08 -> t09 ở Quán cô Lena; mở sẵn rương cũng tự qua)
+    clear(pr, 8);
+    assert.equal(Q.mainList()[pr.world.main].id, 't08_tav_bard');
+    act(pr, 'tavern_in', 'bard');
+    assert.equal(Q.mainList()[pr.world.main].id, 't09_tav_chest');
+    assert.deepEqual(W.questLog(pr)[0].target, { scene: 'tavern_in', kind: 'obj', id: 'tavern_chest' });
+    act(pr, 'tavern_in', 'tavern_chest');
+    assert.equal(Q.mainList()[pr.world.main].id, 'go9');
+    // rương đã mở từ trước -> bước mở rương tự hoàn thành, không kẹt
+    const chestDone = fresh();
+    act(chestDone, 'tavern_in', 'tavern_chest');
+    clear(chestDone, 8);
+    act(chestDone, 'tavern_in', 'bard');
+    assert.equal(Q.mainList()[chestDone.world.main].id, 'go9');
+    // đe rèn (t13_fge_anvil sau ải 10): kiểm tra mở được bằng tài khoản thực tế qua 10 ải (không kẹt nếu hết đá/vàng)
+    clear(pr, 10);
+    delete pr.account; C.ensureCampaign(pr, 0);
+    act(pr, 'ashford', 'clue_ledger');
+    assert.equal(Q.mainList()[pr.world.main].id, 't13_fge_anvil');
+    assert.deepEqual(W.questLog(pr)[0].target, { scene: 'forge_in', kind: 'obj', id: 'forge_anvil' });
+    assert.equal(act(pr, 'forge_in', 'forge_anvil').open, 'gear');
+    assert.equal(Q.mainList()[pr.world.main].id, 'go11');
+    // collect -> deliver (t21 ở Nhà thờ lớn -> t22 trình Vệ binh Sảnh ngai)
+    clear(pr, 15);
+    assert.equal(Q.mainList()[pr.world.main].id, 't21_cat_collect');
+    assert.equal(obj(pr, 'cathedral_in', 'pk_chung_thu').state, 'ready');
+    act(pr, 'cathedral_in', 'pk_chung_thu');
+    assert.equal(Q.mainList()[pr.world.main].id, 't22_pal_deliver');
+    assert.deepEqual(W.questLog(pr)[0].target, { scene: 'palace_in', kind: 'npc', id: 'palace_guard_left' });
+    assert.equal(npc(pr, 'palace_in', 'palace_guard_left').mark, '?');
+    assert.equal(npc(pr, 'palace_in', 'palace_guard_left').mk, 'main');
+    act(pr, 'palace_in', 'palace_guard_left');
+    assert.equal(pr.world.bag.q_chung_thu, undefined);
+    assert.equal(Q.mainList()[pr.world.main].id, 't23_pal_note');
+    // cung điện yên tĩnh + đèn hộ mệnh + đứng yên ban công trước ải 18; khẩn cấp ngắn sau 18 và 19
+    clear(pr, 17);
+    assert.equal(Q.mainList()[pr.world.main].id, 't27_king_lamp');
+    act(pr, 'palace_king', 'den_ho_menh');
+    assert.equal(Q.mainList()[pr.world.main].id, 't28_bal_guard');
+    act(pr, 'palace_balcony', 'palace_guard_balcony');
+    assert.equal(Q.mainList()[pr.world.main].id, 't29_bal_stand');
+    Q.pos(pr, pr.wallet, 'palace_balcony', 5, 2, NOW);
+    Q.pos(pr, pr.wallet, 'palace_balcony', 5, 2, NOW + 2500);
+    assert.equal(Q.mainList()[pr.world.main].id, 't29_bal_stand');
+    Q.pos(pr, pr.wallet, 'palace_balcony', 5, 2, NOW + 3500);
+    assert.equal(Q.mainList()[pr.world.main].id, 'go18');
+    assert.equal(Q.stageBlocked(pr, 'c1-18'), false);
+    clear(pr, 18);
+    assert.equal(Q.mainList()[pr.world.main].id, 't30_pal_urg');
+    act(pr, 'palace_in', 'palace_guard_right');
+    assert.equal(Q.mainList()[pr.world.main].id, 'go19');
+    clear(pr, 19);
+    assert.equal(Q.mainList()[pr.world.main].id, 't31_cap_stairs');
+    Q.pos(pr, pr.wallet, 'capital', 47, 11, NOW);
+    assert.equal(Q.mainList()[pr.world.main].id, 'go20');
+    assert.equal(Q.stageBlocked(pr, 'c1-20'), false);
+});
+
 test('chính tuyến: save cũ ở giữa chương tính đúng bước, không kẹt, KHÔNG trả bù', () => {
     const steps = Q.mainList();
-    // save rất cũ: chưa có pr.world
+    // save rất cũ: chưa có pr.world (qua 1–8 -> bỏ qua cả các task trước ải 8, dừng ở task đầu sau ải 8)
     const old = C.ensureCampaign({}, 0);
     for (let i = 1; i <= 8; i++) old.campaign.cleared.story[sid(i)] = true;
     const d0 = old.wallet.diamond;
     W.ensureWorld(old); noDaily(old);
-    assert.equal(steps[old.world.main].id, 'go9');
+    assert.equal(steps[old.world.main].id, 't08_tav_bard');
     W.worldState(old, NOW); Q.settle(old, old.wallet, NOW);
     assert.equal(old.wallet.diamond, d0);                                  // 8 ải đã qua: không trả bù
+    act(old, 'tavern_in', 'bard'); act(old, 'tavern_in', 'tavern_chest');
+    assert.equal(steps[old.world.main].id, 'go9');
     assert.equal(act(old, 'ashford', 'mira').startStage, 'c1-09');         // đi tiếp bình thường
-    assert.equal(old.wallet.diamond, d0);                                  // "tới điểm truyện" là bước nhỏ: không có Kim Cương
+    assert.equal(old.wallet.diamond, d0);                                  // bước nhỏ: không có Kim Cương
+    // save cũ bản 46 bước (có world.main theo danh sách cũ, chưa có mainId): tự khớp về đúng bước mới, KHÔNG trả bù
+    const legacy = C.ensureCampaign({}, 0);
+    for (let i = 1; i <= 8; i++) legacy.campaign.cleared.story[sid(i)] = true;
+    legacy.world = { main: 18, reported: { 1: true, 2: true, 7: true }, spot: {}, daily: { day: Q.dayKey(NOW), tasks: [], n: {}, seen: {}, got: {}, bonus: true } };
+    const d5 = legacy.wallet.diamond;
+    W.ensureWorld(legacy); Q.settle(legacy, legacy.wallet, NOW);
+    assert.equal(steps[legacy.world.main].id, 't08_tav_bard');
+    assert.equal(legacy.wallet.diamond, d5);
     // save cũ vừa thắng ải 1, chưa về báo (đã có world.reported nhưng chưa có world.main)
     const mid = C.ensureCampaign({}, 0);
     W.ensureWorld(mid); delete mid.world.main; delete mid.world.spot;
@@ -245,8 +404,8 @@ test('chính tuyến: save cũ ở giữa chương tính đúng bước, không 
     assert.equal(steps[mid.world.main].id, 'report1');
     assert.equal(mid.wallet.diamond, d1);
     act(mid, 'ashford', 'mira');
-    assert.equal(mid.wallet.diamond, d1);                                   // ải 1: mức nhỏ, không có Kim Cương
-    assert.equal(steps[mid.world.main].id, 'go2');
+    assert.equal(mid.wallet.diamond, d1);                                  // ải 1: mức nhỏ, không có Kim Cương
+    assert.equal(steps[mid.world.main].id, 't01_out_farmer');
     // trận đánh khi save chưa có world (móc ở campaign.applyResult) cũng không trả bù
     const raw = C.ensureCampaign({}, 0);
     for (let i = 1; i <= 5; i++) raw.campaign.cleared.story[sid(i)] = true;
@@ -255,13 +414,20 @@ test('chính tuyến: save cũ ở giữa chương tính đúng bước, không 
     C.applyResult(raw, { id: 'c1-03', diff: 'story', classes: ['warrior', 'assassin'], win: true }, P, NOW, () => 0.999, { deaths: 0, skills: 0, kills: 3 });
     W.ensureWorld(raw); Q.settle(raw, raw.wallet, NOW);
     assert.equal(raw.wallet.diamond, d2);
-    assert.equal(steps[raw.world.main].id, 'go6');
+    assert.equal(steps[raw.world.main].id, 'go6');   // trận vừa thắng tính luôn cho bước "thắng 1 trận" (t05_out_win) đứng sau ải 5 -> sang bước kế, vẫn không có Kim Cương
+    // save cũ qua ải 18 -> dừng ở task khẩn đầu sau ải 18 (t30_pal_urg), mọi task trước ải 18 coi như xong
+    const late = C.ensureCampaign({}, 0);
+    for (let i = 1; i <= 18; i++) late.campaign.cleared.story[sid(i)] = true;
+    const d4 = late.wallet.diamond;
+    W.ensureWorld(late); noDaily(late);
+    assert.equal(steps[late.world.main].id, 't30_pal_urg');
+    assert.equal(late.wallet.diamond, d4);
     // công cụ thử nhảy ải (syncReports) cũng không trả
     const jump = fresh(), d3 = jump.wallet.diamond;
     clear(jump, 20);
     Q.settle(jump, jump.wallet, NOW);
     assert.equal(jump.wallet.diamond, d3);
-    assert.equal(jump.world.main, 46);
+    assert.equal(jump.world.main, steps.length);
 });
 
 test('ẩn: không lộ trước khi kích hoạt; tự kích hoạt ở hành động đầu; thưởng + danh hiệu 1 lần', () => {
@@ -476,6 +642,29 @@ test('bản đồ: mọi vật nhặt / điểm tới / người của nhiệm v
     for (const q of Q.QUESTS) for (const st of q.steps) if (st.goal.type === 'reach') {
         const mm = MAPS[st.goal.scene];
         assert.ok(flood(mm, mm.spawn).has(key(st.goal.x, st.goal.y)), `${q.id}: điểm tới`);
+    }
+    for (const st of Q.mainList()) if (st.kind === 'task') {
+        const tg = Q.targetOfGoal({}, st, st.goal, {});
+        assert.ok(tg && MAPS[tg.scene], `${st.id}: thiếu mục tiêu`);
+        const mm = MAPS[tg.scene];
+        const pos = new Map((EXTRA[tg.scene] ?? []).map(o => [o.id, o]));
+        const all = [...mm.objects.filter(o => !pos.has(o.id)), ...pos.values()];
+        const solid = new Set([...mm.npcs.filter(n => !W.NPCS[n.id].wander).map(n => key(n.x, n.y)), ...all.filter(o => o.solid && !o.area).flatMap(o => (o.group ?? [[0, 0]]).map(([dx, dy]) => key(o.x + dx, o.y + dy)))]);
+        const reached = flood(mm, mm.spawn, solid);
+        const h = (x, y) => mm.heights?.[y]?.[x] ?? '0';
+        if (st.goal.type === 'reach' || st.goal.type === 'standOn') {
+            assert.ok(reached.has(key(st.goal.x, st.goal.y)), `${st.id}: điểm tới`);
+        }
+        if (tg.kind === 'tile') {
+            assert.ok(reached.has(key(tg.x, tg.y)), `${st.id}: target tile`);
+        } else if (tg.kind === 'npc') {
+            const np = mm.npcs.find(n => n.id === tg.id);
+            assert.ok(np && N4.some(([dx, dy]) => reached.has(key(np.x + dx, np.y + dy)) && h(np.x + dx, np.y + dy) === h(np.x, np.y)), `${st.id}: npc ${tg.id}`);
+        } else if (tg.kind === 'obj') {
+            const o = all.find(x => x.id === tg.id);
+            const tiles = o?.area ?? (o ? [[o.x, o.y]] : []);
+            assert.ok(o && tiles.some(([ox, oy]) => N4.some(([dx, dy]) => reached.has(key(ox + dx, oy + dy)) && h(ox + dx, oy + dy) === h(ox, oy))), `${st.id}: obj ${tg.id}`);
+        }
     }
     assert.equal(MAPS.road.grid[7][18], '.');
 });

@@ -114,7 +114,7 @@ const DRAW = {
 };
 // mã trong túi dùng lại hình: vật nhiệm vụ nhiều món cùng loại, vật kiểu cũ
 const ALIAS = { q_lua: 'lua', wheat: 'lua', q_nam: 'nam', mushroom: 'nam', herb: 'thao', q_trang1: 'q_trang', q_trang2: 'q_trang', q_trang3: 'q_trang',
-    q_chan1: 'q_chan', q_chan2: 'q_chan', q_chan3: 'q_chan', q_chan4: 'q_chan', q_chan5: 'q_chan' };
+    q_chan1: 'q_chan', q_chan2: 'q_chan', q_chan3: 'q_chan', q_chan4: 'q_chan', q_chan5: 'q_chan', q_chung_thu: 'q_thu' };
 const keyOf = (k) => (DRAW[k] ? k : ALIAS[k] ?? null);
 export const hasIcon = (key) => !!keyOf(key);
 

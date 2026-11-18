@@ -26,13 +26,24 @@ const stageNo = (id) => { const m = /^c1-(\d\d)$/.exec(id ?? ''); return m ? Num
 const C1_JUMP = /^jump_(ashford|outskirts|forest|road|capital)_/;   // rương phải nhảy mới tới của chương 1
 
 // ---------- trạng thái ----------
+function prepMain(pr) {
+    const w = pr.world;
+    const cur = w ? MAIN[w.main] : null;
+    if (w) w.mainId = cur?.id ?? '__done__';
+    if (cur?.kind === 'task') {
+        if (cur.give) for (const it of cur.give) w.bag[it] = true;
+        if (cur.tools) for (const [tool, tier] of Object.entries(cur.tools)) require('./gather').giveTool(pr, tool, tier);
+    }
+}
 function ensure(pr) {
     pr.world ??= {};
     const w = pr.world;
-    w.quests ??= {}; w.bag ??= {}; w.qp ??= {}; w.opened ??= {}; w.qnotes ??= []; w.spot ??= {};
+    w.quests ??= {}; w.bag ??= {}; w.qp ??= {}; w.opened ??= {}; w.qnotes ??= []; w.spot ??= {}; w.mainP ??= { n: 0, d: {} };
     pr.flags ??= {};
-    if (!w.reported) { w.reported = {}; for (const st of MAIN) if (st.kind === 'report' && clearedNo(pr, st.no)) w.reported[st.no] = true; }   // save cũ: ải đã qua coi như đã báo (như game/world.js)
-    if (w.main == null) w.main = firstUndone(pr);   // save cũ: bước của ải đã qua coi như xong, KHÔNG trả bù Kim Cương
+    if (!w.reported) { w.reported = {}; for (const st of MAIN) if (st.kind === 'report' && st.stage && clearedId(pr, st.stage)) w.reported[st.report ?? st.no] = true; }   // save cũ: ải đã qua coi như đã báo
+    const curId = w.main != null ? (MAIN[w.main]?.id ?? '__done__') : null;
+    if (w.main == null || w.mainId !== curId) { w.main = firstUndone(pr); w.mainP = { n: 0, d: {} }; }   // save cũ: bước của ải đã qua coi như xong, KHÔNG trả bù Kim Cương
+    prepMain(pr);
     return w;
 }
 const stateOf = (pr, id) => pr.world?.quests?.[id] ?? null;
@@ -198,31 +209,85 @@ function complete(pr, wallet, q, rng) {
     return { quest: q.id, rewards: { ...q.reward }, text, flag: q.flag ?? null, account: acc };
 }
 
-// ---------- chính tuyến: mỗi bước +20 Kim Cương ----------
-function mainDone(pr, st) {
+// ---------- chính tuyến: thưởng 3 mức theo MAIN_TIERS ----------
+const taskSkipped = (pr, idx) => MAIN.slice(idx + 1).some(x => x.kind === 'clear' && x.stage && clearedId(pr, x.stage));   // save cũ: bước trước ải đã qua coi như xong
+const trustedMain = (pr) => {
+    const w = pr?.world;
+    return w?.main != null && w.mainId === (MAIN[w.main]?.id ?? '__done__') ? w.main : null;
+};
+const mainIndex = (pr) => {
+    const t = trustedMain(pr);
+    return Math.min(t ?? firstUndone(pr), MAIN.length);
+};
+function mainDone(pr, st, idx = MAIN.indexOf(st), useCurProg = false) {
     const w = pr.world ?? {};
-    if (st.kind === 'go') return !!w.spot?.[st.no] || clearedNo(pr, st.no);
-    if (st.kind === 'clear') return clearedNo(pr, st.no);
-    return clearedNo(pr, st.no) && !!w.reported?.[st.no];
+    if (!st) return false;
+    if (st.kind === 'go') {
+        const sk = st.spot ?? st.no;
+        return (sk != null && !!w.spot?.[sk]) || (st.stage ? clearedId(pr, st.stage) : false);
+    }
+    if (st.kind === 'clear') return !!st.stage && clearedId(pr, st.stage);
+    if (st.kind === 'report') {
+        const rk = st.report ?? st.no;
+        return !!st.stage && clearedId(pr, st.stage) && !!(rk != null && w.reported?.[rk]);
+    }
+    if (st.kind === 'task') {
+        if ((st.stage && clearedId(pr, st.stage)) || (idx >= 0 && taskSkipped(pr, idx))) return true;
+        if (!st.goal) return true;
+        const curIdx = trustedMain(pr) ?? -1;
+        if (!DERIVED.has(st.goal.type) && !(useCurProg && idx === curIdx)) return false;
+        const p = useCurProg && idx === curIdx ? (w.mainP ?? {}) : {};
+        const pg = progress(pr, st.goal, p);
+        return pg.have >= pg.need;
+    }
+    return false;
 }
 function firstUndone(pr) {
     let i = 0;
-    while (i < MAIN.length && mainDone(pr, MAIN[i])) i++;
+    while (i < MAIN.length && mainDone(pr, MAIN[i], i, false)) i++;
     return i;
 }
+/** Ải bị chặn nếu có bước (trừ bước 'go' của chính ải đó) đứng trước clear(stageId) mà chưa xong */
+function stageBlocked(pr, stageId) {
+    const cIdx = MAIN.findIndex(st => st.kind === 'clear' && st.stage === stageId);
+    if (cIdx < 0) return false;
+    const t = trustedMain(pr);
+    for (let i = 0; i < cIdx; i++) {
+        const st = MAIN[i];
+        if (st.kind === 'go' && st.stage === stageId) continue;
+        if (t != null && i < t) continue;
+        if (!mainDone(pr, st, i, t != null && i === t)) return true;
+    }
+    return false;
+}
 /** Tính lại bước chính tuyến KHÔNG trả thưởng (save cũ / công cụ thử nhảy ải) */
-function resetMain(pr) { ensure(pr).main = firstUndone(pr); }
+function resetMain(pr) {
+    const w = ensure(pr);
+    const next = firstUndone(pr);
+    for (let i = 0; i < next && i < MAIN.length; i++) for (const it of MAIN[i].give ?? []) delete w.bag[it];
+    w.main = next;
+    w.mainP = { n: 0, d: {} };
+    prepMain(pr);
+}
 function advanceMain(pr, wallet) {
     const w = pr.world;
     let n = 0;
-    while (w.main < MAIN.length && mainDone(pr, MAIN[w.main])) {
+    while (w.main < MAIN.length && mainDone(pr, MAIN[w.main], w.main, true)) {
         const st = MAIN[w.main];
         w.main++;                                   // tăng chỉ số trước -> mỗi bước chỉ trả 1 lần
+        w.mainId = MAIN[w.main]?.id ?? '__done__';
+        if (st.kind === 'task') {
+            if (st.goal?.type === 'deliver') for (const it of st.goal.items ?? []) delete w.bag[it];
+            for (const it of st.give ?? []) delete w.bag[it];
+            if (st.flag) pr.flags[st.flag] = true;
+        }
+        w.mainP = { n: 0, d: {} };
         const r = mainReward(st);                   // nhỏ: bình EXP nhỏ + vàng · trung bình: + Kim Cương · quan trọng: bình siêu lớn
         grant(pr, wallet, r);
         note(pr, `${st.tier === 'big' ? '🌟' : '⭐'} Chính tuyến: ${st.text} · ${rewardText(r)}`, 'main');
         n++;
     }
+    prepMain(pr);
     return n;
 }
 
@@ -331,6 +396,12 @@ function settle(pr, wallet, now = Date.now(), rng = Math.random) {
 function fire(pr, wallet, ev, now = Date.now(), rng = Math.random) {
     const w = ensure(pr), hits = [];
     const early = settle(pr, wallet, now, rng);   // bước tính thẳng từ save (đã đủ vật, đã qua ải…) sang bước kế trước khi xét sự kiện
+    let mainHit = null;
+    const mt = w.main < MAIN.length ? MAIN[w.main] : null;
+    if (mt?.kind === 'task' && mt.goal && !DERIVED.has(mt.goal.type)) {
+        w.mainP ??= { n: 0, d: {} };
+        if (match(pr, mt.goal, ev, w.mainP)) mainHit = mt;
+    }
     for (const q of QUESTS) {
         const st = w.quests[q.id];
         if (st === 'done') continue;
@@ -347,12 +418,36 @@ function fire(pr, wallet, ev, now = Date.now(), rng = Math.random) {
     }
     dailyEvent(pr, wallet, ev, now);
     const done = [...early, ...settle(pr, wallet, now, rng)];
-    return { hits, done };
+    return { hits, done, mainHit };
+}
+
+function activeMainTask(pr) {
+    const w = pr.world;
+    const i = mainIndex(pr), t = trustedMain(pr);
+    const st = MAIN[i];
+    return st?.kind === 'task' && !mainDone(pr, st, i, t === i) ? { st, p: t === i ? (w?.mainP ?? {}) : {}, i } : null;
+}
+function activeEntries(pr, includeHidden = true) {
+    const w = pr.world ?? {}, out = [];
+    const mt = activeMainTask(pr);
+    if (mt?.st?.goal) out.push({ type: 'main', st: mt.st, goal: mt.st.goal, p: mt.p });
+    for (const q of QUESTS) {
+        if (!includeHidden && q.type === 'hidden') continue;
+        if (w.quests?.[q.id] !== 'active') continue;
+        const p = progOf(pr, q.id), st = q.steps[p.i];
+        if (st?.goal) out.push({ type: q.type, q, st, goal: st.goal, p });
+    }
+    return out;
 }
 
 /** Nói chuyện với NPC / người trên bản đồ: trả / làm bước -> nhận nhiệm vụ mới -> nhắc việc. null = không liên quan nhiệm vụ. */
 function talk(pr, wallet, who, now = Date.now(), rng = Math.random) {
-    const { hits, done } = fire(pr, wallet, { type: 'talk', who }, now, rng);
+    const { hits, done, mainHit } = fire(pr, wallet, { type: 'talk', who }, now, rng);
+    if (mainHit) {
+        const say = mainHit.say?.[who] ?? null;
+        const lines = (say ?? ['Được rồi.']).map(t => ['npc', t]);
+        return { lines, story: lines.length > 1, main: mainHit.id };
+    }
     if (hits.length) {
         const { q, step } = hits[0], fin = done.find(d => d.quest === q.id);
         const say = step.say?.[who] ?? null;
@@ -375,12 +470,10 @@ function talk(pr, wallet, who, now = Date.now(), rng = Math.random) {
 /** Dấu trên đầu NPC / người: '?' tới lúc trả / nói chuyện theo bước · '!' có nhiệm vụ mới. Nhiệm vụ ẩn không có dấu. */
 function markOf(pr, who) {
     const w = pr.world ?? {};
-    for (const q of visibleQuests()) {
-        if (w.quests?.[q.id] !== 'active') continue;
-        const p = progOf(pr, q.id), g = q.steps[p.i]?.goal;
-        if (!g) continue;
-        if (g.type === 'talk' && g.who.includes(who) && !p.d?.[who]) return { txt: '?', kind: q.type, quest: q.id };
-        if (g.type === 'deliver' && g.npc === who && g.items.every(it => w.bag?.[it])) return { txt: '?', kind: q.type, quest: q.id };
+    for (const e of activeEntries(pr, false)) {
+        const g = e.goal, d = e.p.d;
+        if (g.type === 'talk' && g.who.includes(who) && !d?.[who]) return e.q ? { txt: '?', kind: e.q.type, quest: e.q.id } : { txt: '?', kind: 'main' };
+        if (g.type === 'deliver' && g.npc === who && g.items.every(it => w.bag?.[it])) return e.q ? { txt: '?', kind: e.q.type, quest: e.q.id } : { txt: '?', kind: 'main' };
     }
     const offer = visibleQuests().find(q => q.giver === who && !w.quests?.[q.id] && isOpen(pr, q));
     return offer ? { txt: '!', kind: offer.type, quest: offer.id } : null;
@@ -388,27 +481,20 @@ function markOf(pr, who) {
 /** NPC / người có đang được nhiệm vụ cần tới không (để hiện dù điều kiện cốt truyện đã ẩn) — kể cả bước nói chuyện của nhiệm vụ ẩn */
 function needed(pr, who) {
     if (markOf(pr, who)) return true;
-    const w = pr.world ?? {};
-    return QUESTS.some(q => {
-        if (w.quests?.[q.id] !== 'active') return false;
-        if (q.giver === who) return true;
-        const p = progOf(pr, q.id), g = q.steps[p.i]?.goal;
-        return !!g && ((g.type === 'talk' && g.who.includes(who) && !p.d?.[who]) || (g.type === 'deliver' && g.npc === who));
-    });
+    return activeEntries(pr, true).some(({ q, goal: g, p }) =>
+        q?.giver === who || (g.type === 'talk' && g.who.includes(who) && !p.d?.[who]) || (g.type === 'deliver' && g.npc === who));
 }
 
 /** Trạng thái vật nhiệm vụ trên bản đồ: 'ready' | 'hidden' (+ dấu cho người) */
 function objState(pr, o, now = Date.now()) {
     const w = pr.world ?? {};
     if (o.type === 'pickup' || o.type === 'item') {
-        const q = BY_ID[o.quest];
-        if (!q || w.quests?.[q.id] !== 'active' || w.bag?.[o.item]) return 'hidden';
-        const g = q.steps[progOf(pr, q.id).i]?.goal;
-        return g?.type === 'collect' && g.items.includes(o.item) ? 'ready' : 'hidden';
+        if (w.bag?.[o.item]) return 'hidden';
+        return activeEntries(pr, true).some(({ q, goal: g }) => (o.main ? !q : (!o.quest || q?.id === o.quest)) && g.type === 'collect' && g.items.includes(o.item)) ? 'ready' : 'hidden';
     }
     if (o.type === 'spot') {
         if (o.always) return 'ready';
-        return QUESTS.some(q => { if (w.quests?.[q.id] !== 'active') return false; const p = progOf(pr, q.id), g = q.steps[p.i]?.goal; return g?.type === 'interact' && (g.objs ? g.objs.includes(o.id) && !p.d?.[o.id] : g.obj === o.id); }) ? 'ready' : 'hidden';
+        return activeEntries(pr, true).some(({ goal: g, p }) => g.type === 'interact' && (g.objs ? g.objs.includes(o.id) && !p.d?.[o.id] : g.obj === o.id)) ? 'ready' : 'hidden';
     }
     if (o.type === 'person') return o.always || needed(pr, o.id) ? 'ready' : 'hidden';
     if (o.type === 'gather') return w.gather?.[o.id] === dayKey(now) ? 'hidden' : 'ready';
@@ -435,17 +521,36 @@ function clueRead(pr, clueId) {
 }
 
 // ---------- sổ nhiệm vụ ----------
-function targetOf(pr, q, p) {
-    const st = q.steps[p.i], g = st?.goal, w = pr.world ?? {};
+function targetOfGoal(pr, st, g, p = {}) {
+    const w = pr.world ?? {};
     if (!g) return null;
-    if (st.at) return st.at.obj ? { scene: st.at.scene, kind: 'obj', id: st.at.obj } : { scene: st.at.scene, kind: 'tile', x: st.at.x, y: st.at.y };
+    if (st?.at) {
+        if (st.at.npc) return { scene: st.at.scene, kind: 'npc', id: st.at.npc };
+        return st.at.obj ? { scene: st.at.scene, kind: 'obj', id: st.at.obj } : { scene: st.at.scene, kind: 'tile', x: st.at.x, y: st.at.y };
+    }
     if (g.type === 'talk') return locate(g.who.find(id => !p.d?.[id]));
     if (g.type === 'deliver') return locate(g.npc);
     if (g.type === 'collect') return locate(`item:${g.items.find(it => !w.bag?.[it])}`);
     if (g.type === 'interact') return locate(g.objs ? g.objs.find(id => !p.d?.[id]) : g.obj);
-    if (g.type === 'reach') return { scene: g.scene, kind: 'tile', x: g.x, y: g.y };
+    if (g.type === 'reach' || g.type === 'standOn') return { scene: g.scene, kind: 'tile', x: g.x, y: g.y };
+    if (g.type === 'openChests' && g.ids) return locate(g.ids.find(id => !w.opened?.[id]) ?? g.ids[0]);
+    if (g.type === 'readClues') { const order = w.clueOrder ?? []; return locate(g.clues.find(c => !order.includes(c)) ?? g.clues[0]); }
     if (g.type === 'mats' && g.at) return locate(g.at);
     return null;
+}
+function targetOf(pr, q, p) {
+    const st = q.steps[p.i];
+    return targetOfGoal(pr, st, st?.goal, p);
+}
+function mainCurrent(pr) {
+    const w = pr.world ?? {};
+    const i = mainIndex(pr), t = trustedMain(pr);
+    const st = MAIN[i];
+    if (!st) return null;
+    const p = t === i ? (w.mainP ?? {}) : {};
+    const pg = st.kind === 'task' && st.goal ? progress(pr, st.goal, p) : null;
+    const target = st.kind === 'task' ? targetOfGoal(pr, st, st.goal, p) : null;
+    return { i, st, pg, target };
 }
 /** Sổ nhiệm vụ gửi client: phụ + nhánh (cả chưa mở) · ẩn (chỉ cái đã tìm ra) · chính tuyến (số bước) · hằng ngày */
 function log(pr, now = Date.now(), npcName = (id) => id) {
@@ -467,12 +572,14 @@ function log(pr, now = Date.now(), npcName = (id) => id) {
     }
     list.sort((a, b) => order[a.state] - order[b.state]);
     const hidden = QUESTS.filter(q => q.type === 'hidden');
-    const i = Math.min(pr.world?.main ?? 0, MAIN.length);
+    const i = mainIndex(pr);
+    const cur = mainCurrent(pr);
     return { list, daily: dailyState(pr, now),
         hidden: { found: hidden.filter(q => stateOf(pr, q.id)).length, total: hidden.length },
-        main: { i, total: MAIN.length, reward: MAIN[i] ? rewardText(mainReward(MAIN[i])) : null, tier: MAIN[i]?.tier ?? 'small', text: MAIN[i]?.text ?? null, last: MAIN[i - 1]?.text ?? null },
+        main: { i, total: MAIN.length, reward: MAIN[i] ? rewardText(mainReward(MAIN[i])) : null, tier: MAIN[i]?.tier ?? 'small', text: MAIN[i]?.text ?? null, last: MAIN[i - 1]?.text ?? null,
+            ...(cur?.st?.kind === 'task' ? { kind: 'task', progress: cur.pg?.need > 1 ? { have: cur.pg.have, need: cur.pg.need } : null, target: cur.target } : {}) },
         titles: [...(pr.titles ?? [])] };
 }
 
-module.exports = { QUESTS, BY_ID, DAILY, MAIN_TIERS, setMain, setLocator, mainList: () => MAIN, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
+module.exports = { QUESTS, BY_ID, DAILY, MAIN_TIERS, setMain, setLocator, mainList: () => MAIN, mainCurrent, targetOfGoal, stageBlocked, ensure, stateOf, progOf, isOpen, progress, match, start, complete, settle, fire, talk, pos, battle, clueRead,
     markOf, needed, objState, wantsItem, resetMain, takeNotes, note, dayKey, pickDaily, ensureDaily, dailyState, dailyEvent, log, rewardText, grant };

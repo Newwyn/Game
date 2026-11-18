@@ -243,7 +243,7 @@ const STORY_SPOTS = {
     5: { obj: 'sp_wolf', scene: 'forest', label: 'Dấu chân sói lớn', go: 'Lần theo dấu chân sói lớn sâu trong Rừng Sương' },
     6: { obj: 'sp_smoke', scene: 'outskirts', label: 'Cột khói phía đông', go: 'Tới chỗ cột khói phía đông Ngoại ô' },
     7: { obj: 'sp_swamp', scene: 'forest', label: 'Lối mòn vào đầm lầy', go: 'Theo lối mòn vào đầm lầy phía nam Rừng Sương' },
-    8: { obj: 'sp_grix', scene: 'forest', label: 'Tiếng kêu ở rìa đầm', go: 'Tới rìa đầm lầy — có ai đó kêu cứu' },
+    8: { obj: 'sp_grix', scene: 'forest', label: 'Tiếng kêu ở rìa đầm', go: 'Tới rìa đầm lầy, có ai đó kêu cứu' },
     9: { npc: 'mira', scene: 'ashford', go: 'Về làng gặp Bà Mira' },
     10: { npc: 'rok', scene: 'ashford', go: 'Ra cổng làng cùng Rok trước bình minh' },
     11: { obj: 'sp_bridge', scene: 'road', label: 'Xe lương bị chặn', go: 'Tới Cầu Đá trên Đường Vương Đạo' },
@@ -287,12 +287,12 @@ const storyStageId = (n) => `c1-${String(n).padStart(2, '0')}`;
 // -> NPC đó hiện dấu !, nói chuyện mới phát. Ải kế tiếp chỉ mở sau khi đã báo lại.
 //   cutscene: client phát kiểu cắt cảnh — [[tranh nền src/assets/world/<tên>.webp, từ câu thứ mấy], …] (ải 20: phòng bệnh nhà vua -> đại sảnh lễ đăng quang) · ending: kèm lời kết chương (ải 20)
 const REPORTS = {
-    1: { npc: 'mira', scene: 'ashford', from: 4, go: 'Về làng — Bà Mira đang chờ với nồi cháo' },
+    1: { npc: 'mira', scene: 'ashford', from: 4, go: 'Về làng, Bà Mira đang chờ với nồi cháo' },
     2: { npc: 'mira', scene: 'ashford', from: 10, go: 'Về làng báo tin cho Bà Mira' },
-    7: { npc: 'sera', scene: 'ashford', from: 1, go: 'Đưa Sera về Ashford nghỉ ngơi — tới gặp cô ở làng' },
+    7: { npc: 'sera', scene: 'ashford', from: 1, go: 'Đưa Sera về Ashford nghỉ ngơi, tới gặp cô ở làng' },
     10: { npc: 'mira', scene: 'ashford', from: 4, go: 'Mang lời khai của Skarn về cho Bà Mira' },
     14: { npc: 'nun', scene: 'capital', from: 0, go: 'Theo Sơ Agnes vào sân sau gặp công chúa Elise' },
-    20: { npc: 'elise', scene: 'capital', from: 99, ending: true, cutscene: [['king_bedroom', 0], ['capital_castle', 13]], go: 'Về cung điện — Elise đang ở bên giường nhà vua' },
+    20: { npc: 'elise', scene: 'capital', from: 99, ending: true, cutscene: [['king_bedroom', 0], ['capital_castle', 13]], go: 'Về cung điện, Elise đang ở bên giường nhà vua' },
 };
 /** Ải đã thắng nhưng chưa về báo lại (nhỏ nhất) -> số ải, không có -> null */
 function pendingReport(pr) {
@@ -300,8 +300,12 @@ function pendingReport(pr) {
     for (const n of Object.keys(REPORTS).map(Number).sort((a, b) => a - b)) if (cleared(pr, n) && !done[n]) return n;
     return null;
 }
-/** Ải kế tiếp đang chờ ở điểm truyện (null khi còn phải về báo lại) */
-const storyNo = (pr) => (pendingReport(pr) ? null : nextStoryNo(pr));
+/** Ải kế tiếp đang chờ ở điểm truyện (null khi còn phải về báo lại hoặc chưa xong bước nhiệm vụ trước ải) */
+function storyNo(pr) {
+    if (pendingReport(pr)) return null;
+    const n = nextStoryNo(pr);
+    return n && !Q.stageBlocked(pr, storyStageId(n)) ? n : null;
+}
 /** Lời sau trận phát NGAY tại chỗ (server.js dùng khi thắng lần đầu) — null = phát hết như cũ */
 function postNow(n, lines) {
     const r = REPORTS[n];
@@ -449,7 +453,7 @@ const sceneNeedText = (id) => (SCENES[id]?.needStage ? `ải ${c2no(SCENES[id].n
 
 /** Sự kiện cốt truyện trên bản đồ: jess (ải 2 — bị vây đánh) · sera (ải 3 — hộ tống Seraphine vào Rừng Sương) */
 function eventState(pr, ev) {
-    if (ev === 'jess') return !cleared(pr, 1) || pendingReport(pr) === 1 ? 'later' : cleared(pr, 2) ? 'done' : 'ready';
+    if (ev === 'jess') return !cleared(pr, 1) || pendingReport(pr) === 1 || Q.stageBlocked(pr, 'c1-02') ? 'later' : cleared(pr, 2) ? 'done' : 'ready';
     return 'later';
 }
 const EVENT_LINES = {
@@ -826,24 +830,34 @@ function questLog(pr) {
             target: next2.no >= 13 && sceneOpen(pr, 'lunaria') ? { scene: 'lunaria', kind: 'obj', id: 'lun_board' } : null });   // rừng Sylvaren chưa có Bảng ải -> dùng 📖 Chọn ải, không bắt về kinh thành
         if (!main.target) main.obj = `Bấm 📖 Chọn ải (thanh dưới màn hình) → Chương 2, đánh ải ${next2.no}: ${next2.name}`;
     } else if (!next) Object.assign(main, { title: 'Chương 2 · Tiếng Gọi Rừng Thiêng', obj: 'Đã hoàn thành chương 2' });
-    if (next) {
-        const capital = next.no >= 13 && sceneOpen(pr, 'capital');
-        main.target = { scene: capital ? 'capital' : 'ashford', kind: 'obj', id: capital ? 'gate_board' : 'board' };
-        main.obj = `Mở Bảng ải và đánh ải ${next.no}: ${next.name}`;
-        const sp = STORY_SPOTS[next.no];
-        if (sp && sceneOpen(pr, sp.scene)) {
-            main.target = sp.npc ? { scene: sp.scene, kind: 'npc', id: sp.npc } : { scene: sp.scene, kind: 'obj', id: sp.obj };
-            main.obj = sp.go;
-        }
-        if (next.no === 2 && eventState(pr, 'jess') === 'ready') {
-            main.target = { scene: 'outskirts', kind: 'obj', id: 'ambush' };
-            main.obj = 'Ra cánh đồng Ngoại ô — có tiếng ồn…';
-        }
-    }
     // vừa thắng ải có phần "về báo lại": chính tuyến chỉ tới NPC đó trước (ải 20: về cung gặp Elise trước khi sang chương 2)
     const rn = pendingReport(pr);
     if (rn && sceneOpen(pr, REPORTS[rn].scene)) {
         Object.assign(main, { state: 'active', title: rn === 20 ? "Chương 1 · Hồi kết" : `Chương 1 · Sau ải ${rn}`, target: { scene: REPORTS[rn].scene, kind: 'npc', id: REPORTS[rn].npc }, obj: REPORTS[rn].go });
+    } else if (next) {
+        const curMain = Q.mainCurrent(pr);
+        if (curMain?.st?.kind === 'task') {
+            const t = curMain.target;
+            Object.assign(main, {
+                state: 'active',
+                obj: curMain.st.text,
+                progress: curMain.pg?.need > 1 ? { have: curMain.pg.have, need: curMain.pg.need } : null,
+                target: t && sceneOpen(pr, t.scene) ? t : null,
+            });
+        } else {
+            const capital = next.no >= 13 && sceneOpen(pr, 'capital');
+            main.target = { scene: capital ? 'capital' : 'ashford', kind: 'obj', id: capital ? 'gate_board' : 'board' };
+            main.obj = `Mở Bảng ải và đánh ải ${next.no}: ${next.name}`;
+            const sp = STORY_SPOTS[next.no];
+            if (sp && sceneOpen(pr, sp.scene)) {
+                main.target = sp.npc ? { scene: sp.scene, kind: 'npc', id: sp.npc } : { scene: sp.scene, kind: 'obj', id: sp.obj };
+                main.obj = sp.go;
+            }
+            if (next.no === 2 && eventState(pr, 'jess') === 'ready') {
+                main.target = { scene: 'outskirts', kind: 'obj', id: 'ambush' };
+                main.obj = 'Ra cánh đồng Ngoại ô — có tiếng ồn…';
+            }
+        }
     }
     const order = { active: 0, offered: 1, locked: 2, done: 3 };
     return [main, ...sides.sort((a, b) => order[a.state] - order[b.state])];
@@ -860,9 +874,10 @@ function worldState(pr, now = Date.now()) {
             npcs: s.npcs.map(n => {
                 const d = npcDialog(pr, n);
                 const hidden = !shown(pr,NPCS[n],n);
-                // dấu trên đầu: ! vàng chính tuyến · ! / ? xanh lá phụ · tím nhánh (mk = loại) — nhiệm vụ ẩn không có dấu
-                const m = d.event || d.report ? { txt: '!', kind: 'main' } : Q.BY_ID[n] || !QUESTS[n] ? Q.markOf(pr, n)
-                    : d.quest === 'offer' ? { txt: '!', kind: 'side' } : d.quest === 'turnin' ? { txt: '?', kind: 'side' } : Q.markOf(pr, n);
+                // dấu trên đầu: ! / ? vàng chính tuyến · ! / ? xanh lá phụ · tím nhánh (mk = loại) — nhiệm vụ ẩn không có dấu
+                const qm = Q.markOf(pr, n);
+                const m = d.event || d.report ? { txt: '!', kind: 'main' } : qm?.kind === 'main' ? qm : Q.BY_ID[n] || !QUESTS[n] ? qm
+                    : d.quest === 'offer' ? { txt: '!', kind: 'side' } : d.quest === 'turnin' ? { txt: '?', kind: 'side' } : qm;
                 return { id: n, ...NPCS[n], hidden, mark: m?.txt ?? null, mk: m?.kind ?? null, say: GA.ambient(pr, n) };
             }),
             objects: s.objects.map(o => {
@@ -908,7 +923,7 @@ function fish(pr, wallet, sceneId, objId, quality, now = Date.now(), rng = Math.
 
 /** Đối chất trước nhà vua (trước ải 18): chấm chứng cứ, thưởng lần đầu, rồi vào ải 18 */
 function presentTrial(pr, wallet, answers = {}) {
-    if (nextStoryNo(pr) !== 18) return no('Chưa tới lúc đối chất');
+    if (storyNo(pr) !== 18) return no('Chưa tới lúc đối chất');
     const r = E.present(pr, answers);
     const rewards = giveReward(wallet, r.rewards);
     ensureWorld(pr).spot[18] = true; Q.settle(pr, wallet);   // bước chính tuyến "gặp Elise để đối chất" xong

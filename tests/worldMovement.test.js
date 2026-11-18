@@ -66,9 +66,13 @@ test('NPC và vật truyện hiện/ẩn ở server, giữ đúng sau JSON reloa
     passed(p,2);assert.equal(npc('jessica','outskirts').hidden,false);
     passed(p,3);assert.ok(npc('jessica','outskirts').hidden);
     assert.equal(W.interact(p,{},'outskirts','jessica').ok,false);
-    passed(p,6);assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_swamp').state,'ready');
+    passed(p,6);assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_swamp').state,'hidden');
+    W.interact(p,p.wallet,'outskirts','clue_arrows');
+    assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_swamp').state,'ready');
     passed(p,7);assert.equal(npc('sera').hidden,false);
     assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_swamp').state,'hidden');
+    assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_grix').state,'hidden');
+    require('../game/quests').battle(p,p.wallet,{id:'c1-01',diff:'story',win:true,squad:2,deaths:0,skills:3,kills:3},Date.now());
     assert.equal(W.worldState(p).scenes.forest.objects.find(o=>o.id==='sp_grix').state,'ready');
     p.world.quests.sera='done';assert.equal(npc('sera').hidden,false);   // còn nhiệm vụ phụ "Băng cho người bị thương" -> Sera ở lại tới khi xong
     p.world.quests.s_bang='done';assert.ok(npc('sera').hidden);

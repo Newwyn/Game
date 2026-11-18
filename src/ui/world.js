@@ -304,7 +304,10 @@ function quests() {
     if (!ql) return legacy;
     const main = legacy.find(q => q.type === 'main');
     const inCh1 = ql.main.i < ql.main.total;
-    return [...(main ? [{ ...main, progress: inCh1 ? { have: ql.main.i, need: ql.main.total } : null,
+    const stepProg = inCh1 ? (ql.main.progress ?? main?.progress) : null;
+    return [...(main ? [{ ...main,
+        progress: inCh1 ? (stepProg ?? { have: ql.main.i, need: ql.main.total }) : null,
+        step: inCh1 && stepProg ? { i: ql.main.i + 1, total: ql.main.total } : null,
         reward: inCh1 ? ql.main.reward ? `Bước này: ${ql.main.reward}` : 'Thưởng ải cốt truyện' : main.reward }] : []), ...ql.list, ...legacy.filter(q => CH2_SIDE.has(q.id))];
 }
 // màu dấu ! / ? theo loại nhiệm vụ: vàng chính tuyến · xanh lá phụ · tím nhánh
@@ -343,10 +346,29 @@ function goQuest(id) {
     qlOpen = false; renderHud();
     startAuto({ scene: q.target.scene, kind: q.target.kind, id: q.target.id, x: q.target.x, y: q.target.y });
 }
-/** Vị trí (ô) của mục tiêu nhiệm vụ đang theo dõi nếu nằm trong bản đồ hiện tại */
+/** Tâm (ô) của 1 lối ra (dùng chung cho chấm trên bản đồ nhỏ + dấu dẫn đường sang khu khác) */
+function exitCenter(e) {
+    if (!e || !map) return null;
+    if (e.tiles?.length) return e.tiles[0];
+    if (!e.edge) return null;
+    const pts = [];
+    for (let i = e.a; i <= e.b; i++) {
+        const [x, y] = e.edge === 'left' ? [0, i] : e.edge === 'right' ? [map.cols - 1, i] : e.edge === 'up' ? [i, 0] : [i, map.rows - 1];
+        if (map.grid[y]?.[x] === '.') pts.push([x, y]);
+    }
+    if (pts.length) return [pts.reduce((s, [x]) => s + x, 0) / pts.length, pts.reduce((s, [, y]) => s + y, 0) / pts.length];
+    const mid = (e.a + e.b) / 2;
+    return e.edge === 'left' ? [0, mid] : e.edge === 'right' ? [map.cols - 1, mid] : e.edge === 'up' ? [mid, 0] : [mid, map.rows - 1];
+}
+/** Vị trí (ô) của mục tiêu nhiệm vụ đang theo dõi (nếu ở khu khác -> dẫn tới lối ra hướng tới khu đó) */
 function trackedSpot() {
     const t = trackedQuest()?.target;
-    if (!t || t.scene !== scene?.id) return null;
+    if (!t || !scene) return null;
+    if (t.scene !== scene.id) {
+        const e = t.scene && data?.scenes?.[t.scene]?.open ? nextExit(t.scene) : null;
+        const c = exitCenter(e);
+        return c ? { x: c[0] + 0.5, z: c[1] + 0.5 } : null;
+    }
     if (t.kind === 'npc') { const n = npcs.find(q => q.id === t.id && !q.hidden); return n ? npcPos(n) : null; }
     if (t.kind === 'tile') return { x: t.x + 0.5, z: t.y + 0.5 };
     const o = (map.objects ?? []).find(q => q.id === t.id);
@@ -516,20 +538,8 @@ function drawMini(t) {
     const dot = (x, y, r, fill, stroke = '#0f172a') => { miniCtx.beginPath(); miniCtx.arc(x, y, r, 0, Math.PI * 2); miniCtx.fillStyle = fill; miniCtx.fill(); miniCtx.lineWidth = 1.5; miniCtx.strokeStyle = stroke; miniCtx.stroke(); };
     // lối ra (cửa / mép bản đồ)
     for (const e of map.exits ?? []) {
-        const cells = e.tiles ?? (e.edge === 'left' ? [[0, (e.a + e.b) / 2]] : e.edge === 'right' ? [[map.cols - 1, (e.a + e.b) / 2]] : e.edge === 'up' ? [[(e.a + e.b) / 2, 0]] : [[(e.a + e.b) / 2, map.rows - 1]]);
-        if (e.edge) { // mép: đánh dấu đoạn ô đi được thật ở mép
-            const ys = [], xs = [];
-            for (let i = e.a; i <= e.b; i++) {
-                if (e.edge === 'left' && map.grid[i]?.[0] === '.') ys.push(i);
-                if (e.edge === 'right' && map.grid[i]?.[map.cols - 1] === '.') ys.push(i);
-                if (e.edge === 'up' && map.grid[0]?.[i] === '.') xs.push(i);
-                if (e.edge === 'down' && map.grid[map.rows - 1]?.[i] === '.') xs.push(i);
-            }
-            if (ys.length) cells[0][1] = (ys[0] + ys[ys.length - 1]) / 2;
-            if (xs.length) cells[0][0] = (xs[0] + xs[xs.length - 1]) / 2;
-        }
-        const [x, y] = cells[0];
-        dot((x + 0.5) * k, (y + 0.5) * k, e.door ? 2.5 : 3.5, e.door ? '#fbbf24' : '#22d3ee');
+        const pos = exitCenter(e);
+        if (pos) dot((pos[0] + 0.5) * k, (pos[1] + 0.5) * k, e.door ? 2.5 : 3.5, e.door ? '#fbbf24' : '#22d3ee');
     }
     for (const n of npcs) if (!n.hidden) dot((n.x + 0.5) * k, (n.y + 0.5) * k, n.mark ? 3.2 : 2.2, n.mark ? markColor(n.mk) : '#e2e8f0');
     for (const o of map.objects ?? []) { const st = o.char && objMark(o); if (st) dot((o.x + 0.5) * k, (o.y + 0.5) * k, 3.2, markColor(st.mk)); }   // người của nhiệm vụ
