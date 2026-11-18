@@ -141,7 +141,10 @@ function updateCamera() {
     const all = Object.values(game.views).flat();
     // Brakk nhảy vọt cao (Bá Vương Quật / Chấn Địa): nâng + lùi camera để thấy trọn cú nhảy
     const bigJump = all.some(v => (v._bigJumpUntil ?? 0) > now);
-    cameraRig.setLift(bigJump ? 3.6 : all.some(v => v.member.alive && v.member.statusEffects?.some(e => e.type === 'guard' && e.endTime > now)) ? 1.5 : 0, bigJump ? 7 : 3);
+    // (18/11/2026) YunYou đang bay cao: nâng + lùi camera cho anh ta luôn nằm trong khung (cả 2 góc nhìn, mọi cỡ đội hình)
+    const skyUnit = all.some(v => v.member.alive && v.member.classId === 'swordsage' && (v._hover ?? 0) > 1);
+    const SKY_LIFT = cameraRig.getMode() === 'explore' ? 2.4 : 3.2;
+    cameraRig.setLift(bigJump ? 3.6 : skyUnit ? SKY_LIFT : all.some(v => v.member.alive && v.member.statusEffects?.some(e => e.type === 'guard' && e.endTime > now)) ? 1.5 : 0, bigJump ? 7 : 3);
 
     if (cameraRig.getMode() === 'explore') {
         // bấm thẻ nhân vật -> bám riêng nhân vật đó (còn sống); không thì ôm cả đội + đối thủ đã giao tranh
