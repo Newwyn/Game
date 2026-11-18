@@ -146,7 +146,11 @@ function updateCamera() {
     if (cameraRig.getMode() === 'explore') {
         // bấm thẻ nhân vật -> bám riêng nhân vật đó (còn sống); không thì ôm cả đội + đối thủ đã giao tranh
         const one = cameraRig.followIdx >= 0 ? game.views[me]?.[cameraRig.followIdx] : null;
-        if (one && one.member?.alive) { cameraRig.setTarget(one.position.x, one.position.z); return; }
+        if (one && one.member?.alive) {   // giữ độ rộng khung như khi ôm cả trận, chỉ dời tâm về người được chọn
+            const all = mine.concat(aliveViews(Object.keys(game.views).find(id => id !== me))).map(v => v.position.x);
+            cameraRig.setTarget(one.position.x, one.position.z, all.length ? Math.max(...all) - Math.min(...all) : 0);
+            return;
+        }
         const foeId = Object.keys(game.views).find(id => id !== me);
         const foes = aliveViews(foeId);
         let grp = mine;
@@ -162,8 +166,6 @@ function updateCamera() {
 
     // (18/11/2026) góc ngang cũng bám riêng nhân vật khi bấm thẻ: ôm khung hẹp quanh người đó (camera tự về mức gần nhất)
     const followed = cameraRig.followIdx >= 0 ? game.views[me]?.[cameraRig.followIdx] : null;
-    if (followed && followed.member?.alive) { cameraRig.frame(followed.position.x - 3, followed.position.x + 3, followed.position.z ?? avgZ); return; }
-
     const opponentId = Object.keys(game.views).find(id => id !== me);
     const enemies = aliveViews(opponentId);
     let group = mine;
@@ -173,6 +175,12 @@ function updateCamera() {
         if (game.cameraEngaged) group = mine.concat(enemies);
     }
     const xs = group.map(v => v.position.x);
+    // bám riêng 1 nhân vật: đưa người đó vào giữa khung nhưng GIỮ NGUYÊN độ rộng khung (không áp sát) để vẫn thấy cả trận và YunYou đang bay
+    if (followed && followed.member?.alive) {
+        const half = Math.max(6, (Math.max(...xs) - Math.min(...xs)) / 2);
+        cameraRig.frame(followed.position.x - half, followed.position.x + half, avgZ);
+        return;
+    }
     cameraRig.frame(Math.min(...xs), Math.max(...xs), avgZ);
 }
 
