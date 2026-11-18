@@ -1,18 +1,20 @@
 // ============================================================
 // HIỆU ỨNG KIẾM TIÊN — YunYou (swordsage)
-//   Chỉ dùng tranh thật (yunyou_qi.webp, yunyou_swordfan.webp, yunyou_swordarray.webp, yunyou_sword.webp, yunyou_giantsword.webp)
+//   Chỉ dùng tranh thật (yunyou_qi.webp, yunyou_spiritsword.webp, yunyou_swordbolt.webp,
+//   yunyou_sword.webp, yunyou_formation.webp, yunyou_giantsword.webp)
 //   và thư viện điểm ảnh pixelfx ở tỉ lệ chuẩn (JADE_PAL, không phóng khối pixel khổng lồ).
 // ============================================================
 import * as THREE from 'three';
 import swordUrl from '../assets/sprites/yunyou_sword.webp';
-import fanUrl from '../assets/sprites/yunyou_swordfan.webp';
+import spiritSwordUrl from '../assets/sprites/yunyou_spiritsword.webp';
+import swordBoltUrl from '../assets/sprites/yunyou_swordbolt.webp';
 import qiUrl from '../assets/sprites/yunyou_qi.webp';
-import arrayUrl from '../assets/sprites/yunyou_swordarray.webp';
+import formationUrl from '../assets/sprites/yunyou_formation.webp';
 import giantSwordUrl from '../assets/sprites/yunyou_giantsword.webp';
 import { getTexture } from '../core/textures.js';
-import { scene } from '../core/scene.js';
+import { scene, camera } from '../core/scene.js';
 import { cameraRig } from '../core/cameraRig.js';
-import { GROUND_Y, gameNow, gameTimeout } from '../config.js';
+import { GROUND_Y, gameNow } from '../config.js';
 import { fxScale } from '../core/settings.js';
 import { addAnim, easeOut, glowTexture } from './vfx.js';
 import { camTilt } from './flipbook.js';
@@ -20,20 +22,25 @@ import { spawnPixelFx } from './pixelFx.js';
 
 export const JADE_PAL = ['#042f2e', '#115e59', '#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#e6fffb'];
 
-const ARRAY_ANGLE = (40 * Math.PI) / 180;   // góc ~40° của thanh kiếm trong yunyou_swordarray.webp (hướng xuống-phải)
+const TAU = Math.PI * 2;
+const FAN_COUNT = 7;
 
 const activeFans = new Map();
 const activeFormations = new Map();
-const activeRainTimers = new Set();
+const activeGiantSwords = new Map();
 const activeOneShots = new Set();
-let rainGen = 0;
 
 const keyOf = (id, idx) => `${id ?? 's'}:${idx ?? 0}`;
 const swordTex = () => getTexture(swordUrl);
-const fanTex = () => getTexture(fanUrl);
+const spiritSwordTex = () => getTexture(spiritSwordUrl);
+const swordBoltTex = () => getTexture(swordBoltUrl);
 const qiTex = () => getTexture(qiUrl);
-const arrayTex = () => getTexture(arrayUrl);
+const formationTex = () => getTexture(formationUrl);
 const giantSwordTex = () => getTexture(giantSwordUrl);
+
+const _flyVp = new THREE.Matrix4();
+const _flyV4 = new THREE.Vector4();
+const _zAxis = new THREE.Vector3(0, 0, 1);
 
 function aspectOf(tex, fallback) {
     const im = tex?.image;
@@ -63,35 +70,6 @@ function artQuad(tex, w, h, { opacity = 1, additive = false, renderOrder = 6, co
 /** Tỉ lệ quy đổi khi người dùng đổi mức hiệu ứng (full = 1 · soft = 0.58 · minimal = 0.32) */
 const kFx = () => 0.65 + 0.35 * fxScale();
 
-/** Vecto hướng chéo ~40° đi xuống về phía địch (`dirX`: +1 = sang phải, -1 = sang trái) */
-function diagDir(dirX) {
-    return {
-        vx: dirX * Math.cos(ARRAY_ANGLE),
-        vy: -Math.sin(ARRAY_ANGLE),
-        slope: Math.cos(ARRAY_ANGLE) / Math.sin(ARRAY_ANGLE),
-    };
-}
-
-/** Đặt trận đồ trên cao về phía YunYou (phía sau trung điểm giữa YunYou và cụm địch) */
-function formationPlacement(x, z, radius = 8, casterView = null) {
-    const hasCaster = !!casterView?.root;
-    const cx = hasCaster ? casterView.position.x : (x - 9);
-    const cz = hasCaster ? (casterView.position.z ?? 0) : z;
-    const dxToTarget = x - cx;
-    const dirX = Math.abs(dxToTarget) > 0.25 ? (dxToTarget >= 0 ? 1 : -1) : (casterView?.facingLeft ? -1 : 1);
-    const sep = Math.abs(dxToTarget);
-    const midX = (cx + x) * 0.5;
-    const shiftBack = Math.min(2.4, Math.max(0.8, sep * 0.16));
-    const idealX = midX - dirX * shiftBack;
-    const horzFromTarget = Math.max(5.4, (x - idealX) * dirX);
-    const arrX = x - dirX * horzFromTarget;
-    const arrAboveGround = Math.min(5.8, Math.max(4.7, horzFromTarget * Math.tan(ARRAY_ANGLE)));
-    const arrY = GROUND_Y + arrAboveGround;
-    const arrZ = (cz + z) * 0.5 - 1.0;
-    const arrW = Math.min(16, Math.max(10.5, radius * 1.65));
-    return { dirX, arrX, arrY, arrZ, arrW };
-}
-
 /** Toạ độ thế giới trên mặt phẳng nhân vật đang nghiêng theo camera */
 function tiltedOffsetPos(view, lx, ly, lz) {
     const tilt = camTilt();
@@ -104,6 +82,29 @@ function tiltedOffsetPos(view, lx, ly, lz) {
     };
 }
 
+/**
+ * Tính độ cao bay động từ camera hiện tại sao cho đỉnh mũ của nhân vật ngồi cách mép trên khung hình ~6% (`hatNdc = 0.88`),
+ * đúng ở cả camera 'explore' (góc chéo), camera 'combat' (ngang) và khi người chơi zoom gần/xa.
+ * Đồng thời kẹp thanh máu (`barNdc = 0.96`) để không bao giờ bị cắt đầu hay mất thanh máu.
+ */
+export function computeSkyHoverHeight(cam, wx, baseFeetY, wz, charHeight = 2.9, pitch = 0.25, { hatNdc = 0.88, barNdc = 0.96 } = {}) {
+    if (!cam?.projectionMatrix) return 3.4;
+    cam.updateMatrixWorld();
+    _flyVp.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    const e = _flyVp.elements;
+    const solveForNdc = (x, y, z, ndc) => {
+        _flyV4.set(x, y, z, 1).applyMatrix4(_flyVp);
+        const denom = e[5] - ndc * e[7];
+        if (Math.abs(denom) < 1e-4 || _flyV4.w <= 0.1) return 3.4;
+        return (ndc * _flyV4.w - _flyV4.y) / denom;
+    };
+    const hatBaseY = baseFeetY + charHeight * Math.cos(pitch);
+    const hatZ = wz - charHeight * Math.sin(pitch);
+    const hHat = solveForNdc(wx, hatBaseY, hatZ, hatNdc);
+    const hBar = solveForNdc(wx, baseFeetY + charHeight + 0.45, wz, barNdc);
+    return Math.max(0, Math.min(hHat, hBar, 12));
+}
+
 // ------------------------------------------------------------
 // 0. KIẾM KHÍ DƯỚI CHÂN KHI BAY (yunyou_qi.webp — gắn vào flip của CutoutCharacterView)
 // ------------------------------------------------------------
@@ -114,7 +115,6 @@ export function makeSwordFlightQi(height = 2.9) {
     const w = height * 1.6;
     const initH = w / fallbackAspect;
     const group = new THREE.Group();
-    // Giữ isVfx = false (không bị fxLevel 'soft' làm mờ nhạt dải kiếm khí chính), dùng shared image texture
     const aura = artQuad(tex, w * 1.06, initH * 1.18, {
         opacity: 0, additive: true, renderOrder: 1, color: 0x99f6e4, isVfx: false,
     });
@@ -143,7 +143,7 @@ export function makeSwordFlightQi(height = 2.9) {
 }
 
 // ------------------------------------------------------------
-// 1. ĐÁNH THƯỜNG: kiếm khí / linh kiếm ngọc nhạt bay tới mục tiêu
+// 1. ĐÁNH THƯỜNG (không bật KN2): kiếm khí / linh kiếm ngọc nhạt bay tới mục tiêu
 // ------------------------------------------------------------
 export function spawnSwordAutoProjectile(from, to, { duration = 0.24, length = 1.65, crit = false, targetView = null, onHit } = {}) {
     const tex = swordTex();
@@ -195,401 +195,705 @@ export function spawnSwordHaste(casterView, durationMs = 6000) {
 }
 
 // ------------------------------------------------------------
-// 3. KỸ NĂNG 2 — VẠN KIẾM ĐỒNG QUY: quạt 7 thanh kiếm sau lưng (yunyou_swordfan.webp) + phóng kiếm phụ
+// 3. KỸ NĂNG 2 — VẠN KIẾM ĐỒNG QUY: quạt 7 thanh yunyou_spiritsword.webp sau lưng + tia kiếm yunyou_swordbolt.webp
 // ------------------------------------------------------------
-/** Quạt kiếm lớn đứng SAU LƯNG YunYou (~2.2× chiều cao), nghiêng song song nhân vật ở cả 2 góc camera */
+/** Kiểm tra YunYou có quạt KN2 đang hoạt động hay không */
+export function hasSwordFan(casterId, casterIdx) {
+    const f = activeFans.get(keyOf(casterId, casterIdx));
+    return !!(f && !f.exiting && !f.stopping);
+}
+
+/** Quạt 7 thanh linh kiếm (yunyou_spiritsword.webp, ~2.2× chiều cao tổng ngang) sau lưng YunYou */
 export function spawnSwordFan(casterId, casterIdx, casterView, durationMs = 8000) {
     if (!casterView) return;
     const key = keyOf(casterId, casterIdx);
     const prev = activeFans.get(key);
     if (prev) { prev.stopping = true; activeFans.delete(key); }
 
-    const tex = fanTex();
+    const tex = spiritSwordTex();
+    const fallbackAspect = 246 / 1486;
     const H = casterView.height ?? 2.9;
-    const w = H * 2.2;
-    const fallbackAspect = 1.33;
-    const h = w / fallbackAspect;
     const group = new THREE.Group();
-    const mesh = artQuad(tex, w, h, { opacity: 0, additive: false, renderOrder: 2 });
-    const flashMesh = artQuad(tex, w * 1.04, h * 1.04, { opacity: 0, additive: true, renderOrder: 3, color: 0x99f6e4 });
-    flashMesh.position.z = 0.01;
-    group.add(mesh, flashMesh);
+
+    const slots = [];
+    const maxSpreadRad = (72 * Math.PI) / 180;
+    for (let i = 0; i < FAN_COUNT; i++) {
+        const u = (i - (FAN_COUNT - 1) / 2) / ((FAN_COUNT - 1) / 2); // -1 .. +1
+        const theta = -u * maxSpreadRad;
+        // Khoảng bung rộng hình elip để tổng bề ngang ~2.2×H mà lưỡi giữa không chọc khỏi mép trên khung hình
+        const dirX = -Math.sin(theta), dirY = Math.cos(theta);
+        const targetX = dirX * (H * 0.69);
+        const targetY = dirY * (H * 0.25);
+        const baseRotZ = Math.atan2(-targetX, targetY);
+        const ax = -Math.sin(baseRotZ), ay = Math.cos(baseRotZ);
+        const baseDist = Math.hypot(targetX, targetY);
+        const bladeLen = H * (1.0 - 0.06 * Math.abs(u));
+        const bladeW = bladeLen * fallbackAspect;
+
+        const holder = new THREE.Group();
+        holder.position.set(ax * baseDist, ay * baseDist, -Math.abs(u) * 0.03);
+        holder.rotation.z = baseRotZ;
+
+        const mesh = artQuad(tex, bladeW, bladeLen, { opacity: 0, additive: false, renderOrder: 2 });
+        const glow = artQuad(tex, bladeW * 1.45, bladeLen * 1.06, { opacity: 0, additive: true, renderOrder: 3, color: 0x5eead4 });
+        glow.position.z = 0.01;
+        const glint = artQuad(glowTexture(), bladeW * 3.4, bladeLen * 0.35, { opacity: 0, additive: true, renderOrder: 4, color: 0xe6fffb });
+        glint.position.set(0, bladeLen * 0.22, 0.02);
+
+        holder.add(mesh, glow, glint);
+        group.add(holder);
+
+        slots.push({
+            i,
+            u,
+            holder,
+            mesh,
+            glow,
+            glint,
+            ax,
+            ay,
+            baseDist,
+            baseRotZ,
+            delayIn: i * 0.072,                          // xuất hiện lần lượt 72 ms mỗi thanh
+            delayOut: (FAN_COUNT - 1 - i) * 0.050,       // thu vào theo thứ tự ngược lại
+            phase: i * 1.37 + Math.random() * 0.5,
+            bobFreq: 2.2 + (i % 3) * 0.34,
+            swayFreq: 1.6 + ((i * 7) % 4) * 0.24,
+        });
+    }
 
     const entry = {
         group,
-        mesh,
-        flashMesh,
-        flash: 0.7,
+        slots,
+        flash: 0.5,
+        lastFlashAt: -1e9,
         stopping: false,
-        fadeOut: 1,
+        exiting: false,
+        exitAge: 0,
         endAt: gameNow() + durationMs,
+        /** Lấy toạ độ thế giới ở đầu/giữa thân thanh kiếm thứ `slotIdx` để bắn kiếm phụ */
+        slotWorldPoint(slotIdx = 3) {
+            const sl = slots[slotIdx] ?? slots[3];
+            if (!sl || !group.parent) return tiltedOffsetPos(casterView, -0.2, H * 0.55, -0.2);
+            group.updateMatrixWorld(true);
+            const v = new THREE.Vector3(0, H * 0.18, 0.05);
+            sl.holder.localToWorld(v);
+            return { x: v.x, y: v.y, z: v.z };
+        },
     };
     activeFans.set(key, entry);
 
-    const maxSec = durationMs / 1000 + 2;
+    const appearDur = 0.24;
+    const foldDur = 0.26;
+    const totalFoldSec = (FAN_COUNT - 1) * 0.050 + foldDur + 0.08;
+    const maxSec = durationMs / 1000 + totalFoldSec + 2;
+
     addAnim(group, maxSec, (_p, fx, dt = 0.016) => {
         const m = casterView.member;
         const alive = !!m?.alive && !!casterView.root?.parent;
         const hasBuff = !!m?.statusEffects?.some(e => e.type === 'sword_multi' && e.endTime > gameNow());
         const expired = gameNow() >= entry.endAt && !hasBuff;
-        if (entry.stopping || !alive || expired || fx.age > durationMs / 1000) {
-            entry.fadeOut = Math.max(0, entry.fadeOut - dt * 3.2);
-            if (entry.fadeOut <= 0.01) {
+        if (!entry.exiting && (entry.stopping || !alive || expired || fx.age > durationMs / 1000)) {
+            entry.exiting = true;
+            entry.exitAge = 0;
+        }
+        if (entry.exiting) {
+            entry.exitAge += dt;
+            if (entry.exitAge >= totalFoldSec) {
                 if (activeFans.get(key) === entry) activeFans.delete(key);
                 fx.life = fx.age;
                 return;
             }
         }
-        entry.flash = Math.max(0, entry.flash - dt * 4.5);
-        const fadeIn = Math.min(1, fx.age / 0.3);
+
+        entry.flash = Math.max(0, entry.flash - dt * 4.2);
         const dir = casterView.facingLeft ? -1 : 1;
-        const pos = tiltedOffsetPos(casterView, -dir * 0.14, H * 0.56, -0.34);
-        fx.mesh.position.set(pos.x, pos.y, pos.z);
-        fx.mesh.rotation.x = pos.tilt;
+        const pCenter = tiltedOffsetPos(casterView, -dir * 0.16, H * 0.36, -0.36);
+        group.position.set(pCenter.x, pCenter.y, pCenter.z);
+        group.rotation.x = pCenter.tilt;
+        group.scale.set(dir, 1, 1);
 
-        const aspectScaleY = fallbackAspect / aspectOf(tex, fallbackAspect);
-        const sway = Math.sin(fx.age * 2.1) * 0.048;
-        const s = (0.92 + 0.08 * easeOut(fadeIn) + 0.025 * Math.sin(fx.age * 2.8)) * (1 + 0.09 * entry.flash);
-        mesh.rotation.z = sway;
-        flashMesh.rotation.z = sway;
-        mesh.scale.set(dir * s, s * aspectScaleY, 1);
-        flashMesh.scale.set(dir * s, s * aspectScaleY, 1);
+        const aspectScaleX = aspectOf(tex, fallbackAspect) / fallbackAspect;
+        for (const sl of slots) {
+            let slide = 1, sc = 1, op = 0.94, rot = sl.baseRotZ, glintOp = 0;
 
-        const viewAlpha = casterView.opacity ?? 1;
-        mesh.material.opacity = (0.76 + 0.24 * entry.flash) * fadeIn * entry.fadeOut * viewAlpha;
-        flashMesh.material.opacity = entry.flash * 0.85 * fadeIn * entry.fadeOut * viewAlpha;
+            if (entry.exiting) {
+                const tOut = Math.max(0, Math.min(1, (entry.exitAge - sl.delayOut) / foldDur));
+                const f = tOut * tOut;
+                slide = 1 - 0.85 * f;
+                sc = 1 - 0.65 * f;
+                op = 0.94 * (1 - f);
+                rot = sl.baseRotZ * (1 - 0.42 * f);
+            } else {
+                const rawIn = (fx.age - sl.delayIn) / appearDur;
+                if (rawIn <= 0) {
+                    sl.holder.visible = false;
+                    continue;
+                }
+                if (rawIn < 1) {
+                    const eIn = easeOut(rawIn);
+                    slide = 0.15 + 0.85 * eIn;
+                    sc = 0.32 + 0.68 * eIn;
+                    op = 0.94 * Math.min(1, rawIn * 1.4);
+                    glintOp = Math.sin(rawIn * Math.PI) * 0.9;
+                } else {
+                    const bob = Math.sin(fx.age * sl.bobFreq + sl.phase) * 0.065;
+                    const sway = Math.sin(fx.age * sl.swayFreq + sl.phase * 1.3) * 0.036;
+                    slide = 1 + (bob + 0.22 * entry.flash) / Math.max(0.4, sl.baseDist);
+                    rot = sl.baseRotZ + sway;
+                    sc = 1 + 0.06 * entry.flash;
+                }
+            }
+
+            sl.holder.visible = op > 0.01;
+            if (!sl.holder.visible) continue;
+            const d = sl.baseDist * slide;
+            sl.holder.position.x = sl.ax * d;
+            sl.holder.position.y = sl.ay * d;
+            sl.holder.rotation.z = rot;
+            sl.holder.scale.set(sc, sc, 1);
+            sl.mesh.scale.set(aspectScaleX, 1, 1);
+            sl.glow.scale.set(aspectScaleX * (1 + 0.1 * entry.flash), 1, 1);
+            sl.mesh.material.opacity = op;
+            sl.glow.material.opacity = op * (0.20 + 0.10 * Math.sin(fx.age * 3.5 + sl.phase) + 0.65 * entry.flash);
+            sl.glint.material.opacity = glintOp;
+            sl.glint.scale.setScalar(0.7 + 0.5 * glintOp);
+        }
     });
 }
 
+/** Loé xung lực 7 thanh kiếm sau lưng khi YunYou tung đòn đánh thường lúc KN2 đang bật */
 export function flashSwordFan(casterId, casterIdx) {
     const entry = activeFans.get(keyOf(casterId, casterIdx));
-    if (entry) entry.flash = 1.0;
+    if (!entry || entry.exiting || entry.stopping) return;
+    const now = gameNow();
+    if (now - entry.lastFlashAt < 75) return;   // tránh rung 2 lần cho cùng 1 đòn đánh (autoAttack + extraSwords)
+    entry.lastFlashAt = now;
+    entry.flash = 1.0;
 }
 
-/** Vị trí từng thanh kiếm trên quạt nghiêng phía sau lưng YunYou */
-function fanSlotPoint(casterView, k, n) {
-    const H = casterView.height ?? 2.9;
-    const frac = n <= 1 ? 0 : (k / (n - 1)) * 2 - 1;   // -1 .. 1
-    const angle = frac * 1.05;
-    const rad = H * 0.82;
-    const dir = casterView.facingLeft ? -1 : 1;
-    const lx = -dir * 0.14 + Math.sin(angle) * rad * 0.88;
-    const ly = H * 0.56 + Math.cos(angle) * rad * 0.65;
-    return tiltedOffsetPos(casterView, lx, ly, -0.22);
-}
-
-/** Phóng kiếm phụ (yunyou_sword.webp) từ quạt sau lưng tới TẤT CẢ các đối thủ khác + hit burst pixelfx */
-export function spawnExtraSwords(casterId, casterIdx, casterView, items, { duration = 0.24, onImpact } = {}) {
-    if (!casterView || !items?.length) return;
+/** Phóng tia kiếm yunyou_swordbolt.webp (~1.4× chiều cao tướng, bay nhanh) từ quạt 7 kiếm tới TỪNG kẻ địch bị trúng kiếm phụ */
+export function spawnExtraSwords(casterId, casterIdx, casterView, items, { duration = 0.19, onImpact } = {}) {
+    if (!items?.length) return;
     flashSwordFan(casterId, casterIdx);
-    const tex = swordTex();
-    const h = 1.45 * kFx();
-    const w = h * aspectOf(tex, 0.18);
-    items.forEach(({ targetView, eff }, idx) => {
-        if (!targetView) return;
-        const from = fanSlotPoint(casterView, idx, items.length);
-        const m = artQuad(tex, w, h, { opacity: 0.96, additive: true, renderOrder: 8 });
-        let done = false;
-        addAnim(m, duration, (p, fx) => {
-            const toX = targetView.position.x;
-            const toY = GROUND_Y + (targetView._hover ?? 0) + (targetView._lift ?? 0) + (targetView.sprite?.lift ?? 0) + (targetView.height ?? 2.6) * 0.5;
-            const toZ = targetView.position.z ?? 0;
-            const dx = toX - from.x, dy = toY - from.y, dz = toZ - from.z;
-            fx.mesh.position.set(from.x + dx * p, from.y + dy * p, from.z + dz * p + 0.35);
-            fx.mesh.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
-            fx.mesh.material.opacity = (p < 0.12 ? p / 0.12 : p > 0.85 ? (1 - p) / 0.15 : 1) * 0.96;
-            if (p >= 1 && !done) {
-                done = true;
-                onImpact?.(targetView, eff);
-                if (!eff?.isMiss) {
-                    spawnPixelFx(eff?.isCrit ? 'impacts/crit-hit' : 'impacts/hit-spark', {
-                        view: targetView,
-                        follow: false,
-                        pos: { x: toX, z: toZ },
-                        flip: dx < 0,
-                        palette: JADE_PAL,
-                        scale: (eff?.isCrit ? 0.88 : 0.68) * kFx(),
-                    });
-                }
+
+    const tex = swordBoltTex();
+    const fallbackAspect = 1478 / 233;
+    const H = casterView?.height ?? 2.9;
+    const len = 1.4 * H * kFx();
+    const h = len / fallbackAspect;
+    const entry = activeFans.get(keyOf(casterId, casterIdx));
+    const slotOrder = [3, 2, 4, 1, 5, 0, 6];
+
+    items.forEach((it, idx) => {
+        const tv = it.targetView;
+        if (!tv) return;
+        const fallbackFrom = casterView
+            ? tiltedOffsetPos(casterView, (casterView.facingLeft ? 1 : -1) * 0.25, H * 0.56, -0.25)
+            : { x: tv.position.x - 5, y: 2.5, z: tv.position.z ?? 0 };
+        const from = entry ? entry.slotWorldPoint(slotOrder[idx % slotOrder.length]) : fallbackFrom;
+        const to = {
+            x: tv.position.x,
+            y: GROUND_Y + (tv._hover ?? 0) + (tv._lift ?? 0) + (tv.sprite?.lift ?? 0) + (tv.height ?? 2.6) * 0.48,
+            z: tv.position.z ?? 0,
+        };
+        const dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
+        const dist2 = Math.hypot(dx, dy) || 1;
+        const ux = dx / dist2, uy = dy / dist2;
+
+        // yunyou_swordbolt.webp nằm ngang, mũi hướng PHẢI (+X), đuôi sao băng bên TRÁI (-X).
+        // Xoay nhóm theo atan2(dy, dx) để mũi luôn chĩa thẳng mục tiêu; nếu bay sang trái (dx < 0) lật Y = -1 để không bị lộn ngược.
+        const m = artQuad(tex, len, h, { opacity: 0.98, additive: false, renderOrder: 9 });
+        const flipY = dx < 0 ? -1 : 1;
+
+        const glow = artQuad(tex, len * 1.05, h * 1.15, { opacity: 0.45, additive: true, renderOrder: 10, color: 0x99f6e4 });
+        glow.position.z = 0.01;
+        const bolt = new THREE.Group();
+        bolt.add(m, glow);
+        bolt.rotation.z = Math.atan2(dy, dx);
+        bolt.scale.y = flipY;
+
+        let hit = false;
+        const leadBack = len * 0.34;
+        addAnim(bolt, duration + 0.08, (_p, fx) => {
+            const p = Math.min(1, fx.age / duration);
+            const e = p * (0.7 + 0.3 * p);
+            const aspectScaleY = fallbackAspect / aspectOf(tex, fallbackAspect);
+            m.scale.set(1, aspectScaleY, 1);
+            glow.scale.set(1, aspectScaleY, 1);
+
+            const px = from.x + dx * e - ux * leadBack * e;
+            const py = from.y + dy * e - uy * leadBack * e;
+            const pz = from.z + dz * e + 0.45;
+            fx.mesh.position.set(px, py, pz);
+            const tailFade = fx.age > duration ? Math.max(0, 1 - (fx.age - duration) / 0.08) : 1;
+            const inFade = Math.min(1, p * 5 + 0.25);
+            m.material.opacity = 0.98 * inFade * tailFade;
+            glow.material.opacity = 0.48 * inFade * tailFade;
+
+            if (p >= 1 && !hit) {
+                hit = true;
+                onImpact?.(tv, it.eff);
+                if (tv.flashHit) tv.flashHit();
+                const crit = !!it.eff?.isCrit;
+                spawnPixelFx('impacts/hit-spark', {
+                    view: tv,
+                    follow: false,
+                    pos: tv.position,
+                    flip: dx < 0,
+                    palette: JADE_PAL,
+                    scale: (crit ? 1.0 : 0.72) * kFx(),
+                });
             }
         });
     });
 }
 
 // ------------------------------------------------------------
-// 4. KỸ NĂNG 3 — TRẬN ĐỒ KIẾM: yunyou_swordarray.webp trên trời + mưa kiếm chéo + đại kiếm cuối
+// 4. KỸ NĂNG 3 — TRẬN ĐỒ KIẾM: vòng trận quay nghiêng trên không -> mưa kiếm liên tục -> đại kiếm bay chậm 1.2s nổ lớn
 // ------------------------------------------------------------
-/**
- * Trận đồ kiếm trên bầu trời phía bên YunYou (yunyou_swordarray.webp, ~40 kiếm chéo ~40° hướng xuống phía địch).
- * Trôi nhẹ trên không với quầng sáng ngọc nhạt nhấp nháy, lật ngang nếu địch ở bên trái YunYou.
- */
-export function spawnSkyFormation(casterId, casterIdx, x, z, { radius = 8, duration = 7.5, castTime = 2000, casterView = null } = {}) {
-    const key = keyOf(casterId, casterIdx);
-    const old = activeFormations.get(key);
-    if (old && !old.stopping && Math.hypot(old.x - x, old.z - z) < 0.25) {
-        old.endAt = Math.max(old.endAt, gameNow() + duration * 1000);
-        if (casterView) old.casterView = casterView;
-        return;
+function spawnGiantImpactExplosion(x, z, dirX) {
+    const scaleBase = kFx();
+    spawnPixelFx('explosions/big-explosion', { pos: { x, z }, flip: dirX < 0, palette: JADE_PAL, scale: 0.95 * scaleBase, seed: 11 });
+    spawnPixelFx('impacts/ground-slam', { pos: { x, z }, flip: dirX < 0, palette: JADE_PAL, scale: 0.90 * scaleBase });
+    spawnPixelFx('impacts/crit-hit', { pos: { x, z }, flip: dirX < 0, palette: JADE_PAL, scale: 1.0 * scaleBase });
+    const ringOffsets = [
+        [-dirX * 1.8, -0.7, 0.04, 0.80, 21],
+        [dirX * 1.9, 0.75, 0.08, 0.78, 37],
+        [0, -1.5, 0.12, 0.72, 53],
+    ];
+    for (const [ox, oz, delay, sc, seed] of ringOffsets) {
+        spawnPixelFx('explosions/big-explosion', {
+            pos: { x: x + ox, z: z + oz },
+            flip: ox < 0,
+            palette: JADE_PAL,
+            scale: sc * scaleBase,
+            delay,
+            seed,
+        });
     }
-    if (old) old.stopping = true;
+    cameraRig.shake(0.38, 340);
+}
 
-    const tex = arrayTex();
-    const fallbackAspect = 1536 / 1024;
-    const { dirX, arrX, arrY, arrZ, arrW } = formationPlacement(x, z, radius, casterView);
-    const initH = arrW / fallbackAspect;
+/** Bắn 1 thanh yunyou_sword.webp rời một điểm ngẫu nhiên trên vòng trận nghiêng, lao chéo xuống điểm rơi trong vùng sát thương */
+function spawnOneFormationSword(entry) {
+    const tex = swordTex();
+    const ang = Math.random() * TAU;
+    const rad = (0.12 + 0.78 * Math.sqrt(Math.random())) * (entry.ringD * 0.45);
+    const localStart = new THREE.Vector3(Math.cos(ang) * rad, Math.sin(ang) * rad, -0.05);
+    entry.tiltGroup.updateMatrixWorld(true);
+    const start = entry.tiltGroup.localToWorld(localStart);
+
+    const a2 = Math.random() * TAU;
+    const rSpread = Math.min(7.2, Math.max(3.0, entry.radius * 0.85));
+    const d2 = Math.sqrt(Math.random()) * rSpread;
+    const endX = entry.x + Math.cos(a2) * d2;
+    const endZ = entry.z + Math.sin(a2) * d2 * 0.58;
+    const endY = GROUND_Y + 0.14 + Math.random() * 0.18;
+
+    const dx = endX - start.x, dy = endY - start.y, dz = endZ - start.z;
+    const len = 1.65 + Math.random() * 0.45;
+    const w = len * aspectOf(tex, 0.18);
+    const m = artQuad(tex, w, len, { opacity: 0.96, additive: false, renderOrder: 7 });
+    // yunyou_sword.webp mũi kiếm hướng LÊN (+Y) -> trừ PI/2 để mũi lao tới trước theo vector (dx, dy)
+    m.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+
+    const dur = 0.22 + Math.random() * 0.06;
+    const totalDur = dur + 0.14;
+    const shot = { stopping: false };
+    activeOneShots.add(shot);
+    let sparked = false;
+
+    addAnim(m, totalDur, (_p, fx) => {
+        if (shot.stopping) {
+            activeOneShots.delete(shot);
+            fx.life = fx.age;
+            return;
+        }
+        const k = Math.min(1, fx.age / dur);
+        const e = k * k;
+        fx.mesh.position.set(start.x + dx * e, start.y + dy * e, start.z + dz * e + 0.25);
+        const inOp = Math.min(1, k * 6 + 0.2);
+        fx.mesh.material.opacity = k < 1 ? 0.96 * inOp : Math.max(0, 0.96 * (1 - (fx.age - dur) / 0.14));
+        if (k >= 1 && !sparked) {
+            sparked = true;
+            spawnPixelFx('impacts/hit-spark', {
+                pos: { x: endX, z: endZ },
+                flip: dx < 0,
+                palette: JADE_PAL,
+                scale: (0.50 + Math.random() * 0.12) * kFx(),
+            });
+        }
+        if (fx.age >= totalDur) activeOneShots.delete(shot);
+    });
+}
+
+/**
+ * Tạo vòng trận đồ quay trên không (yunyou_formation.webp, đường kính ~0.8× vùng sát thương)
+ * đặt tại trung điểm giữa YunYou và tâm địch ở cao độ tương đương YunYou, nghiêng hướng về cả địch & camera.
+ */
+export function spawnSkyFormation(casterId, casterIdx, x, z, opts = {}) {
+    const {
+        radius = 8,
+        chargeTime = 2000,
+        fireDuration = 5000,
+        flightTime = 1200,
+        casterView = null,
+        id = null,
+    } = opts;
+    const key = keyOf(casterId, casterIdx);
+    const prev = activeFormations.get(key);
+    if (prev) { prev.stopping = true; activeFormations.delete(key); }
+
+    const cx = casterView?.root ? casterView.position.x : x - 9;
+    const cz = casterView?.root ? (casterView.position.z ?? 0) : z;
+    const dirX = Math.abs(x - cx) > 0.25 ? (x >= cx ? 1 : -1) : (casterView?.facingLeft ? -1 : 1);
+    const midX = (cx + x) * 0.5;
+    const midZ = (cz + z) * 0.5;
+    const H = casterView?.height ?? 2.9;
+
+    const ringD = Math.max(6, radius * 2 * 0.8);   // ~0.8× đường kính vùng sát thương
+    const tex = formationTex();
+    const aspect = aspectOf(tex, 1);
 
     const group = new THREE.Group();
-    const halo = artQuad(glowTexture(), arrW * 0.92, initH * 0.85, { opacity: 0, additive: true, renderOrder: 4, color: 0x5eead4 });
-    halo.position.z = -0.05;
-    const mesh = artQuad(tex, arrW, initH, { opacity: 0, additive: false, renderOrder: 5 });
-    const flashMesh = artQuad(tex, arrW * 1.02, initH * 1.02, { opacity: 0, additive: true, renderOrder: 6, color: 0xccfbf1 });
-    flashMesh.position.z = 0.03;
-    group.add(halo, mesh, flashMesh);
+    const tiltGroup = new THREE.Group();
+    // Mặt trận hướng phần mặt dưới về phía địch (+dirX, -Y) và phần mặt trên ngửa vừa đủ về phía camera (+Y, +Z)
+    // để nhìn rõ dạng đĩa nghiêng ở cả camera 'explore' lẫn 'combat'
+    const normal = new THREE.Vector3(-dirX * 0.535, 0.827, 0.175).normalize();
+    tiltGroup.quaternion.setFromUnitVectors(_zAxis, normal);
+
+    const ringMesh = artQuad(tex, ringD, ringD / aspect, { opacity: 0, additive: false, renderOrder: 4, color: 0xe6fffb });
+    const ringGlow = artQuad(tex, ringD * 1.12, (ringD * 1.12) / aspect, { opacity: 0, additive: true, renderOrder: 5, color: 0x5eead4 });
+    ringGlow.position.z = 0.02;
+    const centerGlow = artQuad(glowTexture(), ringD * 0.92, ringD * 0.92, { opacity: 0, additive: true, renderOrder: 3, color: 0x2dd4bf });
+    centerGlow.position.z = -0.04;
+
+    tiltGroup.add(centerGlow, ringMesh, ringGlow);
+    group.add(tiltGroup);
+
+    const calcMidY = () => {
+        if (casterView?.root && casterView.member?.alive && (casterView._hover ?? 0) > 0.2) {
+            return GROUND_Y + casterView._hover + H * 0.55;
+        }
+        const skyHover = computeSkyHoverHeight(camera, midX, GROUND_Y, midZ, H, Math.max(0.22, camTilt()));
+        return GROUND_Y + Math.max(2.2, skyHover) + H * 0.55;
+    };
+    const initY = calcMidY();
+    group.position.set(midX, initY, midZ);
 
     const entry = {
-        group,
-        halo,
-        mesh,
-        flashMesh,
-        dirX,
-        arrX,
-        arrY,
-        arrZ,
-        arrW,
-        arrH: initH,
+        id,
         x,
         z,
+        midX,
+        midY: initY,
+        midZ,
+        dirX,
         radius,
-        casterView,
+        ringD,
+        group,
+        tiltGroup,
+        phase: 'charge',
+        chargeDur: Math.max(0.1, chargeTime / 1000),
+        fireDur: Math.max(0.5, fireDuration / 1000),
+        flightDur: Math.max(0.2, flightTime / 1000),
+        emitAcc: 0,
+        emitNext: 0.08,
+        spin: 0,
         flash: 0,
+        flare: 0,
+        fadeAfterLaunch: -1,
         stopping: false,
         fadeOut: 1,
-        rainAt: gameNow() + castTime,
-        endAt: gameNow() + duration * 1000,
     };
     activeFormations.set(key, entry);
 
-    addAnim(group, Math.max(duration + 6, 15), (_p, fx, dt = 0.016) => {
-        const castDead = !!entry.casterView?.member && !entry.casterView.member.alive && gameNow() < entry.rainAt;
-        if (entry.stopping || gameNow() >= entry.endAt || castDead) {
-            entry.fadeOut = Math.max(0, entry.fadeOut - dt * 2.2);
+    const maxSec = entry.chargeDur + entry.fireDur + entry.flightDur + 3;
+    addAnim(group, maxSec, (_p, fx, dt = 0.016) => {
+        if (entry.phase === 'charge' && fx.age >= entry.chargeDur) entry.phase = 'firing';
+
+        if (entry.fadeAfterLaunch >= 0) {
+            entry.fadeAfterLaunch += dt;
+            if (entry.fadeAfterLaunch >= 0.18) {
+                entry.stopping = true;
+            }
+        }
+        if (entry.stopping) {
+            entry.fadeOut = Math.max(0, entry.fadeOut - dt * 1.85);
             if (entry.fadeOut <= 0.01) {
                 if (activeFormations.get(key) === entry) activeFormations.delete(key);
                 fx.life = fx.age;
                 return;
             }
         }
-        entry.flash = Math.max(0, entry.flash - dt * 4.5);
-        const fadeIn = Math.min(1, fx.age / 0.55);
-        const driftX = Math.sin(fx.age * 0.75) * 0.22;
-        const driftY = Math.sin(fx.age * 1.25) * 0.14;
-        group.position.set(entry.arrX + driftX, entry.arrY + driftY, entry.arrZ);
-        group.rotation.x = camTilt();
 
-        const curAspect = aspectOf(tex, fallbackAspect);
-        const aspectScaleY = fallbackAspect / curAspect;
-        entry.arrH = entry.arrW / curAspect;
-        const ps = 1 + 0.018 * Math.sin(fx.age * 2.1) + 0.045 * entry.flash;
-        mesh.scale.set(dirX * ps, ps * aspectScaleY, 1);
-        flashMesh.scale.set(dirX * ps, ps * aspectScaleY, 1);
+        entry.midY += (calcMidY() - entry.midY) * Math.min(1, dt * 6);
+        const bobY = Math.sin(fx.age * 1.4) * 0.08;
+        group.position.set(entry.midX, entry.midY + bobY, entry.midZ);
 
-        const vis = fadeIn * entry.fadeOut;
-        const glowPulse = 0.75 + 0.25 * Math.sin(fx.age * 3.4);
-        mesh.material.opacity = Math.min(1, 0.92 + 0.08 * entry.flash) * vis;
-        halo.material.opacity = (0.34 * glowPulse + 0.4 * entry.flash) * vis;
-        flashMesh.material.opacity = entry.flash * 0.85 * vis;
+        entry.flash = Math.max(0, entry.flash - dt * 3.5);
+        entry.flare = Math.max(0, entry.flare - dt * 2.2);
+
+        let sc = 1, op = 1, glowStrength = 0.48, spinSpeed = 0.6;
+        if (entry.phase === 'charge') {
+            const pc = Math.min(1, fx.age / entry.chargeDur);
+            sc = 0.18 + 0.82 * easeOut(pc);
+            op = Math.min(1, pc * 1.35);
+            glowStrength = 0.12 + 0.42 * pc;
+            spinSpeed = 0.55 + 0.75 * pc;
+        } else if (entry.phase === 'firing') {
+            sc = 1 + 0.025 * Math.sin(fx.age * 4.5) + 0.04 * entry.flash;
+            op = 0.96;
+            glowStrength = 0.46 + 0.20 * Math.sin(fx.age * 5) + 0.35 * entry.flash;
+            spinSpeed = 2.25;
+            // Mưa kiếm liên tục ~7 thanh/giây xuất phát từ mặt vòng trận
+            entry.emitAcc += dt;
+            while (entry.emitAcc >= entry.emitNext) {
+                entry.emitAcc -= entry.emitNext;
+                entry.emitNext = 0.115 + Math.random() * 0.055; // trung bình ~7.0 thanh/giây
+                spawnOneFormationSword(entry);
+            }
+        } else {
+            // Đã phóng đại kiếm: bừng sáng nhẹ rồi quay chậm dần khi mờ tan
+            sc = 1 + 0.10 * entry.flare;
+            op = 0.96;
+            glowStrength = 0.55 + 0.65 * entry.flare;
+            spinSpeed = 1.6 * entry.fadeOut + 0.35;
+        }
+
+        tiltGroup.scale.setScalar(sc);
+        entry.spin += spinSpeed * dt;
+        ringMesh.rotation.z = entry.spin;
+        ringGlow.rotation.z = entry.spin;
+
+        const vis = op * entry.fadeOut;
+        ringMesh.material.opacity = vis;
+        ringGlow.material.opacity = vis * glowStrength;
+        centerGlow.material.opacity = vis * (0.20 + 0.42 * glowStrength);
     });
 }
 
-export function endSkyFormation(casterId, casterIdx) {
-    const entry = activeFormations.get(keyOf(casterId, casterIdx));
+/** Chuyển vòng trận sang pha bắn 5s (đồng bộ sự kiện formationRain của server) */
+export function beginFormationRain(casterId, casterIdx, opts = {}) {
+    const key = keyOf(casterId, casterIdx);
+    const entry = activeFormations.get(key);
+    if (entry) {
+        entry.phase = 'firing';
+        entry.flash = 0.6;
+        return;
+    }
+    if (opts.x != null) {
+        spawnSkyFormation(casterId, casterIdx, opts.x, opts.z ?? 0, {
+            radius: opts.radius ?? 8,
+            chargeTime: 0,
+            fireDuration: opts.fireDuration ?? 5000,
+            flightTime: opts.flightTime ?? 1200,
+            casterView: opts.casterView ?? null,
+            id: opts.id ?? null,
+        });
+        const created = activeFormations.get(key);
+        if (created) created.phase = 'firing';
+    }
+}
+
+/** Nhịp sát thương 0.5s từ server: nhấp sáng nhẹ trên vòng trận (luồng kiếm rơi đã chạy liên tục) */
+export function spawnSwordRainTick(x, z, opts = {}) {
+    const key = keyOf(opts.casterId, opts.casterIdx);
+    const entry = activeFormations.get(key);
+    if (entry) {
+        entry.flash = Math.max(entry.flash, 0.55);
+        return;
+    }
+    // Dự phòng nếu gọi đơn lẻ không có vòng trận đang chạy
+    const dirX = opts.casterView?.facingLeft ? -1 : 1;
+    for (let i = 0; i < 4; i++) {
+        spawnPixelFx('impacts/hit-spark', {
+            pos: { x: x + (Math.random() - 0.5) * 4, z: z + (Math.random() - 0.5) * 2 },
+            flip: dirX < 0,
+            palette: JADE_PAL,
+            scale: 0.55 * kFx(),
+            delay: i * 0.04,
+        });
+    }
+}
+
+/** Tắt vòng trận / đại kiếm đang bay nếu kết thúc sớm (YunYou gục hoặc trận kết thúc) */
+export function endSkyFormation(casterId, casterIdx, reason = 'cancelled') {
+    if (reason === 'done') return;   // Kết thúc bình thường: để đại kiếm & vòng trận tự mờ tự nhiên
+    const key = keyOf(casterId, casterIdx);
+    const entry = activeFormations.get(key);
     if (entry) entry.stopping = true;
+    const gs = activeGiantSwords.get(key);
+    if (gs && !gs.exploded) gs.stopping = true;
 }
 
-function findFormation(casterId, casterIdx, x, z) {
-    if (casterId != null && casterIdx != null) {
-        const hit = activeFormations.get(keyOf(casterId, casterIdx));
-        if (hit) return hit;
+/**
+ * Phóng đại kiếm khổng lồ (yunyou_giantsword.webp ~3× chiều cao tướng):
+ * Vòng trận loé sáng -> đại kiếm trồi ra từ tâm vòng trận, mũi hướng tâm vùng địch,
+ * bay CHẬM 1.2s tới tâm vùng, sau đó vòng trận mờ tắt. Nổ được kích hoạt ở `explodeFormationGiantSword`.
+ */
+export function launchFormationGiantSword(x, z, opts = {}) {
+    const {
+        casterId = null,
+        casterIdx = null,
+        casterView = null,
+        radius = 8,
+        flightTimeMs = 1200,
+    } = opts;
+    const key = keyOf(casterId, casterIdx);
+    const entry = activeFormations.get(key);
+
+    const cx = entry ? entry.midX : (casterView?.root ? casterView.position.x : x - 8);
+    const cz = entry ? entry.midZ : (casterView?.root ? (casterView.position.z ?? 0) : z);
+    const H = casterView?.height ?? 2.9;
+    const cy = entry ? entry.midY : (GROUND_Y + (casterView?._hover ?? 3.4) + H * 0.55);
+    const dirX = entry ? entry.dirX : (Math.abs(x - cx) > 0.25 ? (x >= cx ? 1 : -1) : (casterView?.facingLeft ? -1 : 1));
+
+    if (entry) {
+        entry.phase = 'launching';
+        entry.flare = 1.25;
+        entry.fadeAfterLaunch = 0;
     }
-    for (const f of activeFormations.values()) {
-        if (Math.hypot(f.x - x, f.z - z) < 4) return f;
-    }
-    return null;
-}
 
-/** Mưa kiếm: 10–14 thanh yunyou_sword.webp lao từ trận đồ theo đúng góc chéo ~40° xuống vùng mục tiêu */
-export function spawnSwordRainTick(x, z, radiusOrOpts = 8) {
-    const opts = typeof radiusOrOpts === 'object' ? (radiusOrOpts ?? {}) : { radius: radiusOrOpts };
-    const radius = opts.radius ?? 8;
-    const entry = findFormation(opts.casterId, opts.casterIdx, x, z);
-    if (entry) entry.flash = 1.0;
-
-    const place = entry ?? formationPlacement(x, z, radius, opts.casterView);
-    const dirX = place.dirX;
-    const arrX = place.arrX, arrY = place.arrY, arrZ = place.arrZ, arrW = place.arrW;
-    const arrH = entry?.arrH ?? (arrW / (1536 / 1024));
-    const { vx, vy, slope } = diagDir(dirX);
-    const baseRotZ = Math.atan2(vy, vx) - Math.PI / 2;   // yunyou_sword mũi hướng +Y -> trừ PI/2 để mũi lao tới trước
-
-    const count = 10 + Math.floor(Math.random() * 5);   // 10–14 thanh mỗi nhịp
-    const tex = swordTex();
-    const rSpread = Math.min(7.2, Math.max(3.0, radius * 0.82));
-    const gen = rainGen;
-
-    for (let i = 0; i < count; i++) {
-        const delayMs = i * 26 + Math.random() * 22;
-        const ang = Math.random() * Math.PI * 2;
-        const dist = Math.sqrt(Math.random()) * rSpread;
-        const txBase = x + Math.cos(ang) * dist;
-        const tz = z + Math.sin(ang) * dist * 0.55;
-        const endY = GROUND_Y + 0.14 + Math.random() * 0.2;
-
-        // Xuất phát từ trong trận đồ đang lơ lửng và lao đúng theo góc chéo ~40°
-        const startY = arrY + (Math.random() - 0.5) * arrH * 0.42;
-        const dropH = Math.max(2.5, startY - endY);
-        const idealSx = txBase - dirX * dropH * slope;
-        const halfSpan = arrW * 0.38;
-        const sx = Math.max(arrX - halfSpan, Math.min(arrX + halfSpan, idealSx));
-        const lx = sx + dirX * dropH * slope;
-        const startZ = arrZ + (tz - arrZ) * 0.25;
-
-        const len = 1.65 + Math.random() * 0.45;
-        const w = len * aspectOf(tex, 0.18);
-
-        const timer = gameTimeout(() => {
-            activeRainTimers.delete(timer);
-            if (!scene || gen !== rainGen || entry?.stopping) return;
-            const m = artQuad(tex, w, len, { opacity: 0.96, additive: false, renderOrder: 7 });
-            m.scale.x = dirX;
-            m.rotation.z = baseRotZ;
-            const dur = 0.21 + Math.random() * 0.06;
-            const totalDur = dur + 0.15;
-            const shot = { stopping: false };
-            activeOneShots.add(shot);
-            let sparked = false;
-            addAnim(m, totalDur, (_p, fx) => {
-                if (shot.stopping) {
-                    activeOneShots.delete(shot);
-                    fx.life = fx.age;
-                    return;
-                }
-                const k = Math.min(1, fx.age / dur);
-                const e = k * k;
-                fx.mesh.position.set(sx + (lx - sx) * e, startY + (endY - startY) * e, startZ + (tz - startZ) * e + 0.35);
-                fx.mesh.material.opacity = k < 1 ? 0.96 : Math.max(0, 0.96 * (1 - (fx.age - dur) / 0.15));
-                if (k >= 1 && !sparked) {
-                    sparked = true;
-                    spawnPixelFx('impacts/hit-spark', {
-                        pos: { x: lx, z: tz },
-                        flip: dirX < 0,
-                        palette: JADE_PAL,
-                        scale: (0.50 + Math.random() * 0.12) * kFx(),
-                    });
-                }
-                if (fx.age >= totalDur) activeOneShots.delete(shot);
-            });
-        }, delayMs);
-        activeRainTimers.add(timer);
-    }
-}
-
-/** Đại kiếm khổng lồ cuối cùng (yunyou_giantsword.webp ~3× chiều cao tướng) lao chéo cắm tâm trận, rung màn hình rồi tan */
-export function spawnFinalGiantSword(x, z, opts = {}) {
-    const { onImpact, radius = 8, casterId = null, casterIdx = null, casterView = null } = opts;
-    const entry = findFormation(casterId, casterIdx, x, z);
-    const place = entry ?? formationPlacement(x, z, radius, casterView);
-    if (entry) entry.stopping = true;
-
-    const dirX = place.dirX;
-    const { vx, vy } = diagDir(dirX);
     const tex = giantSwordTex();
     const fallbackAspect = 1024 / 1536;
-    const len = 3.0 * (casterView?.height ?? 2.9);   // ~3× chiều cao nhân vật
+    const len = 3.0 * H;   // ~3× chiều cao nhân vật
     const initW = len * fallbackAspect;
 
     const group = new THREE.Group();
     const mesh = artQuad(tex, initW, len, { opacity: 0, additive: false, renderOrder: 12 });
-    const glowMesh = artQuad(tex, initW * 1.05, len * 1.03, { opacity: 0, additive: true, renderOrder: 13, color: 0x99f6e4 });
+    const glowMesh = artQuad(tex, initW * 1.07, len * 1.04, { opacity: 0, additive: true, renderOrder: 13, color: 0x99f6e4 });
     glowMesh.position.z = 0.02;
     group.add(mesh, glowMesh);
-    // yunyou_giantsword.webp mũi hướng XUỐNG (-Y) -> cộng PI/2 để mũi hướng theo (vx, vy)
-    group.rotation.z = Math.atan2(vy, vx) + Math.PI / 2;
 
-    const tipOffset = len * 0.40;
-    const landX = x - vx * tipOffset;
-    const landY = GROUND_Y - vy * tipOffset;
-    const plungeDist = 7.2;
-    const startX = landX - vx * plungeDist;
-    const startY = landY - vy * plungeDist;
-    const landZ = z + 0.55;
-    const startZ = (place.arrZ + landZ) * 0.5;
+    const origin = new THREE.Vector3(cx, cy, cz);
+    const target = new THREE.Vector3(x, GROUND_Y + 0.05, z + 0.35);
+    const delta = target.clone().sub(origin);
+    const dx = delta.x, dy = delta.y, dz = delta.z;
+    const flightLen = Math.max(0.5, Math.hypot(dx, dy));
+    const ux = dx / flightLen, uy = dy / flightLen;
 
-    const appearDur = 0.14;
-    const dropDur = 0.20;
-    const stickDur = 0.42;
-    const fadeDur = 0.36;
-    const totalDur = appearDur + dropDur + stickDur + fadeDur;
+    // yunyou_giantsword.webp mũi hướng XUỐNG (-Y) -> xoay atan2(dx, -dy) để mũi hướng chuẩn theo vector bay
+    group.rotation.z = Math.atan2(dx, -dy);
 
-    const shot = { stopping: false };
+    const tipOffset = len * 0.42;
+    const endCenterX = target.x - ux * tipOffset;
+    const endCenterY = target.y - uy * tipOffset;
+    const endCenterZ = target.z;
+    // Lúc bắt đầu trồi ra từ tâm vòng trận: thân lùi lại một chút rồi tiến chậm suốt 1.2s tới điểm chạm
+    const startCenterX = origin.x - ux * (tipOffset * 0.35);
+    const startCenterY = origin.y - uy * (tipOffset * 0.35);
+    const startCenterZ = origin.z;
+
+    const flightDur = Math.max(0.3, flightTimeMs / 1000);
+    const lingerSec = 0.45;
+    const fadeSec = 0.40;
+    const totalDur = flightDur + lingerSec + fadeSec + 1.0;
+
+    const shot = {
+        key,
+        x,
+        z,
+        dirX,
+        endCenterX,
+        endCenterY,
+        endCenterZ,
+        group,
+        stopping: false,
+        exploded: false,
+        explodeAge: -1,
+        onExplodeCallback: null,
+        sparkAcc: 0,
+    };
+    const prevShot = activeGiantSwords.get(key);
+    if (prevShot) prevShot.stopping = true;
+    activeGiantSwords.set(key, shot);
     activeOneShots.add(shot);
-    let slammed = false;
 
-    addAnim(group, totalDur, (_p, fx) => {
+    addAnim(group, totalDur, (_p, fx, dt = 0.016) => {
         if (shot.stopping) {
+            if (activeGiantSwords.get(key) === shot) activeGiantSwords.delete(key);
             activeOneShots.delete(shot);
             fx.life = fx.age;
             return;
         }
-        const aspectScaleX = aspectOf(tex, fallbackAspect) / fallbackAspect;
-        mesh.scale.set(dirX * aspectScaleX, 1, 1);
-        glowMesh.scale.set(dirX * aspectScaleX, 1, 1);
 
-        const age = fx.age;
-        if (age < appearDur) {
-            const k = easeOut(age / appearDur);
-            fx.mesh.position.set(startX - vx * 0.4 * (1 - k), startY - vy * 0.4 * (1 - k), startZ);
-            mesh.material.opacity = k;
-            glowMesh.material.opacity = 0.45 * k;
-        } else if (age < appearDur + dropDur) {
-            const k = (age - appearDur) / dropDur;
-            const e = k * k * k;
-            fx.mesh.position.set(
-                startX + (landX - startX) * e,
-                startY + (landY - startY) * e,
-                startZ + (landZ - startZ) * e,
-            );
-            mesh.material.opacity = 1;
-            glowMesh.material.opacity = 0.42;
-        } else {
-            fx.mesh.position.set(landX, landY, landZ);
-            const after = age - appearDur - dropDur;
-            if (!slammed) {
-                slammed = true;
-                onImpact?.();
-                cameraRig.shake(0.30, 280);
-                // Rải nhiều cụm pixelfx cỡ chuẩn quanh điểm giáng (tránh phóng 1 khối điểm ảnh quá lớn)
-                spawnPixelFx('impacts/ground-slam', { pos: { x, z }, flip: dirX < 0, palette: JADE_PAL, scale: 1.05 * kFx() });
-                spawnPixelFx('impacts/crit-hit', { pos: { x, z }, flip: dirX < 0, palette: JADE_PAL, scale: 1.0 * kFx() });
-                spawnPixelFx('impacts/hit-spark', { pos: { x: x - dirX * 1.1, z: z - 0.3 }, flip: dirX < 0, palette: JADE_PAL, scale: 0.8 * kFx() });
-                spawnPixelFx('impacts/hit-spark', { pos: { x: x + dirX * 1.1, z: z + 0.3 }, flip: dirX < 0, palette: JADE_PAL, scale: 0.8 * kFx() });
+        const aspectScaleX = aspectOf(tex, fallbackAspect) / fallbackAspect;
+
+        if (!shot.exploded) {
+            const p = Math.min(1, fx.age / flightDur);
+            // Bay chậm có gia tốc nhẹ cuối quãng
+            const e = p * (0.72 + 0.28 * p);
+            const emergeT = Math.min(1, fx.age / 0.22);
+            const emergeS = 0.30 + 0.70 * easeOut(emergeT);
+
+            const px = startCenterX + (endCenterX - startCenterX) * e;
+            const py = startCenterY + (endCenterY - startCenterY) * e;
+            const pz = startCenterZ + (endCenterZ - startCenterZ) * e;
+            fx.mesh.position.set(px, py, pz);
+
+            mesh.scale.set((dirX >= 0 ? 1 : -1) * aspectScaleX * emergeS, emergeS, 1);
+            glowMesh.scale.set((dirX >= 0 ? 1 : -1) * aspectScaleX * emergeS, emergeS, 1);
+            const op = Math.min(1, fx.age / 0.14);
+            mesh.material.opacity = op;
+            glowMesh.material.opacity = (0.35 + 0.20 * Math.sin(fx.age * 16)) * op;
+
+            // Vệt ngọc lấp lánh nhẹ suốt 1.2s đại kiếm bay xuống
+            shot.sparkAcc += dt;
+            if (shot.sparkAcc >= 0.12 && p > 0.12 && p < 0.96) {
+                shot.sparkAcc = 0;
+                spawnPixelFx('impacts/hit-spark', {
+                    pos: { x: px, z: pz },
+                    lift: Math.max(0, py - GROUND_Y - 1.2),
+                    flip: dirX < 0,
+                    palette: JADE_PAL,
+                    scale: 0.48 * kFx(),
+                });
             }
-            const glowFade = Math.max(0, 1 - after / 0.25);
-            const vis = after <= stickDur ? 1 : Math.max(0, 1 - (after - stickDur) / fadeDur);
+        } else {
+            if (shot.explodeAge < 0) shot.explodeAge = 0;
+            shot.explodeAge += dt;
+            fx.mesh.position.set(endCenterX, endCenterY, endCenterZ);
+            mesh.scale.set((dirX >= 0 ? 1 : -1) * aspectScaleX, 1, 1);
+            glowMesh.scale.set((dirX >= 0 ? 1 : -1) * aspectScaleX, 1, 1);
+
+            const glowFade = Math.max(0, 1 - shot.explodeAge / 0.28);
+            const vis = shot.explodeAge <= lingerSec ? 1 : Math.max(0, 1 - (shot.explodeAge - lingerSec) / fadeSec);
             mesh.material.opacity = vis;
-            glowMesh.material.opacity = 0.55 * glowFade * vis;
+            glowMesh.material.opacity = 0.65 * glowFade * vis;
+            if (shot.explodeAge >= lingerSec + fadeSec) {
+                if (activeGiantSwords.get(key) === shot) activeGiantSwords.delete(key);
+                activeOneShots.delete(shot);
+                fx.life = fx.age;
+            }
         }
-        if (age >= totalDur) activeOneShots.delete(shot);
     });
 }
 
+/** Đại kiếm chạm đất nổ lớn (đồng bộ sự kiện finalSwordExplode của server): nhiều cụm pixelfx cỡ chuẩn + rung màn hình */
+export function explodeFormationGiantSword(x, z, opts = {}) {
+    const { casterId = null, casterIdx = null, onImpact = null } = opts;
+    const key = keyOf(casterId, casterIdx);
+    const shot = activeGiantSwords.get(key);
+    const dirX = shot ? shot.dirX : 1;
+    if (shot && !shot.exploded) {
+        shot.exploded = true;
+        shot.explodeAge = 0;
+        shot.group.position.set(shot.endCenterX, shot.endCenterY, shot.endCenterZ);
+    }
+    if (activeGiantSwords.get(key) === shot) activeGiantSwords.delete(key);
+    spawnGiantImpactExplosion(shot?.x ?? x, shot?.z ?? z, dirX);
+    onImpact?.();
+}
+
 export function clearSwordFx() {
-    rainGen++;
-    for (const id of activeRainTimers) clearTimeout(id);
-    activeRainTimers.clear();
     for (const f of activeFans.values()) f.stopping = true;
     activeFans.clear();
     for (const f of activeFormations.values()) f.stopping = true;
     activeFormations.clear();
+    for (const s of activeGiantSwords.values()) s.stopping = true;
+    activeGiantSwords.clear();
     for (const s of activeOneShots) s.stopping = true;
     activeOneShots.clear();
 }

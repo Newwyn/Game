@@ -93,7 +93,7 @@ export function spawnSunlight(pos, { big = false, height = 2.9 } = {}) {
 /** Biểu tượng nhỏ bật lên trên đầu rồi bay lên + mờ (healPlus · dmgUp · defUp · cleanse) */
 export function spawnSeraIcon(pos, group, { height = 2.9, size = 0.7, delay = 0, life = 1.0, x = 0 } = {}) {
     const m = seraFrames(group, size, { opacity: 0 });
-    const y0 = FLOOR + height + 0.45;
+    const y0 = (pos.y ?? 0) + FLOOR + height + 0.45;
     m.position.set(pos.x + x, y0, (pos.z ?? 0) + 0.7);
     const T = life + delay;
     addAnim(m, T, (p, fx) => {

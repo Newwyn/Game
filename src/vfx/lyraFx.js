@@ -198,10 +198,11 @@ export function spawnLyraCharge(pos, seconds = 2, { y = 1.1 } = {}) {
 /** Biểu tượng +chính xác (mắt chim ưng) bật lên trên đầu đồng đội (Thần Phong: cả đội +20% chính xác) */
 export function spawnAccUp(pos, { height = 2.9, delay = 0 } = {}) {
     const m = lyraFrames('accUp', 0.75, { opacity: 0 });
-    m.position.set(pos.x, GROUND + height + 0.35, (pos.z ?? 0) + 0.6);
+    const baseY = (pos.y ?? 0) + GROUND + height + 0.35;
+    m.position.set(pos.x, baseY, (pos.z ?? 0) + 0.6);
     addAnim(m, 1.2 + delay, (p, fx) => {
         const t = Math.max(0, (p * (1.2 + delay) - delay) / 1.2);
-        fx.mesh.position.y = GROUND + height + 0.35 + easeOut(t) * 0.45;
+        fx.mesh.position.y = baseY + easeOut(t) * 0.45;
         fx.mesh.scale.setScalar(t < 0.15 ? 0.5 + 3.3 * t : 1);
         fx.mesh.material.opacity = t <= 0 ? 0 : t < 0.1 ? t / 0.1 : t > 0.7 ? (1 - t) / 0.3 : 1;
     });

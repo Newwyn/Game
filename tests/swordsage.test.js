@@ -126,7 +126,11 @@ test('swordsage: khai báo CLASS_DEFS, SQUAD_ORDER, cửa hàng 1200 Kim Cương
 
     // Kỹ năng & thiên phú & tỉ lệ theo bậc
     assert.deepEqual(def.skills.map(s => [s.type, s.orbCost, s.cooldown, s.castTime]),
-        [['sword_haste', 1, 12000, 0], ['sword_multi', 2, 16000, 0], ['sword_formation', 4, 24000, 2000]]);
+        [['sword_haste', 1, 12000, 0], ['sword_multi', 2, 16000, 0], ['sword_formation', 4, 24000, 0]]);
+    assert.deepEqual(
+        [def.skills[2].chargeTime, def.skills[2].fireDuration, def.skills[2].ticks, def.skills[2].tickGap, def.skills[2].tickMultiplier, def.skills[2].flightTime, def.skills[2].lock],
+        [2000, 5000, 10, 500, 0.25, 1200, 0]
+    );
     assert.deepEqual(def.skills[1].byRank, { extraMultiplier: [0.5, 0.57, 0.63, 0.7] });
     for (let r = 0; r <= 3; r++) {
         const sks = P.scaleSkills(def.skills, r);
@@ -373,60 +377,135 @@ test('S1 Ngự Kiếm Tốc (+80% tốc đánh 6s) & S2 Vạn Kiếm Đồng Quy
     }
 });
 
-test('S3 Trận Đồ Kiếm: niệm 2s (trên không không ngắt khi choáng; mặt đất bị choáng là huỷ + formationEnd) -> 5 đợt mưa kiếm ×0.5 + đại kiếm cuối ×3 chắc chắn chí mạng', () => {
-    // (A) Đang bay: niệm 2s + bị applyStun giữa chừng -> không bị ngắt, tung đủ 5 đợt mưa + đại kiếm cuối
+test('S3 Trận Đồ Kiếm: dựng ngay không niệm (YunYou vẫn đánh thường & dùng KN1/2) -> 2s tích lực -> 5s mưa kiếm (10 đợt ×0.5s ×0.25) -> đại kiếm bay 1.2s nổ ×3 luôn CM; choáng KHÔNG huỷ, chết MỚI huỷ, 1 trận tại 1 thời điểm & đọc chỉ số lúc nổ', () => {
+    // (A) Độc lập với YunYou: không casting state, tự đánh + bật được KN1 lúc tích lực & KN2 lúc bắn;
+    //     10 đợt ×0.25 cách 0.5s; đại kiếm phóng sau đợt cuối & nổ sau 1.2s ×3 luôn CM (kể cả crit = 0)
     {
         const h = harness();
-        arena(h, { level: 1, rank: 0, foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 2], ['monster_dummy', 25, 0]] });
+        arena(h, { level: 1, rank: 0, allies: ['warrior'], foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 2], ['monster_dummy', 25, 0]] });
+        h.run('ally("warrior").x = -100; yy.crit = 0;'); // Rok đứng xa để chỉ đếm đòn đánh thường của YunYou
+        const yi = h.run('YI');
         const tick = realLoop(h);
         tick(1);   // bay lên ở nhịp 1
         assert.equal(h.run('yy.airborne'), true);
+
+        const autoCount = () => h.evs('autoAttack').filter(e => e.attackerId === 'p1' && e.attackerIndex === yi).length;
         h.run('yy.mp = yy.maxMp; yy.queuedSkills = [2];');
         for (let i = 0; i < 20 && !h.fx('formationStart').length; i++) tick(1);
         assert.equal(h.fx('formationStart').length, 1);
-        tick(10);  // +500 ms -> thử gây choáng lúc đang bay
-        h.run('applyStun(yy, 1500, room.clock)');
-        assert.equal(h.run("yy.statusEffects.some(e => e.type === 'stun')"), false);
-        for (let i = 0; i < 50 && !h.fx('formationRain').length; i++) tick(1);
-        assert.equal(h.fx('formationRain').length, 1);
-        assert.equal(h.fx('rainTick').length, 1);
+        const fsEv = h.fx('formationStart')[0];
+        assert.equal(h.run('yy.castingSkillId'), null, 'S3 không còn trạng thái niệm trên YunYou');
+        assert.notEqual(h.run('yy.state'), 'casting');
+        assert.deepEqual([fsEv.chargeTime, fsEv.fireDuration, fsEv.ticks, fsEv.tickGap, fsEv.flightTime], [2000, 5000, 10, 500, 1200]);
+        assert.ok(Math.abs(fsEv.x - (8 + 9 + 25) / 3) < 1e-6, 'tâm trận phải nằm đúng tâm nhóm địch còn sống lúc tạo');
+        assert.ok(Math.abs(fsEv.z - 2 / 3) < 1e-6);
 
-        // Chờ qua 5s mưa kiếm + đại kiếm cuối
-        for (let i = 0; i < 120 && !h.fx('finalSword').length; i++) tick(1);
-        tick(2);
+        // Trong 2s tích lực: YunYou vẫn đánh thường & vẫn dùng được KN1
+        const autosAtCast = autoCount();
+        tick(15); // +750 ms
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [0];');
+        tick(24); // +1200 ms (tổng 1950 ms từ lúc tạo)
+        const autosAfterCharge = autoCount();
+        assert.ok(autosAfterCharge > autosAtCast, 'YunYou vẫn phải đánh thường trong lúc trận tích lực 2s');
+        assert.equal(h.run("yy.statusEffects.some(e => e.type === 'sword_haste' && e.endTime > room.clock)"), true, 'phải bật được KN1 trong lúc trận tích lực');
+        assert.equal(h.fx('formationRain').length, 0);
+        assert.equal(h.fx('rainTick').length, 0);
+
+        // Chạm đúng mốc 2000 ms -> bắt đầu pha bắn 5s
+        tick(1);
+        assert.equal(h.fx('formationRain').length, 1);
+
+        // Trong 5s bắn: YunYou vẫn đánh thường & vẫn dùng được KN2
+        tick(20); // +1000 ms
+        h.run('yy.mp = yy.maxMp; yy.queuedSkills = [1];');
+        tick(79); // +3950 ms (tổng 6950 ms từ lúc tạo -> đã qua 9 đợt)
+        const autosAfterFire = autoCount();
+        assert.ok(autosAfterFire > autosAfterCharge, 'YunYou vẫn phải đánh thường trong lúc trận bắn');
+        assert.equal(h.run("yy.statusEffects.some(e => e.type === 'sword_multi' && e.endTime > room.clock)"), true, 'phải bật được KN2 trong lúc trận bắn');
+        assert.equal(h.fx('rainTick').length, 9);
+        assert.equal(h.fx('finalSwordLaunch').length, 0);
+
+        // Chạm 7000 ms -> đợt thứ 10 & phóng đại kiếm
+        tick(1);
+        assert.equal(h.fx('rainTick').length, 10, 'phải có đúng 10 đợt mưa kiếm');
+        assert.equal(h.fx('finalSwordLaunch').length, 1, 'kết thúc pha bắn phải phóng đại kiếm');
+        assert.equal(h.fx('finalSwordLaunch')[0].flightTime, 1200);
+        assert.equal(h.fx('finalSwordExplode').length, 0);
+
+        // Bay chậm 1.2s (chưa tới 1200 ms vẫn chưa nổ)
+        tick(23); // +1150 ms
+        assert.equal(h.fx('finalSwordExplode').length, 0);
+        tick(1);  // +50 ms = đúng 1200 ms sau đợt cuối
+        assert.equal(h.fx('finalSwordExplode').length, 1, 'đại kiếm phải nổ sau đúng 1.2s bay');
+        assert.equal(h.fx('formationEnd').some(e => e.reason === 'done'), true);
+
         const rains = h.fx('rainTick');
-        const finals = h.fx('finalSword');
-        assert.equal(rains.length, 5, 'phải có đúng 5 đợt mưa kiếm');
-        assert.equal(finals.length, 1, 'phải có 1 đòn đại kiếm cuối');
-        // Chỉ foe[0] và foe[1] trong bán kính 8 quanh cụm địch, foe[2] ở x=25 nằm ngoài
+        const exps = h.fx('finalSwordExplode');
         assert.deepEqual(rains[0].effects.map(e => e.targetIndex), [0, 1]);
-        assert.deepEqual(finals[0].effects.map(e => e.targetIndex), [0, 1]);
-        // Đòn đại kiếm cuối LUÔN chí mạng (kể cả khi crit = 0 & __rnd = 0.5)
-        assert.equal(finals[0].effects.every(e => e.isCrit === true), true, 'đại kiếm cuối phải chắc chắn chí mạng');
+        assert.deepEqual(exps[0].effects.map(e => e.targetIndex), [0, 1]);
+        assert.equal(exps[0].effects.every(e => e.isCrit === true), true, 'đại kiếm cuối phải chắc chắn chí mạng');
+
+        const rainHits = json(h, "hits.filter(x => x.by === 'swordsage' && x.mult === 0.25)");
+        assert.equal(rainHits.length, 20, '10 đợt × 2 địch trong vùng');
+        const tickTimes = [...new Set(rainHits.map(x => x.at))];
+        assert.equal(tickTimes.length, 10);
+        for (let i = 1; i < tickTimes.length; i++) assert.equal(tickTimes[i] - tickTimes[i - 1], 500, 'mỗi đợt cách nhau 0.5s');
         const finalCalcs = json(h, "calcs.filter(c => c.by === 'swordsage' && c.mult === 3)");
         assert.equal(finalCalcs.length, 2);
         assert.equal(finalCalcs.every(c => c.isCrit === true), true);
+        assert.equal(finalCalcs[0].at - tickTimes.at(-1), 1200, 'đại kiếm nổ đúng 1.2s sau đợt mưa kiếm cuối');
     }
 
-    // (B) Đứng dưới đất (không đồng minh): niệm S3 rồi bị choáng -> huỷ niệm, phát formationEnd, không có mưa kiếm
+    // (B) Đứng dưới đất & bị choáng thật sự -> KHÔNG huỷ Trận Đồ Kiếm
     {
         const h = harness();
-        arena(h, { allies: [], foes: [['monster_tank', 8, 0]] });
+        arena(h, { allies: [], foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 0]] });
         const tick = realLoop(h);
+        tick(1);
         assert.equal(h.run('yy.airborne'), false);
         h.run('yy.mp = yy.maxMp; yy.queuedSkills = [2];');
         for (let i = 0; i < 20 && !h.fx('formationStart').length; i++) tick(1);
         assert.equal(h.fx('formationStart').length, 1);
-        assert.equal(h.run('yy.castingSkillId'), 2);
-        tick(5);
-        h.run('applyStun(yy, 1500, room.clock)');
+        tick(10); // +500 ms -> choáng 2.5s ngay giữa lúc tích lực
+        h.run('applyStun(yy, 2500, room.clock)');
         tick(1);
-        assert.equal(h.run('yy.castingSkillId'), null, 'đứng đất bị choáng phải huỷ niệm Trận Đồ Kiếm');
-        assert.equal(h.fx('formationEnd').length, 1);
-        tick(60);
-        assert.equal(h.fx('formationRain').length, 0);
-        assert.equal(h.fx('rainTick').length, 0);
-        assert.equal(h.fx('finalSword').length, 0);
+        assert.equal(h.run('yy.state'), 'stunned', 'YunYou dưới đất phải bị choáng thật');
+        assert.equal(h.fx('formationEnd').length, 0, 'choáng trên YunYou KHÔNG được huỷ Trận Đồ Kiếm');
+        tick(180); // +9000 ms -> đủ qua hết 2s + 5s + 1.2s
+        assert.equal(h.fx('rainTick').length, 10);
+        assert.equal(h.fx('finalSwordLaunch').length, 1);
+        assert.equal(h.fx('finalSwordExplode').length, 1);
+    }
+
+    // (C) YunYou chết giữa chừng -> huỷ phần còn lại của Trận Đồ Kiếm & phát formationEnd(death)
+    {
+        const h = harness();
+        arena(h, { allies: ['warrior'], foes: [['monster_dummy', 8, 0], ['monster_dummy', 9, 0]] });
+        h.run('cast(2); upTo(3000);'); // qua tích lực 2s + 2 đợt mưa kiếm (2500, 3000)
+        assert.equal(h.fx('rainTick').length, 2);
+        h.run('kill(yy, team);');
+        assert.equal(h.fx('formationEnd').filter(e => e.reason === 'death').length, 1);
+        h.run('upTo(9000);');
+        assert.equal(h.fx('rainTick').length, 2, 'sau khi YunYou chết không được nổ thêm mưa kiếm');
+        assert.equal(h.fx('finalSwordLaunch').length, 0);
+        assert.equal(h.fx('finalSwordExplode').length, 0);
+    }
+
+    // (D) Sát thương dùng chỉ số tại thời điểm từng đợt & mỗi lần chỉ 1 trận hoạt động
+    {
+        const h = harness();
+        arena(h, { allies: ['warrior'], foes: [['monster_dummy', 8, 0]] });
+        h.run('yy.crit = 0; cast(2); upTo(2500);');
+        const d1 = h.run('hits.at(-1).damage');
+        h.run('yy.pAtk *= 2; upTo(3000);');
+        const d2 = h.run('hits.at(-1).damage');
+        assert.ok(d2 > d1 * 1.5, `đợt sau pAtk×2 (${d2}) phải lớn hơn đợt đầu (${d1})`);
+
+        // Dựng lại trận mới khi trận cũ chưa xong -> trận cũ bị thay thế ('replaced'), trận mới chạy trọn vẹn
+        h.run('yy.mp = yy.maxMp; cast(2);');
+        assert.equal(h.fx('formationEnd').some(e => e.reason === 'replaced'), true);
+        h.run('upTo(3000 + 8200);');
+        assert.equal(h.fx('finalSwordExplode').length, 1);
     }
 });
 
@@ -496,13 +575,15 @@ test('TP1 Vết Kiếm Vỡ Giáp: mở ở Lv20 (−20/25/30% P.DEF); tích đ�
         assert.equal(h.run("foes[0].statusEffects.find(e => e.type === 'sword_mark')?.stacks"), 1);
         assert.equal(h.run("foes[1].statusEffects.find(e => e.type === 'sword_mark')?.stacks"), 1);
 
-        // Tung S3 ở t=240: 5 đợt mưa kiếm (+1..+5 -> đủ 6 dấu ở đợt 5, nổ Vỡ Giáp) + đại kiếm cuối (+1 dấu mới)
-        h.run('cast(2); at(240 + 5000);');
-        assert.equal(h.fx('break').length, 2, 'cả 2 mục tiêu đều phải nổ Vỡ Giáp sau đòn thường/kiếm phụ + 5 đợt mưa kiếm');
+        // Tung S3 ở t=240: 10 đợt mưa kiếm (2s + 5s = +7000 -> tích +5 đủ 6 nổ Vỡ Giáp ở đợt 5, còn 5 dấu)
+        // + đại kiếm cuối (+1200 -> 8200) gắn thêm 1 dấu -> đủ 6 nổ lần 2!
+        h.run('cast(2); at(240 + 8200);');
+        assert.equal(h.fx('break').length, 4, 'cả 2 mục tiêu phải nổ Vỡ Giáp đủ 2 lần qua 10 đợt mưa kiếm + đại kiếm cuối');
         assert.equal(h.run("foes[0].statusEffects.some(e => e.type === 'sword_break' && e.endTime > room.clock)"), true);
         assert.equal(h.run("foes[1].statusEffects.some(e => e.type === 'sword_break' && e.endTime > room.clock)"), true);
-        assert.equal(h.run("foes[0].statusEffects.find(e => e.type === 'sword_mark')?.stacks"), 1);
-        assert.equal(h.run("foes[1].statusEffects.find(e => e.type === 'sword_mark')?.stacks"), 1);
+        assert.equal(h.run("yy.statusEffects.find(e => e.type === 'sword_atk')?.stacks"), 3);   // 4 lần Vỡ Giáp (2 mục tiêu × 2) -> +10% P.ATK mỗi lần, tối đa 3 tầng
+        assert.equal(h.run("foes[0].statusEffects.some(e => e.type === 'sword_mark')"), false);
+        assert.equal(h.run("foes[1].statusEffects.some(e => e.type === 'sword_mark')"), false);
     }
 });
 
@@ -574,7 +655,7 @@ test('AUTO 2v2 & PvP (2 YunYou): autoChooseSkill dùng đủ 3 kỹ năng, trậ
         });
         h.run('room.players.p1.autoMode = true; room.players.p2.autoMode = true;');
         const tick = realLoop(h);
-        for (let i = 0; i < 1600 && !h.run('room.winner'); i++) tick(2);
+        for (let i = 0; i < 2600 && !h.run('room.winner'); i++) tick(2);   // trận gương 2v2 kết thúc quanh nhịp 1700 (chiêu 3 chia 10 đợt nhỏ nên lâu hơn bản cũ một chút)
         assert.ok(h.run('room.winner'), 'trận PvP có 2 YunYou phải kết thúc sạch, không deadlock');
     }
 });
