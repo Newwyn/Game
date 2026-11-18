@@ -31,7 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
-import { makeSwordFlightQi, computeSkyHoverHeight } from '../vfx/swordFx.js';
+import { makeSwordFlightQi, swordFlightHeight } from '../vfx/swordFx.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
@@ -897,44 +897,24 @@ export class CutoutCharacterView extends CharacterView {
         W.ring.rotation.z += dt * 2.5;
     }
 
-    /** YunYou (Kiếm Tiên): tính độ cao bay động theo camera (mũ cách mép trên ~6% ở cả 2 góc cam & khi zoom, kẹp tránh bị cắt đầu) */
+    /** YunYou (Kiếm Tiên): bay ở độ cao thế giới cố định theo chế độ camera (không bám theo zoom/frustum) */
     _updateSwordFlight(dt, on) {
         const prevT = this._swordFlyT ?? 0;
         this._swordFlyT = on
             ? Math.min(1, prevT + dt * 2.0)
             : Math.max(0, prevT - dt * 2.22);
         const ease = this._swordFlyT * this._swordFlyT * (3 - 2 * this._swordFlyT);
-        const pitch = -this.stand.rotation.x;
         const feetBase = GROUND_Y + (this._lift ?? 0);
-        if (on && ease > 0.001 && this._camera) {
-            const desired = computeSkyHoverHeight(
-                this._camera,
-                this.root.position.x,
-                feetBase,
-                this.root.position.z,
-                this.height,
-                pitch,
-            );
-            if (this._swordTargetHover == null || !prevT) this._swordTargetHover = desired;
-            else this._swordTargetHover += (desired - this._swordTargetHover) * Math.min(1, dt * 10);
+        if (on && ease > 0.001) {
+            const desired = swordFlightHeight();
+            if (this._swordBaseHover == null || !prevT) this._swordBaseHover = desired;
+            else this._swordBaseHover += (desired - this._swordBaseHover) * Math.min(1, dt * 6);
         } else if (ease <= 0.001) {
-            this._swordTargetHover = null;
+            this._swordBaseHover = null;
         }
-        const targetHover = this._swordTargetHover ?? 3.4;
+        const targetHover = this._swordBaseHover ?? swordFlightHeight();
         const bob = Math.sin(this._time * 2.5) * 0.06 * ease;
-        const rawHover = targetHover * ease + bob;
-        const ceil = this._camera
-            ? computeSkyHoverHeight(
-                this._camera,
-                this.root.position.x,
-                feetBase,
-                this.root.position.z,
-                this.height,
-                pitch,
-                { hatNdc: 0.91, barNdc: 0.97 },
-            )
-            : targetHover + 0.2;
-        this._hover = ease > 0 ? Math.max(0, Math.min(ceil, rawHover)) : 0;
+        this._hover = ease > 0 ? Math.max(0, targetHover * ease + bob) : 0;
         this.stand.position.y = feetBase + this._hover;
         this.shadow.scale.setScalar(1 - Math.min(0.7, (this._lift + this._hover) / 10));
         if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.002) {
