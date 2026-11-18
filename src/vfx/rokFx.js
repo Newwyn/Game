@@ -188,11 +188,12 @@ export function spawnRokRoar(view, { radius = 9 } = {}) {
 /** Dấu khiêu khích (đầu sư tử + "!") bật lên trên đầu quái bị khiêu khích */
 export function spawnTauntIcon(view) {
     const m = rokFrames('tauntIcon', 0.95);
-    m.position.set(0, 3.0, 0.35);
+    const baseY = 3.0 + (view?._hover ?? 0) + (view?._lift ?? 0);
+    m.position.set(0, baseY, 0.35);
     addAnim(m, 1.4, (p, fx) => {
         const pop = p < 0.12 ? easeOut(p / 0.12) * 1.25 : 1.25 - 0.25 * Math.min(1, (p - 0.12) * 5);
         fx.mesh.scale.set(pop, pop, 1);
-        fx.mesh.position.y = 3.0 + 0.12 * Math.sin(p * 18) * (1 - p);
+        fx.mesh.position.y = 3.0 + (view?._hover ?? 0) + (view?._lift ?? 0) + 0.12 * Math.sin(p * 18) * (1 - p);
         fx.mesh.material.opacity = p > 0.78 ? (1 - p) / 0.22 : 1;
     }, view.root);
 }
@@ -240,7 +241,7 @@ export function spawnBuffIcon(view, { delay = 0 } = {}) {
         const tt = Math.max(0, (p * (1.3 + delay) - delay) / 1.3);
         const pop = tt < 0.15 ? easeOut(tt / 0.15) : 1;
         fx.mesh.scale.setScalar(0.6 + 0.4 * pop);
-        fx.mesh.position.set(0, y0 + 0.35 * easeOut(tt), 0.4);
+        fx.mesh.position.set(0, y0 + (view._hover ?? 0) + (view._lift ?? 0) + 0.35 * easeOut(tt), 0.4);
         fx.mesh.material.opacity = tt <= 0 ? 0 : tt > 0.75 ? (1 - tt) / 0.25 : pop;
     }, view.root);
 }
@@ -250,7 +251,7 @@ export function spawnHealCross(view, { delay = 0 } = {}) {
     const m = rokFrames('healCross', 0.7, { opacity: 0 });
     addAnim(m, 1.0 + delay, (p, fx) => {
         const tt = Math.max(0, (p * (1.0 + delay) - delay) / 1.0);
-        fx.mesh.position.set(0.25, 1.1 + 1.1 * easeOut(tt), 0.45);
+        fx.mesh.position.set(0.25, 1.1 + (view._hover ?? 0) + (view._lift ?? 0) + 1.1 * easeOut(tt), 0.45);
         fx.mesh.scale.setScalar(0.7 + 0.3 * Math.min(1, tt * 5));
         fx.mesh.material.opacity = tt <= 0 ? 0 : fadeInOut(tt, 0.12, 0.6);
     }, view.root);

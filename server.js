@@ -542,9 +542,11 @@ const CLASS_DEFS = {
             // Vạn Kiếm Đồng Quy: buff tức thì 8 giây — mỗi đòn đánh thường phóng thêm kiếm tới TẤT CẢ kẻ địch khác (50% -> 70% đòn thường theo bậc)
             { name: 'Vạn Kiếm Đồng Quy', orbCost: 2, cooldown: 16000, castTime: 0, type: 'sword_multi', duration: 8000,
               extraMultiplier: 0.5, byRank: { extraMultiplier: [0.5, 0.57, 0.63, 0.7] }, active: 'sword_multi', activeColor: '#5eead4', castRange: 99, impact: 0, lock: 0 },
-            // Trận Đồ Kiếm: niệm 2s (trên không không bị ngắt; dưới đất bị choáng là huỷ), mưa kiếm 5 giây (mỗi giây ×0.5 P.ATK vùng rất rộng), kết bằng đại kiếm ×3 luôn chí mạng
-            { name: 'Trận Đồ Kiếm', orbCost: 4, cooldown: 24000, castTime: 2000, type: 'sword_formation', castRange: 99,
-              ticks: 5, tickGap: 1000, tickMultiplier: 0.5, finalMultiplier: 3, radius: 8, impact: 0, lock: 0 },
+            // Trận Đồ Kiếm: lập tức dựng trận đồ trên không (tốn 1 nhịp dùng chiêu như KN1/2, không niệm; YunYou vẫn đánh thường & dùng KN1/2):
+            // 2s tích lực -> 5s mưa kiếm (mỗi 0.5s ×0.25 P.ATK vùng R=8, tổng 10 đợt) -> đại kiếm bay chậm 1.2s nổ ×3 luôn chí mạng
+            { name: 'Trận Đồ Kiếm', orbCost: 4, cooldown: 24000, castTime: 0, type: 'sword_formation', castRange: 99,
+              chargeTime: 2000, fireDuration: 5000, ticks: 10, tickGap: 500, tickMultiplier: 0.25,
+              flightTime: 1200, finalMultiplier: 3, radius: 8, impact: 0, lock: 0 },
         ],
         passives: [
             // Thiên phú 1 — Vết Kiếm Vỡ Giáp: mỗi nhát kiếm trúng đích (thường, kiếm phụ, mưa kiếm, đại kiếm) gắn 1 dấu Vết Kiếm; đủ 6 dấu -> Vỡ Giáp 6s (−20/25/30% P.DEF trước MỌI người đánh) & YunYou +10% P.ATK 8s (tối đa 3)
@@ -3052,10 +3054,7 @@ function startBattleLoop(roomId) {
                     if (rainOf(member, now)) endRain(room, playerId, memberIndex, 'stun');   // Elarion: ngắt mưa giông
                     if (beamOf(member, now)) endBeam(room, playerId, memberIndex, 'stun');   // Elarion: ngắt SolarBeam
                     if (voidChannel(member, now)) endVoidChannel(room, playerId, memberIndex, 'stun');   // Nyx: ngắt niệm Sao Rơi / Hố Đen (các đợt chưa rơi bị huỷ)
-                    if (member.classId === 'swordsage' && member.swordCastSpot) {
-                        member.swordCastSpot = null;
-                        emitSword(roomId, { kind: 'formationEnd', casterId: playerId, casterIdx: memberIndex, reason: 'stun' });
-                    }
+                    // Trận Đồ Kiếm độc lập với YunYou sau khi tạo: bị choáng KHÔNG huỷ vòng trận
                     member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'goblin_float');
                     member.state = 'stunned';
                     member.castingSkillId = null;
@@ -3231,18 +3230,9 @@ function startBattleLoop(roomId) {
                                 member.castingSkillId = skillIdxToCast;
                                 member.castEndTime = now + castMs;
                                 if (skillDef.type === 'goblin_detonate') member.statusEffects.push({ type: 'goblin_float', endTime: now + castMs + skillDef.impact + 300 });
-                                let spot = null;
-                                if (skillDef.type === 'sword_formation') {
-                                    spot = bestCluster(member, opponentData?.squad ?? [], skillDef.castRange, skillDef.radius, now)
-                                        ?? (target ? { x: target.x, z: target.z || 0 } : { x: member.x + (member.side === 'left' ? 1 : -1) * 8, z: member.z || 0 });
-                                    member.swordCastSpot = spot;
-                                    emitSword(roomId, { kind: 'formationStart', casterId: playerId, casterIdx: memberIndex, targetId: opponentId,
-                                        x: spot.x, z: spot.z, radius: skillDef.radius, castTime: castMs, ticks: skillDef.ticks, tickGap: skillDef.tickGap });
-                                }
-                                io.to(roomId).emit('castStart', { 
-                                    casterId: playerId, casterIdx: memberIndex, 
+                                io.to(roomId).emit('castStart', {
+                                    casterId: playerId, casterIdx: memberIndex,
                                     skillIdx: skillIdxToCast, castTime: castMs,
-                                    ...(spot ? { x: spot.x, z: spot.z, radius: skillDef.radius } : {})
                                 });
                                 return; // Stop here, now we are casting
                             } else {
@@ -3614,9 +3604,9 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
     }
 
     if (member.classId === 'swordsage') {
-        // YunYou: bật KN1 & KN2 ngay khi hết hồi chiêu và có địch trong tầm · KN3 khi có ≥ 2 địch sống (hoặc có trùm)
+        // YunYou: bật KN1 & KN2 ngay khi hết hồi chiêu và có địch trong tầm · KN3 khi chưa có trận & có ≥ 2 địch sống (hoặc có trùm)
         const hasBoss = enemies.some(e => e.boss || CLASS_DEFS[e.classId]?.boss);
-        if (ready(2) && (enemies.length >= 2 || hasBoss)) return 2;
+        if (ready(2) && !member.swordFormation && (enemies.length >= 2 || hasBoss)) return 2;
         if (ready(1)) return 1;
         if (ready(0)) return 0;
         return -1;
@@ -4870,14 +4860,11 @@ function killMember(target, squad) {
     }
     // Xói Mòn Hư Không (Nyx): anh hùng / quái gục (triệu hồi không tính) -> Nyx phe kia +M.ATK, Nyx cùng phe +chí mạng
     if (!target.summon && curRoom) { const at = locate(target); if (at) voidOnDeath(curRoom, at.pid, target); }
-    // YunYou gục giữa lúc niệm Trận Đồ Kiếm: tắt vòng trận trên trời
+    // YunYou gục giữa lúc Trận Đồ Kiếm đang hoạt động: tắt vòng trận trên trời ngay
     if (target.classId === 'swordsage') {
         target.airborne = false;
-        if (target.swordCastSpot) {
-            target.swordCastSpot = null;
-            const at = locate(target);
-            if (at && curRoom?.id) emitSword(curRoom.id, { kind: 'formationEnd', casterId: at.pid, casterIdx: at.idx, reason: 'death' });
-        }
+        const at = locate(target);
+        if (at && curRoom) cancelSwordFormation(curRoom, target, at.pid, at.idx, 'death');
     }
     // Đồng đội (không phải triệu hồi) vừa gục -> nếu YunYou trong đội không còn đồng đội sống nào thì ĐÁP ĐẤT NGAY trong cùng nhịp (ở dưới đất tới hết trận)
     if (!target.summon && squad) {
@@ -7478,12 +7465,31 @@ function processVoid(room, pid, idx, oppId, now) {
 // ============================================================
 // KIẾM TIÊN (YunYou, `swordsage`) — bay trên không không thể bị đánh / nhắm, ngoại lệ PvP 2 YunYou cùng bay
 //   Sự kiện gửi máy khách 'swordFx' { casterId, casterIdx, kind, ... } — kind:
-//     takeoff · land · haste · fanOn · extraSwords · formationStart · formationRain · formationEnd · rainTick · finalSword · mark · break
+//     takeoff · land · haste · fanOn · extraSwords · formationStart · formationRain · rainTick · finalSwordLaunch · finalSwordExplode · formationEnd · mark · break
 //   Hiệu ứng trạng thái: `sword_haste` (+80% tốc đánh 6s) · `sword_multi` (kiếm phụ toàn địch 8s) ·
 //     `sword_mark { stacks }` (trên địch: đủ 6 tiêu thụ -> `sword_break`) · `sword_break { value }` (−P.DEF 6s cho MỌI đòn) ·
 //     `sword_atk { stacks, per }` (+10% P.ATK 8s, tối đa 3) · `sword_crit { stacks, per }` (+tỉ lệ CM) · `sword_critdmg { stacks, per }` (+STCM 8s, tối đa 5)
 // ============================================================
 const emitSword = (roomId, data) => io.to(roomId).emit('swordFx', data);
+
+/** Huỷ Trận Đồ Kiếm đang tồn tại của YunYou (chỉ gọi khi chết, hết trận, hoặc dựng trận mới) */
+function cancelSwordFormation(room, m, pid, idx, reason = 'cancelled') {
+    const f = m?.swordFormation;
+    if (!f || f.cancelled || f.done) return;
+    f.cancelled = true;
+    if (m.swordFormation === f) m.swordFormation = null;
+    if (room?.id) emitSword(room.id, { kind: 'formationEnd', id: f.id, casterId: pid, casterIdx: idx, reason });
+}
+
+/** Dọn toàn bộ Trận Đồ Kiếm đang hoạt động trong phòng khi kết thúc trận */
+function cancelRoomSwordFormations(room, reason = 'battleEnd') {
+    if (!room?.players) return;
+    for (const [pid, team] of Object.entries(room.players)) {
+        (team?.squad ?? []).forEach((m, idx) => {
+            if (m?.swordFormation) cancelSwordFormation(room, m, pid, idx, reason);
+        });
+    }
+}
 
 /** Mỗi nhịp cho YunYou: kiểm tra bay lên khi địch vào tầm đánh / đáp đất khi hết đồng đội không phải triệu hồi */
 function processYunYou(room, pid, idx, oppId, now) {
@@ -7599,36 +7605,79 @@ function castSwordSkill(room, pid, idx, oppId, sk, now, effects, extra) {
         extra.extraMultiplier = sk.extraMultiplier;
         emitSword(room.id, { ...base, kind: 'fanOn', duration: sk.duration, extraMultiplier: sk.extraMultiplier });
     } else if (sk.type === 'sword_formation') {
-        const curBest = bestCluster(m, opp.squad, sk.castRange, sk.radius, now);
-        const saved = m.swordCastSpot;
-        m.swordCastSpot = null;
-        const savedHasFoe = saved && opp.squad.some(e => e.alive && !isJudged(e, now) && !isVanished(e, now) && !swordFlyImmune(e, m) && distXZ(e, saved.x, saved.z) <= sk.radius);
-        const spot = savedHasFoe ? saved : (curBest ?? saved ?? { x: m.x + (m.side === 'left' ? 1 : -1) * 8, z: m.z || 0 });
-        extra.formation = { x: spot.x, z: spot.z, radius: sk.radius, ticks: sk.ticks, tickGap: sk.tickGap };
-        emitSword(room.id, { ...base, kind: 'formationRain', targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, ticks: sk.ticks, tickGap: sk.tickGap });
+        // Chỉ 1 trận tại một thời điểm: nếu đang còn trận cũ thì tắt trước
+        if (m.swordFormation) cancelSwordFormation(room, m, pid, idx, 'replaced');
+        const living = opp.squad.filter(e => e.alive && !isJudged(e, now) && !isVanished(e, now) && !swordFlyImmune(e, m));
+        const grp = living.length ? living : opp.squad.filter(e => e.alive);
+        const spot = grp.length
+            ? { x: grp.reduce((s, e) => s + e.x, 0) / grp.length, z: grp.reduce((s, e) => s + (e.z || 0), 0) / grp.length }
+            : { x: m.x + (m.side === 'left' ? 1 : -1) * 8, z: m.z || 0 };
+        const chargeTime = sk.chargeTime ?? 2000;
+        const ticks = sk.ticks ?? 10;
+        const tickGap = sk.tickGap ?? 500;
+        const fireDuration = sk.fireDuration ?? (ticks * tickGap);
+        const flightTime = sk.flightTime ?? 1200;
+        const f = {
+            id: (room.swordFormSeq = (room.swordFormSeq ?? 0) + 1),
+            casterId: pid,
+            casterIdx: idx,
+            oppId,
+            x: spot.x,
+            z: spot.z,
+            radius: sk.radius,
+            chargeTime,
+            fireDuration,
+            ticks,
+            tickGap,
+            flightTime,
+            createdAt: now,
+            cancelled: false,
+            done: false,
+        };
+        m.swordFormation = f;
+        extra.formation = { id: f.id, x: f.x, z: f.z, radius: f.radius, chargeTime, fireDuration, ticks, tickGap, flightTime };
+        emitSword(room.id, {
+            ...base, kind: 'formationStart', id: f.id, targetId: oppId,
+            x: f.x, z: f.z, radius: f.radius, chargeTime, fireDuration, ticks, tickGap, flightTime,
+        });
+        const active = () => !f.cancelled && !f.done && !room.winner && m.alive && m.swordFormation === f;
         const pool = (t) => opp.squad.map((e, i) => ({ e, i }))
-            .filter(o => o.e.alive && !isJudged(o.e, t) && !isVanished(o.e, t) && !swordFlyImmune(o.e, m) && distXZ(o.e, spot.x, spot.z) <= sk.radius);
-        for (let k = 0; k < sk.ticks; k++) {
-            later(k * sk.tickGap, () => {
+            .filter(o => o.e.alive && !isJudged(o.e, t) && !isVanished(o.e, t) && !swordFlyImmune(o.e, m) && distXZ(o.e, f.x, f.z) <= f.radius);
+        // Sau 2s tích lực -> bắt đầu 5s mưa kiếm (10 đợt × 0.5s × 0.25 P.ATK)
+        later(chargeTime, () => {
+            if (!active()) return;
+            emitSword(room.id, { ...base, kind: 'formationRain', id: f.id, targetId: oppId, x: f.x, z: f.z, radius: f.radius, fireDuration, ticks, tickGap });
+        });
+        for (let k = 0; k < ticks; k++) {
+            later(chargeTime + (k + 1) * tickGap, () => {
+                if (!active()) return;
                 const t = room.clock;
-                if (room.winner) return;
                 const hits = pool(t).map(o => {
                     const eff = hitTarget(m, o.e, o.i, opp, sk.tickMultiplier, t, { aoe: true, noBlock: true });
                     if (!eff.isMiss) swordApplyMark(m, o.e, t);
                     return eff;
                 });
-                emitSword(room.id, { ...base, kind: 'rainTick', n: k + 1, targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, effects: hits });
+                emitSword(room.id, { ...base, kind: 'rainTick', id: f.id, n: k + 1, targetId: oppId, x: f.x, z: f.z, radius: f.radius, effects: hits });
             });
         }
-        later(sk.ticks * sk.tickGap, () => {
+        // Kết thúc 5s mưa kiếm -> phóng đại kiếm bay chậm 1.2s rồi nổ ×3 luôn chí mạng
+        const launchAt = chargeTime + ticks * tickGap;
+        later(launchAt, () => {
+            if (!active()) return;
+            emitSword(room.id, { ...base, kind: 'finalSwordLaunch', id: f.id, targetId: oppId, x: f.x, z: f.z, radius: f.radius, flightTime });
+        });
+        later(launchAt + flightTime, () => {
+            if (!active()) return;
+            f.done = true;
+            m.swordFormation = null;
             const t = room.clock;
-            if (room.winner) return;
             const hits = pool(t).map(o => {
                 const eff = hitTarget(m, o.e, o.i, opp, sk.finalMultiplier, t, { aoe: true, noBlock: true, forceCrit: true });
                 if (!eff.isMiss) swordApplyMark(m, o.e, t);
                 return eff;
             });
-            emitSword(room.id, { ...base, kind: 'finalSword', targetId: oppId, x: spot.x, z: spot.z, radius: sk.radius, effects: hits });
+            emitSword(room.id, { ...base, kind: 'finalSwordExplode', id: f.id, targetId: oppId, x: f.x, z: f.z, radius: f.radius, effects: hits });
+            emitSword(room.id, { ...base, kind: 'formationEnd', id: f.id, reason: 'done' });
         });
     }
 }
@@ -8470,6 +8519,7 @@ function checkWinCondition(roomId) {
     if (dead.length >= 2) {
         room.winner = 'draw';
         cancelRoomJudgments(room);
+        cancelRoomSwordFormations(room, 'battleEnd');
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
         finishStage(room, false);   // Cốt truyện: hoà = thua
         return;
@@ -8478,6 +8528,7 @@ function checkWinCondition(roomId) {
     const winnerId = ids.find(id => id !== loserId);
     room.winner = winnerId;
     cancelRoomJudgments(room);
+    cancelRoomSwordFormations(room, 'battleEnd');
     io.to(roomId).emit('battleEnd', { winnerId, loserId });
     finishStage(room, !room.players[winnerId]?.isNPC);
 }

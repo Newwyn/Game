@@ -1048,9 +1048,9 @@ export function spawnRisingGlyph(pos, char = '隠', color = '#e9d5ff', glow = '#
         ctx.fillText(char, 64, 68);
     });
     const m = fxPlane(tex, 1.2, 1.2);
-    const x = pos.x, z = (pos.z ?? 0) + 0.5;
+    const x = pos.x, y0 = pos.y ?? 0, z = (pos.z ?? 0) + 0.5;
     addAnim(m, 0.9, (p, fx) => {
-        fx.mesh.position.set(x, 1.6 + easeOut(p) * 1.2, z);
+        fx.mesh.position.set(x, y0 + 1.6 + easeOut(p) * 1.2, z);
         const s = 0.7 + easeOut(Math.min(1, p * 3)) * 0.4;
         fx.mesh.scale.set(s, s, 1);
         fx.mesh.material.opacity = p < 0.2 ? p * 5 : 1 - (p - 0.2) / 0.8;

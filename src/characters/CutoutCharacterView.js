@@ -31,7 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
-import { makeSwordFlightQi } from '../vfx/swordFx.js';
+import { makeSwordFlightQi, swordFlightHeight } from '../vfx/swordFx.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
 import {
     spawnFootDust, makeTalismanMesh, spawnLightning,
@@ -897,15 +897,26 @@ export class CutoutCharacterView extends CharacterView {
         W.ring.rotation.z += dt * 2.5;
     }
 
-    /** YunYou (Kiếm Tiên): bay lơ lửng cao 2.8 đơn vị (~0.5s cất/hạ cánh, vừa trọn khung hình ở cả 2 góc cam) + dải kiếm khí dưới chân */
+    /** YunYou (Kiếm Tiên): bay ở độ cao thế giới cố định theo chế độ camera (không bám theo zoom/frustum) */
     _updateSwordFlight(dt, on) {
         const prevT = this._swordFlyT ?? 0;
         this._swordFlyT = on
             ? Math.min(1, prevT + dt * 2.0)
             : Math.max(0, prevT - dt * 2.22);
         const ease = this._swordFlyT * this._swordFlyT * (3 - 2 * this._swordFlyT);
-        const bob = Math.sin(this._time * 2.5) * 0.08 * ease;
-        this._hover = 2.8 * ease + bob;
+        const feetBase = GROUND_Y + (this._lift ?? 0);
+        if (on && ease > 0.001) {
+            const desired = swordFlightHeight();
+            if (this._swordBaseHover == null || !prevT) this._swordBaseHover = desired;
+            else this._swordBaseHover += (desired - this._swordBaseHover) * Math.min(1, dt * 6);
+        } else if (ease <= 0.001) {
+            this._swordBaseHover = null;
+        }
+        const targetHover = this._swordBaseHover ?? swordFlightHeight();
+        const bob = Math.sin(this._time * 2.5) * 0.06 * ease;
+        this._hover = ease > 0 ? Math.max(0, targetHover * ease + bob) : 0;
+        this.stand.position.y = feetBase + this._hover;
+        this.shadow.scale.setScalar(1 - Math.min(0.7, (this._lift + this._hover) / 10));
         if (Math.abs(this._hover - (this._barHover ?? 0)) > 0.002) {
             this._barHover = this._hover;
             this.setBarHeight(GROUND_Y + this.height + 0.35 + this._hover);
@@ -1564,6 +1575,7 @@ export class CutoutCharacterView extends CharacterView {
 
     updateVisual(dt, camera) {
         this._time += dt;
+        this._camera = camera;
         // Chỉ nhìn trái/phải (side view). Nhân vật trong atlas nhìn sang phải.
         this.flip.scale.x = this.facingLeft ? -1 : 1;
 

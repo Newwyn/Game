@@ -95,9 +95,9 @@ import {
     clearChessFx,
 } from '../vfx/chessFx.js';
 import {
-    spawnSwordAutoProjectile, spawnSwordHaste, spawnSwordFan, spawnExtraSwords,
-    spawnSkyFormation, endSkyFormation, spawnSwordRainTick, spawnFinalGiantSword,
-    clearSwordFx, JADE_PAL,
+    spawnSwordAutoProjectile, spawnSwordHaste, spawnSwordFan, flashSwordFan, hasSwordFan,
+    spawnExtraSwords, spawnSkyFormation, beginFormationRain, endSkyFormation, spawnSwordRainTick,
+    launchFormationGiantSword, explodeFormationGiantSword, clearSwordFx, JADE_PAL,
 } from '../vfx/swordFx.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
@@ -149,14 +149,15 @@ function onAutoAttack(data) {
     const onHit = () => {
         const target = getView(data.targetId, data.targetIndex);
         if (!target) return;
+        const hp = hoverPos(target);
         if (!data.dodged && data.absorbed > 0) {
             // máu khiên (Dựng Khiên) hứng đòn: số vàng ◆, khiên loé sáng; xuyên qua khiên thì hiện thêm sát thương thật
             target.onGuardHit?.();
-            spawnDamageNumber(target.position, data.absorbed, 'absorb');
-            spawnHitSpark(target.position, { count: 6, color: 0xffe08a, size: 0.9 });
+            spawnDamageNumber(hp, data.absorbed, 'absorb');
+            spawnHitSpark(hp, { count: 6, color: 0xffe08a, size: 0.9 });
             if (data.damage === 0) return;
         }
-        spawnDamageNumber(target.position, data.damage, damageType(data));
+        spawnDamageNumber(hp, data.damage, damageType(data));
         if (!data.dodged) {
             const dir = attackerView.facingLeft ? -1 : 1;
             // Sát Thủ ĐANG TÀNG HÌNH (Kỹ năng 3): chém sấm tím đen; bình thường: nhát chém thường
@@ -369,10 +370,11 @@ function onAutoAttack(data) {
         return;
     }
 
-    // YunYou (Kiếm Tiên): phóng kiếm / kiếm khí ngọc nhạt (nâng theo _hover nếu đang bay)
+    // YunYou (Kiếm Tiên): phóng kiếm / kiếm khí ngọc nhạt (nâng theo _hover nếu đang bay; bật KN2 thì nhấp quạt 7 kiếm)
     if (atkClass === 'swordsage') {
         const fire = () => {
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[atkClass]);
+            if (hasSwordFan(data.attackerId, data.attackerIndex)) flashSwordFan(data.attackerId, data.attackerIndex);
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
             const from = {
@@ -523,7 +525,7 @@ function onSkillExecuted(data) {
                 // cả đội +20% chính xác: mắt chim ưng bật lên trên đầu từng người
                 (game.roomData.players[data.casterId]?.squad ?? []).forEach((m, i) => {
                     const v = m.alive && getView(data.casterId, i);
-                    if (v) spawnAccUp(v.position, { height: v.height ?? 2.9, delay: 0.05 * i });
+                    if (v) spawnAccUp(hoverPos(v), { height: v.height ?? 2.9, delay: 0.05 * i });
                 });
             } });
             break;
@@ -568,7 +570,7 @@ function onSkillExecuted(data) {
             caster.playAction('seal', { onHit: () => spawnSwordFan(data.casterId, data.casterIdx, caster, data.duration ?? 8000) });
             break;
         case 'sword_formation':
-            caster.releaseHold?.('charge');
+            caster.playAction?.('seal');
             break;
         case 'heal':
         case 'holy_shield':
@@ -645,8 +647,8 @@ function onSkillExecuted(data) {
                     const v = m.alive && getView(data.casterId, i);
                     if (!v) return;
                     const b = m.statusEffects?.find(e => e.type === 'pray_blessing');
-                    spawnSeraIcon(v.position, 'dmgUp', { height: v.height ?? 2.9, delay: 0.05 * i, x: b?.defUp ? -0.35 : 0 });
-                    if (b?.defUp) spawnSeraIcon(v.position, 'defUp', { height: v.height ?? 2.9, delay: 0.05 * i + 0.1, x: 0.35 });
+                    spawnSeraIcon(hoverPos(v), 'dmgUp', { height: v.height ?? 2.9, delay: 0.05 * i, x: b?.defUp ? -0.35 : 0 });
+                    if (b?.defUp) spawnSeraIcon(hoverPos(v), 'defUp', { height: v.height ?? 2.9, delay: 0.05 * i + 0.1, x: 0.35 });
                 }), 80);
             } });
             break;
@@ -1494,7 +1496,7 @@ function onWaterFx(d) {
             d.heals.forEach(h => {
                 const v = getView(d.casterId, h.targetIndex);
                 if (!v) return;
-                if (h.heal > 0) spawnDamageNumber(v.position, h.heal, 'heal');
+                if (h.heal > 0) spawnDamageNumber(hoverPos(v), h.heal, 'heal');
                 spawnHealRain(v.position);
             });
             break;
@@ -2185,9 +2187,9 @@ function onGuardBurst(data) {
         const v = getView(opponentId, e.targetIndex);
         if (!v) return;
         gameTimeout(() => {
-            spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
+            spawnDamageNumber(hoverPos(v), e.damage, damageType({ ...e, dodged: e.isMiss }));
             if (e.isMiss) return;
-            spawnImpact(v.position, { size: 1.0, color: 0xffe08a });
+            spawnImpact(hoverPos(v), { size: 1.0, color: 0xffe08a });
             v.flashHit();
         }, 90);
     });
@@ -2196,9 +2198,9 @@ function onGuardBurst(data) {
         const v = getView(data.casterId, h.targetIndex);
         if (!v) return;
         gameTimeout(() => {
-            spawnDamageNumber(v.position, h.heal, 'heal');
+            spawnDamageNumber(hoverPos(v), h.heal, 'heal');
             spawnHealCross(v);
-            spawnRisingSparkles(v.position, { count: 4, color: 0xffe08a, radius: 0.5 });
+            spawnRisingSparkles(hoverPos(v), { count: 4, color: 0xffe08a, radius: 0.5 });
         }, 140);
     });
 }
@@ -2470,16 +2472,6 @@ function onCastStart(data) {
         v.playAction?.('cast', { hold: true });
         v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
         spawnRisingSparkles(v.position, { count: 8, color: 0xfde047, radius: 0.85 });
-        return;
-    }
-    if (v && def?.type === 'sword_formation') {
-        v.playAction?.('charge', { hold: true });   // giữ tư thế sky1..3 trong lúc niệm 2s
-        if (data.x != null) spawnSkyFormation(data.casterId, data.casterIdx, data.x, data.z ?? 0, {
-            radius: data.radius ?? 8,
-            castTime: data.castTime ?? 2000,
-            casterView: v,
-            duration: ((data.castTime ?? 2000) + (def.ticks ?? 5) * (def.tickGap ?? 1000)) / 1000 + 0.5,
-        });
         return;
     }
     if (!v || def?.type !== 'charged_shot') return;
@@ -2982,39 +2974,38 @@ function onSwordFx(d) {
                 eff,
             })).filter(it => it.targetView);
             spawnExtraSwords(d.casterId, d.casterIdx, caster, items, {
-                duration: Math.max(0.16, (d.delay ?? 240) / 1000),
+                duration: Math.min(0.22, Math.max(0.16, (d.delay ?? 240) / 1000)),
                 onImpact: (tv, eff) => showHit(tv, eff, { fx: false }),
             });
             break;
         }
         case 'formationStart': {
             if (d.x != null) {
-                const durSec = Math.max(3, ((d.castTime ?? 2000) + 5600) / 1000);
                 spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, {
                     radius: d.radius ?? 8,
-                    castTime: d.castTime ?? 2000,
+                    chargeTime: d.chargeTime ?? 2000,
+                    fireDuration: d.fireDuration ?? 5000,
+                    flightTime: d.flightTime ?? 1200,
                     casterView: caster,
-                    duration: durSec,
+                    id: d.id,
                 });
             }
             break;
         }
         case 'formationRain': {
-            caster?.releaseHold?.('charge');
-            if (d.x != null) {
-                const rainSec = Math.max(2, (((d.ticks ?? 5) * (d.tickGap ?? 1000)) + 900) / 1000);
-                spawnSkyFormation(d.casterId, d.casterIdx, d.x, d.z ?? 0, {
-                    radius: d.radius ?? 8,
-                    castTime: 0,
-                    casterView: caster,
-                    duration: rainSec,
-                });
-            }
+            beginFormationRain(d.casterId, d.casterIdx, {
+                x: d.x,
+                z: d.z ?? 0,
+                radius: d.radius ?? 8,
+                fireDuration: d.fireDuration ?? 5000,
+                flightTime: d.flightTime ?? 1200,
+                casterView: caster,
+                id: d.id,
+            });
             break;
         }
         case 'formationEnd': {
-            caster?.releaseHold?.('charge');
-            endSkyFormation(d.casterId, d.casterIdx);
+            endSkyFormation(d.casterId, d.casterIdx, d.reason);
             break;
         }
         case 'rainTick': {
@@ -3025,18 +3016,25 @@ function onSwordFx(d) {
                 casterView: caster,
             });
             showEffects(d.effects);
-            cameraRig.shake(0.08, 90);
+            cameraRig.shake(0.06, 80);
             break;
         }
-        case 'finalSword': {
-            caster?.releaseHold?.('charge');
-            caster?.playAction?.('skyRelease');
-            endSkyFormation(d.casterId, d.casterIdx);
-            spawnFinalGiantSword(d.x ?? 0, d.z ?? 0, {
+        case 'finalSwordLaunch': {
+            launchFormationGiantSword(d.x ?? 0, d.z ?? 0, {
                 radius: d.radius ?? 8,
+                flightTimeMs: d.flightTime ?? 1200,
                 casterId: d.casterId,
                 casterIdx: d.casterIdx,
                 casterView: caster,
+            });
+            break;
+        }
+        case 'finalSwordExplode':
+        case 'finalSword': {
+            explodeFormationGiantSword(d.x ?? 0, d.z ?? 0, {
+                radius: d.radius ?? 8,
+                casterId: d.casterId,
+                casterIdx: d.casterIdx,
                 onImpact: () => showEffects(d.effects),
             });
             break;

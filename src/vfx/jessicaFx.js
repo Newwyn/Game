@@ -199,7 +199,7 @@ function popIcon(group, view, { delay = 0, life = 1.2, h = 0.75, spin = 0 } = {}
         const tt = Math.max(0, (p * (life + delay) - delay) / life);
         const pop = tt < 0.15 ? easeOut(tt / 0.15) : 1;
         fx.mesh.scale.setScalar(0.6 + 0.4 * pop);
-        fx.mesh.position.set(0, y0 + 0.3 * easeOut(tt), 0.4);
+        fx.mesh.position.set(0, y0 + (view._hover ?? 0) + (view._lift ?? 0) + 0.3 * easeOut(tt), 0.4);
         if (spin) fx.mesh.rotation.z = spin * easeOut(Math.min(1, tt * 2));
         fx.mesh.material.opacity = tt <= 0 ? 0 : tt > 0.75 ? (1 - tt) / 0.25 : pop;
     }, view.root);
