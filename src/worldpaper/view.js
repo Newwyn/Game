@@ -136,9 +136,16 @@ export function createView(host) {
         const t = new THREE.CanvasTexture(cv);
         t.colorSpace = THREE.SRGBColorSpace;
         t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-        if (nearest) { t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; }
+        if (nearest) {
+            t.magFilter = THREE.LinearFilter;
+            t.minFilter = THREE.LinearFilter;
+            t.generateMipmaps = false;
+        }
         return trackTex(t);
     };
+
+    const warned = new Set();
+    const warnOnce = (k, msg) => { if (!warned.has(k)) { warned.add(k); console.warn(msg); } };
 
     const patchPaperMat = (mat, { occlude = false } = {}) => {
         mat.onBeforeCompile = (sh) => {
@@ -406,16 +413,19 @@ export function createView(host) {
             addShadow(x + 0.15, z + 0.25, h * 0.36, h * 0.24, y + 0.015);
         };
         const addBuilding = (cellKey, x, z, h, rotY = 0) => {
-            const cell = atlases.buildings.cells[cellKey];
+            const cell = atlases.buildings.cells[cellKey] ?? atlases.props.cells.unknown;
             const y = hAt(Math.floor(x), Math.floor(z)) * H_STEP;
-            buildingGeos.push(buildCardGeo(cell, { h, x, y, z, rotY, rotX: -0.05, sway: 0 }));
-            addShadow(x + 0.2, z + 0.4, h * (cell.w / cell.h) * 0.44, h * 0.22, y + 0.014);
+            buildingGeos.push(buildCardGeo(cell, { h, x, y, z, rotY, rotX: 0, sway: 0 }));
+            addShadow(x + 0.16, z + 0.28, h * (cell.w / cell.h) * 0.42, h * 0.2, y + 0.014);
         };
         const addProp = (cellKey, x, z, h, opts = {}) => {
-            const cell = atlases.props.cells[cellKey];
+            const cell = atlases.props.cells[cellKey] ?? atlases.props.cells.unknown;
             const y = (opts.y ?? hAt(Math.floor(x), Math.floor(z)) * H_STEP);
-            propGeos.push(buildCardGeo(cell, { h, x, y, z, rotY: opts.rotY ?? 0, rotX: opts.rotX ?? 0, sway: opts.sway ?? 0, flipX: !!opts.flipX }));
-            if (opts.shadow !== false) addShadow(x + 0.08, z + 0.12, h * (cell.w / cell.h) * 0.38, h * 0.18, y + 0.013);
+            propGeos.push(buildCardGeo(cell, { h, x, y, z, rotY: opts.rotY ?? 0, rotX: 0, sway: opts.sway ?? 0, flipX: !!opts.flipX }));
+            if (opts.shadow !== false) {
+                const w = h * (cell.w / cell.h);
+                addShadow(x + 0.04, z + 0.06, Math.min(w * 0.46, 0.72), Math.min(h * 0.16, 0.34), y + 0.013);
+            }
         };
 
         // 3. Công trình & đồ chi tiết đặt tay từ LAYOUTS.ashford
@@ -486,6 +496,7 @@ export function createView(host) {
                 else if (mkey === 'nature/rock_smallFlatA') addProp('rock_flat', mx, mz, 0.82);
                 else if (mkey === 'nature/rock_smallC') addProp('rock_small', mx, mz, 0.85);
                 else if (mkey === 'nature/log') addProp('log', mx, mz, 0.85);
+                else { warnOnce('model:' + mkey, `[worldpaper] chưa có mô hình giấy cho ${mkey}`); addProp('unknown', mx, mz, 1.0); }
             } else if (kind === 'well') {
                 addBuilding('well', args[0], args[1], 2.5);
                 coverRect(args[0] - 0.9, args[1] - 0.9, args[0] + 0.9, args[1] + 0.9);
@@ -558,6 +569,10 @@ export function createView(host) {
                 butterflySpots.push(...args[0]);
             } else if (kind === 'chickens') {
                 chickenSpots.push(...args[0]);
+            } else if (!FLAT.has(kind)) {
+                warnOnce('kind:' + kind, `[worldpaper] chưa có loại đồ vật ${kind}`);
+                const [px, pz] = posOf(it);
+                if (Number.isFinite(px) && Number.isFinite(pz)) addProp('unknown', px, pz, 1.0);
             }
         }
 
@@ -628,7 +643,7 @@ export function createView(host) {
             sMesh.renderOrder = 1;
             group.add(sMesh);
         }
-        flushMerged(propGeos, makeTex(atlases.props.canvas), { occlude: false, transparent: false, castShadow: true });
+        flushMerged(propGeos, makeTex(atlases.props.canvas), { occlude: false, transparent: false, castShadow: false });
         flushMerged(buildingGeos, makeTex(atlases.buildings.canvas), { occlude: true, transparent: true, castShadow: false });
         flushMerged(treeGeos, makeTex(atlases.trees.canvas), { occlude: true, transparent: true, castShadow: false });
 
@@ -784,67 +799,108 @@ export function createView(host) {
         await building;
     }
 
-    // ---------- Nhân vật & Đồ vật viền giấy kem (heroSheet) ----------
+    // ---------- Nhân vật & Đồ vật viền giấy kem (thẻ dựng đứng Mesh + heroSheet) ----------
     const sheetCache = new Map();
-    function paperSheetTex(url, meta) {
+    function paperSheet(url, meta) {
         if (sheetCache.has(url)) return sheetCache.get(url);
-        const ph = document.createElement('canvas'); ph.width = ph.height = 8;
-        const tex = new THREE.CanvasTexture(ph);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.magFilter = THREE.LinearFilter;
-        tex.minFilter = renderer.capabilities.isWebGL2 ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
-        tex.generateMipmaps = renderer.capabilities.isWebGL2;
         const pad = 14, scale = 4;
         const cw = (meta?.cw ?? 65) * scale + pad * 2, ch = (meta?.ch ?? 96) * scale + pad * 2;
-        const entry = { tex, ratio: cw / ch, padBottom: pad / ch, loaded: false };
+        const entry = {
+            url, tex: null, ratio: cw / ch, padBottom: (pad - 8) / ch,
+            w: cw * (meta?.cols ?? 3), h: ch * (meta?.rows ?? 4),
+            cols: meta?.cols ?? 3, rows: meta?.rows ?? 4,
+            loaded: false, failed: false,
+        };
         sheetCache.set(url, entry);
 
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
             if (!sheetCache.has(url)) return;
             const sh = heroSheet(img, meta, scale, pad, 8);
-            tex.image = sh.canvas;
+            const tex = new THREE.CanvasTexture(sh.canvas);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.magFilter = THREE.LinearFilter;
+            tex.minFilter = THREE.LinearFilter;
+            tex.generateMipmaps = false;
             tex.needsUpdate = true;
+            entry.tex = tex;
+            entry.w = sh.canvas.width;
+            entry.h = sh.canvas.height;
             entry.ratio = sh.cellW / sh.cellH;
-            entry.padBottom = pad / sh.cellH;
+            entry.padBottom = (pad - 8) / sh.cellH;
+            entry.cols = sh.cols;
+            entry.rows = sh.rows;
             entry.loaded = true;
+        };
+        img.onerror = () => {
+            entry.failed = true;
+            warnOnce('sheet:' + url, `[worldpaper] không tải được ảnh sheet: ${url}`);
         };
         img.src = url;
         return entry;
     }
 
-    let questAtlasTex = null;
-    const getQuestAtlasTex = () => {
+    let questAtlasTex = null, questMat = null;
+    const questGeos = new Map();
+    const getQuestMat = () => {
         atlases ??= buildAshfordAtlases(20261120);
-        questAtlasTex ??= makeTex(atlases.quest.canvas);
-        return questAtlasTex;
+        questAtlasTex ??= makeTex(atlases.quest.canvas, true);
+        questMat ??= trackMat(new THREE.MeshStandardMaterial({
+            map: questAtlasTex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.96,
+        }));
+        return questMat;
+    };
+    const getQuestGeo = (qKey) => {
+        getQuestMat();
+        if (!questGeos.has(qKey)) {
+            const cell = atlases.quest.cells[qKey] ?? atlases.quest.cells.unknown;
+            questGeos.set(qKey, trackGeo(buildCardGeo(cell, { h: 1 })));
+        }
+        return questGeos.get(qKey);
     };
 
     const shadowGeo = trackGeo(new THREE.CircleGeometry(0.36, 18));
     const shadowMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x261a08, transparent: true, opacity: 0.30, depthWrite: false }));
     const actors = new Map();
 
-    function ensureActor(key, url, meta) {
-        let a = actors.get(key);
-        if (a && a.url === url) return a;
-        if (a) {
-            sprites.remove(a.g);
-            a.tex.dispose();
-            a.sp.material.dispose();
-            a.ghost?.material?.dispose();
-            if (a.bits) { a.bits.geometry.dispose(); a.bits.material.dispose(); }
-            actors.delete(key);
+    function disposeActor(a) {
+        sprites.remove(a.g);
+        if (a.ownsGeo) a.geo?.dispose();
+        a.card?.material?.dispose();
+        a.ghost?.material?.dispose();
+        if (a.bits) { a.bits.geometry.dispose(); a.bits.material.dispose(); }
+    }
+
+    function setCardCell(a, col, row, cols, rows) {
+        if (!a.geo || !a.baseUv || !a.shRef.loaded) return;
+        if (a.uvCol === col && a.uvRow === row && a.uvCols === cols && a.uvRows === rows) return;
+        a.uvCol = col; a.uvRow = row; a.uvCols = cols; a.uvRows = rows;
+        const pxU = 0.5 / Math.max(1, a.shRef.w), pxV = 0.5 / Math.max(1, a.shRef.h);
+        const u0 = col / cols + pxU, u1 = (col + 1) / cols - pxU;
+        const v0 = 1 - (row + 1) / rows + pxV, v1 = 1 - row / rows - pxV;
+        const uv = a.geo.attributes.uv;
+        for (let i = 0; i < a.baseUv.length; i++) {
+            const [bu, bv] = a.baseUv[i];
+            uv.setXY(i, u0 + bu * (u1 - u0), v0 + bv * (v1 - v0));
         }
-        const sh = paperSheetTex(url, meta);
-        const tex = sh.tex.clone();
-        tex.needsUpdate = true;
-        const mat = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.42 });
-        let dz = null, bits = null;
-        if (key.startsWith('dz:')) {
-            dz = { uDz: { value: 0 }, uGrid: { value: new THREE.Vector2(32, 48) }, uRows: { value: 4 } };
+        uv.needsUpdate = true;
+    }
+
+    function attachSheetCard(a) {
+        const sh = a.shRef;
+        const geo = new THREE.PlaneGeometry(1, 1);
+        geo.translate(0, 0.5 - sh.padBottom, 0);
+        const uv = geo.attributes.uv;
+        a.baseUv = Array.from({ length: uv.count }, (_, i) => [uv.getX(i), uv.getY(i)]);
+        a.geo = geo;
+        a.ownsGeo = true;
+
+        const mat = new THREE.MeshStandardMaterial({
+            map: sh.tex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.96,
+        });
+        if (a.dz) {
             mat.onBeforeCompile = (shader) => {
-                Object.assign(shader.uniforms, dz);
+                Object.assign(shader.uniforms, a.dz);
                 shader.fragmentShader = 'uniform float uDz; uniform vec2 uGrid; uniform float uRows;\n'
                     + shader.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
                         vec2 dzCell = floor(vMapUv * uGrid);
@@ -854,28 +910,61 @@ export function createView(host) {
                         if (uDz > dzTh) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.93, 0.7), 0.85);`);
             };
             mat.customProgramCacheKey = () => 'paper_dissolve';
-            const n = 26, pos = new Float32Array(n * 3);
-            for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 0.8; pos[i * 3 + 1] = 0.2 + Math.random() * CHAR_H * 0.9; pos[i * 3 + 2] = (Math.random() - 0.5) * 0.3; }
-            const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            bits = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe9a8, size: 0.09, transparent: true, depthWrite: false, opacity: 0 }));
         }
-        const sp = new THREE.Sprite(mat);
-        sp.center.set(0.5, sh.padBottom);
+        const card = new THREE.Mesh(geo, mat);
+        card.castShadow = false;
+        card.receiveShadow = false;
+        a.card = card;
+        a.g.add(card);
+
+        if (!a.isItem && !a.dz) {
+            const ghost = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+                map: sh.tex, alphaTest: 0.42, side: THREE.DoubleSide,
+                depthTest: true, depthFunc: THREE.GreaterDepth, depthWrite: false,
+                transparent: true, opacity: a.key === 'me' ? 0.36 : 0.28,
+            }));
+            ghost.renderOrder = 20;
+            a.ghost = ghost;
+            a.g.add(ghost);
+        }
+        if (a.fallback) { a.g.remove(a.fallback); a.fallback = null; }
+    }
+
+    function attachUnknownFallback(a) {
+        if (a.fallback || a.card) return;
+        const m = new THREE.Mesh(getQuestGeo('unknown'), getQuestMat());
+        m.castShadow = false;
+        a.fallback = m;
+        a.g.add(m);
+    }
+
+    function ensureActor(key, url, meta, isItem = false) {
+        let a = actors.get(key);
+        if (a && a.url === url && !a.qKey) return a;
+        if (a) { disposeActor(a); actors.delete(key); }
+
         const shadow = new THREE.Mesh(shadowGeo, shadowMat);
         shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.024;
         const g = new THREE.Group();
-        g.add(sp, shadow);
-        if (bits) g.add(bits);
+        g.add(shadow);
+
+        let dz = null, bits = null;
+        if (key.startsWith('dz:')) {
+            dz = { uDz: { value: 0 }, uGrid: { value: new THREE.Vector2(32, 48) }, uRows: { value: 4 } };
+            const n = 26, pos = new Float32Array(n * 3);
+            for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 0.8; pos[i * 3 + 1] = 0.2 + Math.random() * CHAR_H * 0.9; pos[i * 3 + 2] = (Math.random() - 0.5) * 0.3; }
+            const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            bits = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0xffe9a8, size: 0.09, transparent: true, depthWrite: false, opacity: 0 }));
+            g.add(bits);
+        }
         sprites.add(g);
-        a = { g, sp, sh: shadow, tex, url, shRef: sh, seen: 0, dz, bits };
-        if (!dz) {
-            a.ghost = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: tex, alphaTest: 0.42, depthTest: true, depthFunc: THREE.GreaterDepth,
-                depthWrite: false, transparent: true, opacity: key === 'me' ? 0.36 : 0.28,
-            }));
-            a.ghost.center.set(0.5, sh.padBottom);
-            a.ghost.renderOrder = 20;
-            g.add(a.ghost);
+        const shRef = (url && meta) ? paperSheet(url, meta) : null;
+        a = { key, g, sh: shadow, card: null, ghost: null, fallback: null, geo: null, ownsGeo: false, baseUv: null, url, meta, shRef, isItem, dz, bits, seen: 0, uvCol: -1, uvRow: -1 };
+        if (!shRef || shRef.failed) {
+            warnOnce('missing:' + key, `[worldpaper] thiếu sheet cho ${key}`);
+            attachUnknownFallback(a);
+        } else if (shRef.loaded) {
+            attachSheetCard(a);
         }
         actors.set(key, a);
         return a;
@@ -884,27 +973,16 @@ export function createView(host) {
     function ensureQuestCutout(key, qKey) {
         let a = actors.get(key);
         if (a && a.qKey === qKey) return a;
-        if (a) {
-            sprites.remove(a.g);
-            a.tex.dispose();
-            a.sp.material.dispose();
-            actors.delete(key);
-        }
-        const qTex = getQuestAtlasTex();
-        const cell = atlases.quest.cells[qKey];
-        const tex = qTex.clone();
-        tex.needsUpdate = true;
-        tex.repeat.set(cell.u1 - cell.u0, cell.v1 - cell.v0);
-        tex.offset.set(cell.u0, cell.v0);
-        const mat = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.42 });
-        const sp = new THREE.Sprite(mat);
-        sp.center.set(0.5, cell.padBottom);
+        if (a) { disposeActor(a); actors.delete(key); }
+        const geo = getQuestGeo(qKey);
+        const mesh = new THREE.Mesh(geo, getQuestMat());
+        mesh.castShadow = false;
         const shadow = new THREE.Mesh(shadowGeo, shadowMat);
         shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.022;
         const g = new THREE.Group();
-        g.add(sp, shadow);
+        g.add(mesh, shadow);
         sprites.add(g);
-        a = { g, sp, sh: shadow, tex, qKey, cell, seen: 0 };
+        a = { key, g, mesh, sh: shadow, qKey, ownsGeo: false, seen: 0 };
         actors.set(key, a);
         return a;
     }
@@ -918,7 +996,8 @@ export function createView(host) {
         if (sp === 'board') return 'daily_board';
         if (sp === 'ledger') return 'ledger';
         if (atlases?.quest.cells[sp]) return sp;
-        return null;
+        warnOnce('sprite:' + sp, `[worldpaper] vật phẩm ${s.key} (${sp}) chưa có hình cắt giấy`);
+        return 'unknown';
     }
 
     const labels = new Map();
@@ -927,20 +1006,28 @@ export function createView(host) {
         if (!labels.has(k)) {
             const c = document.createElement('canvas'); c.width = c.height = 64;
             const g = c.getContext('2d');
-            g.font = '900 52px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-            g.lineWidth = 8; g.strokeStyle = '#f6e9cd'; g.strokeText(txt, 32, 34);
+            g.font = '900 54px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+            g.lineWidth = 10; g.strokeStyle = '#1e293b'; g.strokeText(txt, 32, 34);
             g.fillStyle = color; g.fillText(txt, 32, 34);
-            const t = trackTex(new THREE.CanvasTexture(c));
-            t.colorSpace = THREE.SRGBColorSpace;
-            labels.set(k, trackMat(new THREE.SpriteMaterial({ map: t, depthTest: false })));
+            const t = makeTex(c, true);
+            labels.set(k, trackMat(new THREE.MeshBasicMaterial({
+                map: t, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+            })));
         }
         return labels.get(k);
     }
+    const markGeo = trackGeo(new THREE.PlaneGeometry(0.78, 0.78));
     const marks = new Map();
     function getMark(key, txt, color) {
         let s = marks.get(key);
-        if (!s) { s = new THREE.Sprite(); s.scale.set(0.64, 0.64, 1); s.renderOrder = 15; sprites.add(s); marks.set(key, s); }
-        s.material = labelMat(txt, color);
+        if (!s) {
+            s = new THREE.Mesh(markGeo, labelMat(txt, color));
+            s.renderOrder = 25;
+            sprites.add(s);
+            marks.set(key, s);
+        } else {
+            s.material = labelMat(txt, color);
+        }
         return s;
     }
 
@@ -977,37 +1064,34 @@ export function createView(host) {
         const mapHeights = MAPS[mapId]?.heights;
 
         for (const s of state.actors) {
-            if (!s.url || !s.meta) continue;
             const hLvl = Number(s.h ?? (s.key === 'me' ? state.focus?.h : null) ?? mapHeights?.[Math.floor(s.z)]?.[Math.floor(s.x)]) || 0;
             const elev = hLvl * H_STEP;
             const lift = s.key === 'me' && hLvl ? Math.max(0, (s.lift ?? 0) - hLvl * 0.35) : (s.lift ?? 0);
             if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = lift + elev; }
 
-            const a = ensureActor(s.key, s.url, s.meta);
+            const a = ensureActor(s.key, s.url, s.meta, false);
             a.seen = frameNo;
             a.g.visible = !s.hidden;
-            if (a.shRef.loaded && a.tex.image !== a.shRef.tex.image) {
-                a.tex.image = a.shRef.tex.image;
-                a.tex.needsUpdate = true;
-                a.sp.center.set(0.5, a.shRef.padBottom);
-                if (a.ghost) a.ghost.center.set(0.5, a.shRef.padBottom);
-            }
-            const { cols = 3, rows = 4, cw, ch } = s.meta;
-            a.tex.repeat.set(1 / cols, 1 / rows);
-            a.tex.offset.set(s.col / cols, 1 - ((ROW[s.face] ?? 0) + 1) / rows);
+            if (!a.card && a.shRef?.loaded) attachSheetCard(a);
+            else if (!a.card && a.shRef?.failed) attachUnknownFallback(a);
+
+            const { cols = 3, rows = 4, cw = 65, ch = 96 } = s.meta ?? {};
             const charH = s.charH ?? CHAR_H;
-            a.sp.scale.set(charH * a.shRef.ratio, charH, 1);
-            a.sp.position.y = lift;
-            const moving = s.key === 'me' && s.col !== 1 && !s.hidden && lift < 0.08;
-            a.sp.material.rotation = moving ? Math.sin(t * 16) * 0.045 : 0;
-            if (a.ghost) {
-                a.ghost.scale.copy(a.sp.scale);
-                a.ghost.position.copy(a.sp.position);
-                a.ghost.material.rotation = a.sp.material.rotation;
+            if (a.card) {
+                setCardCell(a, s.col ?? 1, ROW[s.face] ?? 0, cols, rows);
+                a.card.scale.set(charH * a.shRef.ratio, charH, 1);
+                a.card.position.y = lift;
+                if (a.ghost) {
+                    a.ghost.scale.copy(a.card.scale);
+                    a.ghost.position.copy(a.card.position);
+                }
+            } else if (a.fallback) {
+                a.fallback.scale.setScalar(charH * 0.8);
+                a.fallback.position.y = lift;
             }
             const jumpAmt = Math.max(lift, Math.abs(hLvl - Math.round(hLvl)) * 0.9);
             a.sh.scale.setScalar(1 - Math.min(0.55, jumpAmt * 0.55));
-            if (a.dz) {
+            if (a.dz && a.bits) {
                 const p = s.dissolve ?? 0;
                 a.dz.uDz.value = p; a.dz.uGrid.value.set(cols * cw / 8, rows * ch / 8); a.dz.uRows.value = rows;
                 a.sh.scale.setScalar(Math.max(0.01, 1 - p));
@@ -1024,48 +1108,54 @@ export function createView(host) {
             if (qKey) {
                 const a = ensureQuestCutout('it:' + s.key, qKey);
                 a.seen = frameNo; a.g.visible = true;
-                const h = s.key.endsWith(':sp') ? (s.size ?? 0.45) * 1.15 : Math.max(0.75, (s.size ?? 1) * 1.05);
-                a.sp.scale.set(h * (a.cell.w / a.cell.h), h, 1);
-                a.sp.position.y = s.bob ? Math.sin(t * 3.3) * 0.07 : 0;
+                const h = s.key.endsWith(':sp') ? (s.size ?? 0.45) * 1.15 : Math.max(0.78, (s.size ?? 1) * 1.05);
+                a.mesh.scale.setScalar(h);
+                a.mesh.position.y = s.bob ? Math.sin(t * 3.3) * 0.07 : 0;
                 a.sh.scale.setScalar(s.key.endsWith(':sp') ? 0.01 : Math.max(0.45, (s.size ?? 1) * 0.72));
                 a.g.position.set(s.x, itemElev, s.z);
                 continue;
             }
-            const a = ensureActor('it:' + s.key, s.url, s.meta);
+            const a = ensureActor('it:' + s.key, s.url, s.meta, true);
             a.seen = frameNo; a.g.visible = true;
-            if (a.shRef.loaded && a.tex.image !== a.shRef.tex.image) {
-                a.tex.image = a.shRef.tex.image;
-                a.tex.needsUpdate = true;
-                a.sp.center.set(0.5, a.shRef.padBottom);
+            if (!a.card && a.shRef?.loaded) attachSheetCard(a);
+            else if (!a.card && a.shRef?.failed) attachUnknownFallback(a);
+
+            const h = s.size ?? 1;
+            if (a.card) {
+                const { cols = 3, rows = 3 } = s.meta ?? {};
+                const cell = s.cell ?? 0;
+                setCardCell(a, cell % cols, Math.floor(cell / cols), cols, rows);
+                a.card.scale.set(h * a.shRef.ratio, h, 1);
+                a.card.position.y = s.bob ? Math.sin(t * 3.3) * 0.06 : 0;
+            } else if (a.fallback) {
+                a.fallback.scale.setScalar(h);
+                a.fallback.position.y = s.bob ? Math.sin(t * 3.3) * 0.06 : 0;
             }
-            const { cols, rows } = s.meta;
-            a.tex.repeat.set(1 / cols, 1 / rows);
-            a.tex.offset.set((s.cell % cols) / cols, 1 - (Math.floor(s.cell / cols) + 1) / rows);
-            a.sp.scale.set(s.size * a.shRef.ratio, s.size, 1);
-            a.sp.position.y = s.bob ? Math.sin(t * 3.3) * 0.06 : 0;
-            a.sh.scale.setScalar((s.size ?? 1) * 0.75);
+            a.sh.scale.setScalar(h * 0.75);
             a.g.position.set(s.x, itemElev, s.z);
         }
 
         for (const [k, a] of actors) {
             if (a.seen !== frameNo) {
-                sprites.remove(a.g); a.tex.dispose(); a.sp.material.dispose();
-                a.ghost?.material?.dispose();
-                if (a.bits) { a.bits.geometry.dispose(); a.bits.material.dispose(); }
+                disposeActor(a);
                 actors.delete(k);
             }
         }
 
-        // Dấu ! ? & mũi tên nhiệm vụ
+        // Dấu ! ? & mũi tên nhiệm vụ (tính thêm độ cao bậc đất)
         const seenM = new Set();
         for (const m of state.marks) {
             const s = getMark(m.key, m.txt, m.color);
-            s.visible = true; s.position.set(m.x, (m.y ?? 2.25) + Math.sin(t * 3.2) * 0.08, m.z);
+            const melev = (Number(mapHeights?.[Math.floor(m.z)]?.[Math.floor(m.x)]) || 0) * H_STEP;
+            s.visible = true;
+            s.position.set(m.x, melev + (m.y ?? 2.25) + Math.sin(t * 3.2) * 0.08, m.z);
             seenM.add(m.key);
         }
         if (state.beacon) {
             const s = getMark('beacon', '▼', '#ffe066');
-            s.visible = true; s.position.set(state.beacon.x, 2.95 + Math.sin(t * 4) * 0.14, state.beacon.z);
+            const belev = (Number(mapHeights?.[Math.floor(state.beacon.z)]?.[Math.floor(state.beacon.x)]) || 0) * H_STEP;
+            s.visible = true;
+            s.position.set(state.beacon.x, belev + 2.95 + Math.sin(t * 4) * 0.14, state.beacon.z);
             seenM.add('beacon');
         }
         for (const [k, s] of marks) if (!seenM.has(k)) s.visible = false;
@@ -1178,15 +1268,12 @@ export function createView(host) {
 
     function dispose() {
         renderer.domElement.removeEventListener('wheel', onWheel);
-        for (const a of actors.values()) {
-            a.tex.dispose(); a.sp.material.dispose();
-            a.ghost?.material?.dispose();
-            if (a.bits) { a.bits.geometry.dispose(); a.bits.material.dispose(); }
-        }
+        for (const a of actors.values()) disposeActor(a);
         actors.clear();
-        for (const e of sheetCache.values()) e.tex.dispose();
+        for (const e of sheetCache.values()) e.tex?.dispose();
         sheetCache.clear();
-        for (const m of labels.values()) { m.map?.dispose(); m.dispose(); }
+        questGeos.clear();
+        marks.clear();
         labels.clear();
         for (const d of disposables) d?.dispose?.();
         disposables.length = 0;

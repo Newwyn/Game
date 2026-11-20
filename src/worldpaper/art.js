@@ -515,13 +515,29 @@ export function drawFence(r, variant = 'simple') {
 }
 
 export function drawLampPost(r) {
-    const w = 160, h = 280, cx = w / 2, by = h - 16;
+    const w = 180, h = 280, cx = w / 2, by = h - 16;
     const [c, g] = mk(w, h);
-    g.fillStyle = '#3d4550'; g.fillRect(cx - 14, by - 26, 28, 26); g.fillRect(cx - 7, 68, 14, by - 84);
-    g.fillRect(cx - 6, 62, 42, 10);
-    g.fillStyle = '#2d333c'; g.beginPath(); g.moveTo(cx + 18, 72); g.lineTo(cx + 34, 52); g.lineTo(cx + 50, 72); g.closePath(); g.fill();
-    g.fillStyle = '#ffe078'; g.fillRect(cx + 22, 72, 24, 28);
-    g.strokeStyle = '#2d333c'; g.lineWidth = 4; g.strokeRect(cx + 22, 72, 24, 28);
+    // đế đá vững + trụ sắt thẳng đứng chính giữa (cân xứng, không nghiêng lệch)
+    g.fillStyle = '#8b8579'; g.beginPath(); g.roundRect(cx - 22, by - 26, 44, 26, 6); g.fill();
+    g.fillStyle = '#3d4550'; g.fillRect(cx - 13, by - 36, 26, 12); g.fillRect(cx - 7, 88, 14, by - 122);
+    g.fillRect(cx - 18, 92, 36, 8);
+    // lồng đèn kính vàng đặt cân đối trên đỉnh cột
+    g.fillStyle = '#ffe078'; g.fillRect(cx - 15, 56, 30, 34);
+    g.strokeStyle = '#2d333c'; g.lineWidth = 4; g.strokeRect(cx - 15, 56, 30, 34);
+    g.beginPath(); g.moveTo(cx, 56); g.lineTo(cx, 90); g.stroke();
+    g.fillStyle = '#2d333c';
+    g.beginPath(); g.moveTo(cx - 22, 58); g.lineTo(cx, 34); g.lineTo(cx + 22, 58); g.closePath(); g.fill();
+    g.beginPath(); g.arc(cx, 31, 5, 0, Math.PI * 2); g.fill();
+    return paperize(c, 6, r);
+}
+
+export function drawUnknownCard(r) {
+    const w = 160, h = 180, cx = w / 2, by = h - 16;
+    const [c, g] = mk(w, h);
+    g.fillStyle = '#efe0b8'; g.beginPath(); g.roundRect(cx - 42, by - 108, 84, 108, 14); g.fill();
+    g.strokeStyle = '#9c6b3b'; g.lineWidth = 6; g.stroke();
+    g.fillStyle = '#7a4b2b'; g.font = '900 58px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('?', cx, by - 52);
     return paperize(c, 6, r);
 }
 
@@ -1204,12 +1220,17 @@ export function paintAshfordGround({ map, terrain, layout, W, H, M = 8, r }) {
         }
     }
 
-    // khe nhảy (gaps): hố tối cắt giấy viền kem
+    // khe nhảy (gaps): rãnh đất cát lõm cắt giấy viền kem (không vẽ ô đen bệt)
     for (const [gx, gz] of map.gaps ?? []) {
-        const rx = px(gx + 0.08), ry = pz(gz + 0.08), rw = ppu * 0.84, rh = ppu * 0.84;
+        const rx = px(gx + 0.06), ry = pz(gz + 0.06), rw = ppu * 0.88, rh = ppu * 0.88;
         g.fillStyle = '#f3ead2'; g.beginPath(); g.roundRect(rx - 3, ry - 3, rw + 6, rh + 6, 12); g.fill();
-        g.fillStyle = '#404552'; g.beginPath(); g.roundRect(rx, ry, rw, rh, 10); g.fill();
-        g.fillStyle = '#20232b'; g.beginPath(); g.roundRect(rx + 4, ry + 10, rw - 8, rh - 14, 8); g.fill();
+        g.fillStyle = '#bfa77a'; g.beginPath(); g.roundRect(rx, ry, rw, rh, 10); g.fill();
+        g.fillStyle = '#7e6140'; g.beginPath(); g.roundRect(rx + 4, ry + 8, rw - 8, rh - 12, 8); g.fill();
+        g.fillStyle = '#62482c'; g.beginPath(); g.roundRect(rx + 6, ry + 8, rw - 12, Math.max(8, rh * 0.24), [7, 7, 2, 2]); g.fill();
+        g.fillStyle = '#9c8b74';
+        for (const [ox, oy, sr] of [[0.26, 0.56, 4.5], [0.68, 0.48, 3.8], [0.48, 0.72, 4.2]]) {
+            g.beginPath(); g.ellipse(rx + rw * ox, ry + rh * oy, sr * 1.2, sr * 0.85, 0.3, 0, Math.PI * 2); g.fill();
+        }
     }
 
     // ngọn cỏ vẽ tay trên nền xanh
@@ -1246,13 +1267,17 @@ function packAtlas(entries, cellW, cellH, cols) {
     const rows = Math.ceil(entries.length / cols);
     const [canvas, g] = mk(cols * cellW, rows * cellH);
     const cells = {};
-    entries.forEach(([key, cv, padBottom = 16 / cellH], idx) => {
+    entries.forEach(([key, cv, padBottom = 10 / cellH], idx) => {
         const col = idx % cols, row = Math.floor(idx / cols);
-        g.drawImage(cv, 0, 0, cv.width, cv.height, col * cellW, row * cellH, cellW, cellH);
-        const u0 = (col * cellW + 0.5) / canvas.width;
-        const u1 = ((col + 1) * cellW - 0.5) / canvas.width;
-        const v1 = 1 - (row * cellH + 0.5) / canvas.height;
-        const v0 = 1 - ((row + 1) * cellH - 0.5) / canvas.height;
+        const k = Math.min((cellW - 4) / cv.width, (cellH - 4) / cv.height);
+        const dw = cv.width * k, dh = cv.height * k;
+        const dx = col * cellW + (cellW - dw) / 2;
+        const dy = (row + 1) * cellH - dh - 2;
+        g.drawImage(cv, 0, 0, cv.width, cv.height, dx, dy, dw, dh);
+        const u0 = (dx + 0.5) / canvas.width;
+        const u1 = (dx + dw - 0.5) / canvas.width;
+        const v1 = 1 - (dy + 0.5) / canvas.height;
+        const v0 = 1 - (dy + dh - 0.5) / canvas.height;
         cells[key] = { u0, u1, v0, v1, w: cv.width, h: cv.height, padBottom };
     });
     return { canvas, cells };
@@ -1262,85 +1287,87 @@ function packAtlas(entries, cellW, cellH, cols) {
 export function buildAshfordAtlases(seed = 20261120) {
     const r = rng(seed);
     const trees = packAtlas([
-        ['round0', drawRoundTree(ASHFORD_TREE_PALS[0], r), 18 / 448],
-        ['round1', drawRoundTree(ASHFORD_TREE_PALS[1], r), 18 / 448],
-        ['round2', drawRoundTree(ASHFORD_TREE_PALS[2], r), 18 / 448],
-        ['round3', drawRoundTree(ASHFORD_TREE_PALS[3], r), 18 / 448],
-        ['apple', drawAppleTree(r), 18 / 448],
-        ['pine', drawPine(r), 18 / 460],
-    ], 384, 448, 3);
+        ['round0', drawRoundTree(ASHFORD_TREE_PALS[0], r), 10 / 448],
+        ['round1', drawRoundTree(ASHFORD_TREE_PALS[1], r), 10 / 448],
+        ['round2', drawRoundTree(ASHFORD_TREE_PALS[2], r), 10 / 448],
+        ['round3', drawRoundTree(ASHFORD_TREE_PALS[3], r), 10 / 448],
+        ['apple', drawAppleTree(r), 10 / 448],
+        ['pine', drawPine(r), 10 / 460],
+    ], 384, 460, 3);
 
     const buildings = packAtlas([
-        ['house_red', drawHouse(r, { roof: 'red', wall: 'plaster' }), 18 / 440],
-        ['house_brown', drawHouse(r, { roof: 'brown', wall: 'plaster' }), 18 / 440],
-        ['house_stone', drawHouse(r, { roof: 'red', wall: 'stone' }), 18 / 440],
-        ['chiefhouse', drawChiefHouse(r), 18 / 440],
-        ['smithy', drawSmithy(r), 18 / 440],
-        ['tavern', drawTavern(r), 18 / 440],
-        ['well', drawWell(r), 18 / 340],
-        ['board', drawBoard(r, false), 18 / 260],
-        ['daily_board', drawBoard(r, true), 18 / 260],
-        ['stall', drawStall(r), 18 / 280],
-        ['garden_crops', drawGardenCrops(r), 16 / 150],
+        ['house_red', drawHouse(r, { roof: 'red', wall: 'plaster' }), 9 / 440],
+        ['house_brown', drawHouse(r, { roof: 'brown', wall: 'plaster' }), 9 / 440],
+        ['house_stone', drawHouse(r, { roof: 'red', wall: 'stone' }), 9 / 440],
+        ['chiefhouse', drawChiefHouse(r), 9 / 440],
+        ['smithy', drawSmithy(r), 9 / 440],
+        ['tavern', drawTavern(r), 9 / 440],
+        ['well', drawWell(r), 10 / 340],
+        ['board', drawBoard(r, false), 11 / 260],
+        ['daily_board', drawBoard(r, true), 11 / 260],
+        ['stall', drawStall(r), 10 / 280],
+        ['garden_crops', drawGardenCrops(r), 10 / 150],
     ], 560, 440, 4);
 
     const props = packAtlas([
-        ['bush0', drawFanBush(ASHFORD_BUSH_PALS[0], r), 16 / 176],
-        ['bush1', drawFanBush(ASHFORD_BUSH_PALS[1], r), 16 / 176],
-        ['bush2', drawFanBush(ASHFORD_BUSH_PALS[2], r), 16 / 176],
-        ['bush3', drawFanBush(ASHFORD_BUSH_PALS[3], r), 16 / 176],
-        ['flower0', drawFlowerBush(r, '#f7e3a0', '#e98a2c'), 16 / 170],
-        ['flower1', drawFlowerBush(r, '#f6c659', '#c9472e'), 16 / 170],
-        ['flower2', drawFlowerBush(r, '#e6d6f7', '#b86bd8'), 16 / 170],
-        ['rock_large', drawRock(r, 'normal'), 16 / 140],
-        ['rock_flat', drawRock(r, 'flat'), 16 / 140],
-        ['rock_small', drawRock(r, 'small'), 16 / 140],
-        ['stone_pile', drawStonePile(r), 16 / 140],
-        ['fence_simple', drawFence(r, 'simple'), 16 / 160],
-        ['fence_planks', drawFence(r, 'planks'), 16 / 160],
-        ['lamp', drawLampPost(r), 16 / 280],
-        ['anvil', drawAnvil(r), 16 / 160],
-        ['barrel', drawBarrel(r), 16 / 170],
-        ['crate', drawCrate(r, false), 16 / 165],
-        ['crate_large', drawCrate(r, true), 16 / 165],
-        ['sacks', drawSacks(r), 16 / 150],
-        ['woodpile', drawWoodpile(r), 16 / 150],
-        ['haystack', drawHaystack(r), 16 / 170],
-        ['tavern_table', drawTavernTable(r), 16 / 160],
-        ['bench', drawBench(r), 16 / 140],
-        ['signpost', drawSignpost(r), 16 / 210],
-        ['sign_tavern', drawShopSign(r, 'tavern'), 16 / 220],
-        ['sign_forge', drawShopSign(r, 'forge'), 16 / 220],
-        ['pot_red', drawFlowerPot(r, '#e04f3d'), 16 / 150],
-        ['pot_yellow', drawFlowerPot(r, '#f4c438'), 16 / 150],
-        ['pot_purple', drawFlowerPot(r, '#a86ee6'), 16 / 150],
-        ['forge_props', drawForgeProps(r), 16 / 170],
-        ['scarecrow', drawScarecrow(r), 16 / 240],
-        ['veggie_basket', drawVeggieBasket(r), 16 / 140],
-        ['pumpkin', drawPumpkin(r), 16 / 140],
-        ['cart', drawCart(r, false), 16 / 180],
-        ['cart_high', drawCart(r, true), 16 / 180],
-        ['clothesline', drawClothesline(r), 16 / 180],
-        ['mushroom_red', drawMushroom(r, 'red'), 16 / 150],
-        ['mushroom_tan', drawMushroom(r, 'tan'), 16 / 150],
-        ['log', drawLog(r), 16 / 120],
-    ], 240, 224, 7);
+        ['bush0', drawFanBush(ASHFORD_BUSH_PALS[0], r), 9 / 176],
+        ['bush1', drawFanBush(ASHFORD_BUSH_PALS[1], r), 9 / 176],
+        ['bush2', drawFanBush(ASHFORD_BUSH_PALS[2], r), 9 / 176],
+        ['bush3', drawFanBush(ASHFORD_BUSH_PALS[3], r), 9 / 176],
+        ['flower0', drawFlowerBush(r, '#f7e3a0', '#e98a2c'), 10 / 170],
+        ['flower1', drawFlowerBush(r, '#f6c659', '#c9472e'), 10 / 170],
+        ['flower2', drawFlowerBush(r, '#e6d6f7', '#b86bd8'), 10 / 170],
+        ['rock_large', drawRock(r, 'normal'), 10 / 140],
+        ['rock_flat', drawRock(r, 'flat'), 10 / 140],
+        ['rock_small', drawRock(r, 'small'), 10 / 140],
+        ['stone_pile', drawStonePile(r), 10 / 140],
+        ['fence_simple', drawFence(r, 'simple'), 10 / 160],
+        ['fence_planks', drawFence(r, 'planks'), 10 / 160],
+        ['lamp', drawLampPost(r), 10 / 280],
+        ['anvil', drawAnvil(r), 10 / 160],
+        ['barrel', drawBarrel(r), 10 / 170],
+        ['crate', drawCrate(r, false), 10 / 165],
+        ['crate_large', drawCrate(r, true), 10 / 165],
+        ['sacks', drawSacks(r), 10 / 150],
+        ['woodpile', drawWoodpile(r), 10 / 150],
+        ['haystack', drawHaystack(r), 10 / 170],
+        ['tavern_table', drawTavernTable(r), 10 / 160],
+        ['bench', drawBench(r), 10 / 140],
+        ['signpost', drawSignpost(r), 10 / 210],
+        ['sign_tavern', drawShopSign(r, 'tavern'), 10 / 220],
+        ['sign_forge', drawShopSign(r, 'forge'), 10 / 220],
+        ['pot_red', drawFlowerPot(r, '#e04f3d'), 11 / 150],
+        ['pot_yellow', drawFlowerPot(r, '#f4c438'), 11 / 150],
+        ['pot_purple', drawFlowerPot(r, '#a86ee6'), 11 / 150],
+        ['forge_props', drawForgeProps(r), 10 / 170],
+        ['scarecrow', drawScarecrow(r), 10 / 240],
+        ['veggie_basket', drawVeggieBasket(r), 11 / 140],
+        ['pumpkin', drawPumpkin(r), 11 / 140],
+        ['cart', drawCart(r, false), 10 / 180],
+        ['cart_high', drawCart(r, true), 10 / 180],
+        ['clothesline', drawClothesline(r), 10 / 180],
+        ['mushroom_red', drawMushroom(r, 'red'), 11 / 150],
+        ['mushroom_tan', drawMushroom(r, 'tan'), 11 / 150],
+        ['log', drawLog(r), 11 / 120],
+        ['unknown', drawUnknownCard(r), 10 / 180],
+    ], 256, 256, 7);
 
     const quest = packAtlas([
-        ['chest', drawChest(r, false), 16 / 160],
-        ['chest_open', drawChest(r, true), 16 / 160],
-        ['daily_board', drawBoard(r, true), 18 / 260],
-        ['ledger', drawLedger(r), 16 / 160],
-        ['i_cat', drawCat(r), 16 / 150],
-        ['i_stele', drawStele(r, true), 16 / 210],
-        ['i_stone', drawStele(r, false), 16 / 210],
-        ['i_trough', drawTrough(r), 16 / 140],
-        ['i_flowers', drawFlowerBush(r, '#f7c5dc', '#f0b04a'), 16 / 170],
-        ['i_nest', drawNest(r), 16 / 130],
-        ['i_sign', drawSignBoard(r), 16 / 170],
-        ['i_jar', drawJar(r), 16 / 150],
+        ['chest', drawChest(r, false), 10 / 160],
+        ['chest_open', drawChest(r, true), 10 / 160],
+        ['daily_board', drawBoard(r, true), 11 / 260],
+        ['ledger', drawLedger(r), 10 / 160],
+        ['i_cat', drawCat(r), 10 / 150],
+        ['i_stele', drawStele(r, true), 10 / 210],
+        ['i_stone', drawStele(r, false), 10 / 210],
+        ['i_trough', drawTrough(r), 11 / 140],
+        ['i_flowers', drawFlowerBush(r, '#f7c5dc', '#f0b04a'), 10 / 170],
+        ['i_nest', drawNest(r), 11 / 130],
+        ['i_sign', drawSignBoard(r), 11 / 170],
+        ['i_jar', drawJar(r), 11 / 150],
         ['i_spark', drawSpark(r), 0.5],
-    ], 224, 224, 4);
+        ['unknown', drawUnknownCard(r), 10 / 180],
+    ], 224, 240, 4);
 
     const critters = packAtlas([
         ['cat', drawCat(r), 16 / 150],
