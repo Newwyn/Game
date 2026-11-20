@@ -44,7 +44,8 @@ export function makeFlipbook(url, meta, { pixel = false, noFxDim = false, onErro
         const mat = new THREE.MeshBasicMaterial({
             map: tex(group, frame), transparent: true, depthWrite: false, fog: false, opacity,
             blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide });
-        if (!noDim) mat.userData.isVfx = true;
+        if (noDim) mat.userData.noFxDim = true;
+        else mat.userData.isVfx = true;
         const m = new THREE.Mesh(geo, mat);
         m.userData.sharedTexture = true;
         m.userData.fx = { group, frame, u };

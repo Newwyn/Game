@@ -17,7 +17,8 @@ for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const ob
 for (const [id, p] of Object.entries(PATCH)) { const m = MAPS[id]; if (!m?.heights) continue; const rows = m.heights.map(r => [...r]); for (const [x, y, h] of p.heights ?? []) if (rows[y]?.[x] != null) rows[y][x] = String(h); m.heights = rows.map(r => r.join('')); }
 import { softwareGL } from '../core/gpu.js';
 import { settings, setSetting } from '../core/settings.js';
-import { isTextureFailed, markTextureFailed } from '../core/textures.js';
+import { markTextureFailed } from '../core/textures.js';
+import { paperOverworldFor } from '../characters/sprite/paperSets.js';
 import { mapAtlas, mapCell } from './itemIcons.js';
 import { openCooking, openTools, cookingOpen } from './cooking.js';
 import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
@@ -424,14 +425,10 @@ function img(url) {
     return im.complete && im.naturalWidth ? im : null;
 }
 const rawSheet = (name) => ({ url: SHEETS[`../assets/overworld/${name}.webp`], meta: SHEET_META[`../assets/overworld/${name}.json`] });
-const validSheetMeta = (m) => !!(m && m.cw > 0 && m.ch > 0 && (m.cols ?? 3) > 0 && (m.rows ?? 4) > 0);
 const sheet = (name) => {
     const std = rawSheet(name);
-    if (name === 'ow_rok' && settings.rokPaper) {
-        const p = rawSheet('ow_rok_paper');
-        if (p.url && validSheetMeta(p.meta) && !isTextureFailed(p.url)) return { ...p, fallbackUrl: std.url, fallbackMeta: std.meta };
-    }
-    return std;
+    const p = paperOverworldFor(name);
+    return p ? { ...p, fallbackUrl: std.url, fallbackMeta: std.meta } : std;
 };
 const walkCol = (meta, walking, stepN) => {
     const cols = meta?.cols ?? 3;
@@ -1022,8 +1019,8 @@ function mapHTML() {
             <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
         <div class="wd-quality"><b>🗺️ Kiểu bản đồ</b><div>${[["paper", "Giấy (thử)"], ["3d", "3D"]].map(([k, t]) => `<button class="wd-map-scene${mapStyle === k ? " here" : ""}" data-wd-style="${k}">${t}</button>`).join("")}</div>
             <small>Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên bản đồ 3D</small></div>
-        <div class="wd-quality"><b>🧻 Rok kiểu giấy (thử)</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(settings.rokPaper ? 'on' : 'off') === k ? ' here' : ''}" data-wd-rokpaper="${k}">${t}</button>`).join('')}</div>
-            <small>Dùng bộ hình & hiệu ứng giấy mới cho Rok · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp</small></div>
+        <div class="wd-quality"><b>🧻 Nhân vật kiểu giấy (thử)</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(settings.paperHeroes ? 'on' : 'off') === k ? ' here' : ''}" data-wd-paper="${k}">${t}</button>`).join('')}</div>
+            <small>Dùng bộ hình & hiệu ứng giấy · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp</small></div>
         <div class="wd-quality"><b>🌾 Gặp quái ở cỏ cao</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(wildOff ? 'off' : 'on') === k ? ' here' : ''}" data-wd-wild="${k}">${t}</button>`).join('')}</div>
             <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
@@ -1135,8 +1132,8 @@ function onHudClick(e) {
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
     const ws = q('[data-wd-style]');
     if (ws) { setMapStyle(ws.dataset.wdStyle); renderHud(); return; }
-    const wrp = q('[data-wd-rokpaper]');
-    if (wrp) { setSetting('rokPaper', wrp.dataset.wdRokpaper === 'on'); renderHud(); return; }
+    const wrp = q('[data-wd-paper]');
+    if (wrp) { setSetting('paperHeroes', wrp.dataset.wdPaper === 'on'); renderHud(); return; }
     // sổ nhiệm vụ
     if (q('[data-ql-daily]')) { openQuestLog('daily'); return; }
     if (q('[data-ql-open]')) { const t = trackedQuest(); if (t && ['main', 'side', 'branch', 'hidden'].includes(t.type)) qlTab = t.type; openQuestLog(); return; }

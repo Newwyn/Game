@@ -26,7 +26,7 @@ import { GROUND_Y, SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../
 import {
     spawnFireball, spawnFireExplosion, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
     spawnPillarHit, spawnSummonCircle, spawnFireWings, spawnPalmFlash,
-    spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle,
+    spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle, isIgnarPaperFx,
 } from '../vfx/fireFx.js';
 import {
     spawnReaperDashTrail, spawnReaperDashHit, spawnScytheSlash, spawnReapUp, spawnReapSlam, spawnCleave, spawnDeathMarkCast,
@@ -1866,7 +1866,7 @@ function onFireWard(d) {
     if (!v) return;
     if (d.kind === 'on') {
         spawnFireWings(v.position, { dir: v.facingLeft ? -1 : 1 });
-        spawnShockwave(v.position, { color: 0xff7a1a, radius: 4, life: 0.5 });
+        if (!isIgnarPaperFx()) spawnShockwave(v.position, { color: 0xff7a1a, radius: 4, life: 0.5 });
         spawnDamageNumber(v.position, d.shield, 'shield');
         cameraRig.shake(0.2, 220);
         (d.pushed ?? []).forEach(e => {
@@ -1876,7 +1876,7 @@ function onFireWard(d) {
         });
     } else {
         spawnFireExplosion(v.position, { size: 3.2 });
-        spawnShockwave(v.position, { color: 0xff4d1a, radius: d.radius ?? 4.5, life: 0.6 });
+        if (!isIgnarPaperFx()) spawnShockwave(v.position, { color: 0xff4d1a, radius: d.radius ?? 4.5, life: 0.6 });
         cameraRig.shake(0.3, 260);
     }
 }

@@ -9,6 +9,7 @@ import { softwareGL, battleGfx, battlePixelRatio } from '../core/gpu.js';
 import { renderer } from '../core/scene.js';
 import { settings, setSetting } from '../core/settings.js';
 import { isTextureFailed, markTextureFailed } from '../core/textures.js';
+import { paperPortraitFor } from '../characters/sprite/paperSets.js';
 import '../styles/heropanel.css';
 import { icon } from './icons.js';
 import { itemIcon } from './itemIcons.js';
@@ -177,15 +178,13 @@ function probeImage(url) {
 function atlasFrame(id, tier) {
     const art = ART[id];
     if (!art) return null;
-    const paperMeta = ATLAS_META['../characters/sprite/rokPaperSprite.json'];
-    const paperUrl = ATLAS['../assets/sprites/rok_paper_sprite.webp'];
-    const usePaper = id === 'warrior' && settings.rokPaper && paperMeta?.frames && paperMeta?.size && paperUrl && !isTextureFailed(paperUrl);
-    if (usePaper) probeImage(paperUrl);
+    const paper = paperPortraitFor(id);
+    if (paper) probeImage(paper.image);
     const suffix = tier === 'sss' ? '' : `_${tier}`;
     const hasTier = ATLAS_META[`../characters/sprite/${art}Sprite${suffix}.json`] && ATLAS[`../assets/sprites/${art}${suffix}_sprite.webp`];
     const useSuffix = hasTier ? suffix : '';
-    const meta = usePaper ? paperMeta : ATLAS_META[`../characters/sprite/${art}Sprite${useSuffix}.json`];
-    const url = usePaper ? paperUrl : ATLAS[`../assets/sprites/${art}${useSuffix}_sprite.webp`];
+    const meta = paper ? paper.meta : ATLAS_META[`../characters/sprite/${art}Sprite${useSuffix}.json`];
+    const url = paper ? paper.image : ATLAS[`../assets/sprites/${art}${useSuffix}_sprite.webp`];
     const f = meta?.frames?.idle1 ?? meta?.frames?.[Object.keys(meta?.frames ?? {})[0]];
     if (!meta || !url || !f?.rect || !meta.size?.[1] || !f.rect[3]) return null;
     const [x, y, w, hh] = f.rect, [W, H] = meta.size, k = 150 / hh;
@@ -260,7 +259,7 @@ function settingsHTML() {
         ${row('🗺️ Đồ hoạ bản đồ', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ'], ['2d', '🗺️ Phẳng 2D']], q, 'data-hp-q',
             softwareGL() ? '⚠️ Trình duyệt đang vẽ bằng phần mềm (chưa dùng card đồ hoạ) — nên dùng Phẳng 2D. Bật “Tăng tốc phần cứng” trong cài đặt trình duyệt rồi mở lại để chơi 3D.' : 'Tự động: đẹp nhất mà máy vẫn mượt')}
         ${row('🗺️ Kiểu bản đồ', [['paper', 'Giấy (thử)'], ['3d', '3D']], ms, 'data-hp-style', 'Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên 3D')}
-        ${row('🧻 Rok kiểu giấy (thử)', [['on', 'Bật'], ['off', 'Tắt']], settings.rokPaper ? 'on' : 'off', 'data-hp-rokpaper', 'Dùng bộ hình & hiệu ứng giấy mới cho Rok · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp')}
+        ${row('🧻 Nhân vật kiểu giấy (thử)', [['on', 'Bật'], ['off', 'Tắt']], settings.paperHeroes ? 'on' : 'off', 'data-hp-paper', 'Dùng bộ hình & hiệu ứng giấy · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp')}
         ${row('⚔️ Đồ hoạ trận đấu', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ']], battleGfx(), 'data-hp-bq', 'Tự động: đo độ mượt vài giây đầu trận, máy chậm thì tự giảm độ nét. Nhẹ: vẽ ít điểm ảnh hơn, bớt bụi cỏ nhỏ — cho máy yếu. Độ nét đổi ngay; bụi cỏ đổi sau khi tải lại game (F5).')}
         ${row('🌾 Gặp quái ở cỏ cao', [['on', 'Bật'], ['off', 'Tắt']], wild ? 'on' : 'off', 'data-hp-wild', 'Ruộng lúa, bãi cỏ rừng, cỏ ven đường · không tốn thể lực')}
         ${row('💬 Tốc độ chữ hội thoại', [['slow', 'Chậm'], ['normal', 'Vừa'], ['fast', 'Nhanh'], ['instant', 'Hiện ngay']], speed, 'data-hp-speed')}
@@ -283,7 +282,7 @@ function onClick(e) {
     const g = q('[data-hp-go]'); if (g) { const k = g.dataset.hpGo; close(); return actions[k]?.(); }
     const qq = q('[data-hp-q]'); if (qq) { actions.setQuality?.(qq.dataset.hpQ); return render(); }
     const st = q('[data-hp-style]'); if (st) { actions.setMapStyle?.(st.dataset.hpStyle); return render(); }
-    const rp = q('[data-hp-rokpaper]'); if (rp) { setSetting('rokPaper', rp.dataset.hpRokpaper === 'on'); return render(); }
+    const rp = q('[data-hp-paper]'); if (rp) { setSetting('paperHeroes', rp.dataset.hpPaper === 'on'); return render(); }
     const w = q('[data-hp-wild]'); if (w) { actions.setWild?.(w.dataset.hpWild === 'on'); return render(); }
     const sp = q('[data-hp-speed]'); if (sp) { LS.set('st_speed', sp.dataset.hpSpeed); return render(); }
     const bq = q('[data-hp-bq]'); if (bq) { try { localStorage.setItem('gfx_battle', bq.dataset.hpBq); } catch {} renderer.setPixelRatio(battlePixelRatio()); renderer.setSize(window.innerWidth, window.innerHeight); return render(); }

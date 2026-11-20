@@ -12,7 +12,8 @@
 import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { FrameSpriteView } from './FrameSpriteView.js';
 import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
-import { ROK_SPRITE, getRokSprite } from './sprite/rokSprite.js';
+import { ROK_SPRITE } from './sprite/rokSprite.js';
+import { paperSpriteFor } from './sprite/paperSets.js';
 import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
 import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
@@ -541,10 +542,10 @@ const SWORDSAGE = {
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
-    warrior: () => ({ ...ROK, sprite: getRokSprite() }),
+    warrior: () => ({ ...ROK, sprite: paperSpriteFor('warrior', ROK_SPRITE) }),
     archer: () => ARCHER,
     priest: () => PRIEST,
-    mage: () => MAGE,
+    mage: () => ({ ...MAGE, sprite: paperSpriteFor('mage', IGNAR_SPRITE) }),
     reaper: () => REAPER,
     wrestler: () => BRAKK,
     dancer: () => DANCER,

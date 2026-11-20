@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { getTexture } from '../core/textures.js';
 import { CharacterView } from './CharacterView.js';
 import { GROUND_Y, gameNow } from '../config.js';
-import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
+import { makePalmFire, makeFireGuardian, makeFireShield, isIgnarPaperFx } from '../vfx/fireFx.js';
 import { jessicaBoltTexture } from '../vfx/jessicaFx.js';
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
@@ -1892,7 +1892,7 @@ export class CutoutCharacterView extends CharacterView {
 
         // Vòng ấn chú khi vận chiêu
         this._circleTimer = Math.max(0, (this._circleTimer ?? 0) - dt);
-        const casting = this.member.alive && ((this._locomotion === 'cast' && !this._oneShot) || this._circleTimer > 0);
+        const casting = !(this.palmFire && isIgnarPaperFx()) && this.member.alive && ((this._locomotion === 'cast' && !this._oneShot) || this._circleTimer > 0);
         const mc = this.magicCircle;
         const op = mc.material.opacity + ((casting ? 0.9 : 0) - mc.material.opacity) * Math.min(1, dt * 10);
         mc.material.opacity = op;

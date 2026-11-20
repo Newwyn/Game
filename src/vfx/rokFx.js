@@ -12,20 +12,23 @@ import FX from './rokFx2.json';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark } from './vfx.js';
 import { makeFlipbook, loopFrame, weighted, fadeInOut } from './flipbook.js';
 import { gameTimeout } from '../config.js';
-import { settings } from '../core/settings.js';
-import { isTextureFailed, markTextureFailed } from '../core/textures.js';
-
-const PAPER_FX_IMG = import.meta.glob('../assets/sprites/rok_paper_fx.webp', { eager: true, import: 'default' });
-const PAPER_FX_META = import.meta.glob('./rokPaperFx.json', { eager: true, import: 'default' });
-const paperFxUrl = PAPER_FX_IMG['../assets/sprites/rok_paper_fx.webp'] ?? null;
-const paperFX = PAPER_FX_META['./rokPaperFx.json'] ?? null;
-const REQ_GROUPS = ['aegisA', 'aegisB', 'lion', 'roarWave', 'holyCircle', 'goldRing', 'quakeRing', 'tauntIcon', 'buffIcon', 'bashBurst', 'chain', 'healCross'];
-const hasPaperFx = !!(paperFxUrl && paperFX?.size && REQ_GROUPS.every(k => paperFX?.groups?.[k]?.frames?.length));
+import { markTextureFailed } from '../core/textures.js';
+import { paperFxFor, paperReady } from '../characters/sprite/paperSets.js';
 
 const FB_STD = makeFlipbook(fxUrl, FX);
-const FB_PAPER = hasPaperFx ? makeFlipbook(paperFxUrl, paperFX, { noFxDim: true, onError: () => markTextureFailed(paperFxUrl) }) : null;
-export const isRokPaperFx = () => !!(settings.rokPaper && FB_PAPER && !isTextureFailed(paperFxUrl));
-const active = () => (isRokPaperFx() ? { fb: FB_PAPER, meta: paperFX, paper: true } : { fb: FB_STD, meta: FX, paper: false });
+let fbPaper = null, fbPaperUrl = null;
+export const isRokPaperFx = () => paperReady('warrior', 'fx');
+const active = () => {
+    const p = paperFxFor('warrior');
+    if (p) {
+        if (!fbPaper || fbPaperUrl !== p.url) {
+            fbPaperUrl = p.url;
+            fbPaper = makeFlipbook(p.url, p.meta, { noFxDim: true, onError: () => markTextureFailed(p.url) });
+        }
+        return { fb: fbPaper, meta: p.meta, paper: true };
+    }
+    return { fb: FB_STD, meta: FX, paper: false };
+};
 active().fb.tex('holyCircle');   // tải atlas ngay khi vào game (không đợi lần đầu dùng chiêu -> khung đầu không bị trống)
 export const rokFrames = (group, height, opts) => active().fb.frames(group, height, opts);
 const GROUND = -0.5;
