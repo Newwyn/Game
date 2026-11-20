@@ -541,10 +541,10 @@ const SWORDSAGE = {
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
-    warrior: () => ROK,
+    warrior: () => ({ ...ROK, sprite: ROK_SPRITE }),
     archer: () => ARCHER,
     priest: () => PRIEST,
-    mage: () => MAGE,
+    mage: () => ({ ...MAGE, sprite: IGNAR_SPRITE }),
     reaper: () => REAPER,
     wrestler: () => BRAKK,
     dancer: () => DANCER,
@@ -583,7 +583,9 @@ export function createCharacterView(member, classDef, isMyTeam) {
         : null);
     if (make) {
         let visual = make(member);
-        if (visual?.sprite && member.rank != null) visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.skinRank ?? member.rank) };   // hình theo bậc S / SS / SSS
+        if (visual?.sprite && (member.rank != null || member.skin)) {
+            visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.skinRank ?? member.rank ?? 3, member.skin ?? null) };   // hình theo trang phục ('paper' / s / ss / sss) hoặc bậc
+        }
         return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);
     }
     return new PlaceholderCharacterView(member, classDef, isMyTeam);

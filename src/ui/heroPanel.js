@@ -7,6 +7,8 @@ import { unlockText } from './modeMenu.js';
 import { socket } from '../net/socket.js';
 import { softwareGL, battleGfx, battlePixelRatio } from '../core/gpu.js';
 import { renderer } from '../core/scene.js';
+import { isTextureFailed, markTextureFailed } from '../core/textures.js';
+import { paperPortraitFor } from '../characters/sprite/paperSets.js';
 import '../styles/heropanel.css';
 import { icon } from './icons.js';
 import { itemIcon } from './itemIcons.js';
@@ -78,7 +80,7 @@ function close() {
 const hero = () => data?.heroes.find(h => h.id === sel) ?? data?.heroes[0];
 function portrait(id) {
     const h = data?.heroes?.find(x => x.id === id);
-    const url = tierPortrait(id, h ? (({ s: 1, ss: 2, sss: 3 })[h.skin] ?? h.rank) : undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình đúng trang phục / bậc
+    const url = tierPortrait(id, h ? (h.skin ?? h.rank) : undefined) ?? PORTRAITS[`../assets/portraits/${id}.png`];   // hình đúng trang phục / bậc
     return url ? `<img src="${url}" alt="">` : '<span>🧑</span>';
 }
 function render() {
@@ -163,21 +165,44 @@ function gearHTML(h) {
         ${data.features.includes('forge') ? '<button class="cp-btn-cancel" data-hp-go="forge">⚒️ Lò rèn</button>' : ''}
     </div>`;
 }
+const probedUrls = new Set();
+function probeImage(url) {
+    if (!url || probedUrls.has(url) || isTextureFailed(url) || typeof Image === 'undefined') return;
+    probedUrls.add(url);
+    const im = new Image();
+    im.onerror = () => { markTextureFailed(url); if (open) render(); };
+    im.src = url;
+}
+
 function atlasFrame(id, tier) {
     const art = ART[id];
     if (!art) return null;
-    const suffix = tier === 'sss' ? '' : `_${tier}`;
-    const hasTier = ATLAS_META[`../characters/sprite/${art}Sprite${suffix}.json`] && ATLAS[`../assets/sprites/${art}${suffix}_sprite.webp`];
-    const useSuffix = hasTier ? suffix : '';
-    const meta = ATLAS_META[`../characters/sprite/${art}Sprite${useSuffix}.json`];
-    const url = ATLAS[`../assets/sprites/${art}${useSuffix}_sprite.webp`];
+    let meta, url;
+    if (tier === 'paper') {
+        const paper = paperPortraitFor(id);
+        if (!paper) return null;
+        probeImage(paper.image);
+        meta = paper.meta;
+        url = paper.image;
+    } else {
+        const suffix = tier === 'sss' ? '' : `_${tier}`;
+        const hasTier = ATLAS_META[`../characters/sprite/${art}Sprite${suffix}.json`] && ATLAS[`../assets/sprites/${art}${suffix}_sprite.webp`];
+        const useSuffix = hasTier ? suffix : '';
+        meta = ATLAS_META[`../characters/sprite/${art}Sprite${useSuffix}.json`];
+        url = ATLAS[`../assets/sprites/${art}${useSuffix}_sprite.webp`];
+    }
     const f = meta?.frames?.idle1 ?? meta?.frames?.[Object.keys(meta?.frames ?? {})[0]];
-    if (!meta || !url || !f) return null;
+    if (!meta || !url || !f?.rect || !meta.size?.[1] || !f.rect[3]) return null;
     const [x, y, w, hh] = f.rect, [W, H] = meta.size, k = 150 / hh;
     return `<span class="hp-skin-img" style="width:${Math.round(w * k)}px;height:150px;background-image:url(${url});background-size:${Math.round(W * k)}px ${Math.round(H * k)}px;background-position:-${Math.round(x * k)}px -${Math.round(y * k)}px"></span>`;
 }
 function skinHTML(h) {
     const auto = !h.skin;
+    const hasPaper = h.skins?.includes('paper');
+    const paperImg = hasPaper ? (atlasFrame(h.id, 'paper') ?? (() => {
+        const u = tierPortrait(h.id, 'paper');
+        return u ? `<span class="hp-skin-img"><img src="${u}" alt=""></span>` : null;
+    })()) : null;
     return `<div class="hp-skins">
         <button class="hp-skin${auto ? ' on' : ''}" data-hp-skin="auto"><span class="hp-skin-auto">🔄</span><b>Tự động</b><small>Đổi theo bậc hiện tại</small></button>
         ${['s', 'ss', 'sss'].map(t => {
@@ -185,6 +210,8 @@ function skinHTML(h) {
             return `<button class="hp-skin${h.skin === t ? ' on' : ''}${ok ? '' : ' locked'}" data-hp-skin="${t}" ${ok ? '' : 'disabled'}>
                 ${img ?? '<span class="hp-skin-auto">❔</span>'}<b>${TIER_NAME[t]}</b><small>${ok ? (h.skin === t ? '✓ Đang mặc' : 'Bấm để mặc') : `🔒 Đột phá lên ${t.toUpperCase()} để mở`}</small></button>`;
         }).join('')}
+        ${hasPaper ? `<button class="hp-skin${h.skin === 'paper' ? ' on' : ''}" data-hp-skin="paper">
+            ${paperImg ?? '<span class="hp-skin-auto">🧻</span>'}<b>Giấy</b><small>${h.skin === 'paper' ? '✓ Đang mặc' : 'Bấm để mặc'}</small></button>` : ''}
     </div><p class="hp-note">Trang phục chỉ đổi hình trong trận, không đổi chỉ số.</p>`;
 }
 // túi đồ: 4 phần — 💰 Tài nguyên · 🧪 Nguyên liệu · 📜 Vật phẩm nhiệm vụ · 🛡️ Trang bị
@@ -242,7 +269,7 @@ function settingsHTML() {
     const q = actions.quality?.() ?? 'auto', wild = actions.wild?.() ?? true, speed = LS.get('st_speed') || 'normal';
     const row = (title, opts, cur, attr, note) => `<div class="hp-set"><b>${title}</b><div>${opts.map(([k, t]) => `<button class="hp-sub${cur === k ? ' on' : ''}" ${attr}="${k}">${t}</button>`).join('')}</div>${note ? `<small>${note}</small>` : ''}</div>`;
     return `<div class="hp-settings">
-        ${row('🗺️ Đồ hoạ bản đồ', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ'], ['2d', '🗺️ Phẳng 2D']], q, 'data-hp-q',
+        ${row('🖼️ Đồ hoạ bản đồ', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ'], ['2d', '🗺️ Phẳng 2D']], q, 'data-hp-q',
             softwareGL() ? '⚠️ Trình duyệt đang vẽ bằng phần mềm (chưa dùng card đồ hoạ) — nên dùng Phẳng 2D. Bật “Tăng tốc phần cứng” trong cài đặt trình duyệt rồi mở lại để chơi 3D.' : 'Tự động: đẹp nhất mà máy vẫn mượt')}
         ${row('⚔️ Đồ hoạ trận đấu', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ']], battleGfx(), 'data-hp-bq', 'Tự động: đo độ mượt vài giây đầu trận, máy chậm thì tự giảm độ nét. Nhẹ: vẽ ít điểm ảnh hơn, bớt bụi cỏ nhỏ — cho máy yếu. Độ nét đổi ngay; bụi cỏ đổi sau khi tải lại game (F5).')}
         ${row('🌾 Gặp quái ở cỏ cao', [['on', 'Bật'], ['off', 'Tắt']], wild ? 'on' : 'off', 'data-hp-wild', 'Ruộng lúa, bãi cỏ rừng, cỏ ven đường · không tốn thể lực')}

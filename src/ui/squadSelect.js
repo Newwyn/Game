@@ -59,6 +59,7 @@ function buildHeroForCampaign(id, providedHero) {
         base.level = ph.level ?? base.level;
         base.rank = ph.rank ?? base.rank;
         base.rankName = ph.rankName ?? base.rankName;
+        base.skin = ph.skin ?? null;
         if (ph.stats) {
             base.hp = ph.stats.maxHp ?? base.hp;
             base.atk = Math.max(ph.stats.pAtk ?? 0, ph.stats.mAtk ?? 0) || base.atk;
@@ -107,7 +108,7 @@ function grid(side, compact) {
             <button class="ss-card${on ? ' on' : ''}${full ? ' full' : ''}" data-ss="${h.id}" data-side="${side}" style="--cc:${h.color}">
                 ${side === 'p1' ? `<span class="ss-key">${i + 1}</span>` : ''}
                 ${on ? `<span class="ss-check">✓ ${order.indexOf(h.id) + 1}</span>` : ''}
-                <div class="ss-art">${portrait(h.id, h.rank) ? `<img src="${portrait(h.id, h.rank)}" alt="${h.name}" draggable="false">` : `<span class="ss-emoji">${h.emoji}</span>`}</div>
+                <div class="ss-art">${portrait(h.id, h.skin ?? h.rank) ? `<img src="${portrait(h.id, h.skin ?? h.rank)}" alt="${h.name}" draggable="false">` : `<span class="ss-emoji">${h.emoji}</span>`}</div>
                 <div class="ss-name">${h.emoji} ${h.name}</div>
                 ${compact ? '' : `<div class="ss-title">${h.title}</div>`}
                 <div class="ss-tags"><span>${h.className}</span>${compact ? '' : `<span>${h.raceEmoji} ${h.race}</span>`}</div>

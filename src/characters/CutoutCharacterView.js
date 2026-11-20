@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { getTexture } from '../core/textures.js';
 import { CharacterView } from './CharacterView.js';
 import { GROUND_Y, gameNow } from '../config.js';
-import { makePalmFire, makeFireGuardian, makeFireShield } from '../vfx/fireFx.js';
+import { makePalmFire, makeFireGuardian, makeFireShield, isPaperIgnar } from '../vfx/fireFx.js';
 import { jessicaBoltTexture } from '../vfx/jessicaFx.js';
 import { makeReaperGuardian, makeReaperAura, makeDeathMarkIcon } from '../vfx/zerithFx.js';
 import { makeGiantAura, makeImmuneCrown, makeBrakkBubble } from '../vfx/brakkFx.js';
@@ -31,6 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
+import { isPaperRok } from '../vfx/rokFx.js';
 import { makeSwordFlightQi, swordFlightHeight } from '../vfx/swordFx.js';
 import { game, opponentIdOf } from '../state.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
@@ -282,7 +283,7 @@ export class CutoutCharacterView extends CharacterView {
 
         // Phù Thủy lửa: quả cầu lửa lơ lửng trên lòng bàn tay (chỉ hiện khi bàn tay đang ngửa)
         if (visual.palmFire && parts[visual.palmFire.joint]) {
-            this.palmFire = makePalmFire();
+            this.palmFire = makePalmFire(isPaperIgnar(this.member));
             const [px, py] = visual.palmFire.offset;
             this.palmFire.group.position.set(px * unitsPerPx, -py * unitsPerPx, 0.3);
             parts[visual.palmFire.joint].add(this.palmFire.group);
@@ -735,12 +736,23 @@ export class CutoutCharacterView extends CharacterView {
             this.root.add(this._fortRing);
         }
         if (this._fortRing) {
-            this._fortRing.visible = fort;
-            if (fort) {
+            this._fortRing.visible = fort && !this._teamRokPaper();
+            if (this._fortRing.visible) {
                 this._fortRing.rotation.z += dt * 0.9;
                 this._fortRing.material.opacity = 0.65 + 0.25 * Math.sin(this._time * 4);
             }
         }
+    }
+
+    _teamRokPaper() {
+        for (const views of Object.values(game.views ?? {})) {
+            if (views?.includes(this)) {
+                const rok = views.find(v => v?.member?.classId === 'warrior');
+                if (rok) return isPaperRok(rok);
+            }
+        }
+        const squad = Object.values(game.roomData?.players ?? {}).find(p => p.squad?.includes(this.member))?.squad;
+        return isPaperRok(squad?.find(m => m?.classId === 'warrior') ?? this.member);
     }
 
     /**
@@ -750,13 +762,14 @@ export class CutoutCharacterView extends CharacterView {
     _updateIronGuard(dt, on) {
         // thử nghiệm pixelfx (?rokFx=old để bỏ): vòm khiên lục giác (force-field) màu vàng suốt thời gian Dựng Khiên
         // (11/2026) vòm lục giác pixelfx quanh Rok đã BỎ theo yêu cầu người chơi — chỉ còn Khiên Thần (tranh). Xem lại: ?rokDome=1
-        if (ROK_PIXEL && this.def.guardFx && ROK_DOME) this._updatePixGuard(dt, on);
+        const paper = isPaperRok(this.member);
+        if (ROK_PIXEL && !paper && this.def.guardFx && ROK_DOME) this._updatePixGuard(dt, on);
         // Rok bản 3: KHIÊN THẦN vẽ bằng tranh (visual.guardFx = rokFx.makeDivineShield) thay Thần Hộ Vệ + vòm lục giác
         if (this.def.guardFx) {
             if (!this._guardFx && !on) return;
             this._guardFx ??= this._makeGuardFx();
             this._guardFx.update(dt, { on, frac: this._guardFrac ?? 1, dir: this.facingLeft ? -1 : 1 });
-            if (on) {
+            if (on && !paper) {
                 this._guardSpark = (this._guardSpark ?? 0) - dt;
                 if (this._guardSpark <= 0) { this._guardSpark = 0.5; spawnRisingSparkles(this.root.position, { count: 3, color: 0xffd36b, radius: 1.3 }); }
             }
@@ -1370,14 +1383,15 @@ export class CutoutCharacterView extends CharacterView {
     /** Vị trí thế giới của Vệ Thần Gió (để bắn tên ra), null nếu không có */
     /** Hộ Vệ Thần Lửa: hiện khi có Hỏa Thần, bay sau lưng Ignar */
     _updateFireGuardian(dt, on, ward = false) {
+        const paper = isPaperIgnar(this.member);
         if (on && !this.fireGuardian) {
-            this.fireGuardian = makeFireGuardian();
+            this.fireGuardian = makeFireGuardian(paper);
             this.root.add(this.fireGuardian.group);
             this.fireGuardian.roar();
         }
         // Khiên Lửa riêng của Ignar (+M.DEF, kháng khống chế): khi Hỏa Thần giáng lâm hoặc Giáp Lửa (thiên phú 2)
         const shield = on || ward;
-        if (shield && !this.fireShield) { this.fireShield = makeFireShield(); this.root.add(this.fireShield.group); }
+        if (shield && !this.fireShield) { this.fireShield = makeFireShield(paper); this.root.add(this.fireShield.group); }
         if (this.fireShield && !shield) { this.fireShield.dispose(); this.fireShield = null; }
         if (this.fireShield) { this.fireShield.update(dt); this.fireShield.group.position.y = GROUND_Y + 0.4 + (this._lift ?? 0); }
         if (!this.fireGuardian) return;
@@ -1604,7 +1618,8 @@ export class CutoutCharacterView extends CharacterView {
         const O = this._orbit;
         if (!O) return;
         O.k += ((on ? 1 : 0) - O.k) * Math.min(1, dt * 6);
-        O.group.visible = O.halo.visible = O.k > 0.02;
+        O.group.visible = O.k > 0.02;
+        O.halo.visible = O.group.visible && !this._teamRokPaper();
         if (!O.group.visible) return;
         const h = this.height;
         O.group.children.forEach((sp, i) => {
@@ -1732,7 +1747,7 @@ export class CutoutCharacterView extends CharacterView {
     }
 
     _makeGuardFx() {
-        const fx = this.def.guardFx();
+        const fx = this.def.guardFx(isPaperRok(this.member));
         this.root.add(fx.group);
         return fx;
     }
@@ -1889,7 +1904,7 @@ export class CutoutCharacterView extends CharacterView {
 
         // Vòng ấn chú khi vận chiêu
         this._circleTimer = Math.max(0, (this._circleTimer ?? 0) - dt);
-        const casting = this.member.alive && ((this._locomotion === 'cast' && !this._oneShot) || this._circleTimer > 0);
+        const casting = !(this.palmFire && isPaperIgnar(this.member)) && this.member.alive && ((this._locomotion === 'cast' && !this._oneShot) || this._circleTimer > 0);
         const mc = this.magicCircle;
         const op = mc.material.opacity + ((casting ? 0.9 : 0) - mc.material.opacity) * Math.min(1, dt * 10);
         mc.material.opacity = op;

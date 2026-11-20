@@ -8,12 +8,26 @@ import * as THREE from 'three';
 import { softwareGL } from './gpu.js';
 
 const cache = new Map();
+const failed = new Set();
+const failCbs = new Map();
 const loader = new THREE.TextureLoader();
 
-export function getTexture(url, { pixel = false } = {}) {
+export const isTextureFailed = (url) => !!url && failed.has(url);
+export function markTextureFailed(url) {
+    if (!url || failed.has(url)) return;
+    failed.add(url);
+    const cbs = failCbs.get(url);
+    if (cbs) { failCbs.delete(url); for (const cb of cbs) try { cb(url); } catch {} }
+}
+
+export function getTexture(url, { pixel = false, onError } = {}) {
+    if (onError) {
+        if (failed.has(url)) { try { onError(url); } catch {} }
+        else { let s = failCbs.get(url); if (!s) failCbs.set(url, s = new Set()); s.add(onError); }
+    }
     let tex = cache.get(url);
     if (!tex) {
-        tex = loader.load(url);
+        tex = loader.load(url, undefined, undefined, () => markTextureFailed(url));
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.anisotropy = 4;
         cache.set(url, tex);
@@ -66,15 +80,20 @@ export async function preloadAll(renderer, onProgress = () => {}) {
         const tex = getTexture(url);
         const finish = () => { tick('Đang tải hình nhân vật & hiệu ứng…'); res(tex); };
         if (tex.image?.complete && tex.image.naturalWidth) finish();
+        else if (tex.image?.complete) { markTextureFailed(url); finish(); }
         else {
             const img = tex.image ?? null;
-            if (img) { img.addEventListener('load', finish, { once: true }); img.addEventListener('error', finish, { once: true }); }
+            if (img) {
+                img.addEventListener('load', finish, { once: true });
+                img.addEventListener('error', () => { markTextureFailed(url); finish(); }, { once: true });
+            }
             else { const t = setInterval(() => { if (tex.image?.complete) { clearInterval(t); finish(); } }, 50); }
         }
     })));
     await Promise.all(otherUrls.map(url => new Promise(res => {
         const img = new Image();
-        img.onload = img.onerror = () => { (img.decode?.() ?? Promise.resolve()).catch(() => {}).finally(() => { tick('Đang tải bản đồ & chân dung…'); res(); }); };
+        img.onload = () => { (img.decode?.() ?? Promise.resolve()).catch(() => {}).finally(() => { tick('Đang tải bản đồ & chân dung…'); res(); }); };
+        img.onerror = () => { markTextureFailed(url); tick('Đang tải bản đồ & chân dung…'); res(); };
         img.src = url;
     })));
     // 2) đẩy dần lên card đồ hoạ: mỗi khung hình 1 tấm (trang không bị đơ, thanh tiến độ vẫn chạy)

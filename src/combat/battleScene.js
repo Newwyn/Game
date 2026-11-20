@@ -207,8 +207,10 @@ function updateTethers(dt) {
         if (!other) return;
         let tt = tethers.get(v);
         const on = !m.linkBroken && m.alive && other.member?.alive;
+        const isPaper = m.skin === 'paper';
+        if (tt && tt._paper !== isPaper) { tt.dispose(); tethers.delete(v); tt = null; }
         if (!tt && !on) return;
-        if (!tt) { tt = makeRokTether(); scene.add(tt.group); tethers.set(v, tt); }
+        if (!tt) { tt = makeRokTether(isPaper); tt._paper = isPaper; scene.add(tt.group); tethers.set(v, tt); }
         seen.add(v);
         const ya = (v._lift ?? 0) + 0.9, yb = (other._lift ?? 0) + (other._hover ?? 0) + 0.9;
         const k = tt.update(dt, v.position, other.position, ya, yb, on);
