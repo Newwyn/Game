@@ -118,49 +118,81 @@ let dialog = null, puzzle = null, toastMsg = null, toastAt = 0, mapOpen = false,
 const held = new Set();       // hướng đang giữ (bàn phím + phím ảo)
 let lastSave = 0;
 
-// ---------- đồ hoạ: 3D (Đẹp / Nhẹ) hoặc phẳng 2D ----------
+// ---------- đồ hoạ: 3D (Đẹp / Nhẹ), mô hình Giấy (thử ở Ashford) hoặc phẳng 2D ----------
 let host3d = null, fadeEl = null, view = null, loading3d = false;
+let view3d = null, viewPaper = null, loading3dView = null, loadingPaperView = null;
 const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } } };
 const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } };
 // 'auto' (mặc định): bắt đầu Đẹp (điện thoại: Nhẹ), máy không kịp thì tự hạ — xem view.setAuto
 let quality = LS.get('wd_quality') || 'auto';
+let mapStyle = LS.get('wd_style') === '3d' ? '3d' : 'paper';
 // trình duyệt vẽ 3D bằng phần mềm (không dùng card đồ hoạ) -> chế độ Tự động dùng bản đồ phẳng 2D cho mượt
 let softGL = false, softToast = false;
 if (quality === 'auto' && softwareGL()) { softGL = true; quality = '2d'; }
 let autoLevel = coarse() ? 'low' : 'high', autoToast = false;
 const webglOK = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
 if (!webglOK()) quality = '2d';
-let viewLoading = null;
 // vẽ phẳng (tranh): chọn 🗺️ Phẳng 2D, hoặc đang ở TRONG NHÀ (phòng luôn vẽ tranh kiểu Pokémon)
 const flat = () => quality === '2d' || (!!map?.interior && !map?.interior3d);
+const wantPaper = (id = scene?.id) => mapStyle === 'paper' && id === 'ashford' && !flat();
 const use3d = () => !flat() && !!view;
+function syncActiveView() {
+    const paperOn = wantPaper();
+    view = paperOn ? viewPaper : view3d;
+    if (view3d?.canvas) view3d.canvas.style.display = paperOn ? 'none' : 'block';
+    if (viewPaper?.canvas) viewPaper.canvas.style.display = paperOn ? 'block' : 'none';
+}
+function syncViewQuality(v) {
+    if (!v || quality === '2d') return;
+    v.setQuality(quality === 'auto' ? autoLevel : quality);
+    v.setAuto(quality === 'auto' && !TICK, (kind) => {
+        if (kind === 'low') autoLevel = 'low';
+        if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
+    });
+}
+function setMapStyle(st) {
+    mapStyle = st === '3d' ? '3d' : 'paper';
+    LS.set('wd_style', mapStyle);
+    if (mapStyle === '3d' && viewPaper) {
+        if (view === viewPaper) view = null;
+        viewPaper.dispose?.(); viewPaper = null; loadingPaperView = null;
+    }
+    applyQuality();
+}
 function applyQuality() {
     if (!root) return;
-    if (quality !== '2d' && !view) {   // phần 3D là gói riêng: chỉ tải khi mở bản đồ lần đầu
-        viewLoading ??= import('../world3d/view.js')
-            .then(m => { view = m.createView(host3d); })
-            .catch(e => { console.warn('[world] không bật được 3D, dùng bản đồ phẳng', e); quality = '2d'; })
-            .finally(() => { loading3d = false; applyQuality(); });
+    if (!scene) { host3d.style.display = 'none'; canvas.style.display = 'none'; return; }
+    const paperOn = wantPaper();
+    syncActiveView();
+    if (quality !== '2d' && !flat() && !view) {   // gói dựng bản đồ tải riêng theo vùng đang vào
+        if (paperOn) {
+            loadingPaperView ??= import('../worldpaper/view.js')
+                .then(m => { if (mapStyle === 'paper') viewPaper = m.createView(host3d); })
+                .catch(e => { console.warn('[world] không bật được bản đồ giấy, chuyển về 3D', e); mapStyle = '3d'; })
+                .finally(() => { loadingPaperView = null; loading3d = false; applyQuality(); });
+        } else {
+            loading3dView ??= import('../world3d/view.js')
+                .then(m => { if (quality !== '2d') view3d = m.createView(host3d); })
+                .catch(e => { console.warn('[world] không bật được 3D, dùng bản đồ phẳng', e); quality = '2d'; })
+                .finally(() => { loading3dView = null; loading3d = false; applyQuality(); });
+        }
         loading3d = true; fade = Math.max(fade, 1);
         host3d.style.display = 'block'; canvas.style.display = 'none';
         return;
     }
-    if (view && quality !== '2d') {
-        view.setQuality(quality === 'auto' ? autoLevel : quality);
-        view.setAuto(quality === 'auto' && !TICK, (kind) => {
-            if (kind === 'low') autoLevel = 'low';
-            if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
-        });
-    }
+    syncViewQuality(view);
     host3d.style.display = flat() ? 'none' : 'block';
     canvas.style.display = flat() ? 'block' : 'none';
-    if (scene && !flat()) load3d(scene.id);
+    if (!flat()) load3d(scene.id); else loading3d = false;
 }
 function load3d(id) {
-    if (!view) return;
+    syncActiveView();
+    if (!view) { if (!flat()) applyQuality(); return; }
+    syncViewQuality(view);
+    const target = view;
     loading3d = true; fade = Math.max(fade, 1);
-    view.resize();
-    view.setMap(id).catch(e => console.warn('[world] lỗi dựng bản đồ 3D', e)).finally(() => { if (scene?.id === id) loading3d = false; });
+    target.resize();
+    target.setMap(id).catch(e => console.warn('[world] lỗi dựng bản đồ', e)).finally(() => { if (scene?.id === id && view === target) loading3d = false; });
 }
 
 // ---------- tự đi (bấm xuống đất / nút 🧭 Tự đi tới của nhiệm vụ) ----------
@@ -963,6 +995,8 @@ function mapHTML() {
             ${a.list[0].open ? '' : `<small>Mở khi qua ải ${a.list[0].needNo}</small>`}</div>`).join('')}
         <div class="wd-quality"><b>Đồ hoạ bản đồ</b><div>${[["auto", "🤖 Tự động"], ["high", "✨ Đẹp"], ["low", "⚡ Nhẹ"], ["2d", "🗺️ Phẳng 2D"]].map(([k, t]) => `<button class="wd-map-scene${quality === k ? " here" : ""}" data-wd-q="${k}">${t}</button>`).join("")}</div>
             <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
+        <div class="wd-quality"><b>🗺️ Kiểu bản đồ</b><div>${[["paper", "Giấy (thử)"], ["3d", "3D"]].map(([k, t]) => `<button class="wd-map-scene${mapStyle === k ? " here" : ""}" data-wd-style="${k}">${t}</button>`).join("")}</div>
+            <small>Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên bản đồ 3D</small></div>
         <div class="wd-quality"><b>🌾 Gặp quái ở cỏ cao</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(wildOff ? 'off' : 'on') === k ? ' here' : ''}" data-wd-wild="${k}">${t}</button>`).join('')}</div>
             <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
@@ -1028,6 +1062,8 @@ function panel(tab) {
         heroshop: () => { save(true); onExtras?.('shop'); }, tavern: () => { save(true); onExtras?.('tavern'); },
         quality: () => (softGL && quality === '2d' && !LS.get('wd_quality') ? 'auto' : quality),
         setQuality: (q) => { quality = q; LS.set('wd_quality', q); applyQuality(); },
+        mapStyle: () => mapStyle,
+        setMapStyle: (s) => { setMapStyle(s); },
         wild: () => !wildOff, setWild: (on) => { wildOff = !on; LS.set('wd_wild', on ? 'on' : 'off'); },
     });
 }
@@ -1070,6 +1106,8 @@ function onHudClick(e) {
     if (ww) { wildOff = ww.dataset.wdWild === 'off'; LS.set('wd_wild', wildOff ? 'off' : 'on'); renderHud(); return; }
     const wq = q('[data-wd-q]');
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
+    const ws = q('[data-wd-style]');
+    if (ws) { setMapStyle(ws.dataset.wdStyle); renderHud(); return; }
     // sổ nhiệm vụ
     if (q('[data-ql-daily]')) { openQuestLog('daily'); return; }
     if (q('[data-ql-open]')) { const t = trackedQuest(); if (t && ['main', 'side', 'branch', 'hidden'].includes(t.type)) qlTab = t.type; openQuestLog(); return; }
@@ -1134,7 +1172,7 @@ function loadScene(id, x, y, face) {
     snapObjects(false);
     wildGrace = GRACE_STEPS;
     if (host3d && canvas) { host3d.style.display = flat() ? 'none' : 'block'; canvas.style.display = flat() ? 'block' : 'none'; }
-    if (view && !flat()) load3d(id); else loading3d = false;
+    if (!flat()) load3d(id); else { syncActiveView(); loading3d = false; }
     renderHud();
 }
 function save(force = false) {

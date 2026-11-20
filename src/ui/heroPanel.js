@@ -239,11 +239,12 @@ function shopHTML() {
         <button class="cp-btn-cancel" data-hp-go="tavern">🍲 Quán ăn</button></div>`;
 }
 function settingsHTML() {
-    const q = actions.quality?.() ?? 'auto', wild = actions.wild?.() ?? true, speed = LS.get('st_speed') || 'normal';
+    const q = actions.quality?.() ?? 'auto', ms = actions.mapStyle?.() ?? 'paper', wild = actions.wild?.() ?? true, speed = LS.get('st_speed') || 'normal';
     const row = (title, opts, cur, attr, note) => `<div class="hp-set"><b>${title}</b><div>${opts.map(([k, t]) => `<button class="hp-sub${cur === k ? ' on' : ''}" ${attr}="${k}">${t}</button>`).join('')}</div>${note ? `<small>${note}</small>` : ''}</div>`;
     return `<div class="hp-settings">
         ${row('🗺️ Đồ hoạ bản đồ', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ'], ['2d', '🗺️ Phẳng 2D']], q, 'data-hp-q',
             softwareGL() ? '⚠️ Trình duyệt đang vẽ bằng phần mềm (chưa dùng card đồ hoạ) — nên dùng Phẳng 2D. Bật “Tăng tốc phần cứng” trong cài đặt trình duyệt rồi mở lại để chơi 3D.' : 'Tự động: đẹp nhất mà máy vẫn mượt')}
+        ${row('🗺️ Kiểu bản đồ', [['paper', 'Giấy (thử)'], ['3d', '3D']], ms, 'data-hp-style', 'Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên 3D')}
         ${row('⚔️ Đồ hoạ trận đấu', [['auto', '🤖 Tự động'], ['high', '✨ Đẹp'], ['low', '⚡ Nhẹ']], battleGfx(), 'data-hp-bq', 'Tự động: đo độ mượt vài giây đầu trận, máy chậm thì tự giảm độ nét. Nhẹ: vẽ ít điểm ảnh hơn, bớt bụi cỏ nhỏ — cho máy yếu. Độ nét đổi ngay; bụi cỏ đổi sau khi tải lại game (F5).')}
         ${row('🌾 Gặp quái ở cỏ cao', [['on', 'Bật'], ['off', 'Tắt']], wild ? 'on' : 'off', 'data-hp-wild', 'Ruộng lúa, bãi cỏ rừng, cỏ ven đường · không tốn thể lực')}
         ${row('💬 Tốc độ chữ hội thoại', [['slow', 'Chậm'], ['normal', 'Vừa'], ['fast', 'Nhanh'], ['instant', 'Hiện ngay']], speed, 'data-hp-speed')}
@@ -265,6 +266,7 @@ function onClick(e) {
     const b = q('[data-hp-buy]'); if (b && !b.disabled) { socket.emit('buyItem', { id: b.dataset.hpBuy }); return; }
     const g = q('[data-hp-go]'); if (g) { const k = g.dataset.hpGo; close(); return actions[k]?.(); }
     const qq = q('[data-hp-q]'); if (qq) { actions.setQuality?.(qq.dataset.hpQ); return render(); }
+    const st = q('[data-hp-style]'); if (st) { actions.setMapStyle?.(st.dataset.hpStyle); return render(); }
     const w = q('[data-hp-wild]'); if (w) { actions.setWild?.(w.dataset.hpWild === 'on'); return render(); }
     const sp = q('[data-hp-speed]'); if (sp) { LS.set('st_speed', sp.dataset.hpSpeed); return render(); }
     const bq = q('[data-hp-bq]'); if (bq) { try { localStorage.setItem('gfx_battle', bq.dataset.hpBq); } catch {} renderer.setPixelRatio(battlePixelRatio()); renderer.setSize(window.innerWidth, window.innerHeight); return render(); }
