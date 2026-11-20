@@ -173,13 +173,23 @@ export function createView(host) {
     // ---------- tranh 2D: nhân vật, đồ vật, dấu ! ? ----------
     const loader = new THREE.TextureLoader();
     const texBase = new Map();
-    const baseTex = (url) => { if (!texBase.has(url)) { const t = loader.load(url); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipMapLinearFilter; texBase.set(url, t); } return texBase.get(url); };
+    const texFailed = new Set();
+    const baseTex = (url) => {
+        if (!texBase.has(url)) {
+            const t = loader.load(url, undefined, undefined, () => { texFailed.add(url); });
+            t.colorSpace = THREE.SRGBColorSpace;
+            t.magFilter = THREE.NearestFilter;
+            t.minFilter = THREE.LinearMipMapLinearFilter;
+            texBase.set(url, t);
+        }
+        return texBase.get(url);
+    };
     const shadowGeo = new THREE.CircleGeometry(0.34, 18), shadowMat = new THREE.MeshBasicMaterial({ color: 0x1a1408, transparent: true, opacity: 0.32, depthWrite: false });
     const actors = new Map();
     function actor(key, url) {
         let a = actors.get(key);
         if (a && a.url === url) return a;
-        if (a) { sprites.remove(a.g); actors.delete(key); }
+        if (a) { sprites.remove(a.g); a.tex.dispose(); actors.delete(key); }
         const tex = baseTex(url).clone();
         const mat = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.4 });
         let dz = null, bits = null;
@@ -258,17 +268,23 @@ export function createView(host) {
         const mapHeights = MAPS[mapId]?.heights;
         // nhân vật (h: độ cao bậc 0..2, nâng nhân vật + bóng dưới chân lên h * 0.45 ô; lúc nhảy bóng nhỏ lại)
         for (const s of state.actors) {
-            if (!s.url || !s.meta) continue;
+            const useFallback = texFailed.has(s.url) && s.fallbackUrl && s.fallbackMeta;
+            const useUrl = useFallback ? s.fallbackUrl : s.url;
+            const useMeta = useFallback ? s.fallbackMeta : s.meta;
+            if (!useUrl || !useMeta) continue;
             const hLvl = Number(s.h ?? (s.key === 'me' ? state.focus?.h : null) ?? mapHeights?.[Math.floor(s.z)]?.[Math.floor(s.x)]) || 0;
             const elev = hLvl * 0.45;
             const lift = s.lift ?? 0;
             if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = lift + elev; }
-            const a = actor(s.key, s.url);
+            const a = actor(s.key, useUrl);
             a.seen = frameNo;
             a.g.visible = !s.hidden;
-            const { cols = 3, rows = 4, cw, ch } = s.meta;
+            const { cols = 3, rows = 4, cw, ch } = useMeta;
+            const col = Math.max(0, Math.min(cols - 1, s.col ?? 0));
+            const row = Math.max(0, Math.min(rows - 1, ROW[s.face] ?? 0));
+            a.tex.magFilter = ch > 128 ? THREE.LinearFilter : THREE.NearestFilter;
             a.tex.repeat.set(1 / cols, 1 / rows);
-            a.tex.offset.set(s.col / cols, 1 - ((ROW[s.face] ?? 0) + 1) / rows);
+            a.tex.offset.set(col / cols, 1 - (row + 1) / rows);
             const charH = s.charH ?? CHAR_H;
             a.sp.scale.set(charH * cw / ch, charH, 1);
             a.sp.position.y = lift;

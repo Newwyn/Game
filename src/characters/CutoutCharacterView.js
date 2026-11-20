@@ -31,6 +31,7 @@ import { makeIceBlock, makeWardDome, makeSparkAura } from '../vfx/elemFx.js';
 import { makeLightShield } from '../vfx/seraphineFx.js';
 import { PIXEL_HOLY, makePixelHoly } from '../vfx/pixelHoly.js';
 import { ROK_PIXEL, LYRA_PIXEL, ELARION_PIXEL, NERISSA_PIXEL, pixelLayer, pixelMod, actorOf } from '../vfx/pixelFx.js';
+import { isRokPaperFx } from '../vfx/rokFx.js';
 import { makeSwordFlightQi, swordFlightHeight } from '../vfx/swordFx.js';
 import { game, opponentIdOf } from '../state.js';
 const ROK_DOME = typeof location !== 'undefined' && new URLSearchParams(location.search).get('rokDome') === '1';
@@ -735,8 +736,8 @@ export class CutoutCharacterView extends CharacterView {
             this.root.add(this._fortRing);
         }
         if (this._fortRing) {
-            this._fortRing.visible = fort;
-            if (fort) {
+            this._fortRing.visible = fort && !isRokPaperFx();
+            if (this._fortRing.visible) {
                 this._fortRing.rotation.z += dt * 0.9;
                 this._fortRing.material.opacity = 0.65 + 0.25 * Math.sin(this._time * 4);
             }
@@ -750,13 +751,14 @@ export class CutoutCharacterView extends CharacterView {
     _updateIronGuard(dt, on) {
         // thử nghiệm pixelfx (?rokFx=old để bỏ): vòm khiên lục giác (force-field) màu vàng suốt thời gian Dựng Khiên
         // (11/2026) vòm lục giác pixelfx quanh Rok đã BỎ theo yêu cầu người chơi — chỉ còn Khiên Thần (tranh). Xem lại: ?rokDome=1
-        if (ROK_PIXEL && this.def.guardFx && ROK_DOME) this._updatePixGuard(dt, on);
+        const paper = isRokPaperFx();
+        if (ROK_PIXEL && !paper && this.def.guardFx && ROK_DOME) this._updatePixGuard(dt, on);
         // Rok bản 3: KHIÊN THẦN vẽ bằng tranh (visual.guardFx = rokFx.makeDivineShield) thay Thần Hộ Vệ + vòm lục giác
         if (this.def.guardFx) {
             if (!this._guardFx && !on) return;
             this._guardFx ??= this._makeGuardFx();
             this._guardFx.update(dt, { on, frac: this._guardFrac ?? 1, dir: this.facingLeft ? -1 : 1 });
-            if (on) {
+            if (on && !paper) {
                 this._guardSpark = (this._guardSpark ?? 0) - dt;
                 if (this._guardSpark <= 0) { this._guardSpark = 0.5; spawnRisingSparkles(this.root.position, { count: 3, color: 0xffd36b, radius: 1.3 }); }
             }
@@ -1604,7 +1606,8 @@ export class CutoutCharacterView extends CharacterView {
         const O = this._orbit;
         if (!O) return;
         O.k += ((on ? 1 : 0) - O.k) * Math.min(1, dt * 6);
-        O.group.visible = O.halo.visible = O.k > 0.02;
+        O.group.visible = O.k > 0.02;
+        O.halo.visible = O.group.visible && !isRokPaperFx();
         if (!O.group.visible) return;
         const h = this.height;
         O.group.children.forEach((sp, i) => {

@@ -43,6 +43,11 @@ export function updateShakeButton() {
     if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
 }
 
+export function updateRokPaperButton() {
+    const b = document.getElementById('btn-rok-paper');
+    if (b) { b.textContent = `🧻 Rok kiểu giấy (thử): ${settings.rokPaper ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.rokPaper); }
+}
+
 const FX_LABELS = { soft: 'DỊU NHẸ', minimal: 'TỐI GIẢN', full: 'ĐẦY ĐỦ' };
 export function updateFxLevelButton() {
     const b = document.getElementById('btn-fx-level');
@@ -118,6 +123,7 @@ const ACTIONS = {
         net.backToMenu();
     },
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
+    toggleRokPaper: () => { setSetting('rokPaper', !settings.rokPaper); updateRokPaperButton(); },
     cycleFxLevel: () => {
         const i = FX_LEVELS.indexOf(settings.fxLevel);
         setSetting('fxLevel', FX_LEVELS[(i + 1) % FX_LEVELS.length]);
@@ -241,7 +247,9 @@ function changePanelScale(id, step) {
 
 export function setupInput() {
     updateShakeButton();
+    updateRokPaperButton();
     updateFxLevelButton();
+    window.addEventListener('setting-change', (e) => { if (e.detail?.k === 'rokPaper') updateRokPaperButton(); });
     updateCameraButton(battleCamMode());
     cameraRig.onModeChange(updateCameraButton);
     socket.on('stateUpdate', (d) => syncDebugToggles(d.players, d.enemyGodMode));

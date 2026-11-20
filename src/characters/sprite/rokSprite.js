@@ -6,6 +6,14 @@
 // ============================================================
 import imageUrl from '../../assets/sprites/rok_sprite.webp';
 import meta from './rokSprite.json';
+import { settings } from '../../core/settings.js';
+import { isTextureFailed } from '../../core/textures.js';
+
+const PAPER_IMG = import.meta.glob('../../assets/sprites/rok_paper_sprite.webp', { eager: true, import: 'default' });
+const PAPER_META = import.meta.glob('./rokPaperSprite.json', { eager: true, import: 'default' });
+const paperImage = PAPER_IMG['../../assets/sprites/rok_paper_sprite.webp'] ?? null;
+const paperMeta = PAPER_META['./rokPaperSprite.json'] ?? null;
+const hasPaperFiles = !!(paperImage && paperMeta?.frames && paperMeta?.size && (paperMeta.frames.idle1 || Object.keys(paperMeta.frames).length));
 
 const r = (pre, n) => Array.from({ length: n }, (_, i) => `${pre}${i + 1}`);
 
@@ -41,3 +49,15 @@ export const ROK_SPRITE = {
     },
     lean: [],
 };
+
+export const ROK_PAPER_SPRITE = hasPaperFiles
+    ? { ...ROK_SPRITE, image: paperImage, meta: paperMeta, paper: true, fallbackSprite: ROK_SPRITE }
+    : ROK_SPRITE;
+
+export function hasRokPaperSprite() {
+    return !!(settings.rokPaper && hasPaperFiles && !isTextureFailed(paperImage));
+}
+
+export function getRokSprite() {
+    return hasRokPaperSprite() ? ROK_PAPER_SPRITE : ROK_SPRITE;
+}

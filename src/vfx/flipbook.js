@@ -16,14 +16,14 @@ export const FLOOR = -0.45;
 
 const ALL = [];   // mọi flipbook đã tạo (để tải sẵn atlas lên card đồ hoạ lúc vào trận — warmFlipbooks)
 
-/** pixel: tranh pixel (pixelfx) -> lọc NEAREST, không mipmap: phóng to giữ ô vuông sắc nét */
-export function makeFlipbook(url, meta, { pixel = false } = {}) {
+/** pixel: tranh pixel (pixelfx) -> lọc NEAREST, không mipmap · noFxDim: không giảm độ đậm theo fxLevel (dùng cho hiệu ứng giấy đục) */
+export function makeFlipbook(url, meta, { pixel = false, noFxDim = false, onError } = {}) {
     let base = null;
     const cache = {};
     function tex(group, i = 0) {
         const key = group + '#' + i;
         if (cache[key]) return cache[key];
-        base ??= getTexture(url);   // kho chung (đã nạp sẵn ở màn tải)
+        base ??= getTexture(url, { onError });   // kho chung (đã nạp sẵn ở màn tải)
         if (pixel && !base.userData.pixel) { base.userData.pixel = true; base.magFilter = base.minFilter = THREE.NearestFilter; base.generateMipmaps = false; }
         base.colorSpace = THREE.SRGBColorSpace;
         const [W, H] = meta.size;
@@ -35,7 +35,7 @@ export function makeFlipbook(url, meta, { pixel = false } = {}) {
     }
     const count = (group) => meta.groups[group].frames.length;
     /** Mặt phẳng hiện nhóm khung `group`, cao `height` đơn vị, pivot của nhóm nằm ở gốc toạ độ */
-    function frames(group, height, { additive = false, opacity = 1, frame = 0 } = {}) {
+    function frames(group, height, { additive = false, opacity = 1, frame = 0, noDim = noFxDim } = {}) {
         const g = meta.groups[group];
         if (!g) throw new Error('flipbook: không có nhóm ' + group);
         const [w, h] = g.size, [px, py] = g.pivot, u = height / h;
@@ -44,7 +44,7 @@ export function makeFlipbook(url, meta, { pixel = false } = {}) {
         const mat = new THREE.MeshBasicMaterial({
             map: tex(group, frame), transparent: true, depthWrite: false, fog: false, opacity,
             blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, side: THREE.DoubleSide });
-        mat.userData.isVfx = true;
+        if (!noDim) mat.userData.isVfx = true;
         const m = new THREE.Mesh(geo, mat);
         m.userData.sharedTexture = true;
         m.userData.fx = { group, frame, u };

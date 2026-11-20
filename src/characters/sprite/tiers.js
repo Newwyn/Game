@@ -5,10 +5,19 @@
 // Atlas: tools/sprite_pack.py art/<tên>/sprite_<bậc>/sprite_spec.json -> src/assets/sprites/<tên>_<bậc>_sprite.webp + <tên>Sprite_<bậc>.json
 // Bậc nào chưa có tranh thì dùng tranh SSS.
 // ============================================================
+import { settings } from '../../core/settings.js';
+import { isTextureFailed, markTextureFailed } from '../../core/textures.js';
+
 const IMG = import.meta.glob('../../assets/sprites/*_{s,ss}_sprite.webp', { eager: true, import: 'default' });
 const META = import.meta.glob('./*Sprite_{s,ss}.json', { eager: true, import: 'default' });
 const SSS_IMG = import.meta.glob('../../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const SSS_META = import.meta.glob('./*Sprite.json', { eager: true, import: 'default' });
+const ROK_PAPER_URL = '../../assets/sprites/rok_paper_sprite.webp';
+const ROK_PAPER_META_URL = './rokPaperSprite.json';
+const rokPaperReady = () => {
+    const img = SSS_IMG[ROK_PAPER_URL], meta = SSS_META[ROK_PAPER_META_URL];
+    return !!(settings.rokPaper && img && meta?.frames && meta?.size && (meta.frames.idle1 || Object.keys(meta.frames).length) && !isTextureFailed(img));
+};
 
 // classId -> tên thư mục tranh
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
@@ -27,13 +36,18 @@ export function setHeroRanks(progress) {
 // Chân dung theo bậc: cắt khung đứng (idle1) trong tranh bậc -> ảnh dataURL (lưu sẵn). Chưa nạp xong ảnh -> null (lần sau có)
 const portraitCache = new Map();
 export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
-    const t = tierOf(rank), art = ART[classId];
+    const art = ART[classId];
     if (!art) return null;
+    let t = tierOf(rank);
     let image = t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
     let meta = t ? META[`./${art}Sprite_${t}.json`] : null;
     let key = t ? `${art}_${t}` : `${art}_sss`;
-    // YunYou (chưa có tranh S/SS riêng): mọi bậc tạm dùng bộ SSS
-    if ((!image || !meta) && classId === 'swordsage') {
+    if (classId === 'warrior' && rokPaperReady()) {
+        image = SSS_IMG[ROK_PAPER_URL];
+        meta = SSS_META[ROK_PAPER_META_URL];
+        key = 'rok_paper';
+    } else if ((!image || !meta) && classId === 'swordsage') {
+        // YunYou (chưa có tranh S/SS riêng): mọi bậc tạm dùng bộ SSS
         image = SSS_IMG[`../../assets/sprites/${art}_sprite.webp`];
         meta = SSS_META[`./${art}Sprite.json`];
         key = `${art}_sss`;
@@ -53,6 +67,11 @@ export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
             cv.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
             portraitCache.set(key, cv.toDataURL('image/png'));
         };
+        img.onerror = () => {
+            markTextureFailed(image);
+            portraitCache.delete(key);
+            if (key === 'rok_paper') tierPortrait(classId, rank);
+        };
         img.src = image;
     }
     return null;
@@ -62,6 +81,7 @@ export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
 export function tierUrls(progress) {
     const out = [];
     for (const [classId, h] of Object.entries(progress?.heroes ?? {})) {
+        if (classId === 'warrior' && rokPaperReady()) { out.push(SSS_IMG[ROK_PAPER_URL]); continue; }
         const t = tierOf(h?.rank ?? 0), art = ART[classId];
         const url = t && art && IMG[`../../assets/sprites/${art}_${t}_sprite.webp`];
         if (url && META[`./${art}Sprite_${t}.json`]) out.push(url);
@@ -71,9 +91,15 @@ export function tierUrls(progress) {
 
 /** Bảng sprite theo bậc: cùng clip, đổi atlas + meta nếu đã có tranh bậc đó */
 export function tierSprite(base, classId, rank) {
+    const stdBase = base?.fallbackSprite ?? base;
     const t = tierOf(rank), art = ART[classId];
-    if (!base || !t || !art) return base;
-    const image = IMG[`../../assets/sprites/${art}_${t}_sprite.webp`], meta = META[`./${art}Sprite_${t}.json`];
+    if (!stdBase || !art) return base;
+    const img = t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
+    const meta = t ? META[`./${art}Sprite_${t}.json`] : null;
     // tierTopScale: tranh bậc thấp có tỉ lệ đỉnh tóc / đỉnh hình khác bản SSS (VD gậy Sera dạng S không cao hơn đầu) -> chiều cao người vẫn bằng nhau
-    return image && meta ? { ...base, image, meta, tier: t, topScale: base.tierTopScale?.[t] ?? base.topScale } : base;
+    const tiered = t && img && meta ? { ...stdBase, image: img, meta, tier: t, topScale: stdBase.tierTopScale?.[t] ?? stdBase.topScale } : stdBase;
+    if (classId === 'warrior' && rokPaperReady()) {
+        return { ...stdBase, image: SSS_IMG[ROK_PAPER_URL], meta: SSS_META[ROK_PAPER_META_URL], paper: true, fallbackSprite: tiered };
+    }
+    return tiered;
 }

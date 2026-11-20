@@ -14,6 +14,7 @@ import { EXTRA } from '../world/mapsExtra.js';
 import { TERRAIN } from '../world/terrain3d.js';
 import { LAYOUTS } from '../world3d/layouts.js';
 import { rng, heroSheet, drawMarker, paintAshfordGround, buildAshfordAtlases } from './art.js';
+import { markTextureFailed } from '../core/textures.js';
 
 const DAY_KEYS = [
     [0.00, [1.00, 1.00, 1.00]],
@@ -803,8 +804,10 @@ export function createView(host) {
     const sheetCache = new Map();
     function paperSheet(url, meta) {
         if (sheetCache.has(url)) return sheetCache.get(url);
-        const pad = 14, scale = 4;
-        const cw = (meta?.cw ?? 65) * scale + pad * 2, ch = (meta?.ch ?? 96) * scale + pad * 2;
+        const rawCh = meta?.ch ?? 96;
+        const pad = 14, scale = rawCh > 128 ? Math.max(0.5, Math.min(4, 384 / rawCh)) : 4;
+        const sw = Math.round((meta?.cw ?? 65) * scale), sh = Math.round(rawCh * scale);
+        const cw = sw + pad * 2, ch = sh + pad * 2;
         const entry = {
             url, tex: null, ratio: cw / ch, padBottom: (pad - 8) / ch,
             w: cw * (meta?.cols ?? 3), h: ch * (meta?.rows ?? 4),
@@ -834,6 +837,7 @@ export function createView(host) {
         };
         img.onerror = () => {
             entry.failed = true;
+            markTextureFailed(url);
             warnOnce('sheet:' + url, `[worldpaper] không tải được ảnh sheet: ${url}`);
         };
         img.src = url;
@@ -873,6 +877,8 @@ export function createView(host) {
 
     function setCardCell(a, col, row, cols, rows) {
         if (!a.geo || !a.baseUv || !a.shRef.loaded) return;
+        col = Math.max(0, Math.min(cols - 1, col | 0));
+        row = Math.max(0, Math.min(rows - 1, row | 0));
         if (a.uvCol === col && a.uvRow === row && a.uvCols === cols && a.uvRows === rows) return;
         a.uvCol = col; a.uvRow = row; a.uvCols = cols; a.uvRows = rows;
         const pxU = 0.5 / Math.max(1, a.shRef.w), pxV = 0.5 / Math.max(1, a.shRef.h);
@@ -938,9 +944,22 @@ export function createView(host) {
         a.g.add(m);
     }
 
-    function ensureActor(key, url, meta, isItem = false) {
+    function resolveActorSheet(a) {
+        if (!a.card && a.shRef?.failed && a.fallbackUrl && a.fallbackMeta && a.url !== a.fallbackUrl) {
+            a.url = a.fallbackUrl;
+            a.meta = a.fallbackMeta;
+            a.shRef = paperSheet(a.fallbackUrl, a.fallbackMeta);
+        }
+        if (!a.card && a.shRef?.loaded) attachSheetCard(a);
+        else if (!a.card && (!a.shRef || a.shRef.failed)) {
+            if (!a.shRef) warnOnce('missing:' + a.key, `[worldpaper] thiếu sheet cho ${a.key}`);
+            attachUnknownFallback(a);
+        }
+    }
+
+    function ensureActor(key, url, meta, isItem = false, fallbackUrl = null, fallbackMeta = null) {
         let a = actors.get(key);
-        if (a && a.url === url && !a.qKey) return a;
+        if (a && a.rawUrl === url && !a.qKey) return a;
         if (a) { disposeActor(a); actors.delete(key); }
 
         const shadow = new THREE.Mesh(shadowGeo, shadowMat);
@@ -959,13 +978,8 @@ export function createView(host) {
         }
         sprites.add(g);
         const shRef = (url && meta) ? paperSheet(url, meta) : null;
-        a = { key, g, sh: shadow, card: null, ghost: null, fallback: null, geo: null, ownsGeo: false, baseUv: null, url, meta, shRef, isItem, dz, bits, seen: 0, uvCol: -1, uvRow: -1 };
-        if (!shRef || shRef.failed) {
-            warnOnce('missing:' + key, `[worldpaper] thiếu sheet cho ${key}`);
-            attachUnknownFallback(a);
-        } else if (shRef.loaded) {
-            attachSheetCard(a);
-        }
+        a = { key, g, sh: shadow, card: null, ghost: null, fallback: null, geo: null, ownsGeo: false, baseUv: null, rawUrl: url, url, meta, fallbackUrl, fallbackMeta, shRef, isItem, dz, bits, seen: 0, uvCol: -1, uvRow: -1 };
+        resolveActorSheet(a);
         actors.set(key, a);
         return a;
     }
@@ -1069,13 +1083,12 @@ export function createView(host) {
             const lift = s.key === 'me' && hLvl ? Math.max(0, (s.lift ?? 0) - hLvl * 0.35) : (s.lift ?? 0);
             if (s.key === 'me') { meX = s.x; meZ = s.z; meLift = lift + elev; }
 
-            const a = ensureActor(s.key, s.url, s.meta, false);
+            const a = ensureActor(s.key, s.url, s.meta, false, s.fallbackUrl, s.fallbackMeta);
             a.seen = frameNo;
             a.g.visible = !s.hidden;
-            if (!a.card && a.shRef?.loaded) attachSheetCard(a);
-            else if (!a.card && a.shRef?.failed) attachUnknownFallback(a);
+            resolveActorSheet(a);
 
-            const { cols = 3, rows = 4, cw = 65, ch = 96 } = s.meta ?? {};
+            const { cols = 3, rows = 4, cw = 65, ch = 96 } = a.meta ?? s.meta ?? {};
             const charH = s.charH ?? CHAR_H;
             if (a.card) {
                 setCardCell(a, s.col ?? 1, ROW[s.face] ?? 0, cols, rows);
@@ -1115,10 +1128,9 @@ export function createView(host) {
                 a.g.position.set(s.x, itemElev, s.z);
                 continue;
             }
-            const a = ensureActor('it:' + s.key, s.url, s.meta, true);
+            const a = ensureActor('it:' + s.key, s.url, s.meta, true, s.fallbackUrl, s.fallbackMeta);
             a.seen = frameNo; a.g.visible = true;
-            if (!a.card && a.shRef?.loaded) attachSheetCard(a);
-            else if (!a.card && a.shRef?.failed) attachUnknownFallback(a);
+            resolveActorSheet(a);
 
             const h = s.size ?? 1;
             if (a.card) {

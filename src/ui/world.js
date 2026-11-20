@@ -16,6 +16,8 @@ for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const ob
 // 🧺 độ cao thêm (Đồi Gió, gờ đá mỏ) — maps.js không sinh lại được nên vá lúc nạp; bản đồ 3D đọc cùng MAPS này
 for (const [id, p] of Object.entries(PATCH)) { const m = MAPS[id]; if (!m?.heights) continue; const rows = m.heights.map(r => [...r]); for (const [x, y, h] of p.heights ?? []) if (rows[y]?.[x] != null) rows[y][x] = String(h); m.heights = rows.map(r => r.join('')); }
 import { softwareGL } from '../core/gpu.js';
+import { settings, setSetting } from '../core/settings.js';
+import { isTextureFailed, markTextureFailed } from '../core/textures.js';
 import { mapAtlas, mapCell } from './itemIcons.js';
 import { openCooking, openTools, cookingOpen } from './cooking.js';
 import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
@@ -412,11 +414,32 @@ function trackedSpot() {
 const imgs = new Map();
 function img(url) {
     if (!url) return null;
-    if (!imgs.has(url)) { const im = new Image(); im.src = url; imgs.set(url, im); }
+    if (!imgs.has(url)) {
+        const im = new Image();
+        im.onerror = () => markTextureFailed(url);
+        im.src = url;
+        imgs.set(url, im);
+    }
     const im = imgs.get(url);
     return im.complete && im.naturalWidth ? im : null;
 }
-const sheet = (name) => ({ url: SHEETS[`../assets/overworld/${name}.webp`], meta: SHEET_META[`../assets/overworld/${name}.json`] });
+const rawSheet = (name) => ({ url: SHEETS[`../assets/overworld/${name}.webp`], meta: SHEET_META[`../assets/overworld/${name}.json`] });
+const validSheetMeta = (m) => !!(m && m.cw > 0 && m.ch > 0 && (m.cols ?? 3) > 0 && (m.rows ?? 4) > 0);
+const sheet = (name) => {
+    const std = rawSheet(name);
+    if (name === 'ow_rok' && settings.rokPaper) {
+        const p = rawSheet('ow_rok_paper');
+        if (p.url && validSheetMeta(p.meta) && !isTextureFailed(p.url)) return { ...p, fallbackUrl: std.url, fallbackMeta: std.meta };
+    }
+    return std;
+};
+const walkCol = (meta, walking, stepN) => {
+    const cols = meta?.cols ?? 3;
+    if (cols <= 1) return 0;
+    if (cols === 2) return walking ? (stepN % 2) : 0;
+    if (cols >= 4) return walking ? (stepN % cols) : 0;
+    return walking ? (stepN % 2 ? 0 : 2) : 1;
+};
 
 // ---------- khung ----------
 function el() {
@@ -757,8 +780,9 @@ function drawChar(name, x, y, face, walking, stepN, lift = 0, S) {
     const { url, meta } = sheet(name);
     const im = img(url);
     if (!im || !meta) return;
-    const col = walking ? (stepN % 2 ? 0 : 2) : 1;
-    const r = ROW[face] ?? 0;
+    const cols = meta.cols ?? 3, rows = meta.rows ?? 4;
+    const col = Math.max(0, Math.min(cols - 1, walkCol(meta, walking, stepN)));
+    const r = Math.min(rows - 1, ROW[face] ?? 0);
     const h = S * 1.35, w = h * meta.cw / meta.ch;
     // bóng dưới chân
     ctx.fillStyle = 'rgba(0,0,0,.22)';
@@ -787,7 +811,8 @@ function drawDissolve(d, now, S, cx, cy) {
     if (p < 0) return drawChar(d.char, d.x * S - cx, d.y * S - cy, d.face, false, 0, 0, S);
     const { url, meta } = sheet(d.char), im = img(url);
     if (!im || !meta) return;
-    const r = ROW[d.face] ?? 0, h = S * 1.35, w = h * meta.cw / meta.ch;
+    const cols = meta.cols ?? 3, rows = meta.rows ?? 4, idleCol = walkCol(meta, false, 0);
+    const r = Math.min(rows - 1, ROW[d.face] ?? 0), h = S * 1.35, w = h * meta.cw / meta.ch;
     const x0 = d.x * S - cx + S / 2 - w / 2, y0 = d.y * S - cy + S * 0.98 - h;
     const B = 8, k = w / meta.cw;           // ô 8 điểm ảnh gốc
     for (let j = 0; j * B < meta.ch; j++) for (let i = 0; i * B < meta.cw; i++) {
@@ -796,7 +821,7 @@ function drawDissolve(d, now, S, cx, cy) {
         if (q >= 1) continue;
         const lift = q > 0 ? q * q * S * 1.1 : 0, drift = q > 0 ? (blockRand(j, i, 3) - 0.5) * q * S * 0.6 : 0;
         ctx.globalAlpha = q > 0 ? 1 - q : 1;
-        ctx.drawImage(im, meta.cw + i * B, r * meta.ch + j * B, B, B, x0 + i * B * k + drift, y0 + j * B * k - lift, B * k + 0.5, B * k + 0.5);
+        ctx.drawImage(im, idleCol * meta.cw + i * B, r * meta.ch + j * B, B, B, x0 + i * B * k + drift, y0 + j * B * k - lift, B * k + 0.5, B * k + 0.5);
         if (q > 0 && q < 0.5) { ctx.fillStyle = `rgba(255,240,190,${0.5 - q})`; ctx.fillRect(x0 + i * B * k + drift, y0 + j * B * k - lift, B * k, B * k); }
     }
     ctx.globalAlpha = 1;
@@ -905,7 +930,7 @@ function draw3d(now) {
     for (const n of npcs) {
         if (n.hidden) continue;
         const s = sheet(n.def.art), q = npcPos(n);
-        actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, x: q.x, z: q.z, face: n.face, col: (!!n.moving && q.p > 0.25 && q.p < 0.75) ? (n.step % 2 ? 0 : 2) : 1 });
+        actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, fallbackUrl: s.fallbackUrl, fallbackMeta: s.fallbackMeta, x: q.x, z: q.z, face: n.face, col: walkCol(s.meta, !!n.moving && q.p > 0.25 && q.p < 0.75, n.step) });
         if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: markColor(n.mk) });
     }
     const items = [];
@@ -914,8 +939,8 @@ function draw3d(now) {
         if (!st || st.state === 'hidden') continue;
         if (o.char) {   // nhóm quái đứng chờ (sự kiện)
             if (st.state !== 'ready') continue;
-            groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
-                col: o.solo ? 1 : Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }); });
+            groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, fallbackUrl: g.fallbackUrl, fallbackMeta: g.fallbackMeta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
+                col: walkCol(g.meta, !o.solo && Math.floor(now / 400 + k) % 2 === 0, k) }); });
             if (st.mark) marks.push({ key: 'm:' + o.id, x: o.x + 0.5, z: o.y + 0.5, txt: st.mark, color: markColor(st.mk) });
             continue;
         }
@@ -931,7 +956,7 @@ function draw3d(now) {
     }
     for (let i = dissolves.length - 1; i >= 0; i--) { const d = dissolves[i]; d.t0 ??= now + d.delay; if (now - d.t0 > DISSOLVE_MS) dissolves.splice(i, 1); }
     dissolves.forEach((d, i) => { const g = sheet(d.char);
-        actors.push({ key: `dz:${d.char}:${d.x}:${d.y}:${d.t0}`, url: g.url, meta: g.meta, x: d.x + 0.5, z: d.y + 0.5, face: d.face, col: 1,
+        actors.push({ key: `dz:${d.char}:${d.x}:${d.y}:${d.t0}`, url: g.url, meta: g.meta, fallbackUrl: g.fallbackUrl, fallbackMeta: g.fallbackMeta, x: d.x + 0.5, z: d.y + 0.5, face: d.face, col: walkCol(g.meta, false, 0),
             dissolve: Math.max(0, (now - d.t0) / DISSOLVE_MS) }); });
     view.frame({ focus: { x: mx, z: mz }, actors, items, marks, beacon: trackedSpot(),
         route: auto?.path ? auto.path.map(([x, y]) => ({ x: x + 0.5, z: y + 0.5 })) : [] });
@@ -997,6 +1022,8 @@ function mapHTML() {
             <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
         <div class="wd-quality"><b>🗺️ Kiểu bản đồ</b><div>${[["paper", "Giấy (thử)"], ["3d", "3D"]].map(([k, t]) => `<button class="wd-map-scene${mapStyle === k ? " here" : ""}" data-wd-style="${k}">${t}</button>`).join("")}</div>
             <small>Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên bản đồ 3D</small></div>
+        <div class="wd-quality"><b>🧻 Rok kiểu giấy (thử)</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(settings.rokPaper ? 'on' : 'off') === k ? ' here' : ''}" data-wd-rokpaper="${k}">${t}</button>`).join('')}</div>
+            <small>Dùng bộ hình & hiệu ứng giấy mới cho Rok · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp</small></div>
         <div class="wd-quality"><b>🌾 Gặp quái ở cỏ cao</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(wildOff ? 'off' : 'on') === k ? ' here' : ''}" data-wd-wild="${k}">${t}</button>`).join('')}</div>
             <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
@@ -1108,6 +1135,8 @@ function onHudClick(e) {
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
     const ws = q('[data-wd-style]');
     if (ws) { setMapStyle(ws.dataset.wdStyle); renderHud(); return; }
+    const wrp = q('[data-wd-rokpaper]');
+    if (wrp) { setSetting('rokPaper', wrp.dataset.wdRokpaper === 'on'); renderHud(); return; }
     // sổ nhiệm vụ
     if (q('[data-ql-daily]')) { openQuestLog('daily'); return; }
     if (q('[data-ql-open]')) { const t = trackedQuest(); if (t && ['main', 'side', 'branch', 'hidden'].includes(t.type)) qlTab = t.type; openQuestLog(); return; }

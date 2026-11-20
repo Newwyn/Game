@@ -1012,14 +1012,15 @@ export function drawMarker() {
     return c;
 }
 
-// bảng hình nhân vật / vật phẩm: phóng to + thêm viền giấy kem quanh từng ô
+// bảng hình nhân vật / vật phẩm: phóng to + thêm viền giấy kem quanh từng ô (ảnh lớn tự thu về ~384 px cao/ô)
 export function heroSheet(img, meta, scale = 4, pad = 14, rim = 8) {
     const cols = meta.cols ?? 3, rows = meta.rows ?? 4;
-    const cw = meta.cw * scale + pad * 2, ch = meta.ch * scale + pad * 2;
+    const sw = Math.round(meta.cw * scale), sh = Math.round(meta.ch * scale);
+    const cw = sw + pad * 2, ch = sh + pad * 2;
     const [c, g] = mk(cw * cols, ch * rows);
-    g.imageSmoothingEnabled = false;
+    g.imageSmoothingEnabled = scale < 2;
     for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
-        g.drawImage(img, col * meta.cw, row * meta.ch, meta.cw, meta.ch, col * cw + pad, row * ch + pad, meta.cw * scale, meta.ch * scale);
+        g.drawImage(img, col * meta.cw, row * meta.ch, meta.cw, meta.ch, col * cw + pad, row * ch + pad, sw, sh);
     }
     const [sil, sg] = mk(c.width, c.height);
     sg.drawImage(c, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = RIM; sg.fillRect(0, 0, c.width, c.height);

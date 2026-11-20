@@ -16,17 +16,16 @@
 // Lưu ý: KHÔNG đặt tên SpriteCharacterView.js (cap_nhat_github.bat đang xoá tên đó).
 // ============================================================
 import * as THREE from 'three';
-import { getTexture } from '../core/textures.js';
+import { getTexture, markTextureFailed } from '../core/textures.js';
 import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { GROUND_Y } from '../config.js';
 
 const texCache = new Map();
 // trạng thái đứng / di chuyển -> tên clip (như CutoutCharacterView)
 const LOCO_CLIP = { stunned: 'stunned', guarding: 'guard', cast: 'cast', fall: 'fall', victory: 'victoryIdle', channel: 'channel', beam: 'beam' };
-function spriteTexture(url, pixel = false) {
-    if (!texCache.has(url)) {
-        texCache.set(url, getTexture(url, { pixel }));   // kho chung (đã nạp sẵn ở màn tải)
-    }
+function spriteTexture(url, pixel = false, onError) {
+    const tex = getTexture(url, { pixel, onError });   // kho chung (đã nạp sẵn ở màn tải)
+    if (!texCache.has(url)) texCache.set(url, tex);
     return texCache.get(url);
 }
 
@@ -91,10 +90,7 @@ export class FrameSpriteView extends CutoutCharacterView {
 
         // Chiều cao như bản khung xương: chân -> đỉnh tóc của khung đứng (trung vị)
         //   heightFrames (tuỳ chọn): khung tính chiều cao khi nhân vật không có khung idle riêng (Golem: walk1)
-        const ref = sp.heightFrames ?? Object.keys(meta.frames).filter(k => /^idle\d/.test(k));
-        const tops = ref.map(k => meta.frames[k].top).sort((a, b) => a - b);
-        // topScale (tuỳ chọn): đỉnh hình khung đứng không phải đỉnh tóc (VD đầu gậy Seraphine cao hơn tóc) -> tỉ lệ đỉnh tóc / đỉnh hình
-        this._u = this.height / (tops[tops.length >> 1] * (sp.topScale ?? 1));
+        this._computeScaleU(sp, meta);
 
         // cutoutRoot (ngã khi chết) -> spin (ở độ cao hông: lộn nhào lúc rơi vào trận, nhún / nhảy) -> lean (quanh chân) -> mặt phẳng
         const hips = this.parts.hips;
@@ -107,7 +103,9 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._spin.add(this._leanG);
         this.cutoutRoot.add(this._spin);
 
-        this._spTex = spriteTexture(sp.image, sp.pixel);
+        this._spTex = spriteTexture(sp.image, sp.pixel, () => {
+            if (sp.fallbackSprite && this.sprite !== sp.fallbackSprite) this._switchSprite(sp.fallbackSprite);
+        });
         // juice (chau chuốt động tác bằng code, 11/2026 — thử trên Rok): mặt phẳng chia 8 hàng để thân trên đung đưa mềm
         this._juiceOn = !!sp.juice && !JUICE_OFF(visual.spriteIdleParam);
         this._rows = this._juiceOn ? 8 : 1;
@@ -132,6 +130,30 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._idleT = 0;
         this._setFrame(this._idle.frames[0]);
         if (sp.lift) this.setBarHeight(GROUND_Y + this.height + 0.35 + sp.lift);   // thanh máu trên con vật đang bay
+    }
+
+    _computeScaleU(sp, meta) {
+        const ref = (sp.heightFrames ?? Object.keys(meta.frames).filter(k => /^idle\d/.test(k))).filter(k => meta.frames[k]?.top);
+        const list = ref.length ? ref : Object.keys(meta.frames).filter(k => meta.frames[k]?.top);
+        const tops = list.map(k => meta.frames[k].top).sort((a, b) => a - b);
+        const top = tops[tops.length >> 1] || 1;
+        this._u = this.height / (top * (sp.topScale ?? 1));
+    }
+
+    /** Dự phòng khi ảnh sprite mới (VD Rok kiểu giấy) lỗi tải lúc chạy -> chuyển sạch về sprite chuẩn */
+    _switchSprite(fb) {
+        if (!fb || this.sprite === fb) return;
+        markTextureFailed(this.sprite?.image);
+        this.sprite = fb;
+        this._computeScaleU(fb, fb.meta);
+        this._spTex = spriteTexture(fb.image, fb.pixel);
+        if (this._spMesh?.material) {
+            this._spMesh.material.map = this._spTex;
+            this._spMesh.material.needsUpdate = true;
+        }
+        const cur = this._frame || this._idle.frames[0];
+        this._frame = '';
+        this._setFrame(fb.meta?.frames?.[cur] ? cur : this._idle.frames[0]);
     }
 
     /** Đổi khung: mặt phẳng đúng cỡ khung (atlas cắt sát), gốc = tâm đứng dưới chân */

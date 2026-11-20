@@ -12,19 +12,28 @@ import FX from './rokFx2.json';
 import { addAnim, fxPlane, glowTexture, easeOut, spawnHitSpark } from './vfx.js';
 import { makeFlipbook, loopFrame, weighted, fadeInOut } from './flipbook.js';
 import { gameTimeout } from '../config.js';
+import { settings } from '../core/settings.js';
+import { isTextureFailed, markTextureFailed } from '../core/textures.js';
 
-const FB = makeFlipbook(fxUrl, FX);
-FB.tex('holyCircle');   // tải atlas ngay khi vào game (không đợi lần đầu dùng chiêu -> khung đầu không bị trống)
-export const rokFrames = FB.frames;
-const setFx = FB.set;
+const PAPER_FX_IMG = import.meta.glob('../assets/sprites/rok_paper_fx.webp', { eager: true, import: 'default' });
+const PAPER_FX_META = import.meta.glob('./rokPaperFx.json', { eager: true, import: 'default' });
+const paperFxUrl = PAPER_FX_IMG['../assets/sprites/rok_paper_fx.webp'] ?? null;
+const paperFX = PAPER_FX_META['./rokPaperFx.json'] ?? null;
+const REQ_GROUPS = ['aegisA', 'aegisB', 'lion', 'roarWave', 'holyCircle', 'goldRing', 'quakeRing', 'tauntIcon', 'buffIcon', 'bashBurst', 'chain', 'healCross'];
+const hasPaperFx = !!(paperFxUrl && paperFX?.size && REQ_GROUPS.every(k => paperFX?.groups?.[k]?.frames?.length));
+
+const FB_STD = makeFlipbook(fxUrl, FX);
+const FB_PAPER = hasPaperFx ? makeFlipbook(paperFxUrl, paperFX, { noFxDim: true, onError: () => markTextureFailed(paperFxUrl) }) : null;
+export const isRokPaperFx = () => !!(settings.rokPaper && FB_PAPER && !isTextureFailed(paperFxUrl));
+const active = () => (isRokPaperFx() ? { fb: FB_PAPER, meta: paperFX, paper: true } : { fb: FB_STD, meta: FX, paper: false });
+active().fb.tex('holyCircle');   // tải atlas ngay khi vào game (không đợi lần đầu dùng chiêu -> khung đầu không bị trống)
+export const rokFrames = (group, height, opts) => active().fb.frames(group, height, opts);
 const GROUND = -0.5;
 /** Cỡ chung: đơn vị thế giới trên 1 điểm ảnh atlas (thân Khiên Thần ~1,9 đơn vị — 2/3 Rok, linh hồn sư tử ~2 đơn vị) */
 const U_AEGIS = 0.012, U_LION = 0.0101;
 /** Cỡ Khiên Thần so với bản đầu (người dùng: to gấp 3 rồi "nhỏ lại chút"): thân khiên ~4,8 đơn vị (~1,7 lần Rok), cả cánh + hào quang ~10,7 */
 const GUARD_SCALE = 2.5;
-/** Khiên Thần: từ gốc (sư tử giữa khiên) xuống đáy khung, để mũi khiên chạm đất */
-const AEGIS_BELOW = (FX.groups.aegisA.size[1] - FX.groups.aegisA.pivot[1]) * U_AEGIS * GUARD_SCALE;
-const hOf = (group, u) => FX.groups[group].size[1] * u;
+const hOf = (meta, group, u) => meta.groups[group].size[1] * u;
 
 /** Chạy chuỗi khung theo trọng số thời lượng: trả về chỉ số khung (0..n-1) tại tiến độ p */
 const seqFrame = (p, weights) => weighted(Math.min(0.999, p), weights);
@@ -41,17 +50,20 @@ const seqFrame = (p, weights) => weighted(Math.min(0.999, p), weights);
  *   frac   : máu khiên còn lại 0..1 -> khiên mờ dần
  */
 export function makeDivineShield() {
+    const { fb, meta, paper } = active();
+    const aegisBelow = (meta.groups.aegisA.size[1] - meta.groups.aegisA.pivot[1]) * U_AEGIS * GUARD_SCALE;
     const g = new THREE.Group();
-    const glow = fxPlane(glowTexture(), 4.2 * GUARD_SCALE, 4.2 * GUARD_SCALE, { color: 0xffcf5a, opacity: 0 });
-    const A = rokFrames('aegisA', hOf('aegisA', U_AEGIS) * GUARD_SCALE, { opacity: 0 });
-    const B = rokFrames('aegisB', hOf('aegisB', U_AEGIS) * GUARD_SCALE, { opacity: 0 });
+    const glow = paper ? null : fxPlane(glowTexture(), 4.2 * GUARD_SCALE, 4.2 * GUARD_SCALE, { color: 0xffcf5a, opacity: 0 });
+    const A = fb.frames('aegisA', hOf(meta, 'aegisA', U_AEGIS) * GUARD_SCALE, { opacity: 0 });
+    const B = fb.frames('aegisB', hOf(meta, 'aegisB', U_AEGIS) * GUARD_SCALE, { opacity: 0 });
     B.position.z = 0.002;
     const body = new THREE.Group();
-    body.add(glow, A, B);
+    if (glow) body.add(glow);
+    body.add(A, B);
     // vòng thánh dưới chân (Rok + khiên đứng trong vòng)
-    const circle = rokFrames('holyCircle', 1, { opacity: 0 });
+    const circle = fb.frames('holyCircle', 1, { opacity: 0 });
     circle.rotation.x = -Math.PI / 2;
-    const cw = FX.groups.holyCircle.size[0] / FX.groups.holyCircle.size[1];
+    const cw = meta.groups.holyCircle.size[0] / meta.groups.holyCircle.size[1];
     g.add(body, circle);
     g.visible = false;
 
@@ -101,24 +113,27 @@ export function makeDivineShield() {
             if (!g.visible) return api;
 
             const hp = phase === 'hold' || phase === 'fade' ? 0.62 + 0.38 * frac : 1;   // càng mất máu khiên càng mờ
-            setFx(show, f);
+            fb.set(show, f);
             A.visible = show === A; B.visible = show === B;
-            show.material.opacity = k * op * hp;
+            show.material.opacity = paper ? (phase === 'shatter' ? op : k * op) : k * op * hp;
             // khiên khổng lồ đứng trước Rok về phía quái, mũi khiên chạm đất; lùi sâu ra sau (Rok + quái vẫn vẽ đè lên, rõ)
-            body.position.set(dir * 3.0, GROUND + AEGIS_BELOW - 0.3 + Math.sin(time * 2.2) * 0.1, -2.2);
+            body.position.set(dir * 3.0, GROUND + aegisBelow - 0.3 + Math.sin(time * 2.2) * 0.1, -2.2);
             body.scale.set(dir * s, s, 1);
-            glow.material.opacity = k * op * (0.14 + 0.04 * Math.sin(time * 4) + 0.25 * flash);
-            glow.position.set(0, 0.1, -0.02);
+            if (glow) {
+                glow.material.opacity = k * op * (0.14 + 0.04 * Math.sin(time * 4) + 0.25 * flash);
+                glow.position.set(0, 0.1, -0.02);
+            }
             // vòng thánh: hiện theo khiên, mờ khi vỡ
             const cr = 4.0;
             circle.position.set(dir * 1.8, GROUND + 0.04, -0.6);
             circle.scale.set(2 * cr / cw, 1.5 * cr, 1);
-            circle.material.opacity = (phase === 'shatter' ? op * 0.7 : k * (0.55 + 0.15 * Math.sin(time * 3))) * (0.7 + 0.3 * frac) + 0.3 * flash * k;
+            circle.material.opacity = paper ? (phase === 'shatter' ? op : k)
+                : (phase === 'shatter' ? op * 0.7 : k * (0.55 + 0.15 * Math.sin(time * 3))) * (0.7 + 0.3 * frac) + 0.3 * flash * k;
             return api;
         },
         dispose() {
             g.parent?.remove(g);
-            [A, B, circle, glow].forEach(m => { m.geometry.dispose(); m.material.dispose(); });
+            [A, B, circle, glow].filter(Boolean).forEach(m => { m.geometry.dispose(); m.material.dispose(); });
         },
     };
     return api;
@@ -129,12 +144,15 @@ export function makeDivineShield() {
 // ------------------------------------------------------------
 /** Vòng sóng vàng nằm trên đất loang từ `pos` tới bán kính `radius` */
 export function spawnGoldRing(pos, { radius = 5.5, life = 0.5, from = 0.25 } = {}) {
-    const m = FB.decal('goldRing', pos.x, pos.z ?? 0, 1, { lift: 0.05 });
-    const aspect = FX.groups.goldRing.size[0] / FX.groups.goldRing.size[1];
+    const { fb, meta, paper } = active();
+    const m = fb.decal('goldRing', pos.x, pos.z ?? 0, 1, { lift: 0.05 });
+    const aspect = meta.groups.goldRing.size[0] / meta.groups.goldRing.size[1];
     addAnim(m, life, (p, fx) => {
         const r = radius * (from + (1 - from) * easeOut(p));
         fx.mesh.scale.set(2 * r / aspect, 1.5 * r, 1);
-        fx.mesh.material.opacity = p < 0.12 ? p / 0.12 : Math.max(0, (1 - p) / 0.88) ** 0.8;
+        fx.mesh.material.opacity = paper
+            ? (p < 0.06 ? p / 0.06 : p > 0.78 ? Math.max(0, (1 - p) / 0.22) : 1)
+            : (p < 0.12 ? p / 0.12 : Math.max(0, (1 - p) / 0.88) ** 0.8);
     });
 }
 
@@ -148,36 +166,41 @@ const ROAR_SCALE = 3.3;
  * sóng vàng loang trên đất tới bán kính khiêu khích. Sư tử đứng SAU nhân vật theo chiều sâu (Rok + quái vẫn rõ). `view` = Rok.
  */
 export function spawnRokRoar(view, { radius = 9 } = {}) {
+    const { fb, meta, paper } = active();
     const K = ROAR_SCALE;
     const dir = view.facingLeft ? -1 : 1;
     const pos = view.position, z = (pos.z ?? 0) - 0.9;
     const x0 = pos.x + dir * 1.2;
     const life = 1.0;
-    const lion = rokFrames('lion', hOf('lion', U_LION) * K, { opacity: 0 });
-    const glow = fxPlane(glowTexture(), 2.7 * K, 2.7 * K, { color: 0xffa630, opacity: 0 });
+    const lion = fb.frames('lion', hOf(meta, 'lion', U_LION) * K, { opacity: 0 });
+    const glow = paper ? null : fxPlane(glowTexture(), 2.7 * K, 2.7 * K, { color: 0xffa630, opacity: 0 });
     const g = new THREE.Group();
-    g.add(glow, lion);
-    glow.position.set(dir * 0.1 * K, 1.38 * K, -0.05);   // đáy quầng sáng trên mặt đất (không bị đất cắt thẳng)
+    if (glow) {
+        g.add(glow, lion);
+        glow.position.set(dir * 0.1 * K, 1.38 * K, -0.05);   // đáy quầng sáng trên mặt đất (không bị đất cắt thẳng)
+    } else g.add(lion);
     addAnim(g, life, (p, fx) => {
-        setFx(lion, seqFrame(p, [0.13, 0.17, 0.42, 0.28]));
+        fb.set(lion, seqFrame(p, [0.13, 0.17, 0.42, 0.28]));
         const run = easeOut(Math.min(1, p / 0.55));
         fx.mesh.position.set(x0 + dir * 4.2 * run, GROUND, z);
         lion.scale.set(dir, 1, 1);
-        const o = fadeInOut(p, 0.08, 0.72);
+        const o = paper ? fadeInOut(p, 0.05, 0.8) : fadeInOut(p, 0.08, 0.72);
         lion.material.opacity = o;
-        glow.material.opacity = 0.3 * o * (p > 0.3 && p < 0.7 ? 1.3 : 1);
-        glow.scale.setScalar(0.8 + 0.5 * Math.sin(Math.min(1, p) * Math.PI));
+        if (glow) {
+            glow.material.opacity = 0.3 * o * (p > 0.3 && p < 0.7 ? 1.3 : 1);
+            glow.scale.setScalar(0.8 + 0.5 * Math.sin(Math.min(1, p) * Math.PI));
+        }
     });
     // sóng gầm bật ra từ miệng lúc gầm (khung 3), 2 lớp lệch nhịp — cùng cỡ sư tử
     for (const [delay, k] of [[0.3, 1], [0.44, 0.8]]) {
-        const w = rokFrames('roarWave', 2.6 * k * K * 0.6, { opacity: 0 });
+        const w = fb.frames('roarWave', 2.6 * k * K * 0.6, { opacity: 0 });
         addAnim(w, 0.65 + delay, (p, fx) => {
             const tt = Math.max(0, (p * (0.65 + delay) - delay) / 0.65);
-            setFx(w, Math.floor(Math.min(0.999, tt) * 4));
+            fb.set(w, Math.floor(Math.min(0.999, tt) * 4));
             // gốc sóng (mép trái) ngay trước miệng sư tử đang gầm (miệng ~ +2,2 đơn vị, cao ~6)
             fx.mesh.position.set(x0 + dir * (4.2 + 0.8 + 2.8 * easeOut(tt)), GROUND + 5.5, z + 0.05);
             fx.mesh.scale.set(dir * (0.9 + 0.4 * tt), 0.9 + 0.4 * tt, 1);
-            fx.mesh.material.opacity = tt <= 0 ? 0 : fadeInOut(tt, 0.08, 0.6);
+            fx.mesh.material.opacity = tt <= 0 ? 0 : (paper ? fadeInOut(tt, 0.05, 0.78) : fadeInOut(tt, 0.08, 0.6));
         });
     }
     // sóng vàng trên đất tới đúng tầm khiêu khích
@@ -187,7 +210,8 @@ export function spawnRokRoar(view, { radius = 9 } = {}) {
 
 /** Dấu khiêu khích (đầu sư tử + "!") bật lên trên đầu quái bị khiêu khích */
 export function spawnTauntIcon(view) {
-    const m = rokFrames('tauntIcon', 0.95);
+    const { fb } = active();
+    const m = fb.frames('tauntIcon', 0.95);
     const baseY = 3.0 + (view?._hover ?? 0) + (view?._lift ?? 0);
     m.position.set(0, baseY, 0.35);
     addAnim(m, 1.4, (p, fx) => {
@@ -203,26 +227,32 @@ export function spawnTauntIcon(view) {
 // ------------------------------------------------------------
 /** Loé húc khiên ở mặt khiên Rok (khung húc khiên có điểm "shield") */
 export function spawnRokBash(view) {
+    const { fb, paper } = active();
     const dir = view.facingLeft ? -1 : 1;
     const w = view.pointWorld?.('shield');
     const at = w ? { x: w.x + dir * 0.35, y: w.y, z: w.z + 0.3 } : { x: view.position.x + dir * 1.4, y: 0.75, z: (view.position.z ?? 0) + 0.5 };
-    const m = rokFrames('bashBurst', 1.35, { opacity: 0 });
+    const m = fb.frames('bashBurst', 1.35, { opacity: 0 });
     m.position.set(at.x, at.y, at.z);
     addAnim(m, 0.34, (p, fx) => {
         const s = 0.55 + 0.6 * easeOut(Math.min(1, p / 0.5));
         fx.mesh.scale.set(dir * s, s, 1);
-        fx.mesh.material.opacity = p < 0.08 ? p / 0.08 : Math.max(0, (1 - p) / 0.92);
+        fx.mesh.material.opacity = paper
+            ? (p < 0.05 ? p / 0.05 : p > 0.78 ? Math.max(0, (1 - p) / 0.22) : 1)
+            : (p < 0.08 ? p / 0.08 : Math.max(0, (1 - p) / 0.92));
     });
-    const glow = fxPlane(glowTexture(), 1.6, 1.6, { color: 0xffe08a, opacity: 0.9 });
-    glow.position.set(at.x, at.y, at.z - 0.02);
-    addAnim(glow, 0.22, (p, fx) => { fx.mesh.scale.setScalar(0.7 + easeOut(p) * 1.3); fx.mesh.material.opacity = 0.9 * (1 - p); });
+    if (!paper) {
+        const glow = fxPlane(glowTexture(), 1.6, 1.6, { color: 0xffe08a, opacity: 0.9 });
+        glow.position.set(at.x, at.y, at.z - 0.02);
+        addAnim(glow, 0.22, (p, fx) => { fx.mesh.scale.setScalar(0.7 + easeOut(p) * 1.3); fx.mesh.material.opacity = 0.9 * (1 - p); });
+    }
     spawnHitSpark({ x: at.x, y: at.y - 0.75, z: at.z - 0.4 }, { count: 6, color: 0xffe08a, size: 1.0 });
 }
 
 /** Vòng nứt địa chấn nơi quái bị hất văng rơi xuống */
 export function spawnRokQuake(pos, { radius = 3 } = {}) {
-    const m = FB.decal('quakeRing', pos.x, pos.z ?? 0, 1, { lift: 0.03 });
-    const aspect = FX.groups.quakeRing.size[0] / FX.groups.quakeRing.size[1];
+    const { fb, meta } = active();
+    const m = fb.decal('quakeRing', pos.x, pos.z ?? 0, 1, { lift: 0.03 });
+    const aspect = meta.groups.quakeRing.size[0] / meta.groups.quakeRing.size[1];
     addAnim(m, 0.95, (p, fx) => {
         const r = radius * (0.7 + 0.3 * easeOut(Math.min(1, p / 0.18)));
         fx.mesh.scale.set(2 * r / aspect, 1.5 * r, 1);
@@ -235,7 +265,8 @@ export function spawnRokQuake(pos, { radius = 3 } = {}) {
 // ------------------------------------------------------------
 /** Khiên nhỏ + mũi tên (cả đội +thủ khi Dựng Khiên) bật lên trên đầu `view` */
 export function spawnBuffIcon(view, { delay = 0 } = {}) {
-    const m = rokFrames('buffIcon', 0.8, { opacity: 0 });
+    const { fb } = active();
+    const m = fb.frames('buffIcon', 0.8, { opacity: 0 });
     const y0 = (view.height ?? 2.9) + 0.45;
     addAnim(m, 1.3 + delay, (p, fx) => {
         const tt = Math.max(0, (p * (1.3 + delay) - delay) / 1.3);
@@ -248,12 +279,13 @@ export function spawnBuffIcon(view, { delay = 0 } = {}) {
 
 /** Dấu thập vàng trắng bay lên khi được hồi máu (khiên nổ hồi máu đội / Ý Chí Thép) */
 export function spawnHealCross(view, { delay = 0 } = {}) {
-    const m = rokFrames('healCross', 0.7, { opacity: 0 });
+    const { fb, paper } = active();
+    const m = fb.frames('healCross', 0.7, { opacity: 0 });
     addAnim(m, 1.0 + delay, (p, fx) => {
         const tt = Math.max(0, (p * (1.0 + delay) - delay) / 1.0);
         fx.mesh.position.set(0.25, 1.1 + (view._hover ?? 0) + (view._lift ?? 0) + 1.1 * easeOut(tt), 0.45);
         fx.mesh.scale.setScalar(0.7 + 0.3 * Math.min(1, tt * 5));
-        fx.mesh.material.opacity = tt <= 0 ? 0 : fadeInOut(tt, 0.12, 0.6);
+        fx.mesh.material.opacity = tt <= 0 ? 0 : (paper ? fadeInOut(tt, 0.08, 0.78) : fadeInOut(tt, 0.12, 0.6));
     }, view.root);
 }
 
@@ -266,10 +298,11 @@ const CHAIN_SEG = 1.5;   // đơn vị thế giới mỗi đoạn tranh xích (5
  * API như bản cũ: update(dt, pa, pb, ya, yb, on) -> độ hiện k · dispose()
  */
 export function makeChainTether() {
+    const { fb, meta, paper } = active();
     const g = new THREE.Group();
     const segs = [];
-    const segH = CHAIN_SEG * FX.groups.chain.size[1] / FX.groups.chain.size[0];
-    const dots = [0, 1, 2].map(() => { const d = fxPlane(glowTexture(), 0.5, 0.5, { color: 0xffe9a8, opacity: 0 }); g.add(d); return d; });
+    const segH = CHAIN_SEG * meta.groups.chain.size[1] / meta.groups.chain.size[0];
+    const dots = paper ? [] : [0, 1, 2].map(() => { const d = fxPlane(glowTexture(), 0.5, 0.5, { color: 0xffe9a8, opacity: 0 }); g.add(d); return d; });
     let t = 0, k = 0;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), p0 = new THREE.Vector3(), p1 = new THREE.Vector3();
     const at = (u, sag, out) => { out.lerpVectors(a, b, u); out.y -= Math.sin(u * Math.PI) * sag; return out; };
@@ -283,7 +316,7 @@ export function makeChainTether() {
             const len = Math.hypot(b.x - a.x, b.y - a.y);
             const sag = Math.min(0.7, len * 0.05);
             const n = Math.max(1, Math.min(16, Math.round(len / CHAIN_SEG)));
-            while (segs.length < n) { const m = rokFrames('chain', segH, { opacity: 0 }); g.add(m); segs.push(m); }
+            while (segs.length < n) { const m = fb.frames('chain', segH, { opacity: 0 }); g.add(m); segs.push(m); }
             segs.forEach((m, i) => {
                 m.visible = i < n;
                 if (!m.visible) return;
@@ -292,7 +325,7 @@ export function makeChainTether() {
                 m.position.set((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2 + i * 0.001);
                 m.rotation.z = Math.atan2(dy, dx);
                 m.scale.set(Math.hypot(dx, dy) / CHAIN_SEG, 1, 1);
-                m.material.opacity = k * (0.78 + 0.12 * Math.sin(t * 5 + i * 0.9));
+                m.material.opacity = paper ? k : k * (0.78 + 0.12 * Math.sin(t * 5 + i * 0.9));
             });
             dots.forEach((d, i) => {
                 const u = ((i / dots.length) + t * 0.4) % 1;   // đốm sáng chạy từ Rok sang người được nối

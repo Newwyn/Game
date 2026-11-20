@@ -57,7 +57,7 @@ import {
     spawnTalismanShot, spawnTalismanImpact, spawnThunderSlash, spawnThunderX, spawnStealthBurst, spawnShadowRing,
     spawnDashStreak, spawnSparkBurst, spawnDodgeIcon, spawnResetIcon,
 } from '../vfx/jessicaFx.js';
-import { spawnRokRoar, spawnTauntIcon, spawnRokBash, spawnRokQuake, spawnGoldRing, spawnBuffIcon, spawnHealCross } from '../vfx/rokFx.js';
+import { spawnRokRoar, spawnTauntIcon, spawnRokBash, spawnRokQuake, spawnGoldRing, spawnBuffIcon, spawnHealCross, isRokPaperFx } from '../vfx/rokFx.js';
 import {
     spawnWaterBolt, spawnSplash, spawnDanceStart, spawnHealRain, spawnNote, spawnNoteMark,
     spawnCleanseChains, spawnOrbDrain, spawnWaterShieldPop, spawnOrbGift,
@@ -177,8 +177,9 @@ function onAutoAttack(data) {
                 else if (data.isCrit) spawnPixelFx('impacts/crit-hit', { pos: target.position, flip: dir < 0, palette: 'arcane', scale: 0.8 });   // chí mạng: nổ chí mạng nhỏ, vẫn không sét
                 spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
             } else if (attacker.squad?.[data.attackerIndex]?.classId === 'warrior') {
-                // Rok: nhát BỔ DỌC bằng kiếm — vệt thép sáng gần thẳng đứng, to rõ
-                if (ROK_PIXEL) {
+                // Rok: nhát BỔ DỌC bằng kiếm — ở chế độ giấy chỉ giữ tia lửa trúng đòn cho sạch
+                if (isRokPaperFx()) spawnHitSpark(target.position, { count: data.isCrit ? 10 : 6, color: 0xffe08a, size: data.isCrit ? 1.25 : 0.95 });
+                else if (ROK_PIXEL) {
                     // pixelfx: vệt chém lưỡi liềm quanh Rok + tia lửa trúng đòn trên quái (chí mạng: to hơn)
                     spawnPixelFx('melee/sword-slash', { view: attackerView, seed: data.targetIndex + 3 });
                     spawnPixelFx('impacts/hit-spark', { pos: target.position, flip: dir < 0, scale: data.isCrit ? 1.5 : 1.1, seed: Math.floor(Math.random() * 99) });
@@ -877,21 +878,23 @@ function meleeStrike(caster, data, hitFrame, processHit) {
 // ------------------------------------------------------------
 /** Sư Tử Gầm: giơ kiếm hét lớn -> linh hồn sư tử vàng lao ra gầm (tranh rokFx), quái bị khiêu khích hiện dấu sư tử "!" (và -10% thủ) */
 function warriorTaunt(caster, data, opponentId) {
+    const paper = isRokPaperFx();
     caster.playAction('taunt', {
         onHit: () => {
             spawnRokRoar(caster, { radius: 9 });   // giữ hình con sư tử khổng lồ (tranh)
-            if (ROK_PIXEL && !FX_CLEAN) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
+            if (ROK_PIXEL && !FX_CLEAN && !paper) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
             cameraRig.shake(0.45, 520);   // sư tử khổng lồ: rung mạnh hơn
             data.effects.forEach(e => {
                 const v = getView(opponentId, e.targetIndex);
                 if (!v) return;
-                if (ROK_PIXEL) spawnPixelFx('ui/exclamation', { view: v, delay: 0.05 + (e.dist ?? 3) * 0.03 });   // quái bị khiêu khích: dấu "!" bật trên đầu
+                if (ROK_PIXEL && !paper) spawnPixelFx('ui/exclamation', { view: v, delay: 0.05 + (e.dist ?? 3) * 0.03 });   // quái bị khiêu khích: dấu "!" bật trên đầu
                 else spawnTauntIcon(v);
                 // sóng gầm lan tới quái nào thì quái đó trúng đòn (xa trúng sau)
                 gameTimeout(() => {
                     spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
                     if (e.isMiss) return;
-                    if (ROK_PIXEL) { if (!FX_CLEAN) spawnPixelFx('impacts/hit-spark', { pos: v.position, flip: v.position.x < caster.position.x, scale: 0.9 }); }
+                    if (paper) spawnHitSpark(v.position, { count: 6, color: 0xffe08a, size: 0.9 });
+                    else if (ROK_PIXEL) { if (!FX_CLEAN) spawnPixelFx('impacts/hit-spark', { pos: v.position, flip: v.position.x < caster.position.x, scale: 0.9 }); }
                     else spawnRoarHit(v.position);
                     v.flashHit();
                 }, 60 + (e.dist ?? 3) * 45);
@@ -902,6 +905,7 @@ function warriorTaunt(caster, data, opponentId) {
 
 /** Đập Khiên: lướt sát mục tiêu, đẩy khiên ra -> va chạm mạnh + choáng (sao xoay trên đầu do view tự vẽ) */
 function warriorBash(caster, data, opponentId, hitFrame) {
+    const paper = isRokPaperFx();
     const dist = Math.abs((data.newX ?? caster.basePos.x) - caster.basePos.x);
     if (dist > 0.2 && caster.leapTo) caster.leapTo(data.newX, data.newZ ?? caster.basePos.z, { duration: 0.18, height: 0 });
     else caster.teleport(data.newX ?? caster.basePos.x, data.newZ ?? caster.basePos.z);
@@ -912,7 +916,8 @@ function warriorBash(caster, data, opponentId, hitFrame) {
             data.effects.forEach(e => {
                 const t = getView(opponentId, e.targetIndex);
                 if (!t) return;
-                spawnImpact(t.position);
+                if (paper) spawnHitSpark(t.position, { count: 7, color: 0xffe08a, size: 1.0 });
+                else spawnImpact(t.position);
                 spawnDamageNumber(t.position, e.damage, damageType(e));
                 t.flashHit();
             });
@@ -926,6 +931,7 @@ function warriorBash(caster, data, opponentId, hitFrame) {
  * bay vòng cung thấp, cày bụi khi đáp.
  */
 function warriorPush(caster, data, opponentId, hitFrame) {
+    const paper = isRokPaperFx();
     // giữ quái tại chỗ tới lúc khiên chạm (server đã dời nó ra xa)
     data.effects.forEach(e => {
         const t = getView(opponentId, e.targetIndex);
@@ -937,17 +943,18 @@ function warriorPush(caster, data, opponentId, hitFrame) {
             data.effects.forEach(e => {
                 const t = getView(opponentId, e.targetIndex);
                 if (!t) return;
-                if (ROK_PIXEL) spawnPixelFx('impacts/blunt-hit', { pos: t.position, flip: caster.facingLeft, scale: 1.2 });   // pixelfx: cú húc khiên nặng
+                if (paper) spawnHitSpark(t.position, { count: 7, color: 0xffe08a, size: 1.05 });
+                else if (ROK_PIXEL) spawnPixelFx('impacts/blunt-hit', { pos: t.position, flip: caster.facingLeft, scale: 1.2 });   // pixelfx: cú húc khiên nặng
                 else spawnImpact(t.position);
                 spawnDamageNumber(t.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
                 t.flashHit();
                 if (e.knockback && t.leapTo) {
-                    spawnDashLine({ x: t.position.x, y: 0.6, z: t.position.z }, { x: e.toX, y: 0.6, z: e.toZ ?? t.position.z });
+                    if (!paper) spawnDashLine({ x: t.position.x, y: 0.6, z: t.position.z }, { x: e.toX, y: 0.6, z: e.toZ ?? t.position.z });
                     t.leapTo(e.toX, e.toZ ?? t.basePos.z, { duration: 0.42, height: 0.8 });
                     gameTimeout(() => { spawnLandingDust(t.position, 10); cameraRig.shake(0.12, 120); }, 420);
                 }
             });
-            if (ROK_PIXEL) {
+            if (ROK_PIXEL && !paper) {
                 // pixelfx: đất nứt + sóng chấn động lan ra trước mặt Rok (rung đất làm quái gần choáng nhẹ)
                 const f = caster.facingLeft ? -1 : 1;
                 spawnPixelFx('impacts/ground-slam', { pos: { x: caster.position.x + f * 1.3, z: caster.position.z }, flip: caster.facingLeft, scale: 0.45, maxLife: FX_CLEAN ? 1.5 : 3.5 });
@@ -1837,10 +1844,10 @@ function onRokFx(d) {
             break;
         }
         case 'ironWill':
-            if (v) { spawnRisingGlyph(v.position, '鋼', '#fde68a', '#b45309'); spawnRisingSparkles(v.position, { count: 12, color: 0xfcd34d, radius: 0.9 }); }
+            if (v) { spawnRisingGlyph(v.position, '鋼', '#fde68a', '#b45309'); if (!isRokPaperFx()) spawnRisingSparkles(v.position, { count: 12, color: 0xfcd34d, radius: 0.9 }); }
             break;
         case 'ironHeal':
-            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); spawnHealLight(v.position); spawnHealCross(v); }
+            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); if (!isRokPaperFx()) spawnHealLight(v.position); spawnHealCross(v); }
             break;
         case 'quake': {
             // đối thủ bị hất văng rơi xuống: địa chấn nhẹ, choáng xung quanh
@@ -2184,10 +2191,11 @@ function onArcherShots(data) {
 function onGuardBurst(data) {
     const rok = getView(data.casterId, data.casterIdx);
     if (!rok) return;
+    const paper = isRokPaperFx();
     const opponentId = opponentIdOf(data.casterId);
     // Khiên Thần nổ sóng (lần CUỐI — khiên hết giờ / vỡ / bị hạ: vỡ tan) + sóng vàng loang tới bán kính nổ
     rok.onGuardBurst?.(data.final);
-    if (ROK_PIXEL) spawnPixelFx('lightning/thunderclap', { view: rok, palette: 'gold', scale: 0.8 });   // pixelfx: khiên nổ — loé trắng, tia vàng đâm đất, sóng chấn lan
+    if (ROK_PIXEL && !paper) spawnPixelFx('lightning/thunderclap', { view: rok, palette: 'gold', scale: 0.8 });   // pixelfx: khiên nổ — loé trắng, tia vàng đâm đất, sóng chấn lan
     else {
         spawnGoldRing(rok.position, { radius: 5.5, life: 0.5 });
         spawnHitSpark(rok.position, { count: 8, color: 0xffe08a, size: 1.3 });
@@ -2199,18 +2207,19 @@ function onGuardBurst(data) {
         gameTimeout(() => {
             spawnDamageNumber(hoverPos(v), e.damage, damageType({ ...e, dodged: e.isMiss }));
             if (e.isMiss) return;
-            spawnImpact(hoverPos(v), { size: 1.0, color: 0xffe08a });
+            if (paper) spawnHitSpark(hoverPos(v), { count: 6, color: 0xffe08a, size: 1.0 });
+            else spawnImpact(hoverPos(v), { size: 1.0, color: 0xffe08a });
             v.flashHit();
         }, 90);
     });
-    // khiên nổ trúng quái -> cả đội hồi máu (số xanh nhỏ + đốm sáng vàng)
+    // khiên nổ trúng quái -> cả đội hồi máu (số xanh nhỏ + chữ thập giấy)
     (data.heals ?? []).forEach(h => {
         const v = getView(data.casterId, h.targetIndex);
         if (!v) return;
         gameTimeout(() => {
             spawnDamageNumber(hoverPos(v), h.heal, 'heal');
             spawnHealCross(v);
-            spawnRisingSparkles(hoverPos(v), { count: 4, color: 0xffe08a, radius: 0.5 });
+            if (!paper) spawnRisingSparkles(hoverPos(v), { count: 4, color: 0xffe08a, radius: 0.5 });
         }, 140);
     });
 }
@@ -2241,7 +2250,8 @@ function warriorFortress(caster, data) {
             const f = caster.facingLeft ? -1 : 1;
             const mesh = caster.createExtraMesh?.('planted');
             if (mesh) spawnAtlasFx(mesh, { x: caster.position.x + 0.9 * f, y: 0.25, z: caster.position.z }, { life: 1.3 });
-            spawnShockwave(caster.position, { color: 0xffd25a, radius: 6, life: 0.7 });
+            if (isRokPaperFx()) spawnGoldRing(caster.position, { radius: 6, life: 0.7 });
+            else spawnShockwave(caster.position, { color: 0xffd25a, radius: 6, life: 0.7 });
             spawnLandingDust(caster.position, 10);
             cameraRig.shake(0.2, 200);
         },
