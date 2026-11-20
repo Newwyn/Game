@@ -16,9 +16,6 @@ for (const [id, list] of Object.entries(EXTRA)) for (const o of list) { const ob
 // 🧺 độ cao thêm (Đồi Gió, gờ đá mỏ) — maps.js không sinh lại được nên vá lúc nạp; bản đồ 3D đọc cùng MAPS này
 for (const [id, p] of Object.entries(PATCH)) { const m = MAPS[id]; if (!m?.heights) continue; const rows = m.heights.map(r => [...r]); for (const [x, y, h] of p.heights ?? []) if (rows[y]?.[x] != null) rows[y][x] = String(h); m.heights = rows.map(r => r.join('')); }
 import { softwareGL } from '../core/gpu.js';
-import { settings, setSetting } from '../core/settings.js';
-import { markTextureFailed } from '../core/textures.js';
-import { paperOverworldFor } from '../characters/sprite/paperSets.js';
 import { mapAtlas, mapCell } from './itemIcons.js';
 import { openCooking, openTools, cookingOpen } from './cooking.js';
 import { openHeroPanel, heroPanelOpen } from './heroPanel.js';
@@ -121,81 +118,49 @@ let dialog = null, puzzle = null, toastMsg = null, toastAt = 0, mapOpen = false,
 const held = new Set();       // hướng đang giữ (bàn phím + phím ảo)
 let lastSave = 0;
 
-// ---------- đồ hoạ: 3D (Đẹp / Nhẹ), mô hình Giấy (thử ở Ashford) hoặc phẳng 2D ----------
+// ---------- đồ hoạ: 3D (Đẹp / Nhẹ) hoặc phẳng 2D ----------
 let host3d = null, fadeEl = null, view = null, loading3d = false;
-let view3d = null, viewPaper = null, loading3dView = null, loadingPaperView = null;
 const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } } };
 const coarse = () => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } };
 // 'auto' (mặc định): bắt đầu Đẹp (điện thoại: Nhẹ), máy không kịp thì tự hạ — xem view.setAuto
 let quality = LS.get('wd_quality') || 'auto';
-let mapStyle = LS.get('wd_style') === '3d' ? '3d' : 'paper';
 // trình duyệt vẽ 3D bằng phần mềm (không dùng card đồ hoạ) -> chế độ Tự động dùng bản đồ phẳng 2D cho mượt
 let softGL = false, softToast = false;
 if (quality === 'auto' && softwareGL()) { softGL = true; quality = '2d'; }
 let autoLevel = coarse() ? 'low' : 'high', autoToast = false;
 const webglOK = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
 if (!webglOK()) quality = '2d';
+let viewLoading = null;
 // vẽ phẳng (tranh): chọn 🗺️ Phẳng 2D, hoặc đang ở TRONG NHÀ (phòng luôn vẽ tranh kiểu Pokémon)
 const flat = () => quality === '2d' || (!!map?.interior && !map?.interior3d);
-const wantPaper = (id = scene?.id) => mapStyle === 'paper' && id === 'ashford' && !flat();
 const use3d = () => !flat() && !!view;
-function syncActiveView() {
-    const paperOn = wantPaper();
-    view = paperOn ? viewPaper : view3d;
-    if (view3d?.canvas) view3d.canvas.style.display = paperOn ? 'none' : 'block';
-    if (viewPaper?.canvas) viewPaper.canvas.style.display = paperOn ? 'block' : 'none';
-}
-function syncViewQuality(v) {
-    if (!v || quality === '2d') return;
-    v.setQuality(quality === 'auto' ? autoLevel : quality);
-    v.setAuto(quality === 'auto' && !TICK, (kind) => {
-        if (kind === 'low') autoLevel = 'low';
-        if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
-    });
-}
-function setMapStyle(st) {
-    mapStyle = st === '3d' ? '3d' : 'paper';
-    LS.set('wd_style', mapStyle);
-    if (mapStyle === '3d' && viewPaper) {
-        if (view === viewPaper) view = null;
-        viewPaper.dispose?.(); viewPaper = null; loadingPaperView = null;
-    }
-    applyQuality();
-}
 function applyQuality() {
     if (!root) return;
-    if (!scene) { host3d.style.display = 'none'; canvas.style.display = 'none'; return; }
-    const paperOn = wantPaper();
-    syncActiveView();
-    if (quality !== '2d' && !flat() && !view) {   // gói dựng bản đồ tải riêng theo vùng đang vào
-        if (paperOn) {
-            loadingPaperView ??= import('../worldpaper/view.js')
-                .then(m => { if (mapStyle === 'paper') viewPaper = m.createView(host3d); })
-                .catch(e => { console.warn('[world] không bật được bản đồ giấy, chuyển về 3D', e); mapStyle = '3d'; })
-                .finally(() => { loadingPaperView = null; loading3d = false; applyQuality(); });
-        } else {
-            loading3dView ??= import('../world3d/view.js')
-                .then(m => { if (quality !== '2d') view3d = m.createView(host3d); })
-                .catch(e => { console.warn('[world] không bật được 3D, dùng bản đồ phẳng', e); quality = '2d'; })
-                .finally(() => { loading3dView = null; loading3d = false; applyQuality(); });
-        }
+    if (quality !== '2d' && !view) {   // phần 3D là gói riêng: chỉ tải khi mở bản đồ lần đầu
+        viewLoading ??= import('../world3d/view.js')
+            .then(m => { view = m.createView(host3d); })
+            .catch(e => { console.warn('[world] không bật được 3D, dùng bản đồ phẳng', e); quality = '2d'; })
+            .finally(() => { loading3d = false; applyQuality(); });
         loading3d = true; fade = Math.max(fade, 1);
         host3d.style.display = 'block'; canvas.style.display = 'none';
         return;
     }
-    syncViewQuality(view);
+    if (view && quality !== '2d') {
+        view.setQuality(quality === 'auto' ? autoLevel : quality);
+        view.setAuto(quality === 'auto' && !TICK, (kind) => {
+            if (kind === 'low') autoLevel = 'low';
+            if (!autoToast) { autoToast = true; toast('⚡ Máy hơi chậm — đã tự giảm đồ hoạ bản đồ cho mượt'); }
+        });
+    }
     host3d.style.display = flat() ? 'none' : 'block';
     canvas.style.display = flat() ? 'block' : 'none';
-    if (!flat()) load3d(scene.id); else loading3d = false;
+    if (scene && !flat()) load3d(scene.id);
 }
 function load3d(id) {
-    syncActiveView();
-    if (!view) { if (!flat()) applyQuality(); return; }
-    syncViewQuality(view);
-    const target = view;
+    if (!view) return;
     loading3d = true; fade = Math.max(fade, 1);
-    target.resize();
-    target.setMap(id).catch(e => console.warn('[world] lỗi dựng bản đồ', e)).finally(() => { if (scene?.id === id && view === target) loading3d = false; });
+    view.resize();
+    view.setMap(id).catch(e => console.warn('[world] lỗi dựng bản đồ 3D', e)).finally(() => { if (scene?.id === id) loading3d = false; });
 }
 
 // ---------- tự đi (bấm xuống đất / nút 🧭 Tự đi tới của nhiệm vụ) ----------
@@ -415,28 +380,11 @@ function trackedSpot() {
 const imgs = new Map();
 function img(url) {
     if (!url) return null;
-    if (!imgs.has(url)) {
-        const im = new Image();
-        im.onerror = () => markTextureFailed(url);
-        im.src = url;
-        imgs.set(url, im);
-    }
+    if (!imgs.has(url)) { const im = new Image(); im.src = url; imgs.set(url, im); }
     const im = imgs.get(url);
     return im.complete && im.naturalWidth ? im : null;
 }
-const rawSheet = (name) => ({ url: SHEETS[`../assets/overworld/${name}.webp`], meta: SHEET_META[`../assets/overworld/${name}.json`] });
-const sheet = (name) => {
-    const std = rawSheet(name);
-    const p = paperOverworldFor(name);
-    return p ? { ...p, fallbackUrl: std.url, fallbackMeta: std.meta } : std;
-};
-const walkCol = (meta, walking, stepN) => {
-    const cols = meta?.cols ?? 3;
-    if (cols <= 1) return 0;
-    if (cols === 2) return walking ? (stepN % 2) : 0;
-    if (cols >= 4) return walking ? (stepN % cols) : 0;
-    return walking ? (stepN % 2 ? 0 : 2) : 1;
-};
+const sheet = (name) => ({ url: SHEETS[`../assets/overworld/${name}.webp`], meta: SHEET_META[`../assets/overworld/${name}.json`] });
 
 // ---------- khung ----------
 function el() {
@@ -777,9 +725,8 @@ function drawChar(name, x, y, face, walking, stepN, lift = 0, S) {
     const { url, meta } = sheet(name);
     const im = img(url);
     if (!im || !meta) return;
-    const cols = meta.cols ?? 3, rows = meta.rows ?? 4;
-    const col = Math.max(0, Math.min(cols - 1, walkCol(meta, walking, stepN)));
-    const r = Math.min(rows - 1, ROW[face] ?? 0);
+    const col = walking ? (stepN % 2 ? 0 : 2) : 1;
+    const r = ROW[face] ?? 0;
     const h = S * 1.35, w = h * meta.cw / meta.ch;
     // bóng dưới chân
     ctx.fillStyle = 'rgba(0,0,0,.22)';
@@ -808,8 +755,7 @@ function drawDissolve(d, now, S, cx, cy) {
     if (p < 0) return drawChar(d.char, d.x * S - cx, d.y * S - cy, d.face, false, 0, 0, S);
     const { url, meta } = sheet(d.char), im = img(url);
     if (!im || !meta) return;
-    const cols = meta.cols ?? 3, rows = meta.rows ?? 4, idleCol = walkCol(meta, false, 0);
-    const r = Math.min(rows - 1, ROW[d.face] ?? 0), h = S * 1.35, w = h * meta.cw / meta.ch;
+    const r = ROW[d.face] ?? 0, h = S * 1.35, w = h * meta.cw / meta.ch;
     const x0 = d.x * S - cx + S / 2 - w / 2, y0 = d.y * S - cy + S * 0.98 - h;
     const B = 8, k = w / meta.cw;           // ô 8 điểm ảnh gốc
     for (let j = 0; j * B < meta.ch; j++) for (let i = 0; i * B < meta.cw; i++) {
@@ -818,7 +764,7 @@ function drawDissolve(d, now, S, cx, cy) {
         if (q >= 1) continue;
         const lift = q > 0 ? q * q * S * 1.1 : 0, drift = q > 0 ? (blockRand(j, i, 3) - 0.5) * q * S * 0.6 : 0;
         ctx.globalAlpha = q > 0 ? 1 - q : 1;
-        ctx.drawImage(im, idleCol * meta.cw + i * B, r * meta.ch + j * B, B, B, x0 + i * B * k + drift, y0 + j * B * k - lift, B * k + 0.5, B * k + 0.5);
+        ctx.drawImage(im, meta.cw + i * B, r * meta.ch + j * B, B, B, x0 + i * B * k + drift, y0 + j * B * k - lift, B * k + 0.5, B * k + 0.5);
         if (q > 0 && q < 0.5) { ctx.fillStyle = `rgba(255,240,190,${0.5 - q})`; ctx.fillRect(x0 + i * B * k + drift, y0 + j * B * k - lift, B * k, B * k); }
     }
     ctx.globalAlpha = 1;
@@ -927,7 +873,7 @@ function draw3d(now) {
     for (const n of npcs) {
         if (n.hidden) continue;
         const s = sheet(n.def.art), q = npcPos(n);
-        actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, fallbackUrl: s.fallbackUrl, fallbackMeta: s.fallbackMeta, x: q.x, z: q.z, face: n.face, col: walkCol(s.meta, !!n.moving && q.p > 0.25 && q.p < 0.75, n.step) });
+        actors.push({ key: 'npc:' + n.id, url: s.url, meta: s.meta, x: q.x, z: q.z, face: n.face, col: (!!n.moving && q.p > 0.25 && q.p < 0.75) ? (n.step % 2 ? 0 : 2) : 1 });
         if (n.mark) marks.push({ key: 'm:' + n.id, x: q.x, z: q.z, txt: n.mark, color: markColor(n.mk) });
     }
     const items = [];
@@ -936,8 +882,8 @@ function draw3d(now) {
         if (!st || st.state === 'hidden') continue;
         if (o.char) {   // nhóm quái đứng chờ (sự kiện)
             if (st.state !== 'ready') continue;
-            groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, fallbackUrl: g.fallbackUrl, fallbackMeta: g.fallbackMeta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
-                col: walkCol(g.meta, !o.solo && Math.floor(now / 400 + k) % 2 === 0, k) }); });
+            groupOf(o).forEach(([ox, oy, ch], k) => { const g = sheet(ch ?? o.char); actors.push({ key: `ev:${o.id}:${k}`, url: g.url, meta: g.meta, x: o.x + ox + 0.5, z: o.y + oy + 0.5, face: o.face ?? 'left',
+                col: o.solo ? 1 : Math.floor(now / 400 + k) % 2 === 0 ? 0 : 2 }); });
             if (st.mark) marks.push({ key: 'm:' + o.id, x: o.x + 0.5, z: o.y + 0.5, txt: st.mark, color: markColor(st.mk) });
             continue;
         }
@@ -953,7 +899,7 @@ function draw3d(now) {
     }
     for (let i = dissolves.length - 1; i >= 0; i--) { const d = dissolves[i]; d.t0 ??= now + d.delay; if (now - d.t0 > DISSOLVE_MS) dissolves.splice(i, 1); }
     dissolves.forEach((d, i) => { const g = sheet(d.char);
-        actors.push({ key: `dz:${d.char}:${d.x}:${d.y}:${d.t0}`, url: g.url, meta: g.meta, fallbackUrl: g.fallbackUrl, fallbackMeta: g.fallbackMeta, x: d.x + 0.5, z: d.y + 0.5, face: d.face, col: walkCol(g.meta, false, 0),
+        actors.push({ key: `dz:${d.char}:${d.x}:${d.y}:${d.t0}`, url: g.url, meta: g.meta, x: d.x + 0.5, z: d.y + 0.5, face: d.face, col: 1,
             dissolve: Math.max(0, (now - d.t0) / DISSOLVE_MS) }); });
     view.frame({ focus: { x: mx, z: mz }, actors, items, marks, beacon: trackedSpot(),
         route: auto?.path ? auto.path.map(([x, y]) => ({ x: x + 0.5, z: y + 0.5 })) : [] });
@@ -1017,10 +963,6 @@ function mapHTML() {
             ${a.list[0].open ? '' : `<small>Mở khi qua ải ${a.list[0].needNo}</small>`}</div>`).join('')}
         <div class="wd-quality"><b>Đồ hoạ bản đồ</b><div>${[["auto", "🤖 Tự động"], ["high", "✨ Đẹp"], ["low", "⚡ Nhẹ"], ["2d", "🗺️ Phẳng 2D"]].map(([k, t]) => `<button class="wd-map-scene${quality === k ? " here" : ""}" data-wd-q="${k}">${t}</button>`).join("")}</div>
             <small>Tự động: đẹp nhất máy chạy mượt được · Nhẹ: điện thoại / máy yếu · Phẳng: bản đồ tranh vẽ cũ</small></div>
-        <div class="wd-quality"><b>🗺️ Kiểu bản đồ</b><div>${[["paper", "Giấy (thử)"], ["3d", "3D"]].map(([k, t]) => `<button class="wd-map-scene${mapStyle === k ? " here" : ""}" data-wd-style="${k}">${t}</button>`).join("")}</div>
-            <small>Áp dụng thử cho Làng Ashford · các vùng khác giữ nguyên bản đồ 3D</small></div>
-        <div class="wd-quality"><b>🧻 Nhân vật kiểu giấy (thử)</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(settings.paperHeroes ? 'on' : 'off') === k ? ' here' : ''}" data-wd-paper="${k}">${t}</button>`).join('')}</div>
-            <small>Dùng bộ hình & hiệu ứng giấy · đổi có hiệu lực ở trận / lần nạp bản đồ kế tiếp</small></div>
         <div class="wd-quality"><b>🌾 Gặp quái ở cỏ cao</b><div>${[['on', 'Bật'], ['off', 'Tắt']].map(([k, t]) => `<button class="wd-map-scene${(wildOff ? 'off' : 'on') === k ? ' here' : ''}" data-wd-wild="${k}">${t}</button>`).join('')}</div>
             <small>Ruộng lúa Ngoại ô, bãi cỏ Rừng Sương, cỏ ven Đường Vương Đạo · không tốn thể lực · mở sau ải 1</small></div>
         <button class="cp-btn-cancel" data-wd-map-close>Đóng</button></div></div>`;
@@ -1086,8 +1028,6 @@ function panel(tab) {
         heroshop: () => { save(true); onExtras?.('shop'); }, tavern: () => { save(true); onExtras?.('tavern'); },
         quality: () => (softGL && quality === '2d' && !LS.get('wd_quality') ? 'auto' : quality),
         setQuality: (q) => { quality = q; LS.set('wd_quality', q); applyQuality(); },
-        mapStyle: () => mapStyle,
-        setMapStyle: (s) => { setMapStyle(s); },
         wild: () => !wildOff, setWild: (on) => { wildOff = !on; LS.set('wd_wild', on ? 'on' : 'off'); },
     });
 }
@@ -1130,10 +1070,6 @@ function onHudClick(e) {
     if (ww) { wildOff = ww.dataset.wdWild === 'off'; LS.set('wd_wild', wildOff ? 'off' : 'on'); renderHud(); return; }
     const wq = q('[data-wd-q]');
     if (wq) { quality = wq.dataset.wdQ; LS.set('wd_quality', quality); applyQuality(); renderHud(); return; }
-    const ws = q('[data-wd-style]');
-    if (ws) { setMapStyle(ws.dataset.wdStyle); renderHud(); return; }
-    const wrp = q('[data-wd-paper]');
-    if (wrp) { setSetting('paperHeroes', wrp.dataset.wdPaper === 'on'); renderHud(); return; }
     // sổ nhiệm vụ
     if (q('[data-ql-daily]')) { openQuestLog('daily'); return; }
     if (q('[data-ql-open]')) { const t = trackedQuest(); if (t && ['main', 'side', 'branch', 'hidden'].includes(t.type)) qlTab = t.type; openQuestLog(); return; }
@@ -1198,7 +1134,7 @@ function loadScene(id, x, y, face) {
     snapObjects(false);
     wildGrace = GRACE_STEPS;
     if (host3d && canvas) { host3d.style.display = flat() ? 'none' : 'block'; canvas.style.display = flat() ? 'block' : 'none'; }
-    if (!flat()) load3d(id); else { syncActiveView(); loading3d = false; }
+    if (view && !flat()) load3d(id); else loading3d = false;
     renderHud();
 }
 function save(force = false) {

@@ -937,7 +937,7 @@ function applyProgress(member, hero) {
     Object.assign(member, st);
     member.hp = Math.max(member.alive === false ? 0 : 1, Math.round(st.maxHp * hpRatio));
     member.level = hero.level; member.rank = hero.rank; member.rankName = P.RANKS[hero.rank].name;
-    member.skinRank = hero.skin && skinsFor(hero.rank).includes(hero.skin) ? SKIN_RANK[hero.skin] : null;   // tranh người chơi chọn (trang Nhân vật)
+    SK.applySkinToMember(member, hero.rank, hero.skin ?? null);   // tranh người chơi chọn (trang Nhân vật): 'paper' | 's' | 'ss' | 'sss' | null
     member.skillLevel = hero.rank + 1;
     member.race = def.race;
     member.raceLabel = def.raceLabel ?? null;
@@ -996,7 +996,7 @@ function createMonsterSquad(level = 1, layout = MONSTER_SQUAD, opts = {}) {
         const hp = Math.round(def.maxHp * sc.maxHp * mul * (boss ? (opts.bossHp ?? 1) : 1));
         return {
             classId, name: name ?? def.name, emoji: def.emoji, color: def.color, boss: !!boss,
-            level, rank, rankName: P.RANKS[rank].name,
+            level, rank, rankName: P.RANKS[rank].name, skin: null, skinRank: null,
             hp, maxHp: hp, mp: 0, maxMp: def.maxMp,
             pAtk: Math.round(def.pAtk * sc.atk * mul), mAtk: Math.round(def.mAtk * sc.atk * mul),
             pDef: Math.round(def.pDef * sc.pDef), mDef: Math.round(def.mDef * sc.mDef),
@@ -1034,7 +1034,7 @@ function createStageSquad({ id, diff, key, classes }) {
     return createMonsterSquad(level, layout, { mul: C.enemyMul(st.level ?? st.baseNo ?? 1, diff) * (st.base ?? 1) * (diff === 'story' ? st.power ?? 1 : 1), bossHp: C.BOSS_HP[st.boss ?? 0] ?? 1 });
 }
 /** Chế độ ĐẤU: mọi nhân vật Lv60 SSS */
-const MAX_HEROES = () => Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: P.MAX_LEVEL, rank: P.MAX_RANK }]));
+const MAX_HEROES = (pr = null) => Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: P.MAX_LEVEL, rank: P.MAX_RANK, skin: pr?.skins?.[id] ?? null }]));
 /** Đội hình phe quái / phe 2P theo chế độ phòng */
 function enemySquadFor(room) {
     if (room.mode === 'duel_hero') return createSquad('right', room.enemyDisabled ?? [], MAX_HEROES());
@@ -1044,13 +1044,19 @@ function enemySquadFor(room) {
 /** Đội hình phe mình theo chế độ phòng */
 function mySquadFor(room, p) {
     const own = room.mode === 'test' || room.mode === 'campaign';   // Test / Cốt truyện: cấp + bậc thật của người chơi
-    const heroes = own ? heroesWithGear(progressOf(p.progressKey)) : MAX_HEROES();
-    // khách mời cốt truyện: ít nhất bằng cấp cao nhất của đội người chơi chọn
+    const pr = p?.progressKey ? progressOf(p.progressKey) : null;
+    const heroes = own ? heroesWithGear(pr) : MAX_HEROES(pr);
+    // khách mời cốt truyện: ít nhất bằng cấp cao nhất của đội người chơi chọn; nếu chưa sở hữu giữ tranh mặc định
     const guests = room.mode === 'campaign' ? room.stage?.guests ?? [] : [];
     if (guests.length) {
-        const own = room.stage.classes.filter(c => !guests.includes(c));
-        const top = Math.max(1, ...own.map(c => heroes[c]?.level ?? 1));
-        for (const g of guests) if ((heroes[g]?.level ?? 1) < top) heroes[g] = { ...heroes[g], level: top };
+        const ownedRoster = room.stage.classes.filter(c => !guests.includes(c));
+        const top = Math.max(1, ...ownedRoster.map(c => heroes[c]?.level ?? 1));
+        for (const g of guests) {
+            const patch = {};
+            if ((heroes[g]?.level ?? 1) < top) patch.level = top;
+            if (!pr?.owned?.includes(g)) patch.skin = null;
+            if (Object.keys(patch).length) heroes[g] = { ...heroes[g], ...patch };
+        }
     }
     return createSquad(p.side, p.disabledClasses, heroes);
 }
@@ -1129,13 +1135,13 @@ function squadSelectPayload(key, mode = 'test') {
         selected,
         enemySelected: SQUAD_ORDER.filter(c => !enemyDisabled.includes(c)),
         heroes: pool.map(id => {
-            const def = CLASS_DEFS[id], h = duel ? { level: P.MAX_LEVEL, rank: P.MAX_RANK } : heroWithGear(pr, id);
+            const def = CLASS_DEFS[id], h = duel ? { level: P.MAX_LEVEL, rank: P.MAX_RANK, skin: pr.skins?.[id] ?? null } : heroWithGear(pr, id);
             const st = h.gear ? G.applyGear(P.computeStats(def, h), h.gear, def.dmgType) : P.computeStats(def, h);   // có đồ đang mặc
             return {
                 id, name: def.name, title: def.title, className: def.className, emoji: def.emoji, color: def.color,
                 race: def.raceLabel ?? (P.RACE_DEFS[def.race]?.name ?? ''), raceEmoji: def.raceLabel ? '' : (P.RACE_DEFS[def.race]?.emoji ?? ''),
                 raceLabel: def.raceLabel ?? null,
-                level: h.level, rankName: P.RANKS[h.rank].name, rank: h.rank, dmgType: def.dmgType,
+                level: h.level, rankName: P.RANKS[h.rank].name, rank: h.rank, skin: h.skin ?? null, dmgType: def.dmgType,
                 hp: st.maxHp, atk: Math.max(st.pAtk ?? 0, st.mAtk ?? 0), range: def.atkRange,
                 skills: def.skills.map(sk => sk.name),
             };
@@ -1159,8 +1165,9 @@ function heroWithGear(pr, id) {
     return { ...pr.heroes[id], gear: G.gearBonus(G.equippedItems(pr, id)), aff: TV.bonus(pr.affinity?.[id]), skin: pr.skins?.[id] ?? null };
 }
 // ---------- Trang Nhân vật / Túi đồ / Cửa hàng vật phẩm (giao diện bản đồ) ----------
-const SKIN_RANK = { s: 1, ss: 2, sss: 3 };   // tranh mặc trong trận: S (mọi bậc) · SS (từ bậc SS) · SSS (từ bậc SSS)
-const skinsFor = (rank) => ['s', ...(rank >= 2 ? ['ss'] : []), ...(rank >= 3 ? ['sss'] : [])];
+const SK = require('./game/skins');
+// Danh sách nhân vật có bộ giấy — phải khớp với PAPER_SETS trong src/characters/sprite/paperSets.js
+const { PAPER_SKIN_CLASSES, SKIN_RANK, skinsFor } = SK;
 const ITEM_SHOP = [
     { id: 'exp_small', name: 'Bình Kinh Nghiệm Nhỏ', emoji: '🧪', desc: '+500 EXP cho 1 anh hùng', cost: { gold: 300 } },
     { id: 'exp_big', name: 'Bình Kinh Nghiệm Lớn', emoji: '⚗️', desc: '+5.000 EXP cho 1 anh hùng', cost: { diamond: 30 } },
@@ -1178,7 +1185,7 @@ function heroPanelPayload(pr) {
                 exp: h.exp, expNext: P.expToNext(h.level), rank: h.rank, cap: P.RANKS[h.rank].cap, skillLevel: h.rank + 1,
                 skills: P.scaleSkills(def.skills ?? [], h.rank).slice(0, 3).map(sk => ({ name: sk.name, orbCost: sk.orbCost ?? 0, minOrbs: sk.minOrbs ?? 0, cooldown: sk.cooldown ?? 0 })),
                 talents: talentInfo(def, h), rankCheck: P.checkRankUp(h, pr.items),
-                skin: pr.skins?.[id] ?? null, skins: skinsFor(h.rank), affinity: TV.levelOf(pr.affinity?.[id] ?? 0) };
+                skin: pr.skins?.[id] ?? null, skins: skinsFor(id, h.rank), affinity: TV.levelOf(pr.affinity?.[id] ?? 0) };
         }),
         bag: gp.bag, invMax: gp.invMax, wallet: pr.wallet,
         items: { ...pr.items }, itemDefs: P.ITEMS, shop: ITEM_SHOP.map(it => ({ ...it, limit: SHOP.itemLimit(pr, it.id, Date.now()) })), setInfo: gp.setInfo, slots: gp.slots,
@@ -1398,7 +1405,7 @@ function progressPayload(key) {
         const def = CLASS_DEFS[id], h = pr.heroes[id];
         const g = P.CLASS_GROWTH[def.classGroup];
         heroes[id] = {
-            ...h, name: def.name, title: def.title, rankName: P.RANKS[h.rank].name, skillLevel: h.rank + 1, cap: P.RANKS[h.rank].cap,
+            ...h, skin: pr.skins?.[id] ?? null, name: def.name, title: def.title, rankName: P.RANKS[h.rank].name, skillLevel: h.rank + 1, cap: P.RANKS[h.rank].cap,
             expNext: P.expToNext(h.level), stats: G.applyGear(P.computeStats(def, h), heroWithGear(pr, id).gear, def.dmgType),
             race: def.race, raceLabel: def.raceLabel ?? null, classGroup: def.classGroup,
             talents: talentInfo(def, h),
@@ -2006,14 +2013,13 @@ io.on('connection', (socket) => {
     socket.on('heroPanelOpen', () => socket.emit('heroPanel', heroPanelPayload(progressOf(socket.progressKey))));
     socket.on('setSkin', ({ classId, skin } = {}) => {
         const pr = progressOf(socket.progressKey);
-        const h = pr.heroes[classId];
-        if (!h || !pr.owned.includes(classId)) return;
-        if (skin !== null && !skinsFor(h.rank).includes(skin)) return socket.emit('heroPanelMsg', { ok: false, text: 'Chưa mở tranh này — đột phá lên bậc cao hơn' });
-        pr.skins ??= {};
-        if (skin === null) delete pr.skins[classId]; else pr.skins[classId] = skin;
+        const r = SK.setSkinChoice(pr, classId, skin, CLASS_DEFS);
+        if (!r) return;
+        if (!r.ok) return socket.emit('heroPanelMsg', r);
         P.saveAll(PROGRESS);
-        socket.emit('heroPanelMsg', { ok: true, text: skin ? `Đã đổi trang phục ${CLASS_DEFS[classId].name} sang bậc ${skin.toUpperCase()}` : 'Trang phục tự đổi theo bậc' });
+        socket.emit('heroPanelMsg', r);
         socket.emit('heroPanel', heroPanelPayload(pr));
+        socket.emit('progressUpdate', progressPayload(socket.progressKey));
     });
     socket.on('buyItem', ({ id, count = 1 } = {}) => {
         const pr = progressOf(socket.progressKey);
@@ -2156,6 +2162,11 @@ io.on('connection', (socket) => {
         const roomId = `room_${Date.now()}`;
         const p1 = waitingPlayer;
         const p2 = socket.id;
+        const p1Socket = io.sockets.sockets.get(p1);
+        const pvpHeroes = (sock) => {
+            const pr = sock?.progressKey ? progressOf(sock.progressKey) : null;
+            return pr ? Object.fromEntries(SQUAD_ORDER.map(id => [id, { level: pr.heroes?.[id]?.level ?? 1, rank: pr.heroes?.[id]?.rank ?? 0, skin: pr.skins?.[id] ?? null }])) : null;
+        };
 
         rooms[roomId] = {
             id: roomId,
@@ -2163,8 +2174,8 @@ io.on('connection', (socket) => {
             status: 'starting',
             isBotMatch: false,
             players: {
-                [p1]: { side: 'left', squad: createSquad('left'), autoMode: false },
-                [p2]: { side: 'right', squad: createSquad('right'), autoMode: false }
+                [p1]: { side: 'left', progressKey: p1Socket?.progressKey ?? null, squad: createSquad('left', [], pvpHeroes(p1Socket)), autoMode: false },
+                [p2]: { side: 'right', progressKey: socket.progressKey ?? null, squad: createSquad('right', [], pvpHeroes(socket)), autoMode: false }
             },
             winner: null,
             countdown: 3,
@@ -2172,9 +2183,9 @@ io.on('connection', (socket) => {
             speed: DEFAULT_SPEED, clock: Date.now(),
         };
 
-        io.sockets.sockets.get(p1)?.join(roomId);
+        p1Socket?.join(roomId);
         socket.join(roomId);
-        if (io.sockets.sockets.get(p1)) io.sockets.sockets.get(p1).roomId = roomId;
+        if (p1Socket) p1Socket.roomId = roomId;
         socket.roomId = roomId;
 
         io.to(roomId).emit('battleStart', { roomId, players: rooms[roomId].players, classDefs: CLASS_DEFS });
@@ -2852,7 +2863,7 @@ io.on('connection', (socket) => {
         // Restart logic
         Object.values(room.players).forEach(p => {
             p.squad = room.isBotMatch ? (p.isNPC ? enemySquadFor(room) : mySquadFor(room, p))
-                : createSquad(p.side, p.disabledClasses, p.progressKey ? progressOf(p.progressKey).heroes : null);
+                : createSquad(p.side, p.disabledClasses, p.progressKey ? heroesWithGear(progressOf(p.progressKey)) : null);
             room.pending = [];
         });
         room.status = room.isBotMatch ? 'selecting' : 'starting';   // đấu thử: chọn lại đội hình trước khi vào trận

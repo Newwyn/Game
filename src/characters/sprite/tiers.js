@@ -22,26 +22,29 @@ export const tierOf = (rank) => (rank == null || rank >= 3 ? null : rank >= 2 ? 
 
 // Bậc hiện tại của từng anh hùng (cập nhật mỗi lần nhận tiến trình) — để khung thoại / thẻ dùng đúng hình bậc
 let RANKS = {};
+let SKINS = {};
 export function setHeroRanks(progress) {
-    RANKS = Object.fromEntries(Object.entries(progress?.heroes ?? {}).map(([id, h]) => [id, ({ s: 1, ss: 2, sss: 3 })[h?.skin] ?? h?.rank ?? 0]));   // trang phục người chơi chọn (nếu có) thắng bậc
+    const entries = Object.entries(progress?.heroes ?? {});
+    RANKS = Object.fromEntries(entries.map(([id, h]) => [id, ({ s: 1, ss: 2, sss: 3 })[h?.skin] ?? h?.rank ?? 0]));   // trang phục người chơi chọn (nếu có) thắng bậc
+    SKINS = Object.fromEntries(entries.map(([id, h]) => [id, h?.skin ?? null]));
     for (const id of Object.keys(RANKS)) tierPortrait(id);   // cắt sẵn chân dung để lần đầu hiện đã có
 }
 
-// Chân dung theo bậc: cắt khung đứng (idle1) trong tranh bậc -> ảnh dataURL (lưu sẵn). Chưa nạp xong ảnh -> null (lần sau có)
+// Chân dung theo bậc / trang phục: cắt khung đứng (idle1) -> ảnh dataURL (lưu sẵn). Chưa nạp xong ảnh -> null (lần sau có)
 const portraitCache = new Map();
-export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
+const SKIN_TO_RANK = { s: 1, ss: 2, sss: 3 };
+export function tierPortrait(classId, look) {
     const art = ART[classId];
     if (!art) return null;
-    let t = tierOf(rank);
-    let image = t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
-    let meta = t ? META[`./${art}Sprite_${t}.json`] : null;
-    let key = t ? `${art}_${t}` : `${art}_sss`;
-    const paper = paperPortraitFor(classId);
-    if (paper) {
-        image = paper.image;
-        meta = paper.meta;
-        key = `${paper.key}_paper`;
-    } else if ((!image || !meta) && classId === 'swordsage') {
+    const pickedSkin = look === undefined ? SKINS[classId] : (look === 'paper' || SKIN_TO_RANK[look] ? look : null);
+    const usePaper = pickedSkin === 'paper';
+    const paper = usePaper ? paperPortraitFor(classId) : null;
+    const rank = typeof look === 'number' ? look : (SKIN_TO_RANK[pickedSkin] ?? RANKS[classId] ?? 3);
+    const t = tierOf(rank);
+    let image = paper ? paper.image : (t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null);
+    let meta = paper ? paper.meta : (t ? META[`./${art}Sprite_${t}.json`] : null);
+    let key = paper ? `${paper.key}_paper` : (t ? `${art}_${t}` : `${art}_sss`);
+    if (!paper && (!image || !meta) && classId === 'swordsage') {
         // YunYou (chưa có tranh S/SS riêng): mọi bậc tạm dùng bộ SSS
         image = SSS_IMG[`../../assets/sprites/${art}_sprite.webp`];
         meta = SSS_META[`./${art}Sprite.json`];
@@ -72,13 +75,17 @@ export function tierPortrait(classId, rank = RANKS[classId] ?? 3) {
     return null;
 }
 
-/** Đường dẫn tranh bậc của các anh hùng trong tiến trình ({ heroes: { classId: { rank } } }) — để nạp ngầm trước trận */
+/** Đường dẫn tranh bậc / trang phục của các anh hùng trong tiến trình ({ heroes: { classId: { rank, skin } } }) — để nạp ngầm trước trận */
 export function tierUrls(progress) {
     const out = [];
     for (const [classId, h] of Object.entries(progress?.heroes ?? {})) {
-        const paper = paperPortraitFor(classId);
-        if (paper) { out.push(paper.image); continue; }
-        const t = tierOf(h?.rank ?? 0), art = ART[classId];
+        if (h?.skin === 'paper') {
+            const paper = paperPortraitFor(classId);
+            if (paper) out.push(paper.image);
+            continue;
+        }
+        const rank = SKIN_TO_RANK[h?.skin] ?? h?.rank ?? 0;
+        const t = tierOf(rank), art = ART[classId];
         const url = t && art && IMG[`../../assets/sprites/${art}_${t}_sprite.webp`];
         if (url && META[`./${art}Sprite_${t}.json`]) out.push(url);
     }
@@ -86,13 +93,12 @@ export function tierUrls(progress) {
 }
 
 /** Bảng sprite theo bậc: cùng clip, đổi atlas + meta nếu đã có tranh bậc đó */
-export function tierSprite(base, classId, rank) {
+export function tierSprite(base, classId, rank, skin = null) {
     const stdBase = base?.fallbackSprite ?? base;
     const t = tierOf(rank), art = ART[classId];
-    if (!stdBase || !art) return base;
-    const img = t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
-    const meta = t ? META[`./${art}Sprite_${t}.json`] : null;
+    const img = t && art ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null;
+    const meta = t && art ? META[`./${art}Sprite_${t}.json`] : null;
     // tierTopScale: tranh bậc thấp có tỉ lệ đỉnh tóc / đỉnh hình khác bản SSS (VD gậy Sera dạng S không cao hơn đầu) -> chiều cao người vẫn bằng nhau
-    const tiered = t && img && meta ? { ...stdBase, image: img, meta, tier: t, topScale: stdBase.tierTopScale?.[t] ?? stdBase.topScale } : stdBase;
-    return paperSpriteFor(classId, stdBase, tiered);
+    const tiered = t && img && meta ? { ...stdBase, image: img, meta, tier: t, topScale: stdBase?.tierTopScale?.[t] ?? stdBase?.topScale } : (stdBase ?? base);
+    return skin === 'paper' ? paperSpriteFor(classId, stdBase ?? base, tiered) : tiered;
 }

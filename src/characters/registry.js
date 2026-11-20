@@ -13,7 +13,6 @@ import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { FrameSpriteView } from './FrameSpriteView.js';
 import { IGNAR_SPRITE } from './sprite/ignarSprite.js';
 import { ROK_SPRITE } from './sprite/rokSprite.js';
-import { paperSpriteFor } from './sprite/paperSets.js';
 import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
 import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
@@ -542,10 +541,10 @@ const SWORDSAGE = {
 /** classId -> hàm tạo dữ liệu hiển thị (member để lấy màu cho quái) */
 export const CHARACTER_VISUALS = {
     assassin: () => ASSASSIN,
-    warrior: () => ({ ...ROK, sprite: paperSpriteFor('warrior', ROK_SPRITE) }),
+    warrior: () => ({ ...ROK, sprite: ROK_SPRITE }),
     archer: () => ARCHER,
     priest: () => PRIEST,
-    mage: () => ({ ...MAGE, sprite: paperSpriteFor('mage', IGNAR_SPRITE) }),
+    mage: () => ({ ...MAGE, sprite: IGNAR_SPRITE }),
     reaper: () => REAPER,
     wrestler: () => BRAKK,
     dancer: () => DANCER,
@@ -584,7 +583,9 @@ export function createCharacterView(member, classDef, isMyTeam) {
         : null);
     if (make) {
         let visual = make(member);
-        if (visual?.sprite && member.rank != null) visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.skinRank ?? member.rank) };   // hình theo bậc S / SS / SSS
+        if (visual?.sprite && (member.rank != null || member.skin)) {
+            visual = { ...visual, sprite: tierSprite(visual.sprite, member.classId, member.skinRank ?? member.rank ?? 3, member.skin ?? null) };   // hình theo trang phục ('paper' / s / ss / sss) hoặc bậc
+        }
         return useSprite(visual) ? new FrameSpriteView(member, classDef, isMyTeam, visual) : new CutoutCharacterView(member, classDef, isMyTeam, visual);
     }
     return new PlaceholderCharacterView(member, classDef, isMyTeam);

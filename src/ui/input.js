@@ -43,11 +43,6 @@ export function updateShakeButton() {
     if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
 }
 
-export function updatePaperHeroesButton() {
-    const b = document.getElementById('btn-paper-heroes');
-    if (b) { b.textContent = `🧻 Nhân vật kiểu giấy (thử): ${settings.paperHeroes ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.paperHeroes); }
-}
-
 const FX_LABELS = { soft: 'DỊU NHẸ', minimal: 'TỐI GIẢN', full: 'ĐẦY ĐỦ' };
 export function updateFxLevelButton() {
     const b = document.getElementById('btn-fx-level');
@@ -123,7 +118,6 @@ const ACTIONS = {
         net.backToMenu();
     },
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
-    togglePaperHeroes: () => { setSetting('paperHeroes', !settings.paperHeroes); updatePaperHeroesButton(); },
     cycleFxLevel: () => {
         const i = FX_LEVELS.indexOf(settings.fxLevel);
         setSetting('fxLevel', FX_LEVELS[(i + 1) % FX_LEVELS.length]);
@@ -247,9 +241,7 @@ function changePanelScale(id, step) {
 
 export function setupInput() {
     updateShakeButton();
-    updatePaperHeroesButton();
     updateFxLevelButton();
-    window.addEventListener('setting-change', (e) => { if (e.detail?.k === 'paperHeroes') updatePaperHeroesButton(); });
     updateCameraButton(battleCamMode());
     cameraRig.onModeChange(updateCameraButton);
     socket.on('stateUpdate', (d) => syncDebugToggles(d.players, d.enemyGodMode));

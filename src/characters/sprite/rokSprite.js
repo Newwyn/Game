@@ -6,7 +6,6 @@
 // ============================================================
 import imageUrl from '../../assets/sprites/rok_sprite.webp';
 import meta from './rokSprite.json';
-import { PAPER_SETS, paperReady, paperSpriteFor } from './paperSets.js';
 
 const r = (pre, n) => Array.from({ length: n }, (_, i) => `${pre}${i + 1}`);
 
@@ -42,16 +41,3 @@ export const ROK_SPRITE = {
     },
     lean: [],
 };
-
-const rokPaperAsset = PAPER_SETS.warrior?.sprite;
-export const ROK_PAPER_SPRITE = rokPaperAsset?.image && rokPaperAsset?.meta
-    ? { ...ROK_SPRITE, image: rokPaperAsset.image, meta: rokPaperAsset.meta, paper: true, fallbackSprite: ROK_SPRITE }
-    : ROK_SPRITE;
-
-export function hasRokPaperSprite() {
-    return paperReady('warrior', 'sprite');
-}
-
-export function getRokSprite() {
-    return paperSpriteFor('warrior', ROK_SPRITE);
-}

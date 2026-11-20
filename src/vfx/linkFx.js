@@ -5,11 +5,11 @@
 // Bản 3: thay bằng xích ánh sáng vẽ bằng tranh (art/rok/fx2/fx-rok-ground.png ô 7).
 import * as THREE from 'three';
 import { glowTexture, addAnim, fxPlane } from './vfx.js';
-import { makeChainTether, isRokPaperFx } from './rokFx.js';
+import { makeChainTether, isPaperRok } from './rokFx.js';
 
 const N = 18;
 /** Dây liên kết của Rok: XÍCH ÁNH SÁNG vẽ bằng tranh (rokFx.makeChainTether) */
-export function makeRokTether() { return makeChainTether(); }
+export function makeRokTether(paper = false) { return makeChainTether(isPaperRok(paper)); }
 
 /** Bản cũ vẽ bằng code (chuỗi đốm sáng) — giữ để so */
 export function makeDotTether() {
@@ -48,7 +48,7 @@ export function makeDotTether() {
 
 /** Kiên Cường: đòn đánh vào người được nối dây -> 1 khối sáng chạy dọc dây về Rok (from, to: view) */
 export function spawnLinkPulse(from, to) {
-    if (isRokPaperFx()) return;
+    if (isPaperRok(to)) return;
     const m = fxPlane(glowTexture(), 0.9, 0.9, { color: 0xffd36b });
     const yA = (from._lift ?? 0) + (from._hover ?? 0) + 0.9, yB = (to._lift ?? 0) + 0.9;   // cùng độ cao với dây (battleScene)
     addAnim(m, 0.28, (p, fx) => {

@@ -26,7 +26,7 @@ import { GROUND_Y, SEAL_DURATION_MS, timeState, gameTimeout, gameNow } from '../
 import {
     spawnFireball, spawnFireExplosion, spawnIgnarHit, spawnSkyFireball, spawnMeteorImpact, spawnFireBolt, spawnFirePillar,
     spawnPillarHit, spawnSummonCircle, spawnFireWings, spawnPalmFlash,
-    spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle, isIgnarPaperFx,
+    spawnBurnField, pulseBurn, spawnGroundSlam, spawnPillarCircle, isPaperIgnar,
 } from '../vfx/fireFx.js';
 import {
     spawnReaperDashTrail, spawnReaperDashHit, spawnScytheSlash, spawnReapUp, spawnReapSlam, spawnCleave, spawnDeathMarkCast,
@@ -57,7 +57,7 @@ import {
     spawnTalismanShot, spawnTalismanImpact, spawnThunderSlash, spawnThunderX, spawnStealthBurst, spawnShadowRing,
     spawnDashStreak, spawnSparkBurst, spawnDodgeIcon, spawnResetIcon,
 } from '../vfx/jessicaFx.js';
-import { spawnRokRoar, spawnTauntIcon, spawnRokBash, spawnRokQuake, spawnGoldRing, spawnBuffIcon, spawnHealCross, isRokPaperFx } from '../vfx/rokFx.js';
+import { spawnRokRoar, spawnTauntIcon, spawnRokBash, spawnRokQuake, spawnGoldRing, spawnBuffIcon, spawnHealCross, isPaperRok } from '../vfx/rokFx.js';
 import {
     spawnWaterBolt, spawnSplash, spawnDanceStart, spawnHealRain, spawnNote, spawnNoteMark,
     spawnCleanseChains, spawnOrbDrain, spawnWaterShieldPop, spawnOrbGift,
@@ -112,6 +112,7 @@ function damageType({ dodged, isMiss, isCrit, isBlock, isMagic }, forceCrit = fa
 }
 
 const hoverPos = (v) => ({ x: v.position.x, y: v.position.y + (v._hover ?? 0) + (v._lift ?? 0), z: v.position.z });
+const casterMember = (id, idx) => getView(id, idx)?.member ?? game.roomData?.players?.[id]?.squad?.[idx];
 const chestOf = (v, dy = 1.0) => ({ x: v.position.x, y: v.position.y + dy + (v.sprite?.lift ?? 0) + (v._hover ?? 0) + (v._lift ?? 0), z: v.position.z });   // + độ cao đang bay (Đại Bàng / YunYou)
 /** Điểm bắn tên của Xạ Thủ: chỗ tên rời cung trên tranh (điểm 'bow' của khung nhả, Lyra bản sprite);
  *  bản khung xương: trước ngực, theo hướng mặt, cộng độ cao đang bay */
@@ -178,7 +179,7 @@ function onAutoAttack(data) {
                 spawnPixelFx('melee/sword-slash', { view: attackerView, palette: 'arcane', seed: data.targetIndex + 5 });
             } else if (attacker.squad?.[data.attackerIndex]?.classId === 'warrior') {
                 // Rok: nhát BỔ DỌC bằng kiếm — ở chế độ giấy chỉ giữ tia lửa trúng đòn cho sạch
-                if (isRokPaperFx()) spawnHitSpark(target.position, { count: data.isCrit ? 10 : 6, color: 0xffe08a, size: data.isCrit ? 1.25 : 0.95 });
+                if (isPaperRok(attackerView)) spawnHitSpark(target.position, { count: data.isCrit ? 10 : 6, color: 0xffe08a, size: data.isCrit ? 1.25 : 0.95 });
                 else if (ROK_PIXEL) {
                     // pixelfx: vệt chém lưỡi liềm quanh Rok + tia lửa trúng đòn trên quái (chí mạng: to hơn)
                     spawnPixelFx('melee/sword-slash', { view: attackerView, seed: data.targetIndex + 3 });
@@ -217,14 +218,15 @@ function onAutoAttack(data) {
 
     // Phù Thủy lửa: ném quả cầu lửa từ lòng bàn tay, số hiện khi cầu chạm
     if (attacker.squad?.[data.attackerIndex]?.classId === 'mage') {
+        const paper = isPaperIgnar(attackerView);
         const fire = () => {
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
             if (!target) return;
-            spawnFireball(palmPoint(attackerView), chestOf(target, 0.95), { duration: 0.23, size: 0.75, onHit: () => {
+            spawnFireball(palmPoint(attackerView), chestOf(target, 0.95), { duration: 0.23, size: 0.75, paper, onHit: () => {
                 showHit(target, { ...data, isMiss: data.dodged }, { fx: false });
                 if (!data.dodged) {
-                    spawnIgnarHit(target.position);
+                    spawnIgnarHit(target.position, { paper });
                     if (IGNAR_PIXEL) spawnPixelFx('explosions/small-explosion', { pos: target.position, scale: 0.3, maxLife: 0.9 });   // + nổ lửa nhỏ
                 }
             } });
@@ -543,9 +545,10 @@ function onSkillExecuted(data) {
         case 'sky_fireball':
             // giơ tay gọi cầu lửa (0.35s) -> cầu lửa rơi, chạm đất đúng lúc server nổ (b.at); nổ + số do 'fireHits'
             caster.playAction('summon', { onHit: () => {
+                const paper = isPaperIgnar(caster);
                 (data.balls ?? []).forEach(b => spawnSkyFireball(b.x, b.z, {
-                    duration: Math.max(0.2, (b.at - 350) / 1000), size: b.second ? 3.0 : 4.0, radius: b.radius ?? 5.5,
-                    onLand: () => spawnBurnField(b.x, b.z, { radius: b.radius ?? 5.5, life: ((b.burn?.ticks ?? 3) * (b.burn?.gap ?? 600) + 350) / 1000 }),
+                    duration: Math.max(0.2, (b.at - 350) / 1000), size: b.second ? 3.0 : 4.0, radius: b.radius ?? 5.5, paper,
+                    onLand: () => spawnBurnField(b.x, b.z, { radius: b.radius ?? 5.5, life: ((b.burn?.ticks ?? 3) * (b.burn?.gap ?? 600) + 350) / 1000, paper }),
                 }));
             } });
             break;
@@ -554,23 +557,26 @@ function onSkillExecuted(data) {
             caster.playAction('bolt', { onHit: () => {
                 const pl = data.pillar;
                 if (!pl) return;
-                spawnGroundSlam(caster.position, caster.facingLeft ? -1 : 1);
+                const paper = isPaperIgnar(caster);
+                spawnGroundSlam(caster.position, caster.facingLeft ? -1 : 1, { paper });
                 cameraRig.shake(0.1, 120);
                 const wait = (pl.circleTime ?? 1000) / 1000;
-                spawnPillarCircle(pl.x, pl.z, { radius: pl.radius ?? 5, time: wait });
+                spawnPillarCircle(pl.x, pl.z, { radius: pl.radius ?? 5, time: wait, paper });
                 gameTimeout(() => {
-                    spawnFirePillar(pl.x, pl.z, { hits: pl.hits, gap: pl.gap / 1000, radius: pl.radius ?? 5 });
+                    spawnFirePillar(pl.x, pl.z, { hits: pl.hits, gap: pl.gap / 1000, radius: pl.radius ?? 5, paper });
                     if (IGNAR_PIXEL) spawnPixelFx('fire/flame-pillar', { pos: { x: pl.x, z: pl.z }, scale: 1.0, maxLife: Math.max(1.6, (pl.hits ?? 3) * (pl.gap ?? 400) / 1000 + 0.6) });   // + cột lửa phun trào
                     cameraRig.shake(0.16, 200);
                 }, wait * 1000);
             } });
             break;
-        case 'fire_god':
+        case 'fire_god': {
+            const paper = isPaperIgnar(caster);
             caster.playAction('summon');
-            spawnFireWings(caster.position, { dir: caster.facingLeft ? -1 : 1 });
+            spawnFireWings(caster.position, { dir: caster.facingLeft ? -1 : 1, paper });
             if (IGNAR_PIXEL) spawnPixelFx('fire/fire-ring', { pos: caster.position, scale: 1.1, maxLife: 2 });   // + vòng lửa lan ra quanh chân
             cameraRig.shake(0.2, 220);
             break;
+        }
         case 'sword_haste':
             caster.faceTargetForSwordAction?.();
             caster.playAction('seal', { onHit: () => spawnSwordHaste(caster, data.duration ?? 6000) });
@@ -878,17 +884,17 @@ function meleeStrike(caster, data, hitFrame, processHit) {
 // ------------------------------------------------------------
 /** Sư Tử Gầm: giơ kiếm hét lớn -> linh hồn sư tử vàng lao ra gầm (tranh rokFx), quái bị khiêu khích hiện dấu sư tử "!" (và -10% thủ) */
 function warriorTaunt(caster, data, opponentId) {
-    const paper = isRokPaperFx();
+    const paper = isPaperRok(caster);
     caster.playAction('taunt', {
         onHit: () => {
-            spawnRokRoar(caster, { radius: 9 });   // giữ hình con sư tử khổng lồ (tranh)
+            spawnRokRoar(caster, { radius: 9, paper });   // giữ hình con sư tử khổng lồ (tranh)
             if (ROK_PIXEL && !FX_CLEAN && !paper) spawnPixelFx('status/rage', { view: caster, maxLife: 1.5, bare: true });   // + pixelfx: gân giận, hơi bốc, đất nứt
             cameraRig.shake(0.45, 520);   // sư tử khổng lồ: rung mạnh hơn
             data.effects.forEach(e => {
                 const v = getView(opponentId, e.targetIndex);
                 if (!v) return;
                 if (ROK_PIXEL && !paper) spawnPixelFx('ui/exclamation', { view: v, delay: 0.05 + (e.dist ?? 3) * 0.03 });   // quái bị khiêu khích: dấu "!" bật trên đầu
-                else spawnTauntIcon(v);
+                else spawnTauntIcon(v, { paper });
                 // sóng gầm lan tới quái nào thì quái đó trúng đòn (xa trúng sau)
                 gameTimeout(() => {
                     spawnDamageNumber(v.position, e.damage, damageType({ ...e, dodged: e.isMiss }));
@@ -905,14 +911,14 @@ function warriorTaunt(caster, data, opponentId) {
 
 /** Đập Khiên: lướt sát mục tiêu, đẩy khiên ra -> va chạm mạnh + choáng (sao xoay trên đầu do view tự vẽ) */
 function warriorBash(caster, data, opponentId, hitFrame) {
-    const paper = isRokPaperFx();
+    const paper = isPaperRok(caster);
     const dist = Math.abs((data.newX ?? caster.basePos.x) - caster.basePos.x);
     if (dist > 0.2 && caster.leapTo) caster.leapTo(data.newX, data.newZ ?? caster.basePos.z, { duration: 0.18, height: 0 });
     else caster.teleport(data.newX ?? caster.basePos.x, data.newZ ?? caster.basePos.z);
     caster.playAction('bash', {
         hitFrame,
         onHit: () => {
-            spawnRokBash(caster);
+            spawnRokBash(caster, { paper });
             data.effects.forEach(e => {
                 const t = getView(opponentId, e.targetIndex);
                 if (!t) return;
@@ -931,7 +937,7 @@ function warriorBash(caster, data, opponentId, hitFrame) {
  * bay vòng cung thấp, cày bụi khi đáp.
  */
 function warriorPush(caster, data, opponentId, hitFrame) {
-    const paper = isRokPaperFx();
+    const paper = isPaperRok(caster);
     // giữ quái tại chỗ tới lúc khiên chạm (server đã dời nó ra xa)
     data.effects.forEach(e => {
         const t = getView(opponentId, e.targetIndex);
@@ -958,7 +964,7 @@ function warriorPush(caster, data, opponentId, hitFrame) {
                 // pixelfx: đất nứt + sóng chấn động lan ra trước mặt Rok (rung đất làm quái gần choáng nhẹ)
                 const f = caster.facingLeft ? -1 : 1;
                 spawnPixelFx('impacts/ground-slam', { pos: { x: caster.position.x + f * 1.3, z: caster.position.z }, flip: caster.facingLeft, scale: 0.45, maxLife: FX_CLEAN ? 1.5 : 3.5 });
-            } else spawnRokBash(caster);
+            } else spawnRokBash(caster, { paper });
             cameraRig.shake(0.35, 240);
         },
     });
@@ -1565,13 +1571,14 @@ function onWaterFx(d) {
 
 /** Nổ lửa diện rộng (Thiên Hỏa Cầu chạm đất / mỗi nhịp Cột Lửa): hình nổ + số sát thương */
 function onFireHits(d) {
+    const paper = isPaperIgnar(casterMember(d.casterId, d.casterIdx));
     const opponentId = opponentIdOf(d.casterId);
     if (d.kind === 'meteor' || d.kind === 'meteor2') {
-        spawnMeteorImpact(d.x, d.z, { size: d.kind === 'meteor' ? 4.4 : 3.3, radius: d.radius });
+        spawnMeteorImpact(d.x, d.z, { size: d.kind === 'meteor' ? 4.4 : 3.3, radius: d.radius, paper });
         if (IGNAR_PIXEL) spawnPixelFx('explosions/big-explosion', { pos: { x: d.x, z: d.z }, scale: d.kind === 'meteor' ? 0.6 : 0.45, maxLife: 2.2 });   // + nổ lớn, cột khói cuộn
         cameraRig.shake(d.kind === 'meteor' ? 0.24 : 0.15, 200);
     }
-    if (d.kind === 'burn') pulseBurn(d.x, d.z, { radius: d.radius });
+    if (d.kind === 'burn') pulseBurn(d.x, d.z, { radius: d.radius, paper });
     const now = gameNow();
     d.effects.forEach(e => {
         const t = getView(opponentId, e.targetIndex);
@@ -1580,8 +1587,8 @@ function onFireHits(d) {
         if (d.kind === 'pillar' && !e.isMiss) {
             const icon = now - (t._breakIconAt ?? -1e9) > 900;   // biểu tượng phá giáp: không chồng liên tục
             if (icon) t._breakIconAt = now;
-            spawnPillarHit(t.position, { stackBreak: icon });
-        } else if (!e.isMiss) spawnIgnarHit(t.position, { size: d.kind === 'burn' ? 0.7 : 1.2 });
+            spawnPillarHit(t.position, { stackBreak: icon, paper });
+        } else if (!e.isMiss) spawnIgnarHit(t.position, { size: d.kind === 'burn' ? 0.7 : 1.2, paper });
     });
 }
 
@@ -1589,17 +1596,18 @@ function onFireHits(d) {
 function onFireGod(d) {
     const caster = getView(d.casterId, d.casterIdx);
     if (!caster) return;
+    const paper = isPaperIgnar(caster);
     const opponentId = opponentIdOf(d.casterId);
     const dir = caster.facingLeft ? -1 : 1;
     const viewOf = (e) => getView(opponentId, e.targetIndex);
     if (d.kind === 'palm') {
         caster.playAction('palm', { onHit: () => {
             const from = palmPoint(caster);
-            spawnPalmFlash(from, dir);
+            spawnPalmFlash(from, dir, { paper });
             const t = getView(opponentId, d.targetIndex);
             if (!t) return;
-            spawnFireball(from, chestOf(t, 0.95), { duration: 0.26, size: 1.1, swirl: true, onHit: () => {
-                spawnFireExplosion(t.position, { size: 1.9, life: 0.45 });
+            spawnFireball(from, chestOf(t, 0.95), { duration: 0.26, size: 1.1, swirl: true, paper, onHit: () => {
+                spawnFireExplosion(t.position, { size: 1.9, life: 0.45, paper });
                 if (IGNAR_PIXEL) spawnPixelFx('explosions/small-explosion', { pos: t.position, scale: 0.45, maxLife: 1.2 });
                 d.effects.forEach(e => { const v = viewOf(e); if (v) showHit(v, e, { fx: false }); });
             } });
@@ -1607,14 +1615,14 @@ function onFireGod(d) {
     } else if (d.kind === 'volley') {
         caster.playAction('volley', { onHit: () => {
             const from = palmPoint(caster);
-            spawnPalmFlash(from, dir, { size: 1.6 });
+            spawnPalmFlash(from, dir, { size: 1.6, paper });
             cameraRig.shake(0.12, 120);
             d.effects.forEach((e, k) => {
                 const t = viewOf(e);
                 if (!t) return;
-                gameTimeout(() => spawnFireball(palmPoint(caster), chestOf(t, 1.0), { duration: 0.28, size: 1.0, swirl: true, onHit: () => {
+                gameTimeout(() => spawnFireball(palmPoint(caster), chestOf(t, 1.0), { duration: 0.28, size: 1.0, swirl: true, paper, onHit: () => {
                     showHit(t, e, { fx: false });
-                    if (!e.isMiss) spawnIgnarHit(t.position, { size: 1.3 });
+                    if (!e.isMiss) spawnIgnarHit(t.position, { size: 1.3, paper });
                     if (IGNAR_PIXEL && !e.isMiss) spawnPixelFx('explosions/small-explosion', { pos: t.position, scale: 0.35, maxLife: 1 });
                 } }), k * 50);
             });
@@ -1626,10 +1634,10 @@ function onFireGod(d) {
             const t = getView(opponentId, d.targetIndex);
             if (!t) return;
             const from = g ? g.handPoint() : palmPoint(caster);
-            spawnFireball(from, chestOf(t, 1.0), { duration: 0.3, size: 0.9, onHit: () => {
+            spawnFireball(from, chestOf(t, 1.0), { duration: 0.3, size: 0.9, paper, onHit: () => {
                 const e = d.effects[0];
                 showHit(t, e, { fx: false });
-                if (!e.isMiss) spawnIgnarHit(t.position);
+                if (!e.isMiss) spawnIgnarHit(t.position, { paper });
             } });
         }, 220);
     }
@@ -1822,6 +1830,7 @@ function brakkStomp(caster, data, opponentId) {
 /** Sự kiện riêng của Rok: dây liên kết, Ý Chí Thép, địa chấn của Đẩy Khiên */
 function onRokFx(d) {
     const v = getView(d.casterId, d.casterIdx);
+    const paper = isPaperRok(v ?? casterMember(d.casterId, d.casterIdx));
     switch (d.kind) {
         case 'link':
         case 'linkBreak': {
@@ -1844,15 +1853,15 @@ function onRokFx(d) {
             break;
         }
         case 'ironWill':
-            if (v) { spawnRisingGlyph(v.position, '鋼', '#fde68a', '#b45309'); if (!isRokPaperFx()) spawnRisingSparkles(v.position, { count: 12, color: 0xfcd34d, radius: 0.9 }); }
+            if (v) { spawnRisingGlyph(v.position, '鋼', '#fde68a', '#b45309'); if (!paper) spawnRisingSparkles(v.position, { count: 12, color: 0xfcd34d, radius: 0.9 }); }
             break;
         case 'ironHeal':
-            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); if (!isRokPaperFx()) spawnHealLight(v.position); spawnHealCross(v); }
+            if (v && d.heal > 0) { spawnDamageNumber(v.position, d.heal, 'heal'); if (!paper) spawnHealLight(v.position); spawnHealCross(v, { paper }); }
             break;
         case 'quake': {
             // đối thủ bị hất văng rơi xuống: địa chấn nhẹ, choáng xung quanh
             const at = { x: d.x, z: d.z };
-            spawnRokQuake(at, { radius: d.radius ?? 3 });
+            spawnRokQuake(at, { radius: d.radius ?? 3, paper });
             spawnLandingDust(at, 14);
             cameraRig.shake(0.18, 200);
             break;
@@ -1864,19 +1873,20 @@ function onRokFx(d) {
 function onFireWard(d) {
     const v = getView(d.casterId, d.casterIdx);
     if (!v) return;
+    const paper = isPaperIgnar(v);
     if (d.kind === 'on') {
-        spawnFireWings(v.position, { dir: v.facingLeft ? -1 : 1 });
-        if (!isIgnarPaperFx()) spawnShockwave(v.position, { color: 0xff7a1a, radius: 4, life: 0.5 });
+        spawnFireWings(v.position, { dir: v.facingLeft ? -1 : 1, paper });
+        if (!paper) spawnShockwave(v.position, { color: 0xff7a1a, radius: 4, life: 0.5 });
         spawnDamageNumber(v.position, d.shield, 'shield');
         cameraRig.shake(0.2, 220);
         (d.pushed ?? []).forEach(e => {
             const t = getView(d.targetId, e.targetIndex);
             if (t?.leapTo) t.leapTo(e.toX, e.toZ, { duration: (d.knockTime ?? 350) / 1000, height: 1.0 });
-            if (t) spawnIgnarHit(t.position);
+            if (t) spawnIgnarHit(t.position, { paper });
         });
     } else {
-        spawnFireExplosion(v.position, { size: 3.2 });
-        if (!isIgnarPaperFx()) spawnShockwave(v.position, { color: 0xff4d1a, radius: d.radius ?? 4.5, life: 0.6 });
+        spawnFireExplosion(v.position, { size: 3.2, paper });
+        if (!paper) spawnShockwave(v.position, { color: 0xff4d1a, radius: d.radius ?? 4.5, life: 0.6 });
         cameraRig.shake(0.3, 260);
     }
 }
@@ -2191,13 +2201,13 @@ function onArcherShots(data) {
 function onGuardBurst(data) {
     const rok = getView(data.casterId, data.casterIdx);
     if (!rok) return;
-    const paper = isRokPaperFx();
+    const paper = isPaperRok(rok);
     const opponentId = opponentIdOf(data.casterId);
     // Khiên Thần nổ sóng (lần CUỐI — khiên hết giờ / vỡ / bị hạ: vỡ tan) + sóng vàng loang tới bán kính nổ
     rok.onGuardBurst?.(data.final);
     if (ROK_PIXEL && !paper) spawnPixelFx('lightning/thunderclap', { view: rok, palette: 'gold', scale: 0.8 });   // pixelfx: khiên nổ — loé trắng, tia vàng đâm đất, sóng chấn lan
     else {
-        spawnGoldRing(rok.position, { radius: 5.5, life: 0.5 });
+        spawnGoldRing(rok.position, { radius: 5.5, life: 0.5, paper });
         spawnHitSpark(rok.position, { count: 8, color: 0xffe08a, size: 1.3 });
     }
     cameraRig.shake(data.final ? 0.4 : 0.28, data.final ? 320 : 240);
@@ -2218,7 +2228,7 @@ function onGuardBurst(data) {
         if (!v) return;
         gameTimeout(() => {
             spawnDamageNumber(hoverPos(v), h.heal, 'heal');
-            spawnHealCross(v);
+            spawnHealCross(v, { paper });
             if (!paper) spawnRisingSparkles(hoverPos(v), { count: 4, color: 0xffe08a, radius: 0.5 });
         }, 140);
     });
@@ -2229,15 +2239,16 @@ function onGuardBurst(data) {
  * rokFx.makeDivineShield), sóng vàng trên đất, khiên nhỏ "+thủ" bật trên đầu cả đội
  */
 function warriorGuard(caster, data) {
+    const paper = isPaperRok(caster);
     caster.playAction('guardStart', {
         onHit: () => {
             caster.raiseDivineShield?.();   // giữ tấm Khiên Thần (tranh); pixelfx thêm vòm lục giác (_updateIronGuard)
-            spawnGoldRing(caster.position, { radius: 3, life: 0.45 });
+            spawnGoldRing(caster.position, { radius: 3, life: 0.45, paper });
             spawnHitSpark(caster.position, { count: 10, color: 0xffe08a, size: 1.2 });
             cameraRig.shake(0.15, 160);
             (data?.effects ?? []).filter(e => e.ally).forEach((e, i) => {
                 const v = getView(data.casterId, e.targetIndex);
-                if (v) spawnBuffIcon(v, { delay: 0.05 + i * 0.06 });
+                if (v) spawnBuffIcon(v, { delay: 0.05 + i * 0.06, paper });
             });
         },
     });
@@ -2250,7 +2261,7 @@ function warriorFortress(caster, data) {
             const f = caster.facingLeft ? -1 : 1;
             const mesh = caster.createExtraMesh?.('planted');
             if (mesh) spawnAtlasFx(mesh, { x: caster.position.x + 0.9 * f, y: 0.25, z: caster.position.z }, { life: 1.3 });
-            if (isRokPaperFx()) spawnGoldRing(caster.position, { radius: 6, life: 0.7 });
+            if (isPaperRok(caster)) spawnGoldRing(caster.position, { radius: 6, life: 0.7, paper: true });
             else spawnShockwave(caster.position, { color: 0xffd25a, radius: 6, life: 0.7 });
             spawnLandingDust(caster.position, 10);
             cameraRig.shake(0.2, 200);
@@ -2436,7 +2447,7 @@ function onCastStart(data) {
     if (v && (def?.type === 'sky_fireball' || def?.type === 'fire_pillar')) {
         // Ignar niệm KN1 / KN2 (1s): gồng nhẹ, vòng lửa nhỏ dưới chân
         v.playAction?.('charge', { hold: true });
-        spawnSummonCircle(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1, size: 2.6 });
+        spawnSummonCircle(v.position, { life: (data.castTime ?? 1000) / 1000 + 0.1, size: 2.6, paper: isPaperIgnar(v) });
         if (IGNAR_PIXEL) spawnPixelFx('arcane/spell-charge', { view: v, palette: 'fire', maxLife: (data.castTime ?? 1000) / 1000 });   // + năng lượng lửa tụ vào tay
         return;
     }
@@ -2475,7 +2486,7 @@ function onCastStart(data) {
     if (v && def?.type === 'fire_god') {
         // gồng Hỏa Thần: hạ người, vòng triệu hồi + hào quang lửa dưới chân
         v.playAction?.('charge', { hold: true });
-        spawnSummonCircle(v.position, { life: (data.castTime ?? 1500) / 1000 + 0.1 });
+        spawnSummonCircle(v.position, { life: (data.castTime ?? 1500) / 1000 + 0.1, paper: isPaperIgnar(v) });
         return;
     }
     // Elarion niệm Hơi Nước Bỏng (2s) · Golem hút khí lạnh (Bão Tuyết) / gồng sét (Hào Quang Sét)
