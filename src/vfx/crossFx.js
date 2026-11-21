@@ -288,6 +288,24 @@ export function clearCrossFx() {
     _driver = null;
 }
 
+/** Vụ nổ Thần Phạt vẽ tay (Flow, art/caelum/fx-cross-judgement.png): 8 khung chạy 1 lần tại `pos`, cao `height` */
+function spawnJudgement(pos, height = 4.5, delay = 0) {
+    const go = () => {
+        const m = AURA_FB.frames('judgement', height, { opacity: 1 });
+        m.position.set(pos.x, GROUND_Y - 0.02, (pos.z ?? 0) + 0.5);
+        const glow = AURA_FB.frames('judgement', height, { additive: true, opacity: 0.5 });
+        glow.position.set(0, 0, 0.01);
+        m.add(glow);
+        const n = AURA_FB.count('judgement'), LIFE = 0.85;
+        addAnim(m, LIFE, (p) => {
+            const f = Math.min(n - 1, Math.floor(p * n));
+            AURA_FB.set(m, f); AURA_FB.set(glow, f);
+            m.material.opacity = p > 0.85 ? (1 - p) / 0.15 : 1;
+        });
+    };
+    if (delay > 0) gameTimeout(go, delay); else go();
+}
+
 /** Thánh giá nhỏ cắm xuống đất: sóng chấn màu theo loại + loé sáng + rung nhẹ */
 function landCross(v) {
     const meta = CROSS_TYPE_META[v.type] ?? CROSS_TYPE_META[1];
@@ -302,7 +320,7 @@ function landRadiance(r) {
     const p = r.group.position, bz = p.z + r.billboard.position.z;
     spawnShockwave({ x: p.x, z: bz }, { color: 0xfef08a, radius: 9, life: 0.7 });
     spawnShockwave({ x: p.x, z: bz }, { color: 0xffffff, radius: 5, life: 0.45 });
-    spawnPixelFx('holy/holy-pillar', { pos: { x: p.x, y: GROUND_Y, z: bz + 0.2 }, scale: 1.7, maxLife: 2 });
+    // (người chơi 21/11: bỏ Holy Pillar — rối mắt)
     cameraRig.shake(0.3, 280);
 }
 
@@ -383,13 +401,12 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
                 const v = activeCrosses.get(ev.id);
                 if (v) v.pulseBoost = 0.8;
                 if (ev.type === 1) {
+                    // người chơi 21/11: Thánh giá Sinh Mệnh hồi máu = vòng hồi máu (pixelfx Healing ring) lan ra từ chân Thánh giá
+                    if (v && (ev.heals ?? []).some(h => h.heal > 0)) { const sc = v.radius * 0.16; spawnPixelFx('holy/heal-aoe', { pos: { x: v.x, y: GROUND_Y, z: v.z + 0.4 }, scale: sc, lift: 2.2 * sc, maxLife: 3 }); }   // vòng ~ khít vùng tác dụng; nâng lên cho nửa dưới vòng không bị mặt đất che
                     for (const h of ev.heals ?? []) {
                         const tv = getView?.(data.casterId, h.targetIndex);
                         if (!tv) continue;
-                        if (h.heal > 0) {
-                            onHealNumber?.(tv, h.heal);
-                            spawnPixelFx('holy/heal', { pos: tv.position, scale: 0.75 });
-                        }
+                        if (h.heal > 0) onHealNumber?.(tv, h.heal);
                     }
                 } else if (ev.type === 3) {
                     for (const eff of ev.effects ?? []) {
@@ -482,11 +499,17 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             const nowMs = performance.now();
             if (r0 && !data._staggered) {
                 const slot = Math.max(nowMs, (r0.nextFxAt ?? 0));
-                r0.nextFxAt = slot + 250;
+                r0.nextFxAt = slot + 300;
                 if (slot - nowMs > 5) { gameTimeout(() => playCrossFxEvent({ ...data, _staggered: true }, { getView, opponentIdOf, onDamageNumber, onHealNumber }), slot - nowMs); break; }
             }
             const r = activeRadiances.get(data.id);
-            if (r) r.boost = data.explode ? 1.4 : 0.7;
+            if (r) r.boost = data.explode ? 1.4 : data.hymn ? 1.6 : 0.7;
+            // Thánh Ca kích cây Thần Quang: mỗi phát cây bừng sáng + sóng vàng lớn toả từ chân cây (thấy rõ 3 phát liền)
+            if (r?.landed && data.hymn) {
+                const gp = r.group.position, bz = gp.z + r.billboard.position.z;
+                spawnShockwave({ x: gp.x, z: bz }, { color: 0xfde047, radius: 10, life: 0.5 });
+                cameraRig.shake(0.12, 140);
+            }
             for (const eff of data.effects ?? []) {
                 const tv = oppId != null ? getView?.(oppId, eff.targetIndex) : null;
                 if (!tv) continue;
@@ -496,16 +519,19 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
                     spawnLightning(gem, { x: tv.position.x, y: GROUND_Y + CHEST_Y + 0.6, z: tv.position.z }, { width: 0.5, life: 0.22 });
                 }
                 // người chơi 21/11: dùng Holy Smite của pixelfx (bỏ sunburst); số sát thương hiện lúc tia sáng chạm đất (~0,54 s)
-                spawnPixelFx('holy/smite', { pos: { x: tv.position.x, y: GROUND_Y, z: tv.position.z }, scale: 1.1, maxLife: 3 });
+                spawnPixelFx('holy/smite', { pos: { x: tv.position.x, y: GROUND_Y, z: tv.position.z + 0.3 }, scale: 1.1, lift: 1.9, maxLife: 3 });
                 gameTimeout(() => onDamageNumber?.(tv, eff), 520);
             }
             if (data.explode) {
                 const rp = r?.group?.position ?? { x: 0, z: 0 };
                 spawnShockwave({ x: rp.x, z: rp.z + 4 }, { color: 0xfef08a, radius: 14, life: 0.6 });
                 cameraRig.shake(0.22, 220);
+                // người chơi 21/11: vụ nổ diện rộng của Thần Quang = hiệu ứng vẽ tay (Flow) nổ trên MỌI đối thủ trúng đòn
                 for (const eff of data.explodeEffects ?? []) {
                     const tv = oppId != null ? getView?.(oppId, eff.targetIndex) : null;
-                    if (tv) onDamageNumber?.(tv, eff);
+                    if (!tv) continue;
+                    spawnJudgement(tv.position, 8, 0);
+                    gameTimeout(() => onDamageNumber?.(tv, eff), 260);
                 }
                 for (const i of data.cleansed ?? []) {
                     const tv = getView?.(data.casterId, i);

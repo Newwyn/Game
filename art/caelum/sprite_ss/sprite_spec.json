@@ -1,0 +1,98 @@
+{
+ "note": "Caelum bac SS: Flow ve lai tung tam SSS (giu luoi + dang, doi trang phuc) 21/11/2026",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 6,
+ "calib": "idle1",
+ "key": "jade",
+ "footBand": 16,
+ "footMin": 25,
+ "solidFeet": true,
+ "out": "src/assets/sprites/caelum_ss_sprite",
+ "meta": "src/characters/sprite/caelumSprite_ss.json",
+ "format": "webp",
+ "sheets": {
+  "idle": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-idle.png",
+   "groups": [
+    [
+     "idle",
+     4,
+     "body"
+    ],
+    [
+     "ready",
+     4,
+     "body"
+    ]
+   ]
+  },
+  "attack": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-attack.png",
+   "anchor": "body"
+  },
+  "move": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-move.png",
+   "anchor": "body"
+  },
+  "place": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-place.png",
+   "anchor": "body"
+  },
+  "pray": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-pray.png",
+   "anchor": "body"
+  },
+  "smite": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-smite.png",
+   "anchor": "body"
+  },
+  "hurt-stun": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-hurt-stun.png",
+   "groups": [
+    [
+     "hurt",
+     4,
+     "body"
+    ],
+    [
+     "stun",
+     4,
+     "body"
+    ]
+   ]
+  },
+  "dead-victory": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/caelum/sprite_ss/ss-dead-victory.png",
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "body"
+    ]
+   ],
+   "ground": "group"
+  }
+ }
+}

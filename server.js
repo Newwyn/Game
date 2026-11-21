@@ -8396,7 +8396,7 @@ function castCrossSkill(room, pid, idx, oppId, skillIdx, sk, now, effects, extra
         const rad = m.crossRadiance;
         if (rad && !rad.cancelled && !rad.done) {
             const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
-            for (let k = 0; k < nTrig; k++) radianceSmite(room, m, pid, idx, rad, team, opp, oppId, now);
+            for (let k = 0; k < nTrig; k++) radianceSmite(room, m, pid, idx, rad, team, opp, oppId, now, true);
             rad.endTime += ext;
         }
         for (const c of list) {
@@ -8514,7 +8514,7 @@ function processRoomCrosses(room, pid, oppId, now) {
 }
 
 /** Một đợt Holy Smite của Thần Quang (dùng cho nhịp 1 giây và cho Thánh Ca kích hoạt thêm) */
-function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now) {
+function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now, hymn = false) {
     const srcKey = `${pid}:${idx}`;
     r.smiteCount += 1;
     const isFifth = r.smiteCount % (r.explodeEvery ?? 5) === 0;
@@ -8541,7 +8541,7 @@ function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now) {
             cleansed.push(i);
         });
     }
-    emitCross(room.id, { kind: 'radianceTick', casterId: pid, casterIdx: idx, id: r.id, n: r.smiteCount, explode: isFifth, targetId: oppId, effects, explodeEffects, cleansed });
+    emitCross(room.id, { kind: 'radianceTick', casterId: pid, casterIdx: idx, id: r.id, n: r.smiteCount, explode: isFifth, targetId: oppId, effects, explodeEffects, cleansed, hymn });
 }
 
 // ============================================================
