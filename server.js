@@ -7921,7 +7921,10 @@ function stripBuffs(m, count = 1, now = curRoom?.clock ?? Date.now()) {
 }
 const serializeCross = (c) => ({ id: c.id, type: c.type, x: c.x, z: c.z, level: c.level, radius: c.radius, placedAt: c.placedAt, levelAt: c.levelAt, expireAt: c.expireAt });
 const crossSkillDef = (m) => skillsOf(m).find(s => s.type === 'cross_place') ?? CLASS_DEFS.crosspriest.skills[0];
-const crossRadius = (c, sk) => (sk?.radii ?? [3, 3.6, 4.2])[Math.max(0, Math.min(2, (c.level ?? 1) - 1))];
+// người chơi 21/11: Thánh giá Sấm Sét (loại 3) vùng rộng hơn các loại khác (x1,5 -> 4,5 / 5,4 / 6,3)
+const CROSS_TYPE_RADIUS_MULT = { 3: 1.5 };
+const crossRadiusOf = (type, level, sk) => (sk?.radii ?? [3, 3.6, 4.2])[Math.max(0, Math.min(2, (level ?? 1) - 1))] * (CROSS_TYPE_RADIUS_MULT[type] ?? 1);
+const crossRadius = (c, sk) => crossRadiusOf(c.type, c.level, sk);
 function clampCrossPoint(caster, pt, maxRange = 14) {
     if (!pt || !Number.isFinite(Number(pt.x)) || !Number.isFinite(Number(pt.z))) return null;
     const cx = caster.x ?? 0, cz = caster.z || 0;
@@ -8311,11 +8314,12 @@ function placeCross(room, pid, idx, oppId, sk, now, ptOverride, extra) {
     const reqType = Number(ptOverride?.crossType ?? m.crossType ?? 1) | 0;
     const type = [1, 2, 3, 4].includes(reqType) ? reqType : 1;
     const maxCrosses = sk.maxCrosses ?? 4;
-    let level = 1, levelAt = now + (sk.levelMs ?? 10000), expireAt = null, replacedId = null;
+    let level = 1, levelAt = now + (sk.levelMs ?? 10000), expireAt = null, replacedId = null, replacedLv3 = false;
     if (m.crosses.length >= maxCrosses) {
         const oldest = m.crosses.shift();
         replacedId = oldest.id;
         level = oldest.level;
+        replacedLv3 = oldest.level >= 3;
         if (oldest.level >= 3) {
             levelAt = null;
             expireAt = now + (sk.lv3Ms ?? 10000);   // kế thừa cấp 3 nhận lại 10s mới
@@ -8330,8 +8334,12 @@ function placeCross(room, pid, idx, oppId, sk, now, ptOverride, extra) {
             emitCross(room.id, { kind: 'orbRefund', casterId: pid, casterIdx: idx, orbs: t2.orbRefund ?? 1, reason: 'replaced' });
         }
     }
+    // người chơi 21/11: đang có 1 cây cấp 3 (kể cả cây vừa bị thay) -> cây mới thả ra vào thẳng cấp 3, đủ 10s
+    if (level < 3 && (replacedLv3 || m.crosses.some(c => c.level >= 3))) {
+        level = 3; levelAt = null; expireAt = now + (sk.lv3Ms ?? 10000);
+    }
     const maxRange = sk.castRange ?? 14;
-    const r = (sk.radii ?? [3, 3.6, 4.2])[Math.max(0, Math.min(2, level - 1))];
+    const r = crossRadiusOf(type, level, sk);
     const clamped = ptOverride ? clampCrossPoint(m, ptOverride, maxRange) : null;
     const spot = clamped ?? autoCrossPoint(room, pid, idx, oppId, type, r, maxRange, now);
     const pulseEvery = type === 1 ? (sk.life?.every ?? 2000) : type === 3 ? (sk.lightning?.every ?? 1000) : type === 4 ? (sk.purify?.every ?? 3000) : Infinity;

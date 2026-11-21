@@ -36,6 +36,8 @@ import * as featherBurst from '../vendor/pixelfx/fx/holy/feather-burst.js';
 import * as haste from '../vendor/pixelfx/fx/status/haste.js';
 import * as hawkSight from './pixelfx-custom/hawk-sight.js';   // tự vẽ theo phong cách pixelfx
 import * as castFlash from './pixelfx-custom/cast-flash.js';   // tự vẽ: loé ra đòn đánh xa
+import * as crossArcs from './pixelfx-custom/cross-arcs.js';   // Caelum: Thánh giá Sấm Sét kiểu cuộn Tesla (bỏ trụ)
+import * as crossZap from './pixelfx-custom/cross-zap.js';     // Caelum: tia giật từ Thánh giá xuống đối thủ
 import * as waterHit from './pixelfx-custom/water-hit.js';     // tự vẽ: Giọt Thủy Vũ (Nerissa)
 import * as ripples from '../vendor/pixelfx/fx/water/ripples.js';
 import * as meteor from '../vendor/pixelfx/fx/fire/meteor.js';
@@ -92,7 +94,7 @@ const LIB = {
     'scifi/force-field': forceField, 'lightning/thunderclap': thunderclap,
     'lightning/zap-hit': zapHit, 'impacts/crit-hit': critHit, 'melee/double-slash': doubleSlash,
     'arcane/blink-out': blinkOut, 'arcane/blink-in': blinkIn, 'explosions/smoke-bomb': smokeBomb,
-    'holy/heal': heal, 'holy/resurrection': resurrection, 'nature/leaf-storm': leafStorm, 'holy/feather-burst': featherBurst, 'status/haste': haste, 'custom/hawk-sight': hawkSight, 'custom/cast-flash': castFlash, 'custom/water-hit': waterHit, 'water/ripples': ripples, 'fire/meteor': meteor,
+    'holy/heal': heal, 'holy/resurrection': resurrection, 'nature/leaf-storm': leafStorm, 'holy/feather-burst': featherBurst, 'status/haste': haste, 'custom/hawk-sight': hawkSight, 'custom/cast-flash': castFlash, 'custom/cross-arcs': crossArcs, 'custom/cross-zap': crossZap, 'custom/water-hit': waterHit, 'water/ripples': ripples, 'fire/meteor': meteor,
     'ice/frost-breath': frostBreath, 'weather/blizzard': blizzardW, 'weather/storm': stormW, 'nature/tornado': tornado,
     'shadow/void-orb': voidOrb, 'lightning/electrified': electrified, 'fire/fireball': fireball, 'holy/divine-shield': divineShield, 'holy/sunburst': sunburst, 'holy/smite': smite, 'holy/holy-pillar': holyPillar, 'holy/blessing': blessing, 'holy/heal-aoe': healAoe, 'custom/water-aura': waterAura, 'melee/thrust': thrust, 'melee/claw-swipe': clawSwipe,
     'explosions/small-explosion': smallExplosion, 'explosions/big-explosion': bigExplosion, 'fire/flame-pillar': flamePillar,

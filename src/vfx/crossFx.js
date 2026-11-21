@@ -306,6 +306,19 @@ function spawnJudgement(pos, height = 4.5, delay = 0) {
     if (delay > 0) gameTimeout(go, delay); else go();
 }
 
+// Thánh giá Sấm Sét: tia sét kiểu cuộn Tesla quanh viên ngọc (pixelfx tự vẽ, đơn vị: nhân vật cao 2,9 = 44 điểm ảnh)
+const PX = 2.9 / 44;
+const gemHeight = (level) => levelConfig(level).height * 0.66;   // viên ngọc ở chỗ giao 2 thanh
+function startTeslaArcs(v) {
+    if (v.type !== 3) return;
+    const gen = (v.arcGen = (v.arcGen ?? 0) + 1);
+    spawnPixelFx('custom/cross-arcs', {
+        pos: { x: v.x, y: GROUND_Y, z: v.z + 0.06 }, height: 2.9, maxLife: 9999,
+        opts: { gemY: -gemHeight(v.level) / PX, seed: 4 + (v.id % 7) },
+        until: () => !activeCrosses.has(v.id) || v.arcGen !== gen,
+    });
+}
+
 /** Thánh giá nhỏ cắm xuống đất: sóng chấn màu theo loại + loé sáng + rung nhẹ */
 function landCross(v) {
     const meta = CROSS_TYPE_META[v.type] ?? CROSS_TYPE_META[1];
@@ -313,6 +326,7 @@ function landCross(v) {
     spawnPixelFx('custom/cast-flash', { pos: { x: v.x, y: GROUND_Y, z: v.z }, scale: 0.9 });
     v.pulseBoost = 1;
     cameraRig.shake(0.08, 120);
+    startTeslaArcs(v);
 }
 
 /** Thần Quang cắm xuống đất: sóng chấn, rung màn hình, cột sáng thánh (pixelfx) ở chân cây */
@@ -386,6 +400,7 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             if (v) {
                 v.level = c.level;
                 v.billboard.material.map = crossTexFor(v.type, v.level);   // lên cấp -> đổi sang tranh cấp mới
+                if (v.landed) startTeslaArcs(v);
                 v.radius = c.radius;
                 v.pulseBoost = 1;
             }
@@ -412,13 +427,13 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
                     for (const eff of ev.effects ?? []) {
                         const tv = oppId != null ? getView?.(oppId, eff.targetIndex) : null;
                         if (!tv) continue;
-                        const topY = GROUND_Y + levelConfig(ev.level ?? 1).height * 0.85;
-                        spawnLightning(
-                            { x: ev.x, y: topY, z: ev.z },
-                            { x: tv.position.x, y: GROUND_Y + CHEST_Y, z: tv.position.z },
-                            { width: 0.55, life: 0.22 },
-                        );
-                        spawnPixelFx('lightning/zap-hit', { pos: tv.position, scale: 0.8 });
+                        // người chơi 21/11: tia giật kiểu cuộn Tesla (pixelfx tự vẽ) từ viên ngọc xuống đối thủ, bỏ tia sét cũ
+                        const gy = gemHeight(ev.level ?? 1);
+                        spawnPixelFx('custom/cross-zap', {
+                            pos: { x: tv.position.x, y: GROUND_Y, z: (tv.position.z + ev.z) / 2 + 0.3 }, height: 2.9, maxLife: 1.2,
+                            opts: { dx: (ev.x - tv.position.x) / PX, dy: (gy + (tv.position.z - ev.z) * 0.35) / PX, seed: (ev.id ?? 0) * 13 + (eff.targetIndex ?? 0) },
+                        });
+                        if (v) v.pulseBoost = 1;
                         onDamageNumber?.(tv, eff);
                     }
                 } else if (ev.type === 4) {
@@ -576,7 +591,7 @@ registerDragCustomizer('cross_place', ({ member, skillDef }) => {
     const meta = CROSS_TYPE_META[t] ?? CROSS_TYPE_META[1];
     return {
         range: skillDef?.dragTarget?.range ?? 14,
-        radius: skillDef?.dragTarget?.radii?.[0] ?? 3,
+        radius: (skillDef?.dragTarget?.radii?.[0] ?? 3) * (t === 3 ? 1.5 : 1),   // Sấm Sét vùng rộng x1,5 (khớp máy chủ)
         color: meta.color,
         ghostKey: `cross_${t}`,
         extraPayload: () => ({ crossType: member?.crossType ?? 1 }),

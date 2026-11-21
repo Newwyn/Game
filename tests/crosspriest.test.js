@@ -581,3 +581,22 @@ test('Caelum Skill 2 also boosts Skill 3: +3 smites immediately and +4s duration
     h.run('upTo(14000)');
     assert.equal(h.run('caelum.crossRadiance'), null, 'Thần Quang kết thúc sau 14 giây');
 });
+
+// người chơi 21/11: có cây cấp 3 rồi thì cây thả sau vào thẳng cấp 3; Sấm Sét vùng rộng x1,5
+test('Caelum: new crosses start at Lv3 once a Lv3 cross exists; lightning radius x1.5', () => {
+    const h = harness();
+    arena(h, { allies: ['warrior'], foes: [['monster_tank', 8, 0]] });
+    h.run('foes[0].hp = foes[0].maxHp = 500000;');
+    h.run('caelum.crossType = 1; cast(0, { x: 1, z: 0 })');
+    assert.equal(h.run('caelum.crosses[0].level'), 1);
+    h.run('caelum.skillCooldowns[0] = 0; caelum.crossType = 2; cast(0, { x: 2, z: 0 })');
+    assert.equal(h.run('caelum.crosses[1].level'), 1, 'chưa có cây cấp 3 -> cây mới cấp 1');
+    h.run('upTo(20100)');
+    assert.equal(h.run('caelum.crosses[0].level'), 3);
+    h.run('caelum.skillCooldowns[0] = 0; caelum.crossType = 3; cast(0, { x: 3, z: 0 })');
+    const c = json(h, 'caelum.crosses.at(-1)');
+    assert.equal(c.level, 3, 'đã có cây cấp 3 -> cây mới vào thẳng cấp 3');
+    assert.equal(c.levelAt, null);
+    assert.ok(Math.abs(c.radius - 4.2 * 1.5) < 1e-6, 'Sấm Sét cấp 3 bán kính 6,3');
+    assert.equal(h.run('caelum.crosses.at(-1).expireAt - room.clock'), 10000, 'cấp 3 có đủ 10 giây');
+});
