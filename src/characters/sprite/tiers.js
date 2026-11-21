@@ -15,7 +15,7 @@ const SSS_META = import.meta.glob('./*Sprite.json', { eager: true, import: 'defa
 
 // classId -> tên thư mục tranh
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou', crosspriest: 'caelum' };
 
 /** Bậc (0 Thường · 1 S · 2 SS · 3 SSS) -> hậu tố tranh, null = tranh gốc */
 export const tierOf = (rank) => (rank == null || rank >= 3 ? null : rank >= 2 ? 'ss' : 's');
@@ -44,7 +44,7 @@ export function tierPortrait(classId, look) {
     let image = paper ? paper.image : (t ? IMG[`../../assets/sprites/${art}_${t}_sprite.webp`] : null);
     let meta = paper ? paper.meta : (t ? META[`./${art}Sprite_${t}.json`] : null);
     let key = paper ? `${paper.key}_paper` : (t ? `${art}_${t}` : `${art}_sss`);
-    if (!paper && (!image || !meta) && classId === 'swordsage') {
+    if (!paper && (!image || !meta) && (classId === 'swordsage' || classId === 'crosspriest')) {
         // YunYou (chưa có tranh S/SS riêng): mọi bậc tạm dùng bộ SSS
         image = SSS_IMG[`../../assets/sprites/${art}_sprite.webp`];
         meta = SSS_META[`./${art}Sprite.json`];

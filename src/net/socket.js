@@ -25,7 +25,8 @@ export function enterServer(token, server) {
 
 /** Các lệnh gửi lên server — gom về một chỗ để dễ tìm */
 export const net = {
-    queueSkill: (memberIndex, skillIndex) => socket.emit('queueSkill', { memberIndex, skillIndex }),
+    queueSkill: (memberIndex, skillIndex, extra = null) => socket.emit('queueSkill', extra ? { memberIndex, skillIndex, ...extra } : { memberIndex, skillIndex }),
+    setCrossType: (memberIndex, type) => socket.emit('setCrossType', { memberIndex, type }),
     toggleAuto: (value) => socket.emit('toggleAuto', { value }),   // bật / tắt AUTO cho TẤT CẢ tướng
     togglePause: () => socket.emit('togglePause'),
     setSpeed: (speed) => socket.emit('setSpeed', { speed }),

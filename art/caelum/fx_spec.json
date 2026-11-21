@@ -1,0 +1,153 @@
+{
+ "note": "Hieu ung quanh 4 thanh gia Caelum (tranh Flow nen den). O so 8 bo vi Flow in dau ngoi sao mo -> vong lap 7 khung.",
+ "out": "src/assets/sprites/caelum_cross_fx.webp",
+ "meta": "src/vfx/caelumCrossFx.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "life": {
+   "file": "art/caelum/fx-cross-life.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "life",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "power": {
+   "file": "art/caelum/fx-cross-power.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "power",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "lightning": {
+   "file": "art/caelum/fx-cross-lightning.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "lightning",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "purify": {
+   "file": "art/caelum/fx-cross-purify.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.5,
+   "groups": [
+    {
+     "name": "purify",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "radiance": {
+   "file": "art/caelum/fx-cross-radiance.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "radiance",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  },
+  "judgement": {
+   "file": "art/caelum/fx-cross-judgement.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "judgement",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    }
+   ]
+  }
+ }
+}

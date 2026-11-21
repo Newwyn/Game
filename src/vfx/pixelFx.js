@@ -48,6 +48,10 @@ import * as electrified from '../vendor/pixelfx/fx/lightning/electrified.js';
 import * as fireball from '../vendor/pixelfx/fx/fire/fireball.js';
 import * as divineShield from '../vendor/pixelfx/fx/holy/divine-shield.js';
 import * as sunburst from '../vendor/pixelfx/fx/holy/sunburst.js';
+import * as smite from '../vendor/pixelfx/fx/holy/smite.js';            // Caelum: Holy Smite (chiêu 3)
+import * as holyPillar from '../vendor/pixelfx/fx/holy/holy-pillar.js'; // Caelum: Thần Quang rơi xuống
+import * as blessing from '../vendor/pixelfx/fx/holy/blessing.js';      // Caelum: ánh sáng phủ đồng đội khi Thần Quang
+import * as healAoe from '../vendor/pixelfx/fx/holy/heal-aoe.js';      // Caelum: Thánh giá Sinh Mệnh hồi máu (Healing ring)
 import * as waterAura from './pixelfx-custom/water-aura.js';   // tự vẽ: Thủy Vũ Hoàn (Nerissa múa)
 import * as thrust from '../vendor/pixelfx/fx/melee/thrust.js';
 import * as clawSwipe from '../vendor/pixelfx/fx/melee/claw-swipe.js';
@@ -90,7 +94,7 @@ const LIB = {
     'arcane/blink-out': blinkOut, 'arcane/blink-in': blinkIn, 'explosions/smoke-bomb': smokeBomb,
     'holy/heal': heal, 'holy/resurrection': resurrection, 'nature/leaf-storm': leafStorm, 'holy/feather-burst': featherBurst, 'status/haste': haste, 'custom/hawk-sight': hawkSight, 'custom/cast-flash': castFlash, 'custom/water-hit': waterHit, 'water/ripples': ripples, 'fire/meteor': meteor,
     'ice/frost-breath': frostBreath, 'weather/blizzard': blizzardW, 'weather/storm': stormW, 'nature/tornado': tornado,
-    'shadow/void-orb': voidOrb, 'lightning/electrified': electrified, 'fire/fireball': fireball, 'holy/divine-shield': divineShield, 'holy/sunburst': sunburst, 'custom/water-aura': waterAura, 'melee/thrust': thrust, 'melee/claw-swipe': clawSwipe,
+    'shadow/void-orb': voidOrb, 'lightning/electrified': electrified, 'fire/fireball': fireball, 'holy/divine-shield': divineShield, 'holy/sunburst': sunburst, 'holy/smite': smite, 'holy/holy-pillar': holyPillar, 'holy/blessing': blessing, 'holy/heal-aoe': healAoe, 'custom/water-aura': waterAura, 'melee/thrust': thrust, 'melee/claw-swipe': clawSwipe,
     'explosions/small-explosion': smallExplosion, 'explosions/big-explosion': bigExplosion, 'fire/flame-pillar': flamePillar,
     'fire/fire-ring': fireRing, 'arcane/spell-charge': spellCharge,
     'melee/scythe-reap': scytheReap, 'shadow/dark-explosion': darkExplosion, 'shadow/curse': curse, 'nature/quake': quake, 'impacts/heavy-landing': heavyLanding, 'melee/uppercut': uppercut, 'water/splash': splash, 'water/wave-crash': waveCrash, 'ice/ice-shatter': iceShatter, 'nature/acid-splash': acidSplash, 'nature/poison-cloud': poisonCloud, 'nature/healing-bloom': healingBloom, 'nature/thorns': thorns,
@@ -274,6 +278,7 @@ const HERO_SWING = {
     sylva_eagle: ['custom/cast-flash', 'gold'], elementalist: ['custom/cast-flash', 'arcane'],
     voidmage: ['custom/cast-flash', 'arcane'],
     swordsage: null,   // YunYou: đòn thường đã có đường kiếm khí riêng (swordFx) — vệt chém chung hiện lệch chỗ khi anh ta đang lượn
+    crosspriest: ['custom/cast-flash', 'holy'],
     chessmaster: ['custom/cast-flash', 'gold'], chess_bishop: ['custom/cast-flash', 'arcane'], chess_queen: ['custom/cast-flash', 'holy'],
     chess_pawn: ['melee/sword-slash', 'gold'], chess_rook: ['melee/thrust', 'gold'], chess_knight: ['melee/sword-slash', 'gold'], chess_king: ['melee/sword-slash', 'gold'],
 };

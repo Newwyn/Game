@@ -99,6 +99,8 @@ import {
     spawnExtraSwords, spawnSkyFormation, beginFormationRain, endSkyFormation, spawnSwordRainTick,
     launchFormationGiantSword, explodeFormationGiantSword, clearSwordFx, JADE_PAL,
 } from '../vfx/swordFx.js';
+import { playCrossFxEvent, clearCrossFx } from '../vfx/crossFx.js';
+import { cancelDragCast } from '../ui/dragCast.js';
 
 setVfxClock(gameNow); // đếm ngược Ấn theo đồng hồ trận
 
@@ -197,8 +199,9 @@ function onAutoAttack(data) {
         }
     };
 
-    // Tu Sĩ: giơ gậy phóng cầu ánh sáng (sát thương phép), số hiện khi cầu chạm
-    if (attacker.squad?.[data.attackerIndex]?.classId === 'priest') {
+    // Tu Sĩ / Caelum: giơ gậy phóng cầu ánh sáng (sát thương phép), số hiện khi cầu chạm
+    const atkCls = attacker.squad?.[data.attackerIndex]?.classId;
+    if (atkCls === 'priest' || atkCls === 'crosspriest') {
         const fire = () => {
             autoSwingFx(attackerView, attacker.squad?.[data.attackerIndex], game.classDefs?.[attacker.squad?.[data.attackerIndex]?.classId], { palette: ELEM_SWING[attacker.squad?.[data.attackerIndex]?.held?.slice(-1)[0]] });   // + hiệu ứng ra đòn (pixelfx)
             const target = getView(data.targetId, data.targetIndex);
@@ -792,6 +795,13 @@ function onSkillExecuted(data) {
             caster.flashMagicCircle?.(0.75);
             spawnChessCast(caster, data.type);
             if (data.effects?.length) data.effects.forEach(processHit);
+            break;
+        }
+        case 'cross_place':
+        case 'cross_hymn':
+        case 'cross_radiance': {
+            caster.playAction?.(data.type === 'cross_radiance' ? 'raise' : data.type === 'cross_hymn' ? 'hymn' : 'place');
+            caster.flashMagicCircle?.(0.75);
             break;
         }
         case 'aoe_damage':
@@ -2337,8 +2347,10 @@ export function registerCombatEvents(hooks = {}) {
     socket.on('waiting', (data) => hooks.onWaiting?.(data));
 
     socket.on('battleStart', (data) => {
+        cancelDragCast();
         clearChessFx();
         clearSwordFx();
+        clearCrossFx();
         buildBattleScene(data);
         Object.values(game.views ?? {}).flat().forEach(v => { if (v?.member?.summon) ensureSummonTag(v); });
         hooks.onBattleStart?.(data);
@@ -2427,12 +2439,13 @@ export function registerCombatEvents(hooks = {}) {
             showDamage: (view, e) => showHit(view, { ...e, isCrit: true }),
         });
     });
-    socket.on('battleEnd', () => { clearBossUlt(); clearChessFx(); clearSwordFx(); });
-    socket.on('mainMenu', () => { clearBossUlt(); clearChessFx(); clearSwordFx(); });
+    socket.on('battleEnd', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); });
+    socket.on('mainMenu', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('voidFx', (d) => onVoidFx(d));
     socket.on('chessFx', (d) => onChessFx(d));
     socket.on('swordFx', (d) => onSwordFx(d));
+    socket.on('crossFx', onCrossFx);
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
@@ -3324,4 +3337,14 @@ function onChessFx(d) {
     }
 }
 
-export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onVoidFx, onChessFx, onFireHits, onFireGod, onCastStart };
+function onCrossFx(d) {
+    if (!d || typeof d.kind !== 'string') return;
+    playCrossFxEvent(d, {
+        getView,
+        opponentIdOf,
+        onDamageNumber: (tv, eff) => showHit(tv, eff, { fx: false }),
+        onHealNumber: (tv, hp) => spawnDamageNumber(hoverPos(tv), hp, 'heal'),
+    });
+}
+
+export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onVoidFx, onChessFx, onCrossFx, onFireHits, onFireGod, onCastStart };

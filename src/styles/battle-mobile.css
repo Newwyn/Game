@@ -623,4 +623,21 @@
         font-size: 9px;
         -webkit-line-clamp: 1;
     }
+
+    #combat-hud .cross-tray {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2px;
+        margin-bottom: 2px;
+    }
+
+    #combat-hud .cross-type-btn {
+        font-size: 7.5px;
+        padding: 2px 1px;
+        gap: 2px;
+    }
+
+    #combat-hud .cross-type-btn .ct-dot {
+        width: 4px;
+        height: 4px;
+    }
 }

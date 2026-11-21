@@ -1,0 +1,12 @@
+{"note": "Caelum (Tu Si Thanh Gia) bac SSS: Flow ve 21/11/2026 (PNG 1152x864 -> scale 1.333); danh thuong do Antigravity ve (JPG 1264x848 -> scale 1.215)", "atlasScale": 0.75, "maxWidth": 4096, "pad": 6, "calib": "idle1", "key": "jade", "footBand": 16, "footMin": 25, "solidFeet": true,
+ "out": "src/assets/sprites/caelum_sprite", "meta": "src/characters/sprite/caelumSprite.json", "format": "webp",
+ "sheets": {
+  "idle": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-idle.png", "groups": [["idle", 4, "body"], ["ready", 4, "body"]]},
+  "attack": {"scale": 1.215, "split": true, "file": "art/caelum/sprite/sss-attack.jpg", "anchor": "body"},
+  "move": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-move.png", "anchor": "body"},
+  "place": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-place.png", "anchor": "body"},
+  "pray": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-pray.png", "anchor": "body"},
+  "smite": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-smite.png", "anchor": "body"},
+  "hurt-stun": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-hurt-stun.png", "groups": [["hurt", 4, "body"], ["stun", 4, "body"]]},
+  "dead-victory": {"scale": 1.333, "split": true, "file": "art/caelum/sprite/sss-dead-victory.png", "groups": [["dead", 4, "toe"], ["victory", 4, "body"]], "ground": "group"}
+ }}

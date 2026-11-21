@@ -559,6 +559,50 @@ const CLASS_DEFS = {
               desc: 'Mỗi đòn kiếm không chí mạng: +{value‰} tỉ lệ chí mạng cho các đòn kế tiếp (đặt lại về 0 khi chí mạng) · mỗi đòn chí mạng: +{critDmg‰} sát thương chí mạng trong 8s (tối đa 5 tầng, làm mới khi chí mạng)' },
         ]
     },
+    crosspriest: {
+        name: 'Caelum', title: 'Thánh Giá', className: 'Tu Sĩ', emoji: '✝️', color: '#eab308', dmgType: 'magic',
+        classGroup: 'priest', race: 'elf',
+        maxHp: 1040, maxMp: 5000, pAtk: 0, mAtk: 190, pDef: 42, mDef: 88,
+        crit: 100, critDmg: 500, acc: 1000, dodge: 110, pen: 20, block: 0, lifesteal: 0,
+        threat: 100,
+        mpAtk: 240, mpSec: 155,
+        atkSpeed: 1050, range: 'ranged', atkRange: 10, moveSpeed: 0.01,
+        autoHitFrame: 2, autoImpact: 470,
+        skills: [
+            // Thánh Giá: đặt Thánh giá theo loại đang chọn (1 Sinh Mệnh · 2 Uy Lực · 3 Sấm Sét · 4 Thanh Tẩy) trong tầm 14;
+            // tối đa 4 cây (cây thứ 5 thay cây cũ nhất và kế thừa cấp/thời gian, riêng cấp 3 nhận lại 10s mới)
+            { name: 'Thánh Giá', orbCost: 2, cooldown: 5000, castTime: 0, type: 'cross_place', castRange: 14, impact: 200, lock: 400,
+              maxCrosses: 4, levelMs: 10000, lv3Ms: 10000, radii: [3, 3.6, 4.2],
+              dragTarget: { range: 14, radii: [3, 3.6, 4.2] },
+              powerScale: 1, statScale: 1,
+              byRank: { powerScale: [1, 1.15, 1.32, 1.50], statScale: [1, 1.08, 1.16, 1.25] },
+              life: { every: 2000, healMult: [0.32, 0.45, 0.60], healPct: [0.02, 0.03, 0.04], orbGain: [0.20, 0.28, 0.36],
+                      healCut: [0.30, 0.40, 0.50], orbRegenCut: [0.25, 0.35, 0.45], orbDrain: [0.14, 0.20, 0.28], cutDuration: 2500 },
+              power: { linger: 1000, allyAtk: [0.12, 0.16, 0.22], allyDef: [0.12, 0.16, 0.22], allySpeed: [0.10, 0.15, 0.20],
+                       enemyAtk: [0.10, 0.14, 0.18], enemyDef: [0.10, 0.14, 0.18], enemySpeed: [0.10, 0.14, 0.18] },
+              lightning: { every: 1000, boltMult: [0.65, 0.90, 1.20], stun: 500, stunImmune: 2000 },
+              purify: { every: 3000, shieldEvery: 5000, shieldDuration: 5000, shieldMult: [0.60, 0.85, 1.15], shieldPct: [0.06, 0.08, 0.11],
+                        stripCount: [1, 1, 2], ccDown: [0.25, 0.35, 0.45], debuffDuration: 1000 } },
+            // Thánh Ca: mọi Thánh giá của Caelum kích hoạt hiệu ứng ngay 3 lần; < cấp 3 giảm 4s tới lần lên cấp kế, cấp 3 +4s tồn tại
+            { name: 'Thánh Ca', orbCost: 2, cooldown: 7000, byRank: { cooldown: [7000, 6200, 5500, 4800] },
+              castTime: 0, type: 'cross_hymn', castRange: 99, impact: 180, lock: 420,
+              triggers: 3, advanceMs: 4000, extendMs: 4000 },
+            // Thần Quang: đặt Đại Thánh Giá ở trung tâm (0, 0) tác động toàn sân 10s (không tính vào giới hạn 4 cây, huỷ nếu Caelum chết)
+            { name: 'Thần Quang', orbCost: 4, cooldown: 20000, castTime: 0, type: 'cross_radiance', castRange: 99, impact: 200, lock: 500,
+              duration: 10000, every: 1000, explodeEvery: 5, debuffTime: 2500,
+              smiteMult: 0.55, explodeMult: 1.4, enemyDmgDown: 0.15, enemyDefDown: 0.15, teamAtkUp: 0.15, teamDefUp: 0.15,
+              byRank: { smiteMult: [0.55, 0.65, 0.78, 0.92], explodeMult: [1.4, 1.65, 1.95, 2.3],
+                        enemyDmgDown: [0.15, 0.17, 0.20, 0.22], enemyDefDown: [0.15, 0.18, 0.22, 0.25],
+                        teamAtkUp: [0.15, 0.18, 0.22, 0.25], teamDefUp: [0.15, 0.18, 0.22, 0.25] } },
+        ],
+        passives: [
+            { name: 'Ánh Sáng Thống Nhất', type: 'cross_aura_atk', talent: 1, maxStacks: 4, levels: { value: [0.04, 0.04, 0.04] },
+              desc: 'Mỗi Thánh giá kỹ năng 1 đang tồn tại trên sân tăng +{value%} Tấn công cho cả đội (tối đa 4 Thánh giá = +16%)' },
+            { name: 'Thánh Giá Hiến Tế', type: 'cross_mass', talent: 2, orbRefund: 1, maxRevivePct: 0.80, cooldown: 30000,
+              levels: { perCrossPct: [0.20, 0.20] },
+              desc: 'Mỗi Thánh giá kỹ năng 1 kết thúc (bị thay thế hoặc hết giờ) hoàn 1 Orb · khi Caelum tử trận (hồi 30s), mọi Thánh giá còn lại bay về hồi sinh Caelum với 20% máu tối đa mỗi Thánh giá (tối đa 80%, tiêu thụ hết)' },
+        ]
+    },
     // Golem Nguyên Tố — do Nguyên Tố Hợp Nhất (Elarion) gọi ra 25s. Là nhân vật bình thường trên sân (bị đánh, nhận buff,
     //   tính thắng thua) nhưng không có thẻ HUD, không được hồi sinh. Chỉ số tính theo pháp sư lúc gọi (xem summonGolem).
     //   Cứ 2 đòn đánh thường -> dùng 1 kỹ năng ngẫu nhiên đang sẵn sàng (mỗi kỹ năng hồi 10s); bị choáng lúc niệm thì mất kỹ năng.
@@ -894,7 +938,7 @@ const CLASS_DEFS = {
 
 // We will use 1 Assassins if TEST_MODE is active
 // Elarion ('elementalist'): đang dùng HÌNH TẠM (chờ tranh — art/elarion/PROMPTS.md)
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage', 'crosspriest'];
 
 // ============================================================
 // GAME STATE
@@ -1087,6 +1131,7 @@ function createSquad(side, disabled = [], heroes = null) {
         };
         applyProgress(m, heroes?.[classId] ?? { level: 1, rank: 0 });
         if (classId === 'swordsage') m.airborne = false;
+        if (classId === 'crosspriest') { m.crossType = 1; m.crosses = []; }
         m.hp = m.maxHp;
         // Mọi tướng vào trận có sẵn 1,5 Orb; tộc Human — Thích Nghi: cộng thêm MP
         m.mp = START_MP;
@@ -1592,6 +1637,35 @@ function getEffectiveStats(member, now) {
         if (ef.type === 'sword_atk') stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.per ?? 0.1) * (ef.stacks ?? 1)));
         if (ef.type === 'sword_crit') stats.crit += (ef.per ?? 0) * (ef.stacks ?? 1);
         if (ef.type === 'sword_critdmg') stats.critDmg += (ef.per ?? 0) * (ef.stacks ?? 1);
+        // ---- Caelum (Thánh Giá) ----
+        if (ef.type === 'cross_power_ally') {
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.atkUp ?? 0)));
+            stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.atkUp ?? 0)));
+            stats.pDef = Math.floor(stats.pDef * (1 + (ef.defUp ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * (1 + (ef.defUp ?? 0)));
+            stats.atkSpeed = Math.floor(stats.atkSpeed / (1 + (ef.atkSpeedUp ?? 0)));
+        }
+        if (ef.type === 'cross_power_enemy') {
+            stats.pAtk = Math.floor(stats.pAtk * Math.max(0.1, 1 - (ef.atkDown ?? 0)));
+            stats.mAtk = Math.floor(stats.mAtk * Math.max(0.1, 1 - (ef.atkDown ?? 0)));
+            stats.pDef = Math.floor(stats.pDef * Math.max(0.1, 1 - (ef.defDown ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * Math.max(0.1, 1 - (ef.defDown ?? 0)));
+            stats.atkSpeed = Math.floor(stats.atkSpeed * (1 + (ef.atkSpeedDown ?? 0)));
+        }
+        if (ef.type === 'cross_team_atk') {
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.value ?? 0)));
+            stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.value ?? 0)));
+        }
+        if (ef.type === 'cross_radiance_buff') {
+            stats.pAtk = Math.floor(stats.pAtk * (1 + (ef.atkUp ?? 0)));
+            stats.mAtk = Math.floor(stats.mAtk * (1 + (ef.atkUp ?? 0)));
+            stats.pDef = Math.floor(stats.pDef * (1 + (ef.defUp ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * (1 + (ef.defUp ?? 0)));
+        }
+        if (ef.type === 'cross_smite_debuff') {
+            stats.pDef = Math.floor(stats.pDef * Math.max(0.1, 1 - (ef.defDown ?? 0)));
+            stats.mDef = Math.floor(stats.mDef * Math.max(0.1, 1 - (ef.defDown ?? 0)));
+        }
     });
 
     // Bàn cờ của Leon — có Hậu: quân cờ +tốc đánh
@@ -1612,6 +1686,9 @@ function getEffectiveStats(member, now) {
     const tenOn = member.statusEffects.find(ef => ef.type === 'tenacity_on' && ef.endTime > now && ef.value != null);
     if (tenOn) stats.tenacity = tenOn.value;
     stats.tenacityCap = Math.max(P.STAT_CAPS.tenacity.cap, tenOn?.cap ?? 0);
+    // Caelum (Thanh Tẩy): giảm kháng hiệu ứng (giảm Kiên Cường + tăng thời gian khống chế nhận vào ở ccTime)
+    const crossCc = member.statusEffects.find(ef => ef.type === 'cross_cc_down' && ef.endTime > now);
+    if (crossCc?.value) stats.tenacity = Math.max(0, (stats.tenacity ?? 0) - Math.round(crossCc.value * 500));
 
     // 🍲 món ăn (game/cooking.js): tăng tấn công / phòng thủ ngắn hạn
     const meal = member.statusEffects.find(ef => ef.type === 'meal_buff' && ef.endTime > now);
@@ -1641,7 +1718,9 @@ function ccTime(target, ms, now) {
     const night = target.statusEffects?.find(ef => ef.type === 'reaper_form' && ef.endTime > now && ef.ccResist); // Đêm Tử Thần
     const ward = target.statusEffects?.find(ef => ef.type === 'fire_ward' && ef.endTime > now && ef.hp > 0 && ef.ccResist); // Giáp Lửa
     const wgod = target.statusEffects?.find(ef => ef.type === 'water_god' && ef.endTime > now && ef.ccResist);     // Thủy Thần Vũ
-    return Math.round(ms * (1 - ten / 1000) * (1 - (holy?.ccResist ?? 0)) * (1 - (fire?.ccResist ?? 0)) * (1 - (night?.ccResist ?? 0)) * (1 - (ward?.ccResist ?? 0)) * (1 - Math.min(1, wgod?.ccResist ?? 0)));
+    const ccDown = target.statusEffects?.find(ef => ef.type === 'cross_cc_down' && ef.endTime > now)?.value ?? 0;   // Caelum (Thanh Tẩy)
+    const dampen = 1 - Math.min(0.6, ccDown);
+    return Math.round(ms * (1 - ten / 1000) * (1 - (holy?.ccResist ?? 0) * dampen) * (1 - (fire?.ccResist ?? 0) * dampen) * (1 - (night?.ccResist ?? 0) * dampen) * (1 - (ward?.ccResist ?? 0) * dampen) * (1 - Math.min(1, (wgod?.ccResist ?? 0) * dampen)) * (1 + ccDown));
 }
 
 // ============================================================
@@ -1658,7 +1737,7 @@ function isBehind(attacker, target) {
 //     khiên còn lại thành "dormant": mất máu khiên nhưng VẪN giữ hiệu ứng buff (vd +thủ, kháng choáng, cánh miễn choáng) tới hết thời gian.
 //   · Khiên ĐẶC TRƯNG (signature, vd Dựng Khiên của Chiến Binh) luôn được dùng, bất kể máu khiên khác nhiều hơn.
 // ============================================================
-const SHIELD_TYPES = new Set(['boss_shield', 'guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield', 'chess_pawn_shield', 'chess_castle', 'chess_crown', 'chess_sacrifice']);
+const SHIELD_TYPES = new Set(['boss_shield', 'guard', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield', 'gear_shield', 'chess_pawn_shield', 'chess_castle', 'chess_crown', 'chess_sacrifice', 'cross_shield']);
 const isSignatureShield = (ef) => ef.type === 'guard';
 
 /** Khiên đang hứng sát thương (null nếu không có) */
@@ -1815,6 +1894,9 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     // Độc Long (Brakk chỉ còn 1 mình trên sân): sát thương ×2
     const lone = attacker.statusEffects?.find(ef => ef.type === 'lone_dragon' && ef.endTime > now);
     if (lone) damage *= 1 + (lone.value ?? 1);
+    // Thần Quang (Caelum): kẻ địch giảm sát thương gây ra
+    const smiteWeak = attacker.statusEffects?.find(ef => ef.type === 'cross_smite_debuff' && ef.endTime > now);
+    if (smiteWeak?.dmgDown) damage *= Math.max(0.1, 1 - smiteWeak.dmgDown);
     // Kiên Cường (Chiến Binh): giảm sát thương nhận
     if (tgtEff.tenacity) damage *= 1 - Math.min(tgtEff.tenacityCap ?? P.STAT_CAPS.tenacity.cap, tgtEff.tenacity) / 1000;
 
@@ -2226,6 +2308,18 @@ io.on('connection', (socket) => {
         m.autoOn = !!data.value;
     });
 
+    socket.on('setCrossType', (data = {}) => {
+        const roomId = socket.roomId;
+        if (!roomId || !rooms[roomId]) return;
+        const playerData = rooms[roomId].players[socket.id];
+        if (!playerData) return;
+        const member = playerData.squad[data.memberIndex | 0];
+        const t = Number(data.type) | 0;
+        if (!member || member.classId !== 'crosspriest' || t < 1 || t > 4) return;
+        member.crossType = t;
+        io.to(roomId).emit('crossFx', { kind: 'type', casterId: socket.id, casterIdx: data.memberIndex | 0, crossType: t });
+    });
+
     socket.on('queueSkill', (data) => {
         const roomId = socket.roomId;
         if (!roomId || !rooms[roomId]) return;
@@ -2238,11 +2332,17 @@ io.on('connection', (socket) => {
         if (!member || !member.alive || skillIndex === undefined || member.summon) return;
 
         if (isSealed(member, rooms[roomId].clock)) return;
-        if (member.queuedSkills.includes(skillIndex)) {
+        const hasPt = data.point && Number.isFinite(Number(data.point.x)) && Number.isFinite(Number(data.point.z));
+        if (hasPt) {
+            (member.queuedTargets ??= {})[skillIndex] = { x: Number(data.point.x), z: Number(data.point.z), crossType: data.crossType };
+            if (!member.queuedSkills.includes(skillIndex)) member.queuedSkills.push(skillIndex);
+        } else if (member.queuedSkills.includes(skillIndex)) {
             // Toggle off: Remove from queue
             member.queuedSkills.splice(member.queuedSkills.indexOf(skillIndex), 1);
+            if (member.queuedTargets) delete member.queuedTargets[skillIndex];
         } else {
             // Add to queue
+            if (member.queuedTargets) delete member.queuedTargets[skillIndex];
             member.queuedSkills.push(skillIndex);
         }
     });
@@ -2422,6 +2522,7 @@ io.on('connection', (socket) => {
         stopLoop(room);
         cancelRoomJudgments(room);
         cancelRoomSwordFormations(room, 'battleEnd');
+        cancelRoomCrosses(room, 'battleEnd');
         room.status = 'menu';
         room.winner = null;
         room.pending = [];
@@ -2861,6 +2962,7 @@ io.on('connection', (socket) => {
         }
 
         // Restart logic
+        cancelRoomCrosses(room, 'reset');
         Object.values(room.players).forEach(p => {
             p.squad = room.isBotMatch ? (p.isNPC ? enemySquadFor(room) : mySquadFor(room, p))
                 : createSquad(p.side, p.disabledClasses, p.progressKey ? heroesWithGear(progressOf(p.progressKey)) : null);
@@ -2990,6 +3092,8 @@ function startBattleLoop(roomId) {
 
             // Leon: bàn cờ (báo máy khách khi đổi) + quang cầu của Hậu
             if (opponentData) processChessTeam(room, playerId, opponentId, now);
+            // Caelum: thánh giá (tồn tại cả khi Caelum gục nếu hồi chiêu hồi sinh chưa sẵn) + Thần Quang
+            processRoomCrosses(room, playerId, opponentId, now);
 
             // 2. BATTLE LOGIC (Movement & Combat)
             playerData.squad.forEach((member, memberIndex) => {
@@ -3220,7 +3324,7 @@ function startBattleLoop(roomId) {
                     const hasEnoughMana = canUse(skillIdxToCast) && (playerData.debugNoMana || member.mp >= Math.max(cost, (skillDef.minOrbs ?? 0) * ORB_COST));
                     const isOffCooldown = (playerData.debugNoMana || now >= member.skillCooldowns[skillIdxToCast]) && !danceOn(member, skillDef.type, now);
                     if (hasEnoughMana && isOffCooldown) {
-                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole', 'chess_guard', 'chess_strike', 'chess_royal', 'sword_haste', 'sword_multi', 'sword_formation'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen · YunYou: đứng tại chỗ dùng chiêu
+                        const isSelfBuff = ['stealth', 'self_buff', 'taunt', 'fortress', 'guard', 'wind_spirit', 'heal', 'holy_shield', 'pray', 'fire_god', 'reaper_night', 'brakk_stomp', 'brakk_giant', 'dance_tide', 'dance_flow', 'dance_god', 'elem_book', 'elem_spell', 'elem_storm', 'goblin_flask', 'goblin_bog', 'goblin_detonate', 'sylva_call', 'sylva_bear', 'sylva_deer', 'void_starfall', 'void_blackhole', 'chess_guard', 'chess_strike', 'chess_royal', 'sword_haste', 'sword_multi', 'sword_formation', 'cross_place', 'cross_hymn', 'cross_radiance'].includes(skillDef.type);   // Grix: tác dụng khắp bản đồ, dùng tại chỗ · Nyx: Sao Rơi / Hố Đen · YunYou: đứng tại chỗ dùng chiêu · Caelum: đặt/kích hoạt Thánh giá tại chỗ
                         const reqRange = isSwordAirborne(member) ? Infinity : (skillDef.castRange !== undefined ? skillDef.castRange : attackRangeOf(member, now));
                         
                         const dx = target ? target.x - member.x : 0;
@@ -3242,6 +3346,8 @@ function startBattleLoop(roomId) {
                             return; 
                         } else {
                             member.queuedSkills.splice(member.queuedSkills.indexOf(skillIdxToCast), 1); // Dequeue
+                            const targetPt = member.queuedTargets?.[skillIdxToCast] ?? null;
+                            if (member.queuedTargets) delete member.queuedTargets[skillIdxToCast];
                             if (!playerData.debugNoMana) member.mp -= cost;
                             // hồi chiêu = gồng + diễn + hồi (executeSkill đặt lại chính xác lúc diễn xong;
                             // trong lúc gồng / diễn HUD giữ nguyên số đầy, diễn xong mới đếm)
@@ -3252,6 +3358,7 @@ function startBattleLoop(roomId) {
                                 member.state = 'casting';
                                 member.castingSkillId = skillIdxToCast;
                                 member.castEndTime = now + castMs;
+                                if (targetPt) member.castingTargetPt = targetPt;
                                 if (skillDef.type === 'goblin_detonate') member.statusEffects.push({ type: 'goblin_float', endTime: now + castMs + skillDef.impact + 300 });
                                 io.to(roomId).emit('castStart', {
                                     casterId: playerId, casterIdx: memberIndex,
@@ -3260,7 +3367,7 @@ function startBattleLoop(roomId) {
                                 return; // Stop here, now we are casting
                             } else {
                                 // Instant cast
-                                executeSkill(roomId, playerId, memberIndex, opponentId, skillIdxToCast);
+                                executeSkill(roomId, playerId, memberIndex, opponentId, skillIdxToCast, targetPt ? { point: targetPt } : {});
                                 return; // Skill cast takes priority over attack this tick
                             }
                         }
@@ -3635,6 +3742,28 @@ function autoChooseSkill(member, idx, playerData, opponentData, now) {
         return -1;
     }
 
+    if (member.classId === 'crosspriest') {
+        // Caelum:
+        //   1. Thần Quang (KN3): dùng khi đội đang giao tranh (có ≥ 2 địch hoặc trùm, hoặc đồng đội dưới 70% máu) và chưa bật Thần Quang
+        //   2. Đặt Thánh Giá (KN1): chọn loại theo tình huống (đồng đội mất máu -> 1; địch tụ cụm -> 3; hiệu ứng xấu/lợi -> 4; còn lại -> 2)
+        //   3. Thánh Ca (KN2): khi đã có Thánh giá trên sân (ưu tiên khi ≥ 2 cây, hoặc ≥ 1 cây khi KN3 còn hồi lâu / dư Orb)
+        const crosses = member.crosses ?? [];
+        const hasBoss = enemies.some(e => e.boss || CLASS_DEFS[e.classId]?.boss);
+        const hurtAlly = allies.some(a => a.alive && !a.summon && hpPct(a) < 0.7);
+        if (ready(2) && !member.crossRadiance && (enemies.length >= 2 || hasBoss || hurtAlly)) return 2;
+        const needReserveS3 = !member.crossRadiance && cdLeft(2) < 2500 && orbs < 5 && crosses.length >= 2;
+        if (ready(1) && crosses.length >= 1 && !needReserveS3 && (crosses.length >= 2 || cdLeft(2) > 4000 || orbs >= 4)) return 1;
+        if (ready(0) && (!needReserveS3 || crosses.length === 0)) {
+            const pickedType = autoChooseCrossType(member, playerData, opponentData, now);
+            if (member.crossType !== pickedType) {
+                member.crossType = pickedType;
+                if (curRoom?.id) emitCross(curRoom.id, { kind: 'type', casterId: locate(member)?.pid, casterIdx: idx, crossType: pickedType });
+            }
+            return 0;
+        }
+        return -1;
+    }
+
     // Lớp khác (chưa có AI riêng): ưu tiên kỹ năng mạnh nhất đang sẵn sàng
     for (let i = skillsOf(member).length - 1; i >= 0; i--) if (ready(i)) return i;
     return -1;
@@ -3967,6 +4096,11 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
     } else if (skillDef.type?.startsWith('chess_')) {
         // ---- Leon: gọi quân / Nước Cờ Thủ / Nước Cờ Công (theo chế độ đang có của nút) ----
         castChessSkill(room, casterId, casterIdx, actualOpponentId, skillDef, now, effects, extra);
+    } else if (skillDef.type?.startsWith('cross_')) {
+        // ---- Caelum: Thánh Giá · Thánh Ca · Thần Quang ----
+        const pt = opts.point ?? member.castingTargetPt ?? null;
+        member.castingTargetPt = null;
+        castCrossSkill(room, casterId, casterIdx, actualOpponentId, skillIdx, skillDef, now, effects, extra, pt);
     } else if (skillDef.type === 'goblin_flask') {
         extra.flasks = goblinFlasks(room, member, opponentData.squad, skillDef, now);
         for (const flask of extra.flasks)
@@ -4454,8 +4588,9 @@ function dealDamage(target, dmg, oppData, delay = 0, after, attacker, hit) {
     if (target.chessKind === 'king' && (dmg > 0 || hit?.absorbed > 0)) later(delay, () => chessKingHit(target));   // Vương Miện: Vua bị đánh trúng -> người đội vương miện hồi máu
     if (oppData.debugGodMode || !(dmg > 0)) { if (after) later(delay, after); return false; }
     target.pendingDmg = (target.pendingDmg || 0) + dmg;
-    const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, curRoom?.clock ?? Date.now())
-        && !voidLifeReady(target);   // Nyx còn Mượn Mạng: đòn này không hạ gục được
+    const nowClk = curRoom?.clock ?? Date.now();
+    const willKill = !target.ult && target.hp - target.pendingDmg <= 0 && !reaperForm(target, nowClk)
+        && !voidLifeReady(target) && !crossReviveReady(target, nowClk);   // Nyx còn Mượn Mạng / Caelum còn Thánh Giá Hiến Tế: đòn này không hạ gục được
     later(delay, () => {
         target.pendingDmg = Math.max(0, (target.pendingDmg || 0) - dmg);
         const tt = curRoom?.clock ?? Date.now();
@@ -4797,7 +4932,7 @@ function healUnit(m, amount, now = curRoom?.clock ?? Date.now()) {
 /** Tỉ lệ giảm hồi máu đang chịu (Ấn Tử) */
 function healCutOf(m, now) {
     const active = (m.statusEffects ?? []).filter(ef => ef.endTime > now);
-    const base = Math.max(0, ...active.filter(ef => ef.type === 'death_mark' || ef.type === 'toxic' || ef.type === 'boss_curse').map(ef => ef.healCut ?? 0));
+    const base = Math.max(0, ...active.filter(ef => ef.type === 'death_mark' || ef.type === 'toxic' || ef.type === 'boss_curse' || ef.type === 'cross_life_cut').map(ef => ef.healCut ?? 0));
     const rot = Math.max(0, ...active.filter(ef => ef.type === 'venom_rot').map(ef => ef.healCut ?? 0));
     return Math.min(0.9, base + rot);
 }
@@ -4864,8 +4999,15 @@ function killMember(target, squad) {
     if (enterSecondForm(target)) return;   // trùm 2 dạng (Valdric): gục lần đầu -> sống lại dạng 2
     // Mượn Mạng (Nyx): đường chết KHÔNG qua dealDamage (Thần Chết phán quyết, đòn nổ Phán Quyết của trùm, tool hạ gục) cũng được cứu 1 lần
     if (voidCheatDeath(curRoom, locate(target)?.pid, target, curRoom?.clock ?? Date.now())) return;
+    // Thánh Giá Hiến Tế (Caelum, thiên phú 2): nếu còn Thánh giá kỹ năng 1 & hết hồi 30s -> tiêu thụ toàn bộ Thánh giá để hồi sinh
+    if (tryCrossRevive(curRoom, target, curRoom?.clock ?? Date.now())) return;
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
+    // Caelum gục hẳn: huỷ Đại Thánh Giá (Thần Quang); các Thánh giá KN1 giữ nguyên tới hết giờ
+    if (target.classId === 'crosspriest' && target.crossRadiance) {
+        const at = locate(target);
+        if (at && curRoom) cancelCrossRadiance(curRoom, target, at.pid, at.idx, 'death');
+    }
     target.wardOn = false;   // Giáp Lửa mất theo
     // Elarion gục: tắt SolarBeam / mưa giông đang thi triển
     if (target.statusEffects.some(ef => ef.type === 'elem_beam' || ef.type === 'elem_rain')) {
@@ -5350,6 +5492,7 @@ function processStageTimer(room) {
     room.winner = winnerId; room.stageTimeout = true;
     cancelRoomJudgments(room);
     if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
+    if (typeof cancelRoomCrosses === 'function') cancelRoomCrosses(room, 'battleEnd');
     io.to(room.id).emit('battleEnd', { winnerId, loserId, timeout: true });
     finishStage(room, false);
     return true;
@@ -5792,16 +5935,22 @@ const DANCE_NUM = { dance_tide: 1, dance_flow: 2, dance_god: 3 };
 //   (bản cũ chỉ áp cho điệu múa / Tàng Hình / Đại Bộc Phá, đo theo tầm Lyra.) `skillType` giữ trong chữ ký cho các chỗ gọi cũ.
 const FOE_REACH_SLACK = 0.3;   // dư một chút cho khỏi chập chờn đúng mép tầm đánh
 function foeInReach(member, skillType, oppSquad, now) {
-    const r = attackRangeOf(member, now) + FOE_REACH_SLACK;
-    return (oppSquad ?? []).some(e => canBeTargeted(e, now, member) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r);
+    let r = attackRangeOf(member, now);
+    if (skillType === 'cross_place' || skillType === 'cross_hymn' || skillType === 'cross_radiance') {
+        const castR = skillsOf(member)?.find(s => s.type === 'cross_place')?.castRange ?? 14;
+        r = Math.max(r, castR);
+        if (skillType === 'cross_hymn' && ((member.crosses?.length ?? 0) > 0 || (member.crossRadiance && !member.crossRadiance.done && !member.crossRadiance.cancelled)) && oppSquad?.some(e => canBeTargeted(e, now, member))) return true;
+    }
+    return (oppSquad ?? []).some(e => canBeTargeted(e, now, member) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r + FOE_REACH_SLACK);
 }
-/** Hệ số tốc độ hồi Orb (MP mỗi giây + MP mỗi đòn): Elarion — Tốc Lôi ×2, mỗi tầng Cộng Hưởng Lôi +10/15/20% */
+/** Hệ số tốc độ hồi Orb (MP mỗi giây + MP mỗi đòn): Elarion — Tốc Lôi ×2, Cộng Hưởng Lôi · Caelum — Sinh Mệnh giảm hồi Orb địch */
 function orbRegenMult(m, now) {
     let k = 1;
     for (const ef of m.statusEffects ?? []) {
         if (ef.endTime <= now) continue;
         if (ef.type === 'storm_self' && ef.orbRegen) k *= ef.orbRegen;
         else if (ef.type === 'attune_bolt' && ef.orb) k *= 1 + ef.orb * (ef.stacks ?? 0);
+        else if (ef.type === 'cross_life_cut' && ef.orbCut) k *= Math.max(0, 1 - ef.orbCut);
     }
     return k;
 }
@@ -7737,6 +7886,665 @@ function swordAfterAuto(roomId, pid, idx, oppId, targetIdx, now) {
 }
 
 // ============================================================
+// CAELUM (Thánh Giá, `crosspriest`) — Tu Sĩ đặt Thánh Giá
+//   · KN1: đặt Thánh giá 4 loại (1 Sinh Mệnh · 2 Uy Lực · 3 Sấm Sét · 4 Thanh Tẩy), tối đa 4 cây, tự lên cấp 1->2->3 (10s/10s/10s)
+//   · KN2 (Thánh Ca): kích hoạt mọi Thánh giá 3 lần ngay, giảm 4s thời gian lên cấp (< cấp 3) hoặc +4s tồn tại (cấp 3)
+//   · KN3 (Thần Quang): Đại Thánh Giá tại tâm sân (0,0) toàn sân 10s, giáng Thần Phạt mỗi 1s (mỗi phát thứ 5 nổ + giải hiệu ứng xấu)
+//   · Thiên phú 1: mỗi Thánh giá KN1 +4% ATK cả đội · Thiên phú 2: hoàn 1 Orb khi kết thúc / hồi sinh khi tử trận (hồi 30s)
+// ============================================================
+const emitCross = (roomId, data) => { if (roomId) io.to(roomId).emit('crossFx', data); };
+const CROSS_REMOVABLE_BUFFS = new Set([
+    'shield_buff', 'holy_shield', 'brakk_shield', 'fire_ward', 'water_shield', 'storm_ward', 'goblin_ward', 'leaf_shield',
+    'chess_crown', 'chess_pawn_shield', 'cross_shield', 'giant_form', 'fire_god', 'water_god', 'reaper_form', 'reaper_echo',
+    'windspirit', 'stealth', 'guard_aura', 'fortress', 'pray_blessing', 'thunder_blessing', 'wind_blessing',
+    'goblin_frenzy', 'tide_mana', 'tide_haste', 'note_amp', 'attune_fire', 'attune_bolt', 'storm_haste', 'storm_self',
+    'golem_haste', 'deer_bless', 'forest_might', 'eagle_eye', 'sword_haste', 'sword_multi', 'sword_atk', 'sword_crit',
+    'sword_critdmg', 'boss_haste', 'cross_power_ally', 'cross_radiance_buff',
+]);
+const listRemovableBuffs = (m, now) => (m?.statusEffects ?? []).filter(ef =>
+    ef && !ef.noCleanse && ef.endTime > now && CROSS_REMOVABLE_BUFFS.has(ef.type));
+function stripBuffs(m, count = 1, now = curRoom?.clock ?? Date.now()) {
+    const buffs = listRemovableBuffs(m, now);
+    if (!buffs.length) return [];
+    // Ưu tiên xoá khiên / buff lớn trước các hào quang thụ động nhỏ
+    const ranked = [...buffs].sort((a, b) => (SHIELD_TYPES.has(b.type) ? 2 : b.type.startsWith('cross_') ? 0 : 1) - (SHIELD_TYPES.has(a.type) ? 2 : a.type.startsWith('cross_') ? 0 : 1));
+    const pick = ranked.slice(0, count);
+    const removed = [];
+    for (const ef of pick) {
+        if (!m.statusEffects.includes(ef)) continue;
+        removed.push(ef.type);
+        if (ef.type === 'giant_form') endGiant(m);
+        else if (ef.type === 'water_god') endWaterGod(m, ef.src);
+        else m.statusEffects = m.statusEffects.filter(x => x !== ef);
+    }
+    return removed;
+}
+const serializeCross = (c) => ({ id: c.id, type: c.type, x: c.x, z: c.z, level: c.level, radius: c.radius, placedAt: c.placedAt, levelAt: c.levelAt, expireAt: c.expireAt });
+const crossSkillDef = (m) => skillsOf(m).find(s => s.type === 'cross_place') ?? CLASS_DEFS.crosspriest.skills[0];
+const crossRadius = (c, sk) => (sk?.radii ?? [3, 3.6, 4.2])[Math.max(0, Math.min(2, (c.level ?? 1) - 1))];
+function clampCrossPoint(caster, pt, maxRange = 14) {
+    if (!pt || !Number.isFinite(Number(pt.x)) || !Number.isFinite(Number(pt.z))) return null;
+    const cx = caster.x ?? 0, cz = caster.z || 0;
+    let tx = Number(pt.x), tz = Number(pt.z);
+    const dx = tx - cx, dz = tz - cz, d = Math.hypot(dx, dz);
+    if (d > maxRange && d > 0.001) {
+        tx = cx + dx / d * maxRange;
+        tz = cz + dz / d * maxRange;
+    }
+    return {
+        x: Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, tx)),
+        z: Math.max(ARENA_BOUNDS.minZ, Math.min(ARENA_BOUNDS.maxZ, tz)),
+    };
+}
+function crossInRadius(u, c, r, now) {
+    return u?.alive && !isJudged(u, now) && !isVanished(u, now) && distXZ(u, c.x, c.z) <= r;
+}
+function crossEnemyTargetable(e, caster, now) {
+    return e?.alive && !isJudged(e, now) && !isVanished(e, now) && !swordFlyImmune(e, caster);
+}
+function crossUnitHasDebuff(u, now) {
+    return !!u?.statusEffects?.some(ef => ef.endTime > now && !ef.noCleanse && (ef.debuff || DEBUFFS.includes(ef.type)));
+}
+/** Chọn loại Thánh giá (1..4) theo tình huống khi bật AUTO */
+function autoChooseCrossType(m, team, opp, now) {
+    const allies = (team?.squad ?? []).filter(a => a.alive);
+    const foes = (opp?.squad ?? []).filter(e => crossEnemyTargetable(e, m, now));
+    if (allies.some(a => !a.summon && a.maxHp > 0 && a.hp / a.maxHp < 0.75)) return 1;
+    const clustered = foes.some(c => foes.filter(e => distXZ(e, c.x, c.z || 0) <= 3.2).length >= 2);
+    if (clustered) return 3;
+    if (allies.some(a => crossUnitHasDebuff(a, now)) || foes.some(e => listRemovableBuffs(e, now).length > 0)) return 4;
+    return 2;
+}
+/** Tự tìm vị trí tốt nhất trong tầm `maxRange` (tránh trùng chính xác chỗ Thánh giá cùng loại) */
+function autoCrossPoint(room, pid, idx, oppId, crossType, r, maxRange, now) {
+    const team = room.players[pid], opp = room.players[oppId];
+    const m = team.squad[idx];
+    const allies = (team.squad ?? []).filter(a => a.alive && !isJudged(a, now) && !isVanished(a, now));
+    const foes = (opp?.squad ?? []).filter(e => canBeTargeted(e, now, m));
+    const existingSame = (m.crosses ?? []).filter(c => c.type === crossType);
+    const actors = crossType === 1
+        ? allies.map(u => ({ u, w: (!u.summon ? 10 : 6) + (1 - u.hp / Math.max(1, u.maxHp)) * 8 }))
+            .concat(foes.map(u => ({ u, w: 2 })))
+        : crossType === 3
+            ? foes.map(u => ({ u, w: 12 }))
+            : crossType === 4
+                ? allies.map(u => ({ u, w: crossUnitHasDebuff(u, now) ? 14 : 6 }))
+                    .concat(foes.map(u => ({ u, w: listRemovableBuffs(u, now).length > 0 ? 13 : 6 })))
+                : allies.filter(a => takesBuffs(a)).map(u => ({ u, w: 9 }))
+                    .concat(foes.map(u => ({ u, w: 8 })));
+    const rawPts = [];
+    for (const { u } of actors) rawPts.push({ x: u.x, z: u.z || 0 });
+    for (let i = 0; i < actors.length; i++) {
+        for (let j = i + 1; j < actors.length; j++) {
+            const a = actors[i].u, b = actors[j].u;
+            if (distXZ(a, b.x, b.z || 0) <= r * 2) rawPts.push({ x: (a.x + b.x) / 2, z: ((a.z || 0) + (b.z || 0)) / 2 });
+        }
+    }
+    if (!rawPts.length) rawPts.push({ x: m.x, z: m.z || 0 });
+    const cands = [];
+    const nudge = [[0, 0], [1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]];
+    for (const p of rawPts) {
+        const base = clampCrossPoint(m, p, maxRange);
+        if (!base) continue;
+        cands.push(base);
+        if (existingSame.some(c => Math.hypot(base.x - c.x, base.z - c.z) < 1.1)) {
+            for (const [ox, oz] of nudge) {
+                if (!ox && !oz) continue;
+                const np = clampCrossPoint(m, { x: base.x + ox, z: base.z + oz }, maxRange);
+                if (np) cands.push(np);
+            }
+        }
+    }
+    let best = cands[0], bestScore = -Infinity;
+    for (const pt of cands) {
+        let score = 0;
+        for (const { u, w } of actors) {
+            const d = distXZ(u, pt.x, pt.z);
+            if (d <= r) score += w - d * 0.1;
+        }
+        for (const old of existingSame) {
+            const dOld = Math.hypot(pt.x - old.x, pt.z - old.z);
+            if (dOld < 0.7) score -= 25;
+            else if (dOld < 1.4) score -= 6;
+        }
+        if (score > bestScore) { bestScore = score; best = pt; }
+    }
+    return best;
+}
+/** Đồng bộ buff tấn công cả đội từ Thiên phú 1 (mỗi Thánh giá KN1 +4% ATK, tối đa 4 = +16%) */
+function syncCrossTeamTalent(room, pid, idx, now) {
+    const team = room?.players?.[pid];
+    const m = team?.squad?.[idx];
+    if (!m) return;
+    const key = `${pid}:${idx}`;
+    const t = talentOf(m, 'cross_aura_atk');
+    const n = t ? Math.min(t.maxStacks ?? 4, m.crosses?.length ?? 0) : 0;
+    const val = t && n > 0 ? (t.value ?? 0.04) * n : 0;
+    for (const a of team.squad) {
+        a.statusEffects = (a.statusEffects ?? []).filter(ef => !(ef.type === 'cross_team_atk' && ef.src === key));
+        if (val > 0 && a.alive && takesBuffs(a)) {
+            a.statusEffects.push({ type: 'cross_team_atk', value: val, stacks: n, src: key, endTime: Number.MAX_SAFE_INTEGER });
+        }
+    }
+}
+/** Kiểm tra Caelum còn đủ điều kiện hồi sinh bằng Thánh giá (Thiên phú 2, hồi 30s) */
+function crossReviveReady(m, now) {
+    return !!(m?.classId === 'crosspriest' && m.alive && talentOf(m, 'cross_mass') && (m.crosses?.length ?? 0) > 0 && now >= (m.crossReviveReadyAt ?? 0));
+}
+/** Thiên phú 2 — khi Caelum tử trận: tiêu thụ toàn bộ Thánh giá KN1 để hồi sinh 20%/cây (tối đa 80%) */
+function tryCrossRevive(room, target, now) {
+    if (!crossReviveReady(target, now)) return false;
+    const t = talentOf(target, 'cross_mass');
+    const at = locate(target);
+    if (!at || !room) return false;
+    const consumed = target.crosses.splice(0, target.crosses.length);
+    target.crossReviveReadyAt = now + (t.cooldown ?? 30000);
+    const pct = Math.min(t.maxRevivePct ?? 0.80, consumed.length * (t.perCrossPct ?? 0.20));
+    target.alive = true;
+    target.state = 'idle';
+    target.hp = Math.max(1, Math.round(target.maxHp * pct));
+    target.pendingDmg = 0;
+    target.queuedSkills = [];
+    target.castingSkillId = null;
+    target.actionUntil = 0;
+    cleanse(target, 'all');
+    target.statusEffects = target.statusEffects.filter(ef => ef.noCleanse || (ef.type !== 'judged' && ef.type !== 'knockup' && ef.type !== 'grabbed'));
+    syncCrossTeamTalent(room, at.pid, at.idx, now);
+    emitCross(room.id, { kind: 'revive', casterId: at.pid, casterIdx: at.idx, hp: target.hp, maxHp: target.maxHp, crosses: consumed.map(serializeCross) });
+    return true;
+}
+function upsertCrossTimedEffect(u, type, srcKey, payload, now, endTime, onlyIfHigherLv = true) {
+    const old = (u.statusEffects ?? []).find(ef => ef.type === type && ef.src === srcKey && ef.endTime > now);
+    if (onlyIfHigherLv && old && old.level > payload.level) return;
+    u.statusEffects = (u.statusEffects ?? []).filter(ef => !(ef.type === type && ef.src === srcKey));
+    const keepEnd = old && old.level === payload.level ? Math.max(old.endTime, endTime) : endTime;
+    u.statusEffects.push({ type, src: srcKey, endTime: keepEnd, duration: keepEnd - now, ...payload });
+}
+/** Áp hào quang tức thời từ các Thánh giá đang hoạt động của Caelum (loại trùng chỉ lấy cấp cao nhất) */
+function applyCrossAuras(room, pid, idx, oppId, now) {
+    const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
+    const m = team?.squad?.[idx];
+    if (!m?.crosses?.length) return;
+    const sk = crossSkillDef(m);
+    const statScale = sk.statScale ?? 1;
+    const srcKey = `${pid}:${idx}`;
+    const bestAllyPwr = new Map(), bestEnemyPwr = new Map(), bestLifeCut = new Map(), bestCcDown = new Map();
+    for (const c of m.crosses) {
+        const r = crossRadius(c, sk);
+        if (c.type === 2) {
+            for (const a of team.squad) {
+                if (takesBuffs(a) && crossInRadius(a, c, r, now)) {
+                    const prev = bestAllyPwr.get(a);
+                    if (!prev || c.level > prev.level) bestAllyPwr.set(a, c);
+                }
+            }
+            for (const e of opp?.squad ?? []) {
+                if (takesDebuffs(e) && crossEnemyTargetable(e, m, now) && distXZ(e, c.x, c.z) <= r) {
+                    const prev = bestEnemyPwr.get(e);
+                    if (!prev || c.level > prev.level) bestEnemyPwr.set(e, c);
+                }
+            }
+        } else if (c.type === 1) {
+            for (const e of opp?.squad ?? []) {
+                if (takesDebuffs(e) && crossEnemyTargetable(e, m, now) && distXZ(e, c.x, c.z) <= r) {
+                    const prev = bestLifeCut.get(e);
+                    if (!prev || c.level > prev.level) bestLifeCut.set(e, c);
+                }
+            }
+        } else if (c.type === 4) {
+            for (const e of opp?.squad ?? []) {
+                if (takesDebuffs(e) && crossEnemyTargetable(e, m, now) && distXZ(e, c.x, c.z) <= r) {
+                    const prev = bestCcDown.get(e);
+                    if (!prev || c.level > prev.level) bestCcDown.set(e, c);
+                }
+            }
+        }
+    }
+    const pwrLinger = sk.power?.linger ?? 1000;
+    for (const [a, c] of bestAllyPwr) {
+        const lv = c.level - 1;
+        upsertCrossTimedEffect(a, 'cross_power_ally', srcKey, {
+            level: c.level,
+            atkUp: sk.power.allyAtk[lv] * statScale,
+            defUp: sk.power.allyDef[lv] * statScale,
+            atkSpeedUp: sk.power.allySpeed[lv] * statScale,
+        }, now, now + pwrLinger, true);
+    }
+    for (const [e, c] of bestEnemyPwr) {
+        const lv = c.level - 1;
+        upsertCrossTimedEffect(e, 'cross_power_enemy', srcKey, {
+            level: c.level, debuff: true,
+            atkDown: sk.power.enemyAtk[lv] * statScale,
+            defDown: sk.power.enemyDef[lv] * statScale,
+            atkSpeedDown: sk.power.enemySpeed[lv] * statScale,
+        }, now, now + pwrLinger, true);
+    }
+    for (const [e, c] of bestLifeCut) {
+        const lv = c.level - 1;
+        upsertCrossTimedEffect(e, 'cross_life_cut', srcKey, {
+            level: c.level, debuff: true,
+            healCut: sk.life.healCut[lv],
+            orbCut: sk.life.orbRegenCut[lv],
+        }, now, now + 600, true);
+    }
+    for (const [e, c] of bestCcDown) {
+        const lv = c.level - 1;
+        upsertCrossTimedEffect(e, 'cross_cc_down', srcKey, {
+            level: c.level, debuff: true,
+            value: sk.purify.ccDown[lv],
+        }, now, now + (sk.purify?.debuffDuration ?? 1000), true);
+    }
+}
+/** Kích hoạt một loạt nhịp Thánh giá (dùng cho chu kỳ tự động lẫn Thánh Ca ×3) */
+function triggerCrossWave(room, pid, idx, oppId, crosses, sk, now, { isHymn = false, hymnExtraLinger = 3000 } = {}) {
+    const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
+    const m = team.squad[idx];
+    const powerScale = sk.powerScale ?? 1;
+    const statScale = sk.statScale ?? 1;
+    const mAtk = getEffectiveStats(m, now).stats.mAtk;
+    const srcKey = `${pid}:${idx}`;
+    const events = [];
+
+    // Gộp mức cao nhất cho các hiệu ứng KHÔNG cộng dồn nếu nhiều cây cùng loại chồng lên 1 mục tiêu trong cùng đợt
+    const bestAllyOrb = new Map(), bestEnemyDrain = new Map(), bestStrip = new Map();
+    const t1 = crosses.filter(c => c.type === 1);
+    const t2 = crosses.filter(c => c.type === 2);
+    const t3 = crosses.filter(c => c.type === 3);
+    const t4 = crosses.filter(c => c.type === 4);
+
+    for (const c of t1) {
+        const r = crossRadius(c, sk), lv = c.level - 1;
+        const heals = [];
+        team.squad.forEach((a, i) => {
+            if (!crossInRadius(a, c, r, now)) return;
+            const raw = (mAtk * sk.life.healMult[lv] + a.maxHp * sk.life.healPct[lv]) * powerScale;
+            heals.push({ targetIndex: i, heal: healUnit(a, raw, now) });
+            const prev = bestAllyOrb.get(i);
+            if (!prev || c.level > prev.level) bestAllyOrb.set(i, c);
+        });
+        (opp?.squad ?? []).forEach((e, i) => {
+            if (!crossEnemyTargetable(e, m, now) || distXZ(e, c.x, c.z) > r) return;
+            const prev = bestEnemyDrain.get(i);
+            if (!prev || c.level > prev.level) bestEnemyDrain.set(i, c);
+            upsertCrossTimedEffect(e, 'cross_life_cut', srcKey, {
+                level: c.level, debuff: true, healCut: sk.life.healCut[lv], orbCut: sk.life.orbRegenCut[lv],
+            }, now, now + (sk.life.cutDuration ?? 2500), true);
+        });
+        events.push({ id: c.id, type: 1, level: c.level, x: c.x, z: c.z, radius: r, heals });
+    }
+    const orbGains = [];
+    for (const [i, c] of bestAllyOrb) {
+        const a = team.squad[i];
+        if (!a?.alive || a.summon || !a.maxMp || team.debugNoMana) continue;
+        const add = sk.life.orbGain[c.level - 1] * ORB_COST;
+        a.mp = Math.min(a.maxMp, a.mp + add);
+        orbGains.push({ targetIndex: i, orbs: sk.life.orbGain[c.level - 1] });
+    }
+    const orbDrains = [];
+    for (const [i, c] of bestEnemyDrain) {
+        const e = opp?.squad?.[i];
+        if (!e?.alive || e.summon || !e.maxMp || opp.debugNoMana) continue;
+        const lost = Math.min(e.mp, sk.life.orbDrain[c.level - 1] * ORB_COST);
+        e.mp -= lost;
+        if (lost > 0) orbDrains.push({ targetIndex: i, orbLost: lost / ORB_COST });
+    }
+    const lifeEv = events.find(x => x.type === 1);
+    if ((orbGains.length || orbDrains.length) && lifeEv) {
+        lifeEv.orbGains = orbGains;
+        lifeEv.orbDrains = orbDrains;
+    }
+
+    if (isHymn) {
+        for (const c of t2) {
+            const r = crossRadius(c, sk), lv = c.level - 1;
+            const end = now + (sk.power?.linger ?? 1000) + hymnExtraLinger;
+            team.squad.forEach(a => {
+                if (takesBuffs(a) && crossInRadius(a, c, r, now)) {
+                    upsertCrossTimedEffect(a, 'cross_power_ally', srcKey, {
+                        level: c.level, atkUp: sk.power.allyAtk[lv] * statScale, defUp: sk.power.allyDef[lv] * statScale, atkSpeedUp: sk.power.allySpeed[lv] * statScale,
+                    }, now, end, true);
+                }
+            });
+            (opp?.squad ?? []).forEach(e => {
+                if (takesDebuffs(e) && crossEnemyTargetable(e, m, now) && distXZ(e, c.x, c.z) <= r) {
+                    upsertCrossTimedEffect(e, 'cross_power_enemy', srcKey, {
+                        level: c.level, debuff: true, atkDown: sk.power.enemyAtk[lv] * statScale, defDown: sk.power.enemyDef[lv] * statScale, atkSpeedDown: sk.power.enemySpeed[lv] * statScale,
+                    }, now, end, true);
+                }
+            });
+            events.push({ id: c.id, type: 2, level: c.level, x: c.x, z: c.z, radius: r });
+        }
+    }
+
+    // Sấm sét (loại 3): sát thương CỘNG DỒN khi nhiều cây chồng nhau; mỗi cây giật 1 địch ngẫu nhiên trong vùng
+    for (const c of t3) {
+        if (!opp) continue;
+        const r = crossRadius(c, sk), lv = c.level - 1;
+        const candidates = opp.squad.map((e, i) => ({ e, i })).filter(({ e }) => crossEnemyTargetable(e, m, now) && distXZ(e, c.x, c.z) <= r);
+        if (!candidates.length) {
+            events.push({ id: c.id, type: 3, level: c.level, x: c.x, z: c.z, radius: r, effects: [] });
+            continue;
+        }
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        const eff = hitTarget(m, pick.e, pick.i, opp, sk.lightning.boltMult[lv] * powerScale, now, { cc: true, aoe: true, noBlock: true });
+        if (!eff.isMiss && pick.e.alive && takesDebuffs(pick.e) && now >= (pick.e.crossStunImmuneUntil ?? 0) && !ccImmune(pick.e, now)) {
+            applyStun(pick.e, sk.lightning.stun ?? 500, now);
+            pick.e.crossStunImmuneUntil = now + (sk.lightning.stunImmune ?? 2000);
+            eff.stunned = true;
+        }
+        events.push({ id: c.id, type: 3, level: c.level, x: c.x, z: c.z, radius: r, effects: [eff] });
+    }
+
+    // Thanh tẩy (loại 4): giải hiệu ứng xấu đồng đội + gỡ buff đối thủ (+ khiên nếu từ Thánh Ca hoặc hết chu kỳ khiên)
+    for (const c of t4) {
+        const r = crossRadius(c, sk), lv = c.level - 1;
+        const cleansed = [], shields = [];
+        team.squad.forEach((a, i) => {
+            if (!crossInRadius(a, c, r, now)) return;
+            cleanse(a, 'all');
+            cleansed.push(i);
+            if (isHymn && takesBuffs(a)) {
+                const hp = Math.round((mAtk * sk.purify.shieldMult[lv] + a.maxHp * sk.purify.shieldPct[lv]) * powerScale);
+                const cur = a.statusEffects?.find(ef => ef.type === 'cross_shield' && ef.endTime > now);
+                if (!cur || hp >= cur.hp) {
+                    addShield(a, { type: 'cross_shield', hp, maxHp: hp, endTime: now + sk.purify.shieldDuration, duration: sk.purify.shieldDuration }, now);
+                }
+                shields.push({ targetIndex: i, shield: hp });
+            }
+        });
+        (opp?.squad ?? []).forEach((e, i) => {
+            if (!crossEnemyTargetable(e, m, now) || distXZ(e, c.x, c.z) > r) return;
+            const prev = bestStrip.get(i);
+            if (!prev || c.level > prev.level) bestStrip.set(i, c);
+            if (takesDebuffs(e)) {
+                upsertCrossTimedEffect(e, 'cross_cc_down', srcKey, { level: c.level, debuff: true, value: sk.purify.ccDown[lv] }, now, now + (sk.purify.debuffDuration ?? 1000), true);
+            }
+        });
+        events.push({ id: c.id, type: 4, level: c.level, x: c.x, z: c.z, radius: r, cleansed, shields });
+    }
+    const stripped = [];
+    for (const [i, c] of bestStrip) {
+        const e = opp?.squad?.[i];
+        if (!e?.alive) continue;
+        const types = stripBuffs(e, sk.purify.stripCount[c.level - 1] ?? 1, now);
+        if (types.length) stripped.push({ targetIndex: i, types });
+    }
+    if (stripped.length && events.find(x => x.type === 4)) events.find(x => x.type === 4).stripped = stripped;
+    return events;
+}
+function triggerCrossShieldPulse(room, pid, idx, c, sk, now) {
+    const team = room.players[pid], m = team.squad[idx];
+    const r = crossRadius(c, sk), lv = c.level - 1;
+    const mAtk = getEffectiveStats(m, now).stats.mAtk;
+    const powerScale = sk.powerScale ?? 1;
+    const shields = [];
+    team.squad.forEach((a, i) => {
+        if (!takesBuffs(a) || !crossInRadius(a, c, r, now)) return;
+        const hp = Math.round((mAtk * sk.purify.shieldMult[lv] + a.maxHp * sk.purify.shieldPct[lv]) * powerScale);
+        const cur = a.statusEffects?.find(ef => ef.type === 'cross_shield' && ef.endTime > now);
+        if (!cur || hp >= cur.hp) {
+            addShield(a, { type: 'cross_shield', hp, maxHp: hp, endTime: now + sk.purify.shieldDuration, duration: sk.purify.shieldDuration }, now);
+        }
+        shields.push({ targetIndex: i, shield: hp });
+    });
+    if (shields.length) emitCross(room.id, { kind: 'shield', casterId: pid, casterIdx: idx, id: c.id, x: c.x, z: c.z, radius: r, shields });
+}
+function advanceCrossLevel(c, sk, now) {
+    let leveled = false;
+    while (c.level < 3 && c.levelAt != null && now >= c.levelAt) {
+        const overflow = now - c.levelAt;
+        c.level += 1;
+        c.radius = crossRadius(c, sk);
+        leveled = true;
+        if (c.level < 3) {
+            c.levelAt = now + (sk.levelMs ?? 10000) - overflow;
+        } else {
+            c.levelAt = null;
+            c.expireAt = now + (sk.lv3Ms ?? 10000) - overflow;
+        }
+    }
+    return leveled;
+}
+function placeCross(room, pid, idx, oppId, sk, now, ptOverride, extra) {
+    const team = room.players[pid], m = team.squad[idx];
+    m.crosses ??= [];
+    const reqType = Number(ptOverride?.crossType ?? m.crossType ?? 1) | 0;
+    const type = [1, 2, 3, 4].includes(reqType) ? reqType : 1;
+    const maxCrosses = sk.maxCrosses ?? 4;
+    let level = 1, levelAt = now + (sk.levelMs ?? 10000), expireAt = null, replacedId = null;
+    if (m.crosses.length >= maxCrosses) {
+        const oldest = m.crosses.shift();
+        replacedId = oldest.id;
+        level = oldest.level;
+        if (oldest.level >= 3) {
+            levelAt = null;
+            expireAt = now + (sk.lv3Ms ?? 10000);   // kế thừa cấp 3 nhận lại 10s mới
+        } else {
+            levelAt = oldest.levelAt;
+            expireAt = null;
+        }
+        emitCross(room.id, { kind: 'crossEnd', casterId: pid, casterIdx: idx, id: oldest.id, reason: 'replaced' });
+        const t2 = talentOf(m, 'cross_mass');
+        if (t2 && !team.debugNoMana) {
+            m.mp = Math.min(m.maxMp, m.mp + (t2.orbRefund ?? 1) * ORB_COST);
+            emitCross(room.id, { kind: 'orbRefund', casterId: pid, casterIdx: idx, orbs: t2.orbRefund ?? 1, reason: 'replaced' });
+        }
+    }
+    const maxRange = sk.castRange ?? 14;
+    const r = (sk.radii ?? [3, 3.6, 4.2])[Math.max(0, Math.min(2, level - 1))];
+    const clamped = ptOverride ? clampCrossPoint(m, ptOverride, maxRange) : null;
+    const spot = clamped ?? autoCrossPoint(room, pid, idx, oppId, type, r, maxRange, now);
+    const pulseEvery = type === 1 ? (sk.life?.every ?? 2000) : type === 3 ? (sk.lightning?.every ?? 1000) : type === 4 ? (sk.purify?.every ?? 3000) : Infinity;
+    const cross = {
+        id: (room.crossSeq = (room.crossSeq ?? 0) + 1),
+        type, x: spot.x, z: spot.z, level, radius: r,
+        placedAt: now, levelAt, expireAt,
+        ownerIdx: idx, ownerId: pid, ownerSide: m.side,
+        nextPulse: Number.isFinite(pulseEvery) ? now + pulseEvery : Infinity,
+        nextShield: type === 4 ? now + (sk.purify?.shieldEvery ?? 5000) : Infinity,
+    };
+    m.crosses.push(cross);
+    applyCrossAuras(room, pid, idx, oppId, now);
+    syncCrossTeamTalent(room, pid, idx, now);
+    extra.cross = serializeCross(cross);
+    emitCross(room.id, { kind: 'place', casterId: pid, casterIdx: idx, cross: serializeCross(cross), replacedId });
+}
+function cancelCrossRadiance(room, m, pid, idx, reason = 'done') {
+    const r = m?.crossRadiance;
+    if (!r) return;
+    r.cancelled = true;
+    m.crossRadiance = null;
+    const srcKey = `${pid}:${idx}`;
+    const team = room?.players?.[pid];
+    if (team?.squad) {
+        for (const a of team.squad) {
+            a.statusEffects = (a.statusEffects ?? []).filter(ef => !(ef.type === 'cross_radiance_buff' && ef.src === srcKey));
+        }
+    }
+    emitCross(room?.id, { kind: 'radianceEnd', casterId: pid, casterIdx: idx, id: r.id, reason });
+}
+function cancelRoomCrosses(room, reason = 'battleEnd') {
+    if (!room?.players) return;
+    for (const [pid, team] of Object.entries(room.players)) {
+        (team?.squad ?? []).forEach((m, idx) => {
+            if (!m) return;
+            if (m.crossRadiance) cancelCrossRadiance(room, m, pid, idx, reason);
+            if (m.crosses?.length) {
+                for (const c of m.crosses) emitCross(room.id, { kind: 'crossEnd', casterId: pid, casterIdx: idx, id: c.id, reason });
+                m.crosses = [];
+                syncCrossTeamTalent(room, pid, idx, room.clock ?? Date.now());
+            }
+        });
+    }
+}
+function castCrossSkill(room, pid, idx, oppId, skillIdx, sk, now, effects, extra, pt = null) {
+    const team = room.players[pid], opp = room.players[oppId], m = team.squad[idx];
+    if (sk.type === 'cross_place') {
+        placeCross(room, pid, idx, oppId, sk, now, pt, extra);
+        effects.push({ targetIndex: idx, ally: true });
+    } else if (sk.type === 'cross_hymn') {
+        const baseSk = crossSkillDef(m);
+        const list = m.crosses ?? [];
+        const waves = [];
+        const nTrig = sk.triggers ?? 3;
+        for (let k = 0; k < nTrig; k++) {
+            waves.push(triggerCrossWave(room, pid, idx, oppId, list, baseSk, now, { isHymn: true }));
+        }
+        const levelUps = [];
+        const adv = sk.advanceMs ?? 4000, ext = sk.extendMs ?? 4000;
+        // người chơi 21/11: Thánh Ca áp dụng cả cho cây Thần Quang (chiêu 3): đánh thêm ngay 3 đợt Holy Smite + kéo dài 4 giây
+        const rad = m.crossRadiance;
+        if (rad && !rad.cancelled && !rad.done) {
+            const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
+            for (let k = 0; k < nTrig; k++) radianceSmite(room, m, pid, idx, rad, team, opp, oppId, now, true);
+            rad.endTime += ext;
+        }
+        for (const c of list) {
+            if (c.level >= 3) {
+                if (c.expireAt != null) c.expireAt += ext;
+            } else if (c.levelAt != null) {
+                c.levelAt -= adv;
+                if (advanceCrossLevel(c, baseSk, now)) levelUps.push(serializeCross(c));
+            }
+        }
+        applyCrossAuras(room, pid, idx, oppId, now);
+        syncCrossTeamTalent(room, pid, idx, now);
+        extra.hymn = { count: list.length, levelUps: levelUps.length };
+        effects.push({ targetIndex: idx, ally: true });
+        emitCross(room.id, { kind: 'hymn', casterId: pid, casterIdx: idx, waves, levelUps, crosses: list.map(serializeCross) });
+    } else if (sk.type === 'cross_radiance') {
+        if (m.crossRadiance) cancelCrossRadiance(room, m, pid, idx, 'replaced');
+        const duration = sk.duration ?? 10000;
+        const every = sk.every ?? 1000;
+        const rad = {
+            id: (room.crossRadSeq = (room.crossRadSeq ?? 0) + 1),
+            casterId: pid, casterIdx: idx, x: 0, z: 0,
+            startAt: now, endTime: now + duration, nextTick: now + every, every,
+            explodeEvery: sk.explodeEvery ?? 5, debuffTime: sk.debuffTime ?? 2500,
+            smiteMult: sk.smiteMult ?? 0.55, explodeMult: sk.explodeMult ?? 1.4,
+            enemyDmgDown: sk.enemyDmgDown ?? 0.15, enemyDefDown: sk.enemyDefDown ?? 0.15,
+            teamAtkUp: sk.teamAtkUp ?? 0.15, teamDefUp: sk.teamDefUp ?? 0.15,
+            smiteCount: 0, cancelled: false, done: false,
+        };
+        m.crossRadiance = rad;
+        const srcKey = `${pid}:${idx}`;
+        team.squad.forEach((a, i) => {
+            if (!a.alive || !takesBuffs(a)) return;
+            upsertCrossTimedEffect(a, 'cross_radiance_buff', srcKey, { atkUp: rad.teamAtkUp, defUp: rad.teamDefUp }, now, rad.endTime, false);
+            effects.push({ targetIndex: i, ally: true });
+        });
+        extra.radiance = { id: rad.id, x: 0, z: 0, duration, every };
+        emitCross(room.id, { kind: 'radianceStart', casterId: pid, casterIdx: idx, id: rad.id, x: 0, z: 0, duration, every });
+    }
+}
+/** Mỗi tick: cập nhật cấp/hết giờ Thánh giá, hào quang, nhịp tự động, Thiên phú 1 & Đại Thánh Giá Thần Quang */
+function processRoomCrosses(room, pid, oppId, now) {
+    const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
+    if (!team?.squad) return;
+    team.squad.forEach((m, idx) => {
+        if (!m) return;
+        const sk = crossSkillDef(m);
+        if (m.crosses?.length) {
+            const levelUps = [];
+            for (const c of m.crosses) {
+                if (advanceCrossLevel(c, sk, now)) levelUps.push(serializeCross(c));
+            }
+            for (const c of levelUps) emitCross(room.id, { kind: 'levelUp', casterId: pid, casterIdx: idx, cross: c });
+
+            // Gom các cây đến giờ kích hoạt trước khi thu hồi các cây vừa hết hạn ở đúng mốc expireAt
+            const duePulse = [];
+            for (const c of m.crosses) {
+                if (c.type === 2) continue;
+                const cutoff = c.expireAt != null ? Math.min(now, c.expireAt) : now;
+                if (c.type === 4) {
+                    while (c.nextShield <= cutoff) {
+                        c.nextShield += sk.purify?.shieldEvery ?? 5000;
+                        triggerCrossShieldPulse(room, pid, idx, c, sk, now);
+                    }
+                }
+                const gap = c.type === 1 ? (sk.life?.every ?? 2000) : c.type === 3 ? (sk.lightning?.every ?? 1000) : (sk.purify?.every ?? 3000);
+                while (c.nextPulse <= cutoff) {
+                    c.nextPulse += gap;
+                    duePulse.push(c);
+                }
+            }
+            if (duePulse.length) {
+                const evs = triggerCrossWave(room, pid, idx, oppId, duePulse, sk, now, { isHymn: false });
+                if (evs.length) emitCross(room.id, { kind: 'pulse', casterId: pid, casterIdx: idx, targetId: oppId, events: evs });
+            }
+
+            const expired = [];
+            for (let i = m.crosses.length - 1; i >= 0; i--) {
+                const c = m.crosses[i];
+                if (c.level >= 3 && c.expireAt != null && now >= c.expireAt) {
+                    m.crosses.splice(i, 1);
+                    expired.push(c);
+                }
+            }
+            for (const c of expired) {
+                emitCross(room.id, { kind: 'crossEnd', casterId: pid, casterIdx: idx, id: c.id, reason: 'expire' });
+                const t2 = talentOf(m, 'cross_mass');
+                if (t2 && m.alive && !team.debugNoMana) {
+                    m.mp = Math.min(m.maxMp, m.mp + (t2.orbRefund ?? 1) * ORB_COST);
+                    emitCross(room.id, { kind: 'orbRefund', casterId: pid, casterIdx: idx, orbs: t2.orbRefund ?? 1, reason: 'expire' });
+                }
+            }
+            applyCrossAuras(room, pid, idx, oppId, now);
+            syncCrossTeamTalent(room, pid, idx, now);
+        } else if (m.classId === 'crosspriest') {
+            syncCrossTeamTalent(room, pid, idx, now);
+        }
+
+        const r = m.crossRadiance;
+        if (!r || r.cancelled || r.done) return;
+        if (!m.alive) { cancelCrossRadiance(room, m, pid, idx, 'death'); return; }
+        const srcKey = `${pid}:${idx}`;
+        team.squad.forEach(a => {
+            if (a.alive && takesBuffs(a)) upsertCrossTimedEffect(a, 'cross_radiance_buff', srcKey, { atkUp: r.teamAtkUp, defUp: r.teamDefUp }, now, r.endTime, false);
+        });
+        while (now >= r.nextTick && r.nextTick <= r.endTime) {
+            r.nextTick += r.every;
+            radianceSmite(room, m, pid, idx, r, team, opp, oppId, now);
+        }
+        if (now >= r.endTime) {
+            r.done = true;
+            cancelCrossRadiance(room, m, pid, idx, 'done');
+        }
+    });
+}
+
+/** Một đợt Holy Smite của Thần Quang (dùng cho nhịp 1 giây và cho Thánh Ca kích hoạt thêm) */
+function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now, hymn = false) {
+    const srcKey = `${pid}:${idx}`;
+    r.smiteCount += 1;
+    const isFifth = r.smiteCount % (r.explodeEvery ?? 5) === 0;
+    const effects = [], explodeEffects = [], cleansed = [];
+    if (opp) {
+        opp.squad.forEach((e, i) => {
+            if (!crossEnemyTargetable(e, m, now)) return;
+            const eff = hitTarget(m, e, i, opp, r.smiteMult, now, { aoe: true, noBlock: true });
+            if (!eff.isMiss && e.alive && takesDebuffs(e)) {
+                upsertCrossTimedEffect(e, 'cross_smite_debuff', srcKey, { level: 1, debuff: true, dmgDown: r.enemyDmgDown, defDown: r.enemyDefDown }, now, now + r.debuffTime, false);
+            }
+            const stripped = takesDebuffs(e) ? stripBuffs(e, 1, now) : [];
+            if (stripped.length) eff.stripped = stripped;
+            effects.push(eff);
+            if (isFifth && e.alive) {
+                explodeEffects.push(hitTarget(m, e, i, opp, r.explodeMult, now, { aoe: true, noBlock: true }));
+            }
+        });
+    }
+    if (isFifth) {
+        team.squad.forEach((a, i) => {
+            if (!a.alive) return;
+            cleanse(a, 'all');
+            cleansed.push(i);
+        });
+    }
+    emitCross(room.id, { kind: 'radianceTick', casterId: pid, casterIdx: idx, id: r.id, n: r.smiteCount, explode: isFifth, targetId: oppId, effects, explodeEffects, cleansed, hymn });
+}
+
+// ============================================================
 // LEON (Kỳ Vương, `chessmaster`) — kỳ thủ gọi 6 quân cờ. ĐỢT 1 (task B1–B3): khai báo + 3 nút đổi theo thế cờ + cánh thủ (Tốt, Xe) + cánh công (Mã, Tượng).
 //   ĐỢT 2 (task B4–B6): Vua (Vương Miện, Phán Quyết), Hậu (Quang Cầu, Vũ Điệu Quang Cầu), bàn cờ, Thí Quân, Phong Cấp, Chiếu Tướng, AI riêng (autoChooseSkill).
 //   Quân cờ là thành viên thật của đội (summon: true, chessKind, ownerIdx = vị trí Leon), ở lại tới khi bị giết; Leon gục thì quân vẫn đánh tiếp.
@@ -8557,6 +9365,7 @@ function checkWinCondition(roomId) {
         room.winner = 'draw';
         cancelRoomJudgments(room);
         cancelRoomSwordFormations(room, 'battleEnd');
+        cancelRoomCrosses(room, 'battleEnd');
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
         finishStage(room, false);   // Cốt truyện: hoà = thua
         return;
@@ -8566,6 +9375,7 @@ function checkWinCondition(roomId) {
     room.winner = winnerId;
     cancelRoomJudgments(room);
     cancelRoomSwordFormations(room, 'battleEnd');
+    cancelRoomCrosses(room, 'battleEnd');
     io.to(roomId).emit('battleEnd', { winnerId, loserId });
     finishStage(room, !room.players[winnerId]?.isNPC);
 }
@@ -8681,6 +9491,7 @@ function processSuddenDeath(room, now) {
             room.winner = winnerId;
             cancelRoomJudgments(room);
             if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
+            if (typeof cancelRoomCrosses === 'function') cancelRoomCrosses(room, 'battleEnd');
             io.to(room.id).emit('battleEnd', { winnerId, loserId, suddenDeath: true });
             finishStage(room, !room.players[winnerId]?.isNPC);
             return;
