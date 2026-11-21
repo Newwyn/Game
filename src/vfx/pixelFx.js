@@ -274,6 +274,7 @@ const HERO_SWING = {
     sylva_eagle: ['custom/cast-flash', 'gold'], elementalist: ['custom/cast-flash', 'arcane'],
     voidmage: ['custom/cast-flash', 'arcane'],
     swordsage: null,   // YunYou: đòn thường đã có đường kiếm khí riêng (swordFx) — vệt chém chung hiện lệch chỗ khi anh ta đang lượn
+    crosspriest: ['custom/cast-flash', 'holy'],
     chessmaster: ['custom/cast-flash', 'gold'], chess_bishop: ['custom/cast-flash', 'arcane'], chess_queen: ['custom/cast-flash', 'holy'],
     chess_pawn: ['melee/sword-slash', 'gold'], chess_rook: ['melee/thrust', 'gold'], chess_knight: ['melee/sword-slash', 'gold'], chess_king: ['melee/sword-slash', 'gold'],
 };

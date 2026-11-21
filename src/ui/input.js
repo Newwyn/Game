@@ -5,6 +5,7 @@
 // và được xử lý tập trung ở đây.
 import { settings, setSetting, FX_LEVELS } from '../core/settings.js';
 import { net, socket } from '../net/socket.js';
+import { initDragCast, consumeDragClickSuppression } from './dragCast.js';
 import { myId } from '../state.js';
 import { resumeAudio } from '../audio/sfx.js';
 import { hideBattleResult, isBattleResultOpen } from './overlays.js';
@@ -64,8 +65,8 @@ export function setDebugToggle(key, on) {
     notifyToggles();
 }
 
-function queueSkill(memberIndex, skillIndex) {
-    net.queueSkill(memberIndex, skillIndex);
+function queueSkill(memberIndex, skillIndex, extra = null) {
+    net.queueSkill(memberIndex, skillIndex, extra);
     resumeAudio(); // tận dụng thao tác người dùng để mở khoá âm thanh
 }
 
@@ -146,6 +147,7 @@ function onKeyDown(e) {
 function onClick(e) {
     const skillBtn = e.target.closest('[data-skill]');
     if (skillBtn) {
+        if (consumeDragClickSuppression(skillBtn)) return;
         const [m, s] = skillBtn.dataset.skill.split(',').map(Number);
         queueSkill(m, s);
         return;
@@ -245,6 +247,10 @@ export function setupInput() {
     updateCameraButton(battleCamMode());
     cameraRig.onModeChange(updateCameraButton);
     socket.on('stateUpdate', (d) => syncDebugToggles(d.players, d.enemyGodMode));
+    initDragCast({
+        onCast: (m, s, point, extra) => queueSkill(m, s, { point, ...extra }),
+        onQuickTap: (m, s) => queueSkill(m, s),
+    });
     document.addEventListener('click', onClick);
     window.addEventListener('keydown', onKeyDown);
     // Lăn chuột để zoom camera

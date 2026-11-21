@@ -65,6 +65,18 @@ for (const c of cmds) {
         if (!at) { console.log(`KHÔNG THẤY ${op}=${arg}`); continue; }
         await clickAt(at.x, at.y); console.log(`bấm ${op}=${arg} @${Math.round(at.x)},${Math.round(at.y)} <${at.tag}> "${at.text}"`);
     } else if (op === 'xy') { const [x, y] = arg.split(',').map(Number); await clickAt(x, y); console.log('bấm', x, y); }
+    // kéo thả THẬT: down=x,y · move=x,y (đi 12 bước từ chỗ chuột đang ở) · up=x,y
+    else if (op === 'down' || op === 'move' || op === 'up') {
+        const [x, y] = arg.split(',').map(Number);
+        if (op === 'move') {
+            const [sx, sy] = globalThis.__mouse ?? [x, y];
+            for (let k = 1; k <= 12; k++) { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: sx + (x - sx) * k / 12, y: sy + (y - sy) * k / 12, button: 'left', buttons: 1 }); await sleep(16); }
+        } else {
+            await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, button: op === 'down' ? 'none' : 'left', buttons: op === 'down' ? 0 : 1 });
+            await page.send('Input.dispatchMouseEvent', { type: op === 'down' ? 'mousePressed' : 'mouseReleased', x, y, button: 'left', buttons: op === 'down' ? 1 : 0, clickCount: 1 });
+        }
+        globalThis.__mouse = [x, y]; console.log(op, x, y);
+    }
     else if (op === 'key') {
         const code = arg.length === 1 ? 'Key' + arg.toUpperCase() : arg;
         for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: arg, code, text: type === 'keyDown' && arg.length === 1 ? arg : undefined, windowsVirtualKeyCode: arg.length === 1 ? arg.toUpperCase().charCodeAt(0) : (arg === 'Escape' ? 27 : arg === 'Enter' ? 13 : 0) });

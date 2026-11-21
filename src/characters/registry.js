@@ -555,6 +555,7 @@ export const CHARACTER_VISUALS = {
     voidmage: () => VOIDMAGE,
     chessmaster: () => CHESSMASTER,
     swordsage: () => SWORDSAGE,
+    crosspriest: () => PRIEST,
     chess_pawn: () => CHESS_PAWN,
     chess_rook: () => CHESS_ROOK,
     chess_knight: () => CHESS_KNIGHT,

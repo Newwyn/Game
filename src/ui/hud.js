@@ -5,7 +5,8 @@ import { cameraRig } from '../core/cameraRig.js';
 import { progressMeta, rankBadge } from './progressTool.js';
 import { game, myId } from '../state.js';
 import { ORB_COST, MAX_SQUAD , gameNow, timeState } from '../config.js';
-import { socket } from '../net/socket.js';
+import { net, socket } from '../net/socket.js';
+import { CROSS_TYPE_META } from '../vfx/crossFx.js';
 import gemF from '../assets/ui/gem_f.png';
 import gemI from '../assets/ui/gem_i.png';
 import gemB from '../assets/ui/gem_b.png';
@@ -73,12 +74,16 @@ function updateCardAuto(card, member, i, teamAuto) {
     b.classList.remove('team');
     b.title = on ? 'AUTO tướng này: BẬT — tự dùng kỹ năng (bấm để tắt)' : 'AUTO tướng này: TẮT — bấm để tướng này tự dùng kỹ năng';
 }
-/** Có đối thủ còn sống trong TẦM ĐÁNH của `m` không (tầm đánh thường + tầm cộng thêm từ Thần Phong; như server attackRangeOf + 0,3) */
-function foeNear(m, oppSquad) {
+/** Có đối thủ còn sống trong TẦM ĐÁNH của `m` không (Caelum tính cả tầm đặt Thánh giá 14) */
+function foeNear(m, oppSquad, sk) {
     const now = gameNow();
     const wind = m.statusEffects?.find(ef => ef.type === 'windspirit' && ef.endTime > now);
-    const r = (m.atkRange ?? game.classDefs?.[m.classId]?.atkRange ?? 2.4) + (wind?.rangeUp ?? 0) + 0.3;
-    return (oppSquad ?? []).some(e => e.alive && Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= r);
+    let r = (m.atkRange ?? game.classDefs?.[m.classId]?.atkRange ?? 2.4) + (wind?.rangeUp ?? 0);
+    if (sk?.type?.startsWith('cross_')) {
+        if (sk.type === 'cross_hymn' && (m.crosses?.length ?? 0) > 0 && (oppSquad ?? []).some(e => e.alive)) return true;
+        r = Math.max(r, game.classDefs?.[m.classId]?.skills?.[0]?.castRange ?? 14);
+    }
+    return (oppSquad ?? []).some(e => e.alive && Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= r + 0.3);
 }
 
 const $ = (id) => document.getElementById(id);
@@ -105,6 +110,7 @@ function fillCardInfo(card, member, def, i) {
     if (card.dataset.classId === member.classId) return;
     card.dataset.classId = member.classId;
     if (member.classId !== 'elementalist') { card.querySelector('.gem-slots')?.remove(); card.querySelector('.gem-tray')?.remove(); }
+    if (member.classId !== 'crosspriest') card.querySelector('.cross-tray')?.remove();
     card.style.setProperty('--class-color', def.color || '#64748b');
     const icon = card.querySelector('.class-icon'); if (icon) icon.textContent = def.emoji || '⚔️';
     const name = card.querySelector('.class-name');
@@ -253,6 +259,37 @@ export function hudGemPicked(d) {
     if (btn) flyGem(btn, card);
 }
 
+/** Caelum: 4 nút chọn loại Thánh giá (Sinh Mệnh · Uy Lực · Sấm Sét · Thanh Tẩy) trên thẻ */
+function updateCrossTray(card, member, i) {
+    let tray = card.querySelector('.cross-tray');
+    if (!tray) {
+        tray = document.createElement('div');
+        tray.className = 'cross-tray';
+        tray.innerHTML = [1, 2, 3, 4].map(t => {
+            const meta = CROSS_TYPE_META[t];
+            return `<button type="button" class="cross-type-btn" data-cross-type="${t}" style="--ct:${meta.css}" title="Chọn Thánh giá ${meta.name}"><i class="ct-dot"></i><span>${meta.short}</span></button>`;
+        }).join('');
+        tray.addEventListener('pointerdown', (e) => { if (e.target.closest('.cross-type-btn')) e.stopPropagation(); });
+        tray.addEventListener('click', (e) => {
+            const b = e.target.closest('.cross-type-btn');
+            if (!b) return;
+            e.stopPropagation();
+            const type = Number(b.dataset.crossType);
+            const idx = +tray.dataset.idx;
+            if (!Number.isFinite(idx) || type < 1 || type > 4) return;
+            member.crossType = type;
+            tray.dataset.lockUntil = String(performance.now() + 600);
+            tray.querySelectorAll('.cross-type-btn').forEach(x => x.classList.toggle('on', +x.dataset.crossType === type));
+            net.setCrossType(idx, type);
+        });
+        card.querySelector('.skills-row')?.before(tray);
+    }
+    tray.dataset.idx = i;
+    if (performance.now() < +(tray.dataset.lockUntil || 0)) return;
+    const cur = member.crossType ?? 1;
+    tray.querySelectorAll('.cross-type-btn').forEach(b => b.classList.toggle('on', +b.dataset.crossType === cur));
+}
+
 function updateMemberCard(member, i, now, ctx = {}) {
     const card = $(`member-${i}`);
     if (!card) return;
@@ -279,7 +316,9 @@ function updateMemberCard(member, i, now, ctx = {}) {
     fillCardInfo(card, member, def, i);
     const elem = member.classId === 'elementalist';
     const chess = member.classId === 'chessmaster';
+    const cross = member.classId === 'crosspriest';
     if (elem) { updateGemSlots(card, member); updateGemTray(card, member, i, now); }
+    if (cross) updateCrossTray(card, member, i);
     updateCardAuto(card, member, i, ctx.teamAuto);
     for (let s = 0; s < 3; s++) {
         const btn = $(`btn-${i}-${s}`);
@@ -318,6 +357,7 @@ function updateMemberCard(member, i, now, ctx = {}) {
         const costEl = btn.querySelector('.cost');
         const hpc = sk.hpCost ? ` +${Math.round(sk.hpCost * 100)}%♥` : '';   // Brakk: tốn thêm % máu
         const costTxt = free ? 'MIỄN PHÍ' : elem && s === 0 ? `${cost} orb · ${member.held?.length ?? 0}/3`
+            : cross && s === 0 ? `${cost} orb · ${member.crosses?.length ?? 0}/4`
             : (elem && s === 1 && !member.spell) || locked ? '—' : sk.orbCost ? `${cost} orb${discount ? ' ↓' : ''}${hpc}` : costLabel(sk);
         if (costEl && costEl.textContent !== costTxt) costEl.textContent = costTxt;
         btn.classList.toggle('free', !!free);
@@ -350,7 +390,7 @@ function updateMemberCard(member, i, now, ctx = {}) {
             if (isQueued) qNum.textContent = queueIdx + 1;
         }
 
-        let cls = 'skill-btn' + (s === 2 ? ' ultimate' : '') + (free ? ' free' : '') + (locked ? ' locked' : '');
+        let cls = 'skill-btn' + (s === 2 ? ' ultimate' : '') + (free ? ' free' : '') + (locked ? ' locked' : '') + (sk.dragTarget ? ' drag-target' : '');
         if (!member.alive || locked) {
             cls += ' disabled';
         } else {
@@ -358,7 +398,7 @@ function updateMemberCard(member, i, now, ctx = {}) {
             // Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép
             let usable = !elem || (s === 0 ? (member.held?.length ?? 0) >= 3 : s === 1 ? !!member.spell : true);
             // chưa có đối thủ trong tầm đánh -> chưa dùng được (bấm vẫn xếp hàng chờ); không hiện nhãn chú thích
-            if (!chess && !foeNear(member, ctx.oppSquad)) usable = false;
+            if (!chess && !foeNear(member, ctx.oppSquad, sk)) usable = false;
             const isReady = !act && usable && member.mp >= need * ORB_COST && now > member.skillCooldowns[s];
             if (isReady) cls += ' ready';
             if (isQueued) cls += ' queued';
@@ -548,6 +588,17 @@ function effectInfo(ef, m) {
         case 'sword_atk': return ['🔥', '#99f6e4', 'Kiếm Khí', `${ef.stacks ?? 1} tầng: +${pc((ef.stacks ?? 1) * (ef.per ?? 0.1))}% công vật lý`];
         case 'sword_crit': return ['🎯', '#99f6e4', 'Tụ Kiếm Tâm', `${ef.stacks ?? 1} tầng: +${Math.round(((ef.stacks ?? 1) * (ef.per ?? 60)) / 10)}% tỉ lệ chí mạng`];
         case 'sword_critdmg': return ['✨', '#e6fffb', 'Kiếm Tâm Sắc', `${ef.stacks ?? 1} tầng: +${Math.round(((ef.stacks ?? 1) * (ef.per ?? 80)) / 10)}% sát thương chí mạng`];
+        // ---- Caelum (Thánh Giá) ----
+        case 'cross_power_ally': return ['⚔️', '#f59e0b', 'Thánh Giá Uy Lực', `+${pc(ef.atkUp)}% ATK & DEF · +${pc(ef.atkSpeedUp)}% tốc đánh`];
+        case 'cross_power_enemy': return ['📉', '#fb923c', 'Áp Chế Uy Lực', `−${pc(ef.atkDown)}% ATK & DEF · −${pc(ef.atkSpeedDown)}% tốc đánh`, true];
+        case 'cross_life_cut': return ['💔', '#4ade80', 'Sinh Mệnh Suy Kiệt', `−${pc(ef.healCut)}% hồi máu nhận · −${pc(ef.orbCut)}% hồi Orb`, true];
+        case 'cross_cc_down': return ['💫', '#e879f9', 'Tẩy Uế Áp Chế', `Giảm kháng hiệu ứng (+${pc(ef.value)}% thời gian khống chế nhận)`, true];
+        case 'cross_shield': return ef.dormant
+            ? ['🛡️', '#d946ef', 'Khiên Thanh Tẩy', 'Đang có khiên khác dày hơn hứng đòn']
+            : ['🛡️', '#e879f9', 'Khiên Thanh Tẩy', `Khiên ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)}`];
+        case 'cross_team_atk': return ['✝️', '#facc15', 'Ánh Sáng Thống Nhất', `${ef.stacks ?? 1} Thánh giá: +${pc(ef.value)}% Tấn công cả đội`];
+        case 'cross_radiance_buff': return ['🌟', '#fde047', 'Thần Quang Chiếu Rọi', `+${pc(ef.atkUp)}% Tấn công · +${pc(ef.defUp)}% Phòng thủ`];
+        case 'cross_smite_debuff': return ['⚡', '#f87171', 'Thần Phạt', `−${pc(ef.dmgDown)}% sát thương gây ra · −${pc(ef.defDown)}% P.DEF & M.DEF`, true];
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }

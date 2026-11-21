@@ -1558,6 +1558,29 @@ span.wd-act-ic { font-size: 22px; width: auto; height: auto; }
 .wd-stamina.empty { animation:wd-stamina-flash .15s alternate 3; }
 @keyframes wd-stamina-flash { to { background:#d84646; transform:translateX(2px); } }
 
+/* Kéo thả kỹ năng (dragCast.js) & Khay chọn loại Thánh giá của Caelum */
+.skill-btn.drag-target { touch-action: none; user-select: none; }
+.skill-btn.dragging-skill { outline: 2px solid #facc15; transform: scale(0.96); }
+.skill-btn.drag-cancel { outline: 2px solid #ef4444 !important; background: rgba(239, 68, 68, 0.25) !important; }
+.cross-tray {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-bottom: 3px;
+}
+.cross-type-btn {
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    padding: 3px 2px; border-radius: 5px; border: 1px solid rgba(148, 163, 184, .28);
+    background: rgba(15, 23, 42, .85); color: #94a3b8;
+    font: 700 9px 'Outfit', sans-serif; cursor: pointer; transition: .15s; white-space: nowrap;
+}
+.cross-type-btn .ct-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ct, #eab308); flex-shrink: 0;
+}
+.cross-type-btn:hover { color: #e2e8f0; border-color: var(--ct, #eab308); }
+.cross-type-btn.on {
+    color: #fff; border-color: var(--ct, #eab308);
+    background: color-mix(in srgb, var(--ct, #eab308) 25%, rgba(15, 23, 42, .95));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--ct, #eab308) 45%, transparent);
+}
+
 /* (12/11/2026) vào game không chờ tải hết tranh: màn chờ thu thành dòng nhỏ ở góc dưới phải, không chặn bấm */
 #loading-screen.mini { inset: auto 10px 10px auto; width: auto; height: auto; padding: 6px 10px; border-radius: 10px; background: rgba(15, 23, 42, .78); pointer-events: none; z-index: 50; backdrop-filter: none; }
 #loading-screen.mini h1, #loading-screen.mini small { display: none; }
