@@ -18,6 +18,7 @@ import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
 import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
 import { CAELUM_SPRITE } from './sprite/caelumSprite.js';
+import { PARY_SPRITE } from './sprite/parySprite.js';
 import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
 import { GRIX_SPRITE } from './sprite/grixSprite.js';
 import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
@@ -218,6 +219,27 @@ const CROSSPRIEST = {
         place:  { clip: 'place',  hitTime: 0.3 },   // KN1
         hymn:   { clip: 'hymn',   hitTime: 0.3 },   // KN2
         raise:  { clip: 'raise',  hitTime: 0.3 },   // KN3
+    },
+};
+
+// Pary (Búa Thánh) — tạo hình tạm dùng chung Rok tới khi có bộ tranh riêng
+// Pary (Búa Thánh) — goblin tank, tranh Flow (art/pary). Khung xương mượn của Rok (chỉ dùng khi tắt sprite)
+const HOLYHAMMER = {
+    ...ROK,
+    height: 2.6,
+    sprite: PARY_SPRITE,
+    spriteParam: 'pary',
+    spriteIdleParam: 'paryIdle',
+    circleTint: 0xfde047,
+    ghostTint: 0xfef08a,
+    guardFx: undefined,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.24 },
+        spin:   { clip: 'spin' },
+        smash:  { clip: 'smash',  hitTime: 0.12 },
+        aura:   { clip: 'aura',   hitTime: 0.3 },
+        slam:   { clip: 'slam',   hitTime: 0.2 },
+        throw:  { clip: 'throw',  hitTime: 0.2 },
     },
 };
 
@@ -575,6 +597,7 @@ export const CHARACTER_VISUALS = {
     chessmaster: () => CHESSMASTER,
     swordsage: () => SWORDSAGE,
     crosspriest: () => CROSSPRIEST,
+    holyhammer: () => HOLYHAMMER,
     chess_pawn: () => CHESS_PAWN,
     chess_rook: () => CHESS_ROOK,
     chess_knight: () => CHESS_KNIGHT,

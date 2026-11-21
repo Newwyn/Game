@@ -21,7 +21,7 @@ const MODE_TITLE = {
     campaign: '📖 CỐT TRUYỆN · CHỌN ĐỘI HÌNH',
 };
 
-const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage', 'crosspriest'];
+const SQUAD_ORDER = ['assassin', 'warrior', 'archer', 'priest', 'mage', 'reaper', 'wrestler', 'dancer', 'elementalist', 'alchemist', 'summoner', 'voidmage', 'chessmaster', 'swordsage', 'crosspriest', 'holyhammer'];
 const FALLBACK_HEROES = {
     assassin: { id: 'assassin', name: 'Jessica', title: 'Lôi Ám', className: 'Sát Thủ', emoji: '🥷', color: '#1e293b', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1260, atk: 231 },
     warrior: { id: 'warrior', name: 'Rok', title: 'Thiết Hộ', className: 'Chiến Binh', emoji: '🛡️', color: '#475569', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 3360, atk: 158 },
@@ -38,6 +38,7 @@ const FALLBACK_HEROES = {
     chessmaster: { id: 'chessmaster', name: 'Leon', title: 'Kỳ Vương', className: 'Kỳ Thủ', emoji: '♟️', color: '#eab308', race: 'Human', raceEmoji: '🧑', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1000, atk: 170 },
     swordsage: { id: 'swordsage', name: 'YunYou', title: 'Kiếm Tiên', className: 'Cung Thủ', emoji: '🗡️', color: '#2dd4bf', race: 'Không rõ', raceEmoji: '', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 1071, atk: 139 },
     crosspriest: { id: 'crosspriest', name: 'Caelum', title: 'Thánh Giá', className: 'Tu Sĩ', emoji: '✝️', color: '#eab308', race: 'Elf', raceEmoji: '🧝', level: 1, rank: 0, rankName: 'Thường', dmgType: 'magic', hp: 1040, atk: 190 },
+    holyhammer: { id: 'holyhammer', name: 'Pary', title: 'Búa Thánh', className: 'Chiến Binh', emoji: '🔨', color: '#eab308', race: 'Goblin', raceEmoji: '👺', level: 1, rank: 0, rankName: 'Thường', dmgType: 'physical', hp: 3510, atk: 95 },
 };
 
 let lastProgress = null;
