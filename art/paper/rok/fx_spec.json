@@ -1,0 +1,201 @@
+{
+ "note": "Hieu ung Rok kieu GIAY (ban thu): PNG trong suot, giu nguyen kenh alpha",
+ "out": "src/assets/sprites/rok_paper_fx.webp",
+ "meta": "src/vfx/rokPaperFx.json",
+ "maxWidth": 4096,
+ "sheets": {
+  "aegisA": {
+   "file": "art/paper/rok/paper-f-aegis-a.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.7,
+   "groups": [
+    {
+     "name": "aegisA",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "blob",
+     "pivot": "blob",
+     "blob": [
+      [
+       190,
+       110,
+       0
+      ],
+      [
+       255,
+       200,
+       110
+      ]
+     ],
+     "blobRegion": [
+      0.3,
+      0.35,
+      0.7,
+      0.8
+     ],
+     "blobRef": 4
+    }
+   ],
+   "keepAlpha": true
+  },
+  "aegisB": {
+   "file": "art/paper/rok/paper-f-aegis-b.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.7,
+   "groups": [
+    {
+     "name": "aegisB",
+     "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "blob",
+     "pivot": "blob",
+     "blob": [
+      [
+       190,
+       110,
+       0
+      ],
+      [
+       255,
+       200,
+       110
+      ]
+     ],
+     "blobRegion": [
+      0.3,
+      0.3,
+      0.7,
+      0.8
+     ],
+     "blobRef": 0
+    }
+   ],
+   "keepAlpha": true
+  },
+  "lion": {
+   "file": "art/paper/rok/keyed/paper-f-lion.png",
+   "grid": [
+    4,
+    2
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "lion",
+     "cells": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "align": "cell",
+     "pivot": "bottom"
+    },
+    {
+     "name": "roarWave",
+     "cells": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "align": "cell",
+     "pivot": "left"
+    }
+   ],
+   "keepAlpha": true
+  },
+  "ground": {
+   "file": "art/paper/rok/paper-f-rok-ground.png",
+   "grid": [
+    2,
+    4
+   ],
+   "scale": 0.6,
+   "groups": [
+    {
+     "name": "holyCircle",
+     "cells": [
+      0
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "goldRing",
+     "cells": [
+      1
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "quakeRing",
+     "cells": [
+      2
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "tauntIcon",
+     "cells": [
+      3
+     ],
+     "pivot": "center",
+     "scale": 0.5
+    },
+    {
+     "name": "buffIcon",
+     "cells": [
+      4
+     ],
+     "pivot": "center",
+     "scale": 0.5
+    },
+    {
+     "name": "bashBurst",
+     "cells": [
+      5
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "chain",
+     "cells": [
+      6
+     ],
+     "pivot": "center"
+    },
+    {
+     "name": "healCross",
+     "cells": [
+      7
+     ],
+     "pivot": "center",
+     "scale": 0.5
+    }
+   ],
+   "keepAlpha": true
+  }
+ }
+}

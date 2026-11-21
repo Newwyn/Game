@@ -5,6 +5,37 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 19–21/11/2026 — Skin Giấy cho Rok + Ignar · anh hùng thứ 16 CAELUM (Tu sĩ Thánh Giá, kéo thả chiêu) · camera tự lùi
+
+Kiểm tra: `npm test` 317/317 qua, `npx vite build` qua. Đã bấm thử thật trong bản ứng dụng (chuột thật).
+Từ 21/11: vẽ tranh bằng **Flow** (trong Chrome của người chơi) và Codex; Antigravity viết mã chính, Claude soát + thử.
+
+### 1. Skin "Giấy" (Rok, Ignar)
+- Bản thử kiểu nhân vật cắt giấy (Rok, Ignar: hình chiến đấu + hiệu ứng riêng) thành **trang phục "Giấy"** chọn trong tab Trang phục của bảng nhân vật (`game/skins.js`, `src/characters/sprite/paperSets.js`). Bản đồ giữ nguyên như cũ (bỏ bản đồ giấy, trả `src/world3d/view.js` về như trước).
+- Đã căn lại Khiên Thần của Rok giấy; đóng gói lại có khoảng đệm để không dính khung bên cạnh.
+- Còn nợ: chân dung đầu thẻ chưa đổi ngay khi chọn skin; chưa xem skin ở PvP.
+
+### 2. Anh hùng mới: CAELUM — Thánh Giá (`crosspriest`, Elf, Tu sĩ phép, giá 1200)
+Thiết kế: `docs/superpowers/specs/2026-11-20-caelum-design.md` · tài liệu giao việc + báo cáo: `docs/caelum/` · bài kiểm tra: `tests/crosspriest.test.js`.
+- **Kéo thả chiêu (tính năng mới, dùng chung được — `src/ui/dragCast.js`):** giữ nút chiêu 1 kéo ra sân, vòng vùng rõ theo màu loại + bóng mờ thánh giá đi theo; ngoài tầm (14) thì vòng đỏ và ghim mép; kéo về nút = huỷ; bấm nhanh = tự đặt. Chuột + cảm ứng.
+- **Chiêu 1 Thánh Giá** (2 Orb, 5s): 4 nút nhỏ chọn loại — Sinh Mệnh (hồi máu / Orb, địch giảm hồi), Uy Lực (tăng / giảm công-thủ-tốc đánh), Sấm Sét (1 tia / giây vào 1 địch, choáng 0,5s, miễn 2s), Thanh Tẩy (khiên + giải hiệu ứng xấu / gỡ buff địch). Tác động cả hai phe trong vùng. Lên cấp mỗi 10s (3 cấp, cấp 3 sống 10s), tối đa 4 cây (cây thứ 5 thay cây cũ nhất, kế thừa cấp). **Đang có cây cấp 3 thì cây mới thả ra vào thẳng cấp 3.** Vùng 3 / 3,6 / 4,2 — **Sấm Sét x1,5** (4,5 / 5,4 / 6,3).
+- **Chiêu 2 Thánh Ca** (2 Orb, 7s): mọi thánh giá kích 3 lần, chưa cấp 3 thì −4s chờ lên cấp, cấp 3 thì +4s; **có cây Thần Quang thì cây bắn thêm 3 phát Holy Smite và kéo dài 4s.**
+- **Chiêu 3 Thần Quang** (4 Orb, 20s): thánh giá khổng lồ rơi từ trời xuống giữa hai đội, 10s: mỗi giây **Holy Smite xuống 1 đối thủ ngẫu nhiên** (giảm sát thương, thủ, gỡ 1 buff); phát thứ 5 và 10 **nổ lên toàn đội địch** + giải hiệu ứng xấu cho đồng đội; đồng đội +% công / thủ.
+- **Thiên phú:** mỗi thánh giá +4% công cả đội (tối đa 16%); cây hết hạn / bị thay hoàn 1 Orb; chết thì các thánh giá bay về hồi sinh (20% máu mỗi cây, tối đa 80%, hồi 30s).
+- **Tranh (Flow):** 3 bậc S (áo đen, thánh giá đá) / SS (áo trắng viền vàng, thánh giá bạc vàng) / SSS (mũ cao, hào quang, thánh giá kính xanh), mỗi bậc 8 tấm động tác (`art/caelum/sprite*/`, `src/characters/sprite/caelumSprite.js`); 4 loại thánh giá x 3 cấp (cấp càng cao càng đẹp) + thánh giá khổng lồ; hào quang vẽ tay cho từng loại + Thần Quang; vụ nổ Thần Phạt; 6 icon. Công cụ: `art/caelum/cut_*.py`, `clean_flow_mark.py` (xoá dấu Flow), `despill.py`.
+- **Hiệu ứng (pixelfx):** Healing ring cho Sinh Mệnh; Holy Smite; Thánh giá Sấm Sét kiểu cuộn Tesla (bỏ trụ, tia sét quanh viên ngọc + tia giật xuống địch — `src/vfx/pixelfx-custom/cross-arcs.js`, `cross-zap.js`). Đã bỏ sunburst và Holy Pillar theo ý người chơi.
+- CHƯA xem tận mắt: AUTO, PvP, hồi sinh bằng thánh giá, vụ nổ trên nhiều đối thủ thật.
+
+### 3. Chung
+- **Camera tự lùi** (`src/core/cameraRig.js`): nhân vật nhảy / bay, vật triệu hồi, thánh giá… sắp ra khỏi khung thì camera tự lùi vừa đủ, xong từ từ về lại (mọi nhân vật, 2 góc nhìn).
+- Tool thử điều khiển app (`tools/app_cdp.mjs`) có thêm lệnh kéo chuột thật `down= / move= / up=`.
+- Còn lỗi cũ của Tool thử: dùng Tool ngay ở màn Chọn chế độ thì màn đó bị ẩn (chọn chế độ trước rồi dùng Tool thì không sao).
+
+### 4. Hướng tiếp theo (người chơi chốt 21/11)
+Tạm dừng thêm anh hùng; chỉnh từng nhân vật cho hợp lý làm bộ ra mắt; tập trung xây thế giới tới **chương 3**.
+
+---
+
 ## 18/11/2026 — Chính tuyến đi qua mọi bản đồ (chương 1 + chương 2) · anh hùng mới YunYou · luật 3 phút · dọn thư mục
 
 Từ hôm nay Antigravity (Gemini 4 Hydrogen) viết phần lớn mã, Claude viết đề bài, chạy test, soát và bấm thử; Codex / Antigravity vẽ tranh. Quy định mới của người chơi: hình, icon, hiệu ứng KHÔNG dựng bằng code nữa — dùng tranh vẽ (Codex / Antigravity / Flow / Meshy) và hiệu ứng pixelfx.

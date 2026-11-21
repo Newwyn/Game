@@ -1,0 +1,161 @@
+{
+ "note": "Rok kieu GIAY (ban thu 20/11/2026): idle/hurt-stun/taunt/bash/guard-land/dead-victory = Codex (PNG trong suot 1536x1024); attack/run = Antigravity (JPG nen hong 1264x848, da tach nen -> keyed/) | pad 28: hinh co vien kem sang -> can khoang trong rong giua cac khung de mipmap khong lem khung ben canh",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 28,
+ "calib": "idle1",
+ "key": "alpha",
+ "sheets": {
+  "idle": {
+   "file": "art/paper/rok/paper-s-idle.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "idle",
+     4,
+     "toe"
+    ],
+    [
+     "ready",
+     4,
+     "toe"
+    ]
+   ],
+   "split": true
+  },
+  "attack": {
+   "file": "art/paper/rok/keyed/paper-s-attack.png",
+   "scale": 1.215,
+   "anchor": "heel",
+   "points": {
+    "4": {
+     "tip": [
+      1247,
+      346
+     ]
+    }
+   },
+   "split": true
+  },
+  "move": {
+   "file": "art/paper/rok/keyed/paper-s-run.png",
+   "scale": 1.215,
+   "anchor": "body",
+   "split": true
+  },
+  "hurt-stun": {
+   "file": "art/paper/rok/paper-s-hurt-stun.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ],
+   "split": true
+  },
+  "taunt": {
+   "file": "art/paper/rok/paper-s-taunt.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "points": {
+    "4": {
+     "shield": [
+      1468,
+      342
+     ]
+    },
+    "5": {
+     "shield": [
+      310,
+      820
+     ]
+    }
+   },
+   "split": true
+  },
+  "bash": {
+   "file": "art/paper/rok/paper-s-bash.png",
+   "scale": 1.0,
+   "anchor": "heel",
+   "points": {
+    "3": {
+     "shield": [
+      1122,
+      250
+     ]
+    },
+    "4": {
+     "shield": [
+      1480,
+      255
+     ]
+    }
+   },
+   "split": true
+  },
+  "guard-land": {
+   "file": "art/paper/rok/paper-s-guard-land.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "guard",
+     4,
+     "heel"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ],
+   "points": {
+    "2": {
+     "shield": [
+      700,
+      375
+     ]
+    },
+    "3": {
+     "shield": [
+      1080,
+      380
+     ]
+    },
+    "4": {
+     "shield": [
+      1455,
+      380
+     ]
+    }
+   },
+   "split": true
+  },
+  "dead-victory": {
+   "file": "art/paper/rok/paper-s-dead-victory.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ],
+   "split": true
+  }
+ },
+ "out": "src/assets/sprites/rok_paper_sprite",
+ "meta": "src/characters/sprite/rokPaperSprite.json",
+ "format": "webp"
+}

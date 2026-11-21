@@ -1,0 +1,106 @@
+{
+ "note": "Ignar kieu GIAY (ban thu 20/11/2026): 10 tam Codex ve (PNG trong suot 1536x1024) | pad 28: hinh co vien kem sang -> can khoang trong rong giua cac khung de mipmap khong lem khung ben canh",
+ "atlasScale": 0.75,
+ "maxWidth": 4096,
+ "pad": 28,
+ "calib": "idle1",
+ "sheets": {
+  "idle": {
+   "file": "art/paper/ignar/paper-s-idle.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "split": true
+  },
+  "attack": {
+   "file": "art/paper/ignar/paper-s-attack.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "split": true
+  },
+  "move": {
+   "file": "art/paper/ignar/paper-s-move.png",
+   "scale": 1.0,
+   "anchor": "body",
+   "split": true
+  },
+  "hurt-stun": {
+   "file": "art/paper/ignar/paper-s-hurt-stun.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "hurt",
+     4,
+     "toe"
+    ],
+    [
+     "stun",
+     4,
+     "toe"
+    ]
+   ],
+   "split": true
+  },
+  "summon": {
+   "file": "art/paper/ignar/paper-s-summon.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "split": true
+  },
+  "bolt": {
+   "file": "art/paper/ignar/paper-s-bolt.png",
+   "scale": 1.0,
+   "anchor": "toe",
+   "split": true
+  },
+  "palm": {
+   "file": "art/paper/ignar/paper-s-palm.png",
+   "scale": 1.0,
+   "anchor": "body",
+   "split": true
+  },
+  "volley": {
+   "file": "art/paper/ignar/paper-s-volley.png",
+   "scale": 1.0,
+   "anchor": "body",
+   "split": true
+  },
+  "charge-land": {
+   "file": "art/paper/ignar/paper-s-charge-land.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "charge",
+     4,
+     "body"
+    ],
+    [
+     "land",
+     4,
+     "body"
+    ]
+   ],
+   "split": true
+  },
+  "dead-victory": {
+   "file": "art/paper/ignar/paper-s-dead-victory.png",
+   "scale": 1.0,
+   "groups": [
+    [
+     "dead",
+     4,
+     "toe"
+    ],
+    [
+     "victory",
+     4,
+     "toe"
+    ]
+   ],
+   "split": true
+  }
+ },
+ "out": "src/assets/sprites/ignar_paper_sprite",
+ "meta": "src/characters/sprite/ignarPaperSprite.json",
+ "format": "webp",
+ "key": "alpha"
+}
