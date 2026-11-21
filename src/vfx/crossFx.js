@@ -16,6 +16,13 @@ import { cameraRig } from '../core/cameraRig.js';
 import { registerDragCustomizer } from '../ui/dragCast.js';
 import { addAnim, fxPlane, glowTexture, spawnLightning, spawnShockwave } from './vfx.js';
 import { spawnPixelFx } from './pixelFx.js';
+import { makeFlipbook, loopFrame } from './flipbook.js';
+import auraUrl from '../assets/sprites/caelum_cross_fx.webp';
+import AURA from './caelumCrossFx.json';
+
+// Hào quang vẽ tay quanh từng loại Thánh giá (tranh Flow, art/caelum/fx_spec.json): 7 khung chạy vòng
+const AURA_FB = makeFlipbook(auraUrl, AURA);
+const AURA_GROUP = { 1: 'life', 2: 'power', 3: 'lightning', 4: 'purify' };
 
 function disposeGroup(obj) {
     obj?.traverse?.((child) => {
@@ -36,6 +43,11 @@ export const CROSS_TYPE_META = {
 };
 
 const _texCache = new Map();
+/** Tranh Thánh giá theo cấp (caelum_cross_<loại>_<cấp>.webp); chưa có tranh cấp đó thì dùng tranh gốc của loại */
+function crossTexFor(type, level = 1) {
+    const k = `${type}_${level}`;
+    return optionalUrl(k) ? makePlaceholderCrossTex(k) : makePlaceholderCrossTex(String(type));
+}
 function makePlaceholderCrossTex(key) {
     if (_texCache.has(key)) return _texCache.get(key);
     const url = optionalUrl(key);
@@ -103,16 +115,32 @@ function softAreaRingTexture() {
 
 const activeCrosses = new Map();
 const activeRadiances = new Map();
+// camera tự lùi cho thấy trọn Thánh giá (đỉnh cây) và cây Thần Quang khổng lồ
+cameraRig.addFitSource(() => {
+    const pts = [];
+    for (const v of activeCrosses.values()) {
+        const h = levelConfig(v.level).height;
+        pts.push([v.x, GROUND_Y + h + 0.3, v.z], [v.x, GROUND_Y, v.z]);
+    }
+    for (const r of activeRadiances.values()) {
+        if (!r.landed) continue;   // đang rơi từ trời: không kéo camera lùi theo
+        const p = r.group.position, b = r.billboard;
+        const half = 2.25 * b.scale.y / 2;
+        pts.push([p.x, GROUND_Y + b.position.y + half + 0.4, p.z + b.position.z], [p.x - half * 0.77, GROUND_Y + b.position.y, p.z + b.position.z], [p.x + half * 0.77, GROUND_Y + b.position.y, p.z + b.position.z]);
+    }
+    return pts;
+});
 
 function levelConfig(level) {
-    if (level >= 3) return { height: 2.65, ringOp: 0.34, pillarOp: 0.96, glowScale: 1.5 };
-    if (level === 2) return { height: 2.25, ringOp: 0.24, pillarOp: 0.86, glowScale: 1.15 };
-    return { height: 1.85, ringOp: 0.16, pillarOp: 0.76, glowScale: 0.85 };
+    // người chơi 21/11: thánh giá to hơn (x1,5) và đặc (không trong suốt)
+    if (level >= 3) return { height: 3.9, ringOp: 0.34, pillarOp: 1, glowScale: 2.2 };
+    if (level === 2) return { height: 3.35, ringOp: 0.24, pillarOp: 1, glowScale: 1.7 };
+    return { height: 2.8, ringOp: 0.16, pillarOp: 1, glowScale: 1.3 };
 }
 
 function createPlacedCrossMesh(c) {
     const meta = CROSS_TYPE_META[c.type] ?? CROSS_TYPE_META[1];
-    const tex = makePlaceholderCrossTex(String(c.type));
+    const tex = crossTexFor(c.type, c.level ?? 1);
     const lv = levelConfig(c.level ?? 1);
     const r = c.radius ?? 3;
 
@@ -141,13 +169,21 @@ function createPlacedCrossMesh(c) {
     halo.position.set(0, lv.height * 0.52, -0.02);
     halo.scale.setScalar(lv.glowScale);
 
-    const billboard = fxPlane(tex, 1.4, 2.1, { additive: false, opacity: lv.pillarOp });
+    const billboard = fxPlane(tex, 1.58, 2.1, { additive: false, opacity: lv.pillarOp });
     billboard.position.set(0, lv.height * 0.5, 0);
     billboard.scale.setScalar(lv.height / 2.1);
 
-    // Vài đốm sáng nhỏ bay nhẹ quanh vòng (rất thưa, không che trận đấu)
+    // Hào quang vẽ tay theo loại (đứng sau Thánh giá, chân vòng sáng trùng mặt đất)
+    // lớp chính vẽ thường (giữ đúng màu trên nền cỏ) + lớp cộng sáng mỏng cho ánh hào quang
+    const aura = AURA_FB.frames(AURA_GROUP[c.type] ?? 'life', 1, { opacity: 1 });
+    aura.position.set(0, -0.02, -0.05);
+    const auraGlow = AURA_FB.frames(AURA_GROUP[c.type] ?? 'life', 1, { additive: true, opacity: 0.3 });
+    auraGlow.position.set(0, -0.02, -0.04);
+    group.add(aura, auraGlow);
+
+    // Vài đốm sáng nhỏ bay nhẹ quanh vòng (rất thưa, không che trận đấu) — hào quang đã có đốm sáng nên chỉ giữ 2
     const motes = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
         const m = fxPlane(glowTexture(), 0.24, 0.24, { color: meta.glow, opacity: 0.45 });
         const ang = (i / 4) * Math.PI * 2;
         m.userData = { ang, phase: i * 1.6, radiusFrac: 0.65 + (i % 2) * 0.2 };
@@ -159,7 +195,7 @@ function createPlacedCrossMesh(c) {
     scene.add(group);
     return {
         id: c.id, type: c.type, level: c.level ?? 1, radius: r, x: c.x, z: c.z,
-        group, ring, halo, billboard, motes, age: 0, pulseBoost: 0, dead: false,
+        group, ring, halo, billboard, aura, auraGlow, motes, age: 0, pulseBoost: 0, dead: false,
     };
 }
 
@@ -179,10 +215,21 @@ function ensureDriver() {
             v.age += dt;
             v.pulseBoost = Math.max(0, v.pulseBoost - dt * 2.2);
             const lv = levelConfig(v.level);
-            const pop = Math.min(1, v.age / 0.18);
-            const s = (0.65 + 0.35 * pop) * (1 + v.pulseBoost * 0.15);
+            // người chơi 21/11: Thánh giá RƠI TỪ TRÊN TRỜI XUỐNG rồi cắm đất (hào quang hiện sau khi cắm)
+            const FALL = 0.32, fk = Math.min(1, v.age / FALL);
+            if (fk >= 1 && !v.landed) { v.landed = true; landCross(v); }
+            const s = 1 + v.pulseBoost * 0.15;
             v.billboard.scale.setScalar((lv.height / 2.1) * s);
-            v.billboard.position.y = lv.height * 0.5 + Math.sin(t * 2.4 + v.id) * 0.05;
+            v.billboard.position.y = lv.height * 0.5 + (1 - fk * fk) * 12 + (v.landed ? Math.sin(t * 2.4 + v.id) * 0.05 : 0);
+            v.billboard.material.opacity = Math.min(1, v.age / 0.08);
+            const show = v.landed ? Math.min(1, (v.age - FALL) / 0.25) : 0;
+            v.aura.visible = v.auraGlow.visible = show > 0;
+            v.aura.material.opacity = show;
+            const af = loopFrame(t + (v.id % 7) * 0.13, 9, AURA_FB.count(v.aura.userData.fx.group));
+            AURA_FB.set(v.aura, af); AURA_FB.set(v.auraGlow, af);
+            v.aura.scale.setScalar(lv.height * 1.3 * s);
+            v.auraGlow.scale.setScalar(lv.height * 1.3 * s);
+            v.auraGlow.material.opacity = (0.25 + v.level * 0.08 + v.pulseBoost * 0.3) * show;
             v.ring.scale.set(v.radius, v.radius, 1);
             v.ring.material.opacity = lv.ringOp * (0.85 + 0.15 * Math.sin(t * 2.8 + v.id) + v.pulseBoost * 0.45);
             v.halo.scale.setScalar(lv.glowScale * (1 + 0.08 * Math.sin(t * 3.5) + v.pulseBoost * 0.3));
@@ -200,9 +247,19 @@ function ensureDriver() {
             r.age += dt;
             r.boost = Math.max(0, r.boost - dt * 2);
             const fadeIn = Math.min(1, r.age / 0.25);
-            r.billboard.position.y = 2.6 + Math.sin(t * 2.0) * 0.08;
-            r.billboard.scale.setScalar(2.45 * fadeIn * (1 + r.boost * 0.08));
-            r.halo.scale.setScalar((3.8 + 0.3 * Math.sin(t * 3.2)) * fadeIn);
+            // người chơi 21/11: cây Thần Quang KHỔNG LỒ (cao ~11 đơn vị, lùi sau trận) RƠI TỪ TRÊN TRỜI XUỐNG rồi cắm xuống đất
+            const FALL = 0.55, k = Math.min(1, r.age / FALL);
+            const drop = (1 - k * k) * 18;   // rơi nhanh dần
+            r.billboard.position.y = 5.7 + drop + (k >= 1 ? Math.sin(t * 2.0) * 0.12 : 0);
+            r.billboard.scale.setScalar(5 * (1 + r.boost * 0.08));
+            r.billboard.material.opacity = Math.min(1, r.age / 0.12);
+            if (k >= 1 && !r.landed) { r.landed = true; r.landedAt = r.age; landRadiance(r); }
+            const ak = r.landed ? Math.min(1, (r.age - r.landedAt) / 0.4) : 0;
+            const af = loopFrame(t, 9, AURA_FB.count('radiance'));
+            AURA_FB.set(r.aura, af); AURA_FB.set(r.auraGlow, af);
+            r.aura.material.opacity = ak;
+            r.auraGlow.material.opacity = ak * (0.12 + r.boost * 0.12);
+            r.halo.scale.setScalar((7 + 0.5 * Math.sin(t * 3.2)) * (r.landed ? 1 : 0.01));
             r.halo.material.opacity = (0.28 + r.boost * 0.22) * fadeIn;
             r.ring.material.opacity = (0.18 + 0.05 * Math.sin(t * 2.6) + r.boost * 0.18) * fadeIn;
         }
@@ -231,6 +288,24 @@ export function clearCrossFx() {
     _driver = null;
 }
 
+/** Thánh giá nhỏ cắm xuống đất: sóng chấn màu theo loại + loé sáng + rung nhẹ */
+function landCross(v) {
+    const meta = CROSS_TYPE_META[v.type] ?? CROSS_TYPE_META[1];
+    spawnShockwave({ x: v.x, z: v.z }, { color: meta.color, radius: Math.max(2.2, v.radius * 0.8), life: 0.45 });
+    spawnPixelFx('custom/cast-flash', { pos: { x: v.x, y: GROUND_Y, z: v.z }, scale: 0.9 });
+    v.pulseBoost = 1;
+    cameraRig.shake(0.08, 120);
+}
+
+/** Thần Quang cắm xuống đất: sóng chấn, rung màn hình, cột sáng thánh (pixelfx) ở chân cây */
+function landRadiance(r) {
+    const p = r.group.position, bz = p.z + r.billboard.position.z;
+    spawnShockwave({ x: p.x, z: bz }, { color: 0xfef08a, radius: 9, life: 0.7 });
+    spawnShockwave({ x: p.x, z: bz }, { color: 0xffffff, radius: 5, life: 0.45 });
+    spawnPixelFx('holy/holy-pillar', { pos: { x: p.x, y: GROUND_Y, z: bz + 0.2 }, scale: 2.4 });
+    cameraRig.shake(0.3, 280);
+}
+
 function spawnRadianceVisual(data) {
     ensureDriver();
     const group = new THREE.Group();
@@ -255,16 +330,21 @@ function spawnRadianceVisual(data) {
     ring.scale.set(16, 10, 1);
 
     const halo = fxPlane(glowTexture(), 2.2, 2.2, { color: 0xfef08a, opacity: 0.28 });
-    halo.position.set(0, 2.7, -0.45);
+    halo.position.set(0, 5.8, -4.1);
 
-    const billboard = fxPlane(makePlaceholderCrossTex('big'), 1.5, 2.25, { additive: false, opacity: 0.94 });
-    billboard.position.set(0, 2.6, -0.4);
+    const billboard = fxPlane(makePlaceholderCrossTex('big'), 1.73, 2.25, { additive: false, opacity: 1 });
+    billboard.position.set(0, 5.7, -4);
 
-    group.add(ring, halo, billboard);
+    // hào quang vàng vẽ tay (Flow) sau cây khổng lồ: hiện khi cây đã cắm xuống
+    const aura = AURA_FB.frames('radiance', 1, { opacity: 0 });
+    aura.position.set(0, -0.02, -4.1);
+    aura.scale.setScalar(14);
+    const auraGlow = AURA_FB.frames('radiance', 1, { additive: true, opacity: 0 });
+    auraGlow.position.set(0, -0.02, -4.08);
+    auraGlow.scale.setScalar(14);
+    group.add(ring, aura, auraGlow, halo, billboard);
     scene.add(group);
-    activeRadiances.set(data.id, { id: data.id, group, ring, halo, billboard, age: 0, boost: 0.6 });
-    spawnShockwave({ x: data.x ?? 0, z: data.z ?? 0 }, { color: 0xfef08a, radius: 6, life: 0.55 });
-    spawnPixelFx('holy/sunburst', { pos: { x: data.x ?? 0, y: GROUND_Y, z: data.z ?? 0 }, scale: 0.95 });
+    activeRadiances.set(data.id, { id: data.id, group, ring, halo, billboard, aura, auraGlow, age: 0, boost: 0.6, landedAt: 0 });
 }
 
 export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, onHealNumber } = {}) {
@@ -279,7 +359,6 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             if (!c) break;
             if (activeCrosses.has(c.id)) removeCrossVisual(c.id);
             activeCrosses.set(c.id, createPlacedCrossMesh(c));
-            spawnPixelFx('custom/cast-flash', { pos: { x: c.x, y: GROUND_Y, z: c.z }, scale: 0.75 });
             break;
         }
         case 'levelUp': {
@@ -288,10 +367,11 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             const v = activeCrosses.get(c.id);
             if (v) {
                 v.level = c.level;
+                v.billboard.material.map = crossTexFor(v.type, v.level);   // lên cấp -> đổi sang tranh cấp mới
                 v.radius = c.radius;
                 v.pulseBoost = 1;
             }
-            spawnPixelFx('holy/sunburst', { pos: { x: c.x, y: GROUND_Y, z: c.z }, scale: 0.72 });
+            // (người chơi 21/11: bỏ tia nắng sunburst trên Thánh giá — lên cấp chỉ đổi sang tranh cấp mới + nhấp sáng)
             break;
         }
         case 'crossEnd': {
@@ -345,11 +425,10 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
         case 'hymn': {
             if (caster) {
                 spawnShockwave(caster.position, { color: 0xfde047, radius: 5.5, life: 0.5 });
-                spawnPixelFx('holy/sunburst', { pos: caster.position, scale: 0.85 });
             }
             for (const c of data.crosses ?? []) {
                 const v = activeCrosses.get(c.id);
-                if (v) { v.level = c.level; v.radius = c.radius; v.pulseBoost = 1.2; }
+                if (v) { if (v.level !== c.level) v.billboard.material.map = crossTexFor(v.type, c.level); v.level = c.level; v.radius = c.radius; v.pulseBoost = 1.2; }
             }
             // Phát 3 đợt hiệu ứng gọn mắt (tách nhẹ theo nhịp nhìn)
             (data.waves ?? []).forEach((wave, k) => {
@@ -360,27 +439,48 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             break;
         }
         case 'radianceStart': {
-            spawnRadianceVisual(data);
+            // Tâm sân của máy chủ (x 0) thường nằm ngoài khung hình (trận đánh lệch về 1 bên) -> hình cây Thần Quang
+            // đứng GIỮA HAI ĐỘI, lùi ra sau trận đánh (tác dụng vẫn là toàn sân như máy chủ tính)
+            const xs = [], zs = [];
+            for (const id of [data.casterId, oppId]) {
+                if (id == null) continue;
+                for (let i = 0; i < 8; i++) {
+                    const tv = getView?.(id, i);
+                    if (tv?.position && tv.visible !== false) { xs.push(tv.position.x); zs.push(tv.position.z); }
+                }
+            }
+            const at = xs.length
+                ? { x: (Math.min(...xs) + Math.max(...xs)) / 2, z: Math.min(...zs) }
+                : { x: data.x ?? 0, z: data.z ?? 0 };
+            spawnRadianceVisual({ ...data, x: at.x, z: at.z });
+            for (let i = 0; i < 8; i++) {
+                const av = getView?.(data.casterId, i);
+                if (av?.member?.alive) spawnPixelFx('holy/blessing', { view: av, until: () => !activeRadiances.has(data.id), maxLife: (data.duration ?? 10000) / 1000 + 1 });
+            }
             cameraRig.shake(0.14, 180);
             break;
         }
         case 'radianceTick': {
+            // Thánh Ca kích thêm 3 đợt cùng lúc -> giãn ra mỗi đợt 0,25 s cho dễ nhìn
+            const r0 = activeRadiances.get(data.id);
+            const nowMs = performance.now();
+            if (r0 && !data._staggered) {
+                const slot = Math.max(nowMs, (r0.nextFxAt ?? 0));
+                r0.nextFxAt = slot + 250;
+                if (slot - nowMs > 5) { gameTimeout(() => playCrossFxEvent({ ...data, _staggered: true }, { getView, opponentIdOf, onDamageNumber, onHealNumber }), slot - nowMs); break; }
+            }
             const r = activeRadiances.get(data.id);
             if (r) r.boost = data.explode ? 1.4 : 0.7;
             for (const eff of data.effects ?? []) {
                 const tv = oppId != null ? getView?.(oppId, eff.targetIndex) : null;
                 if (!tv) continue;
-                spawnLightning(
-                    { x: tv.position.x, y: GROUND_Y + 5.5, z: tv.position.z },
-                    { x: tv.position.x, y: GROUND_Y + CHEST_Y, z: tv.position.z },
-                    { width: 0.45, life: 0.2 },
-                );
-                spawnPixelFx('holy/sunburst', { pos: tv.position, scale: 0.72 });
-                onDamageNumber?.(tv, eff);
+                // người chơi 21/11: dùng Holy Smite của pixelfx (bỏ sunburst); số sát thương hiện lúc tia sáng chạm đất (~0,54 s)
+                spawnPixelFx('holy/smite', { pos: { x: tv.position.x, y: GROUND_Y, z: tv.position.z }, scale: 1.1, maxLife: 3 });
+                gameTimeout(() => onDamageNumber?.(tv, eff), 520);
             }
             if (data.explode) {
-                spawnShockwave({ x: 0, z: 0 }, { color: 0xfef08a, radius: 14, life: 0.6 });
-                spawnPixelFx('holy/sunburst', { pos: { x: 0, y: GROUND_Y, z: 0 }, scale: 1.0 });
+                const rp = r?.group?.position ?? { x: 0, z: 0 };
+                spawnShockwave({ x: rp.x, z: rp.z + 4 }, { color: 0xfef08a, radius: 14, life: 0.6 });
                 cameraRig.shake(0.22, 220);
                 for (const eff of data.explodeEffects ?? []) {
                     const tv = oppId != null ? getView?.(oppId, eff.targetIndex) : null;

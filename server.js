@@ -5939,7 +5939,7 @@ function foeInReach(member, skillType, oppSquad, now) {
     if (skillType === 'cross_place' || skillType === 'cross_hymn' || skillType === 'cross_radiance') {
         const castR = skillsOf(member)?.find(s => s.type === 'cross_place')?.castRange ?? 14;
         r = Math.max(r, castR);
-        if (skillType === 'cross_hymn' && (member.crosses?.length ?? 0) > 0 && oppSquad?.some(e => canBeTargeted(e, now, member))) return true;
+        if (skillType === 'cross_hymn' && ((member.crosses?.length ?? 0) > 0 || (member.crossRadiance && !member.crossRadiance.done && !member.crossRadiance.cancelled)) && oppSquad?.some(e => canBeTargeted(e, now, member))) return true;
     }
     return (oppSquad ?? []).some(e => canBeTargeted(e, now, member) && Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0)) <= r + FOE_REACH_SLACK);
 }
@@ -8392,6 +8392,13 @@ function castCrossSkill(room, pid, idx, oppId, skillIdx, sk, now, effects, extra
         }
         const levelUps = [];
         const adv = sk.advanceMs ?? 4000, ext = sk.extendMs ?? 4000;
+        // người chơi 21/11: Thánh Ca áp dụng cả cho cây Thần Quang (chiêu 3): đánh thêm ngay 3 đợt Holy Smite + kéo dài 4 giây
+        const rad = m.crossRadiance;
+        if (rad && !rad.cancelled && !rad.done) {
+            const team = room.players[pid], opp = oppId ? room.players[oppId] : null;
+            for (let k = 0; k < nTrig; k++) radianceSmite(room, m, pid, idx, rad, team, opp, oppId, now);
+            rad.endTime += ext;
+        }
         for (const c of list) {
             if (c.level >= 3) {
                 if (c.expireAt != null) c.expireAt += ext;
@@ -8497,38 +8504,44 @@ function processRoomCrosses(room, pid, oppId, now) {
         });
         while (now >= r.nextTick && r.nextTick <= r.endTime) {
             r.nextTick += r.every;
-            r.smiteCount += 1;
-            const isFifth = r.smiteCount % (r.explodeEvery ?? 5) === 0;
-            const effects = [], explodeEffects = [], cleansed = [];
-            if (opp) {
-                opp.squad.forEach((e, i) => {
-                    if (!crossEnemyTargetable(e, m, now)) return;
-                    const eff = hitTarget(m, e, i, opp, r.smiteMult, now, { aoe: true, noBlock: true });
-                    if (!eff.isMiss && e.alive && takesDebuffs(e)) {
-                        upsertCrossTimedEffect(e, 'cross_smite_debuff', srcKey, { level: 1, debuff: true, dmgDown: r.enemyDmgDown, defDown: r.enemyDefDown }, now, now + r.debuffTime, false);
-                    }
-                    const stripped = takesDebuffs(e) ? stripBuffs(e, 1, now) : [];
-                    if (stripped.length) eff.stripped = stripped;
-                    effects.push(eff);
-                    if (isFifth && e.alive) {
-                        explodeEffects.push(hitTarget(m, e, i, opp, r.explodeMult, now, { aoe: true, noBlock: true }));
-                    }
-                });
-            }
-            if (isFifth) {
-                team.squad.forEach((a, i) => {
-                    if (!a.alive) return;
-                    cleanse(a, 'all');
-                    cleansed.push(i);
-                });
-            }
-            emitCross(room.id, { kind: 'radianceTick', casterId: pid, casterIdx: idx, id: r.id, n: r.smiteCount, explode: isFifth, targetId: oppId, effects, explodeEffects, cleansed });
+            radianceSmite(room, m, pid, idx, r, team, opp, oppId, now);
         }
         if (now >= r.endTime) {
             r.done = true;
             cancelCrossRadiance(room, m, pid, idx, 'done');
         }
     });
+}
+
+/** Một đợt Holy Smite của Thần Quang (dùng cho nhịp 1 giây và cho Thánh Ca kích hoạt thêm) */
+function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now) {
+    const srcKey = `${pid}:${idx}`;
+    r.smiteCount += 1;
+    const isFifth = r.smiteCount % (r.explodeEvery ?? 5) === 0;
+    const effects = [], explodeEffects = [], cleansed = [];
+    if (opp) {
+        opp.squad.forEach((e, i) => {
+            if (!crossEnemyTargetable(e, m, now)) return;
+            const eff = hitTarget(m, e, i, opp, r.smiteMult, now, { aoe: true, noBlock: true });
+            if (!eff.isMiss && e.alive && takesDebuffs(e)) {
+                upsertCrossTimedEffect(e, 'cross_smite_debuff', srcKey, { level: 1, debuff: true, dmgDown: r.enemyDmgDown, defDown: r.enemyDefDown }, now, now + r.debuffTime, false);
+            }
+            const stripped = takesDebuffs(e) ? stripBuffs(e, 1, now) : [];
+            if (stripped.length) eff.stripped = stripped;
+            effects.push(eff);
+            if (isFifth && e.alive) {
+                explodeEffects.push(hitTarget(m, e, i, opp, r.explodeMult, now, { aoe: true, noBlock: true }));
+            }
+        });
+    }
+    if (isFifth) {
+        team.squad.forEach((a, i) => {
+            if (!a.alive) return;
+            cleanse(a, 'all');
+            cleansed.push(i);
+        });
+    }
+    emitCross(room.id, { kind: 'radianceTick', casterId: pid, casterIdx: idx, id: r.id, n: r.smiteCount, explode: isFifth, targetId: oppId, effects, explodeEffects, cleansed });
 }
 
 // ============================================================

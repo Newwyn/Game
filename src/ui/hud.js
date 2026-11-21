@@ -80,7 +80,7 @@ function foeNear(m, oppSquad, sk) {
     const wind = m.statusEffects?.find(ef => ef.type === 'windspirit' && ef.endTime > now);
     let r = (m.atkRange ?? game.classDefs?.[m.classId]?.atkRange ?? 2.4) + (wind?.rangeUp ?? 0);
     if (sk?.type?.startsWith('cross_')) {
-        if (sk.type === 'cross_hymn' && (m.crosses?.length ?? 0) > 0 && (oppSquad ?? []).some(e => e.alive)) return true;
+        if (sk.type === 'cross_hymn' && ((m.crosses?.length ?? 0) > 0 || m.crossRadiance) && (oppSquad ?? []).some(e => e.alive)) return true;
         r = Math.max(r, game.classDefs?.[m.classId]?.skills?.[0]?.castRange ?? 14);
     }
     return (oppSquad ?? []).some(e => e.alive && Math.hypot(e.x - m.x, (e.z || 0) - (m.z || 0)) <= r + 0.3);

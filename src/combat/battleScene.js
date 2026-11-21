@@ -5,7 +5,7 @@ import { scene, camera, renderer, clearDynamicObjects } from '../core/scene.js';
 import { warmFlipbooks } from '../vfx/flipbook.js';
 import { cameraRig, battleCamMode } from '../core/cameraRig.js';
 import { game, myId, forEachView } from '../state.js';
-import { gameNow } from '../config.js';
+import { gameNow, GROUND_Y } from '../config.js';
 
 import { createCharacterView } from '../characters/registry.js';
 import { clearVfx, spawnDashStreak, spawnLandingDust } from '../vfx/vfx.js';
@@ -131,10 +131,23 @@ function aliveViews(playerId) {
  * Combat (góc ngang): lúc hai phe còn xa thì bám đội mình; khi áp sát thì ôm khung cả hai phe.
  * Explore (góc chéo): bám trung tâm đội hình mình.
  */
+/** Mọi nhân vật / vật triệu hồi đang hiện: chân + đỉnh đầu (tính cả lúc nhảy, bay) -> camera tự lùi cho đủ thấy */
+function fitPointsOfViews() {
+    const pts = [];
+    for (const v of Object.values(game.views ?? {}).flat()) {
+        if (!v?.root?.visible || !v.member) continue;
+        if (!v.member.alive && !v.member.summon) continue;
+        const p = v.root.position, h = v.height ?? 2.9, up = (v._hover ?? 0) + (v._lift ?? 0);
+        pts.push([p.x, p.y + GROUND_Y + up, p.z], [p.x, p.y + GROUND_Y + up + h + 0.5, p.z]);
+    }
+    return pts;
+}
+
 function updateCamera() {
     const me = myId();
     const mine = aliveViews(me);
     if (mine.length === 0) return;
+    cameraRig.setFitPoints(fitPointsOfViews());
     const avgZ = mine.reduce((s, v) => s + v.position.z, 0) / mine.length;
     // Có Thần Hộ Vệ (Dựng Khiên) đang hiện -> nâng khung hình để thấy trọn vị thần trên đầu Rok
     const now = gameNow();

@@ -56,8 +56,34 @@ let introFactor = 1;
 
 function cfg() { return CAMERA_MODES[mode]; }
 
+// (21/11/2026) người chơi: có vật / nhân vật nào sắp ra khỏi khung (nhảy cao, bay, thánh giá khổng lồ…) thì camera
+// TỰ LÙI RA vừa đủ thấy hết, hết thì từ từ về lại. Điểm cần thấy: battleScene gửi mỗi khung (nhân vật) + nguồn đăng ký (hiệu ứng).
+let fit = 1, fitTarget = 1;
+let framePoints = [];                 // [[x,y,z]...] chỉ dùng cho 1 khung, battleScene gửi lại mỗi khung
+const fitSources = new Set();         // hàm trả [[x,y,z]...] (VD Thánh giá của Caelum)
+const _fv = new THREE.Vector3();
+const FIT_X = 0.9, FIT_TOP = 0.86, FIT_BOTTOM = 0.5, FIT_MAX = 2.4;   // đáy chừa chỗ cho hàng thẻ anh hùng
+function updateFit(dt) {
+    const pts = framePoints;
+    framePoints = [];
+    for (const src of fitSources) { try { const a = src(); if (a?.length) pts.push(...a); } catch {} }
+    let need = 0;
+    if (pts.length) {
+        camera.updateMatrixWorld();
+        for (const [x, y, z] of pts) {
+            _fv.set(x, y, z).project(camera);
+            if (_fv.z > 1 || _fv.z < -1) continue;
+            need = Math.max(need, Math.abs(_fv.x) / FIT_X, _fv.y > 0 ? _fv.y / FIT_TOP : -_fv.y / FIT_BOTTOM);
+        }
+    }
+    if (need > 1) fitTarget = Math.min(FIT_MAX, fit * need * 1.04);
+    else if (need < 0.85) fitTarget = Math.max(1, fit * Math.max(need, 0.5) / 0.85);
+    const rate = fitTarget > fit ? 5 : 1.2;   // lùi ra nhanh, về lại chậm
+    fit += (fitTarget - fit) * (1 - Math.exp(-rate * dt));
+}
+
 function placeCamera() {
-    const d = dist * zoom * introFactor * (1 + lift * 0.1);
+    const d = dist * zoom * introFactor * (1 + lift * 0.1) * fit;
     camera.position.set(
         focus.x,
         focus.y + lift + Math.sin(pitch) * d,
@@ -118,6 +144,13 @@ export const cameraRig = {
         placeCamera();
     },
 
+    /** Các điểm phải nằm trong khung ở khung hình này ([[x,y,z]...]) — gọi mỗi khung */
+    setFitPoints(points) { framePoints = points ?? []; },
+    /** Đăng ký nguồn điểm phải thấy (hàm trả [[x,y,z]...]); trả về hàm huỷ đăng ký */
+    addFitSource(fn) { fitSources.add(fn); return () => fitSources.delete(fn); },
+    /** Hệ số tự lùi hiện tại (1 = bình thường) */
+    getFit: () => fit,
+
     /** Nâng khung hình lên `h` đơn vị (0 = bình thường), chuyển mượt */
     setLift(h, rate = 3) { liftTarget = h; liftRate = rate; },   // rate: tốc độ đuổi theo (lớn = nhanh)
 
@@ -132,7 +165,7 @@ export const cameraRig = {
         shake.until = Math.max(shake.until, performance.now() + durationMs);
     },
 
-    reset() { shake.intensity = 0; shake.until = 0; intro.t = 1; introFactor = 1; },
+    reset() { shake.intensity = 0; shake.until = 0; intro.t = 1; introFactor = 1; fit = fitTarget = 1; framePoints = []; },
 
     /** Mở màn trận: bắt đầu xa gấp `from` lần rồi lướt vào trong `duration` giây */
     introZoom(from = 2.6, duration = 1.5) {
@@ -159,6 +192,7 @@ export const cameraRig = {
             camera.fov += (c.fov - camera.fov) * kBlend;
             camera.updateProjectionMatrix();
         }
+        updateFit(dt);
         placeCamera();
     },
 

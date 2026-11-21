@@ -562,3 +562,22 @@ test('Caelum socket handlers, AUTO crossType selection and PvP mirror terminatio
     const win = hpvp.run('room.winner');
     assert.ok(win === 'p1' || win === 'p2', `trận mirror PvP phải kết thúc có người thắng rõ ràng, nhận: ${win}`);
 });
+
+// người chơi 21/11: Thánh Ca (KN2) áp dụng cả cho cây Thần Quang (KN3)
+test('Caelum Skill 2 also boosts Skill 3: +3 smites immediately and +4s duration', () => {
+    const h = harness();
+    arena(h, { allies: ['warrior'], foes: [['monster_tank', 8, 0]] });
+    h.run('foes[0].hp = foes[0].maxHp = 500000;');
+    h.run('cast(2)');
+    const end0 = h.run('caelum.crossRadiance.endTime');
+    h.run('upTo(1000)');
+    assert.equal(h.run('caelum.crossRadiance.smiteCount'), 1);
+    h.run('caelum.skillCooldowns[1] = 0; cast(1)');
+    assert.equal(h.run('caelum.crossRadiance.smiteCount'), 4, 'Thánh Ca đánh thêm ngay 3 đợt Holy Smite');
+    assert.equal(h.run('caelum.crossRadiance.endTime'), end0 + 4000, 'Thánh Ca kéo dài Thần Quang 4 giây');
+    // không có Thánh giá KN1 nào nhưng có Thần Quang -> Thánh Ca vẫn dùng được (foeInReach)
+    assert.equal(h.run('caelum.crosses.length'), 0);
+    assert.equal(h.run("foeInReach(caelum, 'cross_hymn', foes, room.clock)"), true);
+    h.run('upTo(14000)');
+    assert.equal(h.run('caelum.crossRadiance'), null, 'Thần Quang kết thúc sau 14 giây');
+});
