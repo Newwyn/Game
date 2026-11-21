@@ -800,7 +800,7 @@ function onSkillExecuted(data) {
         case 'cross_place':
         case 'cross_hymn':
         case 'cross_radiance': {
-            caster.playAction?.(data.type === 'cross_radiance' ? 'raise' : 'attack');
+            caster.playAction?.(data.type === 'cross_radiance' ? 'raise' : data.type === 'cross_hymn' ? 'hymn' : 'place');
             caster.flashMagicCircle?.(0.75);
             break;
         }

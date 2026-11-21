@@ -19,7 +19,7 @@ const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, imp
 const ATLAS = import.meta.glob('../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const ATLAS_META = import.meta.glob('../characters/sprite/*Sprite{,_s,_ss}.json', { eager: true, import: 'default' });
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou', crosspriest: 'seraphine' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou', crosspriest: 'caelum' };
 
 // mô tả ngắn 3 kỹ năng (số liệu ở cấp kỹ năng 1)
 const SKILL_DESC = {

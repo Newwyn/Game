@@ -17,6 +17,7 @@ import { JESSICA_SPRITE } from './sprite/jessicaSprite.js';
 import { NERISSA_SPRITE } from './sprite/nerissaSprite.js';
 import { LYRA_SPRITE } from './sprite/lyraSprite.js';
 import { SERAPHINE_SPRITE } from './sprite/seraphineSprite.js';
+import { CAELUM_SPRITE } from './sprite/caelumSprite.js';
 import { ZERITH_SPRITE } from './sprite/zerithSprite.js';
 import { GRIX_SPRITE } from './sprite/grixSprite.js';
 import { SYLVA_SPRITE } from './sprite/sylvaSprite.js';
@@ -199,6 +200,24 @@ const PRIEST = {
         shield: { clip: 'shield', hitTime: 0.28 },
         raise:  { clip: 'raise',  hitTime: 0.45 },  // giơ gậy cao -> vào niệm
         pray:   { clip: 'pray' },                    // niệm (giữ lặp)
+    },
+};
+
+// Caelum (Thánh Giá) — Tu sĩ chiến lơ lửng, tranh Flow (art/caelum). Khung xương mượn của Seraphine (chỉ dùng khi tắt sprite)
+const CROSSPRIEST = {
+    ...PRIEST,
+    height: 2.7,
+    sprite: CAELUM_SPRITE,
+    spriteParam: 'caelum',
+    spriteIdleParam: 'caelumIdle',
+    prayFx: undefined,
+    ghostTint: 0x93c5fd,
+    circleTint: 0x60a5fa,
+    anims: {
+        attack: { clip: 'attack', hitTime: 0.24 },
+        place:  { clip: 'place',  hitTime: 0.3 },   // KN1
+        hymn:   { clip: 'hymn',   hitTime: 0.3 },   // KN2
+        raise:  { clip: 'raise',  hitTime: 0.3 },   // KN3
     },
 };
 
@@ -555,7 +574,7 @@ export const CHARACTER_VISUALS = {
     voidmage: () => VOIDMAGE,
     chessmaster: () => CHESSMASTER,
     swordsage: () => SWORDSAGE,
-    crosspriest: () => PRIEST,
+    crosspriest: () => CROSSPRIEST,
     chess_pawn: () => CHESS_PAWN,
     chess_rook: () => CHESS_ROOK,
     chess_knight: () => CHESS_KNIGHT,
