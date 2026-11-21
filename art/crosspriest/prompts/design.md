@@ -1,0 +1,15 @@
+# Draw 3 character design images (use your image generator). No shell commands, file tools only, stay inside this folder.
+
+Style reference: `ref-style.png` in this folder. Use it ONLY for the art style - do NOT copy its character, outfit or colours.
+
+Common to all 3 images: Chibi 2D game character art in exactly the same style as the reference: big head about one third of the total height (about 3 heads tall), large anime eyes, highly detailed costume, crisp clean line art, soft cel shading, vibrant colours. Portrait canvas (2:3). Three-quarter side view facing RIGHT, full body, plain pure white background, no ground shadow, no text, no watermark, exactly ONE character.
+
+CHARACTER (the same person in all 3 images: same face, hair, proportions): an ancient male ELF battle priest who is thousands of years old but has a small, slight, youthful build (a petite chibi boy figure, fully and modestly clothed). Long pointed elf ears. Short neat golden-blond hair with soft bangs. Large pale-blue eyes that look EMPTY and lifeless - flat, no sparkle, half-lidded; a cold, expressionless, silent face; he looks like an obedient, devout believer. Outfit: a clerical robe / cassock-style long coat whose SLEEVES ARE FAR TOO LONG, hanging well past his hands so the hands are hidden and the sleeve ends droop; under the robe, knee-length shorts with long socks and small shoes; a priest's hat (a soft clerical cap / small mitre shape with a cross emblem). He does NOT stand on the ground: he FLOATS a little above it, feet together pointing slightly down, the robe hem and long sleeves hanging and drifting. On his BACK he carries a GIANT cross - a huge heavy ornate Latin cross taller than his whole body, slung diagonally behind him on straps / chains, its top rising above his hat and its base below his feet. The contrast between the tiny boy and the enormous cross is the key idea. Hands hidden in the long sleeves, held together in front of his chest as if praying. Colours: white, black and gold clerical tones with pale-blue accents.
+
+Image 1 - file name `priest-s` - STARTER tier, plain and humble: simple white-and-black acolyte robe, plain cap, a big plain weathered stone-and-iron cross with rough bindings. No glow.
+
+Image 2 - file name `priest-ss` - ADVANCED tier: finer robe with gold trim and a short shoulder cape, embroidered cross emblems, a polished silver-and-gold cross with engraved patterns and a blue gem at its centre, a thin chain of light linking the cross to his wrist. Faint glow on the gem only.
+
+Image 3 - file name `priest-sss` - LEGENDARY tier: magnificent high-priest vestments in white, gold and deep blue with long stole ribbons and layered sleeves, an ornate tall mitre with a halo ring floating just above it, a colossal radiant cross of white gold with stained-glass blue inlays and a glowing core, chains of golden light wrapped around it, a soft holy radiance behind him. His eyes remain cold and empty.
+
+Generate the 3 images one after another and wait until each one is finished. Then write the 3 saved file paths into `design-report.md` in this folder and stop.
