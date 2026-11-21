@@ -28,6 +28,7 @@ Nhân vật thứ 17 (mục tiêu 20). Một **tank gây khó chịu**: sát th�
 ### Chiêu 3 – Búa Thánh Khổng Lồ
 - **Niệm 2 giây**, hiện ra **cây búa thánh rất to**, Pary **đập xuống đất 3 lần**.
 - Lần 1 và 2: **hất tung + choáng nhẹ**. Lần 3: **đập chậm**, **hất tung TẤT CẢ đối thủ trên sân** (người dùng chốt: toàn sân), rơi xuống **choáng 1,5s**.
+- **YunYou đang bay cũng trúng lần đập 3** (người dùng chốt): bị kéo **rơi xuống đất trong thời gian choáng** (lúc đó đánh trúng được như người dưới đất), hết choáng thì **bay lên lại** (không tính là "đã xuống đất tới hết trận").
 - **(Claude đề xuất)** 4 Orb, hồi 24s. Lần 1–2 trúng địch trong bán kính 5 quanh Pary, ×0,6 công, hất 0,4s + choáng 0,5s; lần 3 toàn sân ×1,2 công. Mốc: niệm 2s → đập 1 → +0,6s đập 2 → +1s đập 3. Không có kháng hiệu ứng khi niệm chiêu này (người dùng không yêu cầu) — Pary bị choáng giữa chừng thì mất chiêu như mọi chiêu niệm khác.
 
 ## 4. Chặn dịch chuyển (cơ chế mới)
