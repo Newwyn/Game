@@ -1574,6 +1574,7 @@ span.wd-act-ic { font-size: 22px; width: auto; height: auto; }
 .cross-type-btn .ct-dot {
     width: 6px; height: 6px; border-radius: 50%; background: var(--ct, #eab308); flex-shrink: 0;
 }
+.cross-type-btn .ct-ico { width: 13px; height: 17px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 0 2px var(--ct, #eab308)); }
 .cross-type-btn:hover { color: #e2e8f0; border-color: var(--ct, #eab308); }
 .cross-type-btn.on {
     color: #fff; border-color: var(--ct, #eab308);

@@ -640,4 +640,9 @@
         width: 4px;
         height: 4px;
     }
+
+    #combat-hud .cross-type-btn .ct-ico {
+        width: 9px;
+        height: 12px;
+    }
 }

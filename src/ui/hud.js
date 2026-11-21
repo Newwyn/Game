@@ -7,6 +7,9 @@ import { game, myId } from '../state.js';
 import { ORB_COST, MAX_SQUAD , gameNow, timeState } from '../config.js';
 import { net, socket } from '../net/socket.js';
 import { CROSS_TYPE_META } from '../vfx/crossFx.js';
+// nút chọn loại Thánh giá: dùng tranh Thánh giá cấp 1 đã vẽ (Flow) làm icon
+const CROSS_ICON_GLOB = import.meta.glob('../assets/sprites/caelum_cross_[1-4]_1.webp', { eager: true, import: 'default' });
+const CROSS_ICON = Object.fromEntries([1, 2, 3, 4].map(t => [t, CROSS_ICON_GLOB[`../assets/sprites/caelum_cross_${t}_1.webp`]]));
 import gemF from '../assets/ui/gem_f.png';
 import gemI from '../assets/ui/gem_i.png';
 import gemB from '../assets/ui/gem_b.png';
@@ -267,7 +270,7 @@ function updateCrossTray(card, member, i) {
         tray.className = 'cross-tray';
         tray.innerHTML = [1, 2, 3, 4].map(t => {
             const meta = CROSS_TYPE_META[t];
-            return `<button type="button" class="cross-type-btn" data-cross-type="${t}" style="--ct:${meta.css}" title="Chọn Thánh giá ${meta.name}"><i class="ct-dot"></i><span>${meta.short}</span></button>`;
+            return `<button type="button" class="cross-type-btn" data-cross-type="${t}" style="--ct:${meta.css}" title="Chọn Thánh giá ${meta.name}">${CROSS_ICON[t] ? `<img class="ct-ico" src="${CROSS_ICON[t]}" alt="">` : '<i class="ct-dot"></i>'}<span>${meta.short}</span></button>`;
         }).join('');
         tray.addEventListener('pointerdown', (e) => { if (e.target.closest('.cross-type-btn')) e.stopPropagation(); });
         tray.addEventListener('click', (e) => {
