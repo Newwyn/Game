@@ -8528,19 +8528,23 @@ function radianceSmite(room, m, pid, idx, r, team, opp, oppId, now, hymn = false
     const isFifth = r.smiteCount % (r.explodeEvery ?? 5) === 0;
     const effects = [], explodeEffects = [], cleansed = [];
     if (opp) {
-        opp.squad.forEach((e, i) => {
-            if (!crossEnemyTargetable(e, m, now)) return;
-            const eff = hitTarget(m, e, i, opp, r.smiteMult, now, { aoe: true, noBlock: true });
+        // người chơi 21/11: mỗi phát Holy Smite chỉ giáng xuống 1 đối thủ NGẪU NHIÊN (vụ nổ phát thứ 5 vẫn trúng toàn đội địch)
+        const pool = opp.squad.map((e, i) => [e, i]).filter(([e]) => crossEnemyTargetable(e, m, now));
+        if (pool.length) {
+            const [e, i] = pool[Math.floor(Math.random() * pool.length)];
+            const eff = hitTarget(m, e, i, opp, r.smiteMult, now, { noBlock: true });
             if (!eff.isMiss && e.alive && takesDebuffs(e)) {
                 upsertCrossTimedEffect(e, 'cross_smite_debuff', srcKey, { level: 1, debuff: true, dmgDown: r.enemyDmgDown, defDown: r.enemyDefDown }, now, now + r.debuffTime, false);
             }
             const stripped = takesDebuffs(e) ? stripBuffs(e, 1, now) : [];
             if (stripped.length) eff.stripped = stripped;
             effects.push(eff);
-            if (isFifth && e.alive) {
-                explodeEffects.push(hitTarget(m, e, i, opp, r.explodeMult, now, { aoe: true, noBlock: true }));
-            }
-        });
+        }
+        if (isFifth) {
+            opp.squad.forEach((e, i) => {
+                if (crossEnemyTargetable(e, m, now) && e.alive) explodeEffects.push(hitTarget(m, e, i, opp, r.explodeMult, now, { aoe: true, noBlock: true }));
+            });
+        }
     }
     if (isFifth) {
         team.squad.forEach((a, i) => {

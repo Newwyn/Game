@@ -600,3 +600,17 @@ test('Caelum: new crosses start at Lv3 once a Lv3 cross exists; lightning radius
     assert.ok(Math.abs(c.radius - 4.2 * 1.5) < 1e-6, 'Sấm Sét cấp 3 bán kính 6,3');
     assert.equal(h.run('caelum.crosses.at(-1).expireAt - room.clock'), 10000, 'cấp 3 có đủ 10 giây');
 });
+
+// người chơi 21/11: Holy Smite của Thần Quang chỉ rơi xuống 1 đối thủ ngẫu nhiên mỗi phát; vụ nổ phát thứ 5 vẫn trúng toàn đội
+test('Caelum Skill 3: each Holy Smite hits exactly one random enemy, 5th-smite explosion hits all', () => {
+    const h = harness();
+    arena(h, { allies: ['warrior'], foes: [['monster_tank', 8, 0], ['monster_tank', 9, 1], ['monster_tank', 9, -1]] });
+    h.run('foes.forEach(f => { f.hp = f.maxHp = 900000; });');
+    h.run('cast(2)');
+    h.run('upTo(5000)');
+    const ticks = h.fx('radianceTick');
+    assert.equal(ticks.length, 5);
+    for (const t of ticks) assert.equal(t.effects.length, 1, 'mỗi phát chỉ 1 mục tiêu');
+    assert.equal(ticks[4].explode, true);
+    assert.equal(ticks[4].explodeEffects.length, 3, 'vụ nổ trúng cả 3 đối thủ');
+});
