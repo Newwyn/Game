@@ -1,0 +1,106 @@
+  ...
+# Subtest: Relocation blocking: locks units inside aura and intercepts/stuns external relocators with 15% shield restore and Bị chặn! fx
+not ok 5 - Relocation blocking: locks units inside aura and intercepts/stuns external relocators with 15% shield restore and Bị chặn! fx
+  ---
+  location: 'C:\\Users\\Admin\\Desktop\\legend-of-capsules\\.team\\wt\\pary\\tests\\holyhammer.test.js:313:1'
+  failureType: 'testCodeFailure'
+  error: 'Zerith bị chặn ngay mép vòng (~4.5), nhận d=8'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:365:12)
+  ...
+# Subtest: Brakk exemption: Bá Vương Quật (brakk_grab) is NOT blocked inside Pary aura
+not ok 6 - Brakk exemption: Bá Vương Quật (brakk_grab) is NOT blocked inside Pary aura
+  ---
+  location: 'C:\\Users\\Admin\\Desktop\\legend-of-capsules\\.team\\wt\\pary\\tests\\holyhammer.test.js:402:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    khiên Pary không được hồi từ Brakk
+    
+    0 !== 100
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 100
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:416:12)
+  ...
+# Subtest: Skill 3: stunned during 2s cast interrupts skill; 3 slams grant CC-immune (normal dmg), pull flying YunYou down then allow re-takeoff
+not ok 7 - Skill 3: stunned during 2s cast interrupts skill; 3 slams grant CC-immune (normal dmg), pull flying YunYou down then allow re-takeoff
+  ---
+  location: 'C:\\Users\\Admin\\Desktop\\legend-of-capsules\\.team\\wt\\pary\\tests\\holyhammer.test.js:423:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    YunYou tự bay lên lại sau khi hết choáng Nhịp 3
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:483:12)
+  ...
+# Subtest: Talent 1 (Lv20): every 3rd basic attack throws hammer at back-line enemy with 0.8x, 1s stun and 6% maxHp 6s shield
+ok 8 - Talent 1 (Lv20): every 3rd basic attack throws hammer at back-line enemy with 0.8x, 1s stun and 6% maxHp 6s shield
+  ---
+  ...
+# Subtest: Talent 2 (Lv40): +8% pDef and mDef per alive enemy within 4.5u (cap 5 = +40%), dynamically recomputed
+ok 9 - Talent 2 (Lv40): +8% pDef and mDef per alive enemy within 4.5u (cap 5 = +40%), dynamically recomputed
+--
+  ...
+# Subtest: PvP mirror battle & right-side Skill 1 knockback symmetry
+not ok 10 - PvP mirror battle & right-side Skill 1 knockback symmetry
+  ---
+  location: 'C:\\Users\\Admin\\Desktop\\legend-of-capsules\\.team\\wt\\pary\\tests\\holyhammer.test.js:562:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Pary phe Phải hất mục tiêu tới cách biên trái 2 đơn vị
+    
+    0 !== -46
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: -46
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:588:12)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 5
+# fail 5
+# cancelled 0
+# skipped 0
+not ok 2 - Relocate flag: marks all relocation skills (NOT brakk_grab) and exposes it in heroPanelPayload
+  ---
+  location: 'C:\\Users\\Admin\\Desktop\\legend-of-capsules\\.team\\wt\\pary\\tests\\holyhammer.test.js:175:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'push')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    evalmachine.<anonymous>:4:22
+    evalmachine.<anonymous>:6:11
+    Object.run (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:40:28)
+    TestContext.<anonymous> (C:\Users\Admin\Desktop\legend-of-capsules\.team\wt\pary\tests\holyhammer.test.js:190:34)
+  ...
+# Subtest: Skill 1: 2s spin cast (-50% dmg, CC immune) and smash knockback to 2u from enemy bound; unpushable still takes dmg+stun
+ok 3 - Skill 1: 2s spin cast (-50% dmg, CC immune) and smash knockback to 2u from enemy bound; unpushable still takes dmg+stun
+  ---
+  ...
+# Subtest: Skill 2: shield scales by unit count N (cap 5 -> 18%) and allies inside receive ONLY 0.5*(pDef+mDef)*6 shield
+ok 4 - Skill 2: shield scales by unit count N (cap 5 -> 18%) and allies inside receive ONLY 0.5*(pDef+mDef)*6 shield
+  ---
+  ...
+# Subtest: Relocation blocking: locks units inside aura and intercepts/stuns external relocators with 15% shield restore and Bị chặn! fx

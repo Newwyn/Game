@@ -328,7 +328,8 @@ function updateMemberCard(member, i, now, ctx = {}) {
         if (!btn) continue;
         // kỹ năng theo bậc (server gửi) — Elarion: nút KN2 đổi theo phép đang giữ · Leon: 3 nút đổi theo thế cờ
         const sk = member.skills?.[s] ?? def.skills[s];
-        const locked = !!(chess && sk.locked);
+        const relocateLocked = !!(sk?.relocate && member.statusEffects?.some(e => e.type === 'relocate_lock' && e.endTime > now));
+        const locked = !!(chess && sk.locked) || relocateLocked;
         if (elem || chess) {
             const ic = btn.querySelector('.skill-icon');
             const nm = elem && s === 1 && !member.spell ? 'Chưa ghép phép' : sk.name;
@@ -408,7 +409,9 @@ function updateMemberCard(member, i, now, ctx = {}) {
             if (act) cls += ' active' + (act.combo ? ' combo' : '');
             else if (!isReady && !isQueued) cls += ' disabled';
         }
-        btn.className = cls;
+        btn.className = cls + (relocateLocked ? ' relocate-locked' : '');
+        if (relocateLocked) btn.title = `${sk.name} — 🚫 Khoá dịch chuyển`;
+        else if (!chess) btn.title = `${sk.name} — ${costLabel(sk)}${sk.cooldown ? `, hồi ${(sk.cooldown / 1000).toFixed(0)}s` : ''}`;
         if (btn.disabled !== locked) btn.disabled = locked;
         btn.style.opacity = locked ? '0.4' : '';
         btn.style.cursor = locked ? 'not-allowed' : '';
@@ -452,6 +455,14 @@ function effectInfo(ef, m) {
     const pm = (v) => Math.round((v ?? 0) / 10);
     switch (ef.type) {
         case 'seal': return ['🔴', '#ef4444', 'Ấn', '−15% P.DEF · Đột Kích của Jessica lao tới', true];
+        case 'relocate_lock': return ['🚫', '#ef4444', 'Khoá dịch chuyển', 'Đang trong Hào Quang của Pary — không thể dùng kỹ năng dịch chuyển', true];
+        case 'holy_aura': return ['🟡', '#fde047', 'Hào Quang Thánh Thần', 'Khoá & chặn dịch chuyển kẻ địch trong 4.5 đơn vị · chặn được hồi 15% khiên tối đa'];
+        case 'holy_aura_shield': return ['🛡️', '#facc15', 'Khiên Hào Quang', `Hấp thụ ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)} sát thương`];
+        case 'holy_aura_ally_shield': return ['🛡️', '#fef08a', 'Khiên Thánh Thần', `Khiên từ Hào Quang Pary: ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)} sát thương`];
+        case 'pary_throw_shield': return ['🔨', '#fbbf24', 'Khiên Búa Bay', `Hấp thụ ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)} sát thương`];
+        case 'pary_surround_def': return ['🔰', '#38bdf8', `Hộ Giáp Bủa Vây (${ef.stacks ?? 0})`, `+${pc(ef.value)}% P.DEF & M.DEF (mỗi địch trong 4.5 đơn vị +8%, tối đa 5)`];
+        case 'pary_spin_guard': return ['🌀', '#fbbf24', 'Xoay Búa Phán Quyết', 'Giảm 50% sát thương nhận & miễn khống chế trong lúc niệm'];
+        case 'pary_colossus': return ['⚡', '#f59e0b', 'Búa Thánh Khổng Lồ', 'Miễn khống chế suốt 3 nhịp giáng búa'];
         case 'stealth': return ['👤', '#4ade80', ef.shadow ? 'Bóng Ẩn' : 'Tàng Hình', 'Không bị chọn làm mục tiêu · chỉ trúng đòn DIỆN RỘNG · +20% P.ATK · +10% tốc đánh'];
         case 'stun': return ['💫', '#facc15', 'Choáng', 'Không thể di chuyển, đánh, niệm', true];
         case 'taunted': return ef.by === 'Brakk'
@@ -605,7 +616,7 @@ function effectInfo(ef, m) {
         default: return ['❔', '#94a3b8', ef.type, ''];
     }
 }
-const AURA_EFFECTS = new Set(['water_shield', 'tide_haste', 'tide_slow', 'lone_dragon', 'deer_bless']);
+const AURA_EFFECTS = new Set(['water_shield', 'tide_haste', 'tide_slow', 'lone_dragon', 'deer_bless', 'relocate_lock', 'pary_surround_def']);
 // Thời lượng gốc của hiệu ứng không có `duration`: ghi lại lúc mới thấy (theo nhân vật + loại)
 const effStart = new Map();
 function statusTags(member, now, key = '') {
@@ -724,7 +735,7 @@ function statPanelHTML(m, now, key, side) {
                 ${row('Accuracy', 'acc', '%', pct)}
                 <hr style="border:0; border-top:1px solid #334155; margin:6px 0;">
                 ${row('Tốc đánh (ms)', 'atkSpeed')}
-                ${row('Speed (Move)', 'moveSpeed')}
+                ${row('Speed (Move)', 'moveSpeed', '', v => String(+(+v).toFixed(4)))}
                 ${row('MP Recov/Atk', 'mpAtk')}
                 ${row('Khiêu khích', 'threat')}
                 ${(eff.lifesteal ?? 0) > 0 ? row('Hút máu', 'lifesteal', '%', pct) : ''}

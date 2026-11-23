@@ -52,6 +52,7 @@ import {
 import {
     spawnSunOrb, spawnSunBurst, spawnSunlight, spawnSeraIcon, spawnSunFlare, spawnLittleAngel, spawnReviveFx, spawnPrayStart,
 } from '../vfx/seraphineFx.js';
+import { clearParyFx, playParyCast, playParySkill, playParyFxEvent } from '../vfx/paryFx.js';
 import { spawnLinkPulse } from '../vfx/linkFx.js';
 import {
     spawnTalismanShot, spawnTalismanImpact, spawnThunderSlash, spawnThunderX, spawnStealthBurst, spawnShadowRing,
@@ -624,6 +625,23 @@ function onSkillExecuted(data) {
                 if (BRAKK_PIXEL) spawnPixelFx('impacts/heavy-landing', { pos: caster.position, scale: 1.6 });   // + đất lún khi hoá Khổng Lồ
                 cameraRig.shake(0.3, 300);
             } });
+            break;
+        case 'holy_smash':
+            caster.playAction('smash', { onHit: () => {
+                data.effects.forEach(processHit);
+                playParySkill(data);
+                cameraRig.shake(0.22, 180);
+            } });
+            break;
+        case 'holy_aura':
+            caster.playAction('aura', { onHit: () => {
+                playParySkill(data);
+                cameraRig.shake(0.1, 120);
+            } });
+            break;
+        case 'holy_colossus':
+            caster.playAction('slam');
+            playParySkill(data);
             break;
         case 'elem_book':
             // Sách Nguyên Tố: đọc 3 viên -> vòng chữ vàng bay lên từ trang sách
@@ -2439,13 +2457,14 @@ export function registerCombatEvents(hooks = {}) {
             showDamage: (view, e) => showHit(view, { ...e, isCrit: true }),
         });
     });
-    socket.on('battleEnd', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); });
-    socket.on('mainMenu', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); });
+    socket.on('battleEnd', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); clearParyFx(); });
+    socket.on('mainMenu', () => { cancelDragCast(); clearBossUlt(); clearChessFx(); clearSwordFx(); clearCrossFx(); clearParyFx(); });
     socket.on('sylvaFx', (d) => onSylvaFx(d));
     socket.on('voidFx', (d) => onVoidFx(d));
     socket.on('chessFx', (d) => onChessFx(d));
     socket.on('swordFx', (d) => onSwordFx(d));
     socket.on('crossFx', onCrossFx);
+    socket.on('paryFx', onParyFx);
     socket.on('suddenDeath', onSuddenDeath);
     socket.on('revived', onRevived);
     // Bắt đầu niệm (VD Thần Tiễn của Lyra gồng 2 giây): gió hút quanh người
@@ -2486,6 +2505,11 @@ function onCastStart(data) {
         v.playAction?.('charge', { hold: true });
         v.flashMagicCircle?.((data.castTime ?? 1000) / 1000);
         spawnRisingSparkles(v.position, { count: 12, color: 0xff8c2a, radius: 1.0 });
+        return;
+    }
+    if (v && (def?.type === 'holy_smash' || def?.type === 'holy_colossus')) {
+        v.playAction?.(def.type === 'holy_smash' ? 'spin' : 'aura', { hold: true });
+        playParyCast({ casterId: data.casterId, casterIdx: data.casterIdx, type: def.type, castTime: data.castTime });
         return;
     }
     if (v && (def?.type === 'goblin_bog' || def?.type === 'goblin_detonate')) {
@@ -3347,4 +3371,33 @@ function onCrossFx(d) {
     });
 }
 
-export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onVoidFx, onChessFx, onCrossFx, onFireHits, onFireGod, onCastStart };
+function onParyFx(d) {
+    if (!d || typeof d.kind !== 'string') return;
+    playParyFxEvent(d);
+    if (d.kind === 'slam') {
+        const cv = getView(d.casterId, d.casterIdx);
+        cv?.playAction?.('slam');
+        // rung + số sát thương lúc búa khổng lồ cắm đất (sau cú nhảy)
+        const landMs = d.slam === 3 ? 420 : 240;
+        gameTimeout(() => {
+            cameraRig.shake(d.slam === 3 ? 0.4 : 0.18, d.slam === 3 ? 320 : 140);
+            for (const eff of d.effects ?? []) {
+                const tv = getView(d.targetId, eff.targetIndex);
+                if (tv) showHit(tv, eff, { fx: true });
+            }
+        }, landMs);
+    } else if (d.kind === 'throw') {
+        const cv = getView(d.casterId, d.casterIdx);
+        cv?.playAction?.('throw');
+        if (d.effect) {
+            gameTimeout(() => {
+                const tv = getView(d.targetId, d.effect.targetIndex);
+                if (tv) showHit(tv, d.effect, { fx: true });
+            }, d.impact ?? 280);
+        }
+    } else if (d.kind === 'relocateBlocked') {
+        cameraRig.shake(0.1, 100);
+    }
+}
+
+export const __fxTest = { onSkillExecuted, onAutoAttack, onArcherShots, onPrayHeal, onReviveStart, onRevived, onBrakkFx, onReaperFx, onRokFx, onGuardBurst, onFireWard, onWaterFx, onElemFx, onGoblinFx, onSylvaFx, onVoidFx, onChessFx, onCrossFx, onParyFx, onFireHits, onFireGod, onCastStart };

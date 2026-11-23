@@ -19,7 +19,7 @@ const SKILL_ART = import.meta.glob('../assets/skills/*.webp', { eager: true, imp
 const ATLAS = import.meta.glob('../assets/sprites/*_sprite.webp', { eager: true, import: 'default' });
 const ATLAS_META = import.meta.glob('../characters/sprite/*Sprite{,_s,_ss}.json', { eager: true, import: 'default' });
 const ART = { assassin: 'jessica', warrior: 'rok', archer: 'lyra', priest: 'seraphine', mage: 'ignar', alchemist: 'grix', reaper: 'zerith',
-    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou', crosspriest: 'caelum' };
+    wrestler: 'brakk', dancer: 'nerissa', elementalist: 'elarion', summoner: 'sylva', voidmage: 'nyx', chessmaster: 'leon', swordsage: 'yunyou', crosspriest: 'caelum', holyhammer: 'pary' };
 
 // mô tả ngắn 3 kỹ năng (số liệu ở cấp kỹ năng 1)
 const SKILL_DESC = {
@@ -142,7 +142,7 @@ function skillsHTML(h) {
     return `<div class="hp-skills">${h.skills.map((sk, i) => {
         const art = SKILL_ART[`../assets/skills/${h.id}_${i}.webp`];
         return `<div class="hp-skill"><span class="hp-sk-ic"${art ? ` style="background-image:url(${art})"` : ''}></span>
-            <div><b>${sk.name}</b> <small>${['Kỹ năng 1', 'Kỹ năng 2', 'Tuyệt kỹ'][i]} · Lv${h.skillLevel}</small>
+            <div><b>${sk.name}</b>${sk.relocate ? ' <span class="hp-reloc" style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(56,189,248,.16);color:#7dd3fc;border:1px solid rgba(56,189,248,.4)">↗ Dịch chuyển</span>' : ''} <small>${['Kỹ năng 1', 'Kỹ năng 2', 'Tuyệt kỹ'][i]} · Lv${h.skillLevel}</small>
             <p>${desc[i] ?? ''}</p><span class="hp-tags"><i>💠 ${cost(sk)}</i><i>⏱ ${sk.cooldown ? `Hồi ${Math.round(sk.cooldown / 1000)} giây` : 'Không hồi chiêu'}</i></span></div></div>`;
     }).join('')}
     ${(h.talents ?? []).map(t => {
