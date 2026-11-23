@@ -93,6 +93,44 @@
     ]
    ],
    "ground": "group"
+  },
+  "whirl": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/pary/sprite_s/s-whirl.png",
+   "anchor": "heel",
+   "points": {
+    "1": {
+     "fist": [
+      83,
+      140
+     ]
+    },
+    "2": {
+     "fist": [
+      371,
+      140
+     ]
+    },
+    "3": {
+     "fist": [
+      659,
+      140
+     ]
+    },
+    "4": {
+     "fist": [
+      947,
+      140
+     ]
+    }
+   }
+  },
+  "colossus": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/pary/sprite_s/s-colossus.png",
+   "anchor": "heel"
   }
  },
  "minSize": 12000

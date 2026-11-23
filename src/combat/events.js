@@ -627,10 +627,21 @@ function onSkillExecuted(data) {
             } });
             break;
         case 'holy_smash':
+            // KN1 tụ lực -> đập: nấc càng cao bay càng xa + càng cao (server gửi stage / arc theo nấc)
             caster.playAction('smash', { onHit: () => {
                 data.effects.forEach(processHit);
                 playParySkill(data);
-                cameraRig.shake(0.22, 180);
+                const big = (data.stage ?? 1) >= 3;
+                cameraRig.shake(big ? 0.38 : 0.22, big ? 300 : 180);
+                for (const e of data.effects ?? []) {
+                    const t = getView(opponentId, e.targetIndex);
+                    if (!t || !e.knockback || !t.leapTo) continue;
+                    const arc = e.arc ?? data.arc ?? 'mid';
+                    const [dur, h] = arc === 'high' ? [0.8, 4.6] : arc === 'low' ? [0.38, 0.55] : [0.52, 1.7];
+                    spawnDashLine({ x: t.position.x, y: 0.6, z: t.position.z }, { x: e.toX, y: 0.6, z: e.toZ ?? t.position.z });
+                    t.leapTo(e.toX, e.toZ ?? t.basePos.z, { duration: dur, height: h });
+                    gameTimeout(() => { spawnLandingDust(t.position, arc === 'high' ? 16 : 10); cameraRig.shake(arc === 'high' ? 0.22 : 0.1, 140); }, dur * 1000);
+                }
             } });
             break;
         case 'holy_aura':
@@ -640,8 +651,7 @@ function onSkillExecuted(data) {
             } });
             break;
         case 'holy_colossus':
-            caster.playAction('slam');
-            playParySkill(data);
+            playParySkill(data);   // động tác nhảy + gõ do sự kiện paryFx 'slam' điều khiển (mỗi nhịp 1 lần)
             break;
         case 'elem_book':
             // Sách Nguyên Tố: đọc 3 viên -> vòng chữ vàng bay lên từ trang sách
@@ -2508,7 +2518,7 @@ function onCastStart(data) {
         return;
     }
     if (v && (def?.type === 'holy_smash' || def?.type === 'holy_colossus')) {
-        v.playAction?.(def.type === 'holy_smash' ? 'spin' : 'aura', { hold: true });
+        v.playAction?.(def.type === 'holy_smash' ? 'spin' : 'colossusCast', { hold: true });   // KN3: gọi búa ánh sáng trên đầu
         playParyCast({ casterId: data.casterId, casterIdx: data.casterIdx, type: def.type, castTime: data.castTime });
         return;
     }
@@ -3376,7 +3386,8 @@ function onParyFx(d) {
     playParyFxEvent(d);
     if (d.kind === 'slam') {
         const cv = getView(d.casterId, d.casterIdx);
-        cv?.playAction?.('slam');
+        // nhảy lên cầm búa ánh sáng gõ xuống; giữa các nhịp vẫn giơ búa trên đầu, nhịp cuối xong thì về đứng
+        cv?.playAction?.('slam', { onComplete: () => { if ((d.slam ?? 1) < 3) cv.playAction?.('colossusHold', { hold: true }); } });
         // rung + số sát thương lúc búa khổng lồ cắm đất (sau cú nhảy)
         const landMs = d.slam === 3 ? 420 : 240;
         gameTimeout(() => {

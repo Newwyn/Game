@@ -236,9 +236,11 @@ const HOLYHAMMER = {
     anims: {
         attack: { clip: 'attack', hitTime: 0.24 },
         spin:   { clip: 'spin' },
-        smash:  { clip: 'smash',  hitTime: 0.12 },
+        smash:  { clip: 'smash',  hitTime: 0.22 },
         aura:   { clip: 'aura',   hitTime: 0.3 },
-        slam:   { clip: 'slam',   hitTime: 0.2 },
+        slam:   { clip: 'slam',   hitTime: 0.24 },
+        colossusCast: { clip: 'colossusCast' },
+        colossusHold: { clip: 'colossusHold' },
         throw:  { clip: 'throw',  hitTime: 0.2 },
     },
 };

@@ -80,6 +80,19 @@ export class FrameSpriteView extends CutoutCharacterView {
         this._lean = new Set(sp.lean ?? []);
         this._hitOf = {};
         for (const a of Object.values(visual.anims ?? {})) if (a.clip && a.hitTime != null) this._hitOf[a.clip] = a.hitTime;
+        // synthClips (Pary — mượn khung xương Rok không có các động tác riêng): clip tranh nào chưa có động tác khung xương
+        // thì tạo 1 động tác ẩn (chép 'attack' cho đòn đánh, 'idle' cho thế giữ) -> playAction chạy được, mốc ra đòn theo anims.hitTime
+        if (sp.synthClips && this.mixer) {
+            for (const [name, cfg] of Object.entries(sp.clips ?? {})) {
+                if (this.actions[name]) continue;
+                const base = this.actions[cfg.mode === 'hold' || cfg.mode === 'loop' ? 'idle' : 'attack'] ?? this.actions.idle;
+                if (!base) continue;
+                const clip = base.getClip().clone();
+                clip.name = name;
+                if (cfg.dur) clip.duration = cfg.dur;
+                this.actions[name] = this.mixer.clipAction(clip);
+            }
+        }
         this._drawnDeath = !!sp.clips?.dead?.drawnDeath;
         const AS = meta.atlasScale ?? 1;
         this._palmOff = (sp.fire?.palmOffset ?? [0, 0]).map(v => v * AS);
