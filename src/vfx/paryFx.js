@@ -101,22 +101,18 @@ function attachAuraRing(casterId, casterIdx, radius = 4.5, duration = 6000) {
     auras.get(key)?.dispose?.();
     const group = new THREE.Group();
     // vòng sáng vàng mỏng (tranh Flow art/pary/aura-ring-thin.png, vòng nằm ở 0,727 bán kính ảnh) -> khớp đúng bán kính hào quang
+    // (23/11) người dùng: "xấu quá" — vòng cộng sáng trên cỏ thành xanh chanh + mảng sáng phủ trong vòng. Giờ: ảnh có nền
+    // trong suốt (giữ đúng vàng kim), hoà trộn thường, bỏ mảng sáng; vòng bung từ nhỏ ra lúc mở, mờ dần lúc hết.
     const ringMat = new THREE.MeshBasicMaterial({
-        map: getTexture(auraRingUrl), transparent: true, depthWrite: false,
-        blending: THREE.AdditiveBlending, opacity: 0, fog: false,
+        map: getTexture(auraRingUrl), transparent: true, depthWrite: false, opacity: 0, fog: false,
     });
     const RS = radius * 2 / 0.727;
     const ring = new THREE.Mesh(new THREE.PlaneGeometry(RS, RS), ringMat);
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.05;
-    const glowMat = new THREE.MeshBasicMaterial({
-        map: glowTexture(), color: 0xfbbf24, transparent: true, depthWrite: false,
-        blending: THREE.AdditiveBlending, opacity: 0.1, fog: false,
-    });
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(radius * 2.05, radius * 2.05), glowMat);
-    glow.rotation.x = -Math.PI / 2;
-    glow.position.y = 0.04;
-    group.add(glow, ring);
+    const glowMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, visible: false });   // (đã bỏ mảng sáng)
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowMat);
+    group.add(ring);
     scene.add(group);
 
     let elapsed = 0;
@@ -140,7 +136,10 @@ function attachAuraRing(casterId, casterIdx, radius = 4.5, duration = 6000) {
         if (!view || elapsed >= maxSec) { dispose(); return true; }
         group.position.set(view.position.x, GROUND_Y, view.position.z);
         ring.rotation.z += dt * 0.25;
-        ringMat.opacity += ((0.85 + 0.12 * Math.sin(elapsed * 3)) - ringMat.opacity) * Math.min(1, dt * 6);
+        const open = Math.min(1, elapsed / 0.35), grow = 1 - (1 - open) * (1 - open);
+        ring.scale.setScalar(0.35 + 0.65 * grow);
+        const fade = Math.min(1, (maxSec - elapsed) / 0.5);
+        ringMat.opacity += ((0.9 + 0.1 * Math.sin(elapsed * 3)) * fade - ringMat.opacity) * Math.min(1, dt * 8);
         return false;
     });
 }
@@ -149,8 +148,7 @@ export function playParySkill(data) {
     const view = getView(data.casterId, data.casterIdx);
     const p = view?.position ?? new THREE.Vector3(data.newX ?? 0, GROUND_Y, data.newZ ?? 0);
     if (data.type === 'holy_aura') {
-        attachAuraRing(data.casterId, data.casterIdx, data.radius ?? 4.5, data.duration ?? 6000);
-        spawnShockwave({ x: p.x, z: p.z }, { color: 0xfde047, radius: data.radius ?? 4.5, life: 0.5 });
+        attachAuraRing(data.casterId, data.casterIdx, data.radius ?? 4.5, data.duration ?? 6000);   // vòng tự bung ra (không thêm sóng cộng sáng)
     } else if (data.type === 'holy_smash') {
         const hit = data.effects?.[0];
         const tx = hit?.toX ?? p.x, tz = hit?.toZ ?? p.z;
@@ -170,7 +168,7 @@ const charges = new Map();
 const TIER_HAMMER = { s: hammerS, ss: hammerSS, sss: hammerSSS };
 const HAMMER_LEN = 2.2;                 // chiều dài búa (đầu búa -> núm cán)
 const HOVER = 0.55;                     // búa lơ lửng cao hơn nắm tay
-const STAGE_REV = [0, 2.2, 3.6, 5.5];   // vòng / giây theo nấc (người dùng: "xoay nhanh lắm luôn")
+const STAGE_REV = [0, 5.5, 6.2, 7];     // vòng / giây theo nấc — người dùng: "luôn xoay nhanh" (nấc sau nhanh hơn chút)
 const STAGE_RING = [0, 1.25, 1.7, 2.3];
 
 function chargeKey(d) { return `${d.casterId}:${d.casterIdx}`; }
@@ -228,12 +226,12 @@ function startParyCharge(d) {
         hammer = new THREE.Mesh(new THREE.PlaneGeometry(HAMMER_LEN * aspect, HAMMER_LEN), hMat);
         hammer.rotation.set(-Math.PI / 2, 0, Math.PI / 2);   // nằm ngang, đầu búa về một phía, núm cán phía kia
     }
-    const swMat = new THREE.MeshBasicMaterial({ map: getTexture(swirlUrl), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0, side: THREE.DoubleSide });
+    const swMat = new THREE.MeshBasicMaterial({ map: getTexture(swirlUrl), transparent: true, depthWrite: false, fog: false, opacity: 0, side: THREE.DoubleSide });   // ảnh nền trong suốt -> giữ vàng kim
     const swirl = new THREE.Mesh(new THREE.PlaneGeometry(HAMMER_LEN * 1.25, HAMMER_LEN * 1.25), swMat);
     swirl.rotation.x = -Math.PI / 2;
     swirl.position.y = -0.04;
     rotor.add(swirl, hammer);
-    const rMat = new THREE.MeshBasicMaterial({ map: getTexture(auraRingUrl), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0 });
+    const rMat = new THREE.MeshBasicMaterial({ map: getTexture(auraRingUrl), transparent: true, depthWrite: false, fog: false, opacity: 0 });
     const ring = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), rMat);
     ring.rotation.x = -Math.PI / 2;
     const gMat = new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0xfbbf24, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0 });
@@ -284,7 +282,7 @@ function startParyCharge(d) {
         rMat.opacity += ((0.45 + 0.18 * st.stage + st.flash * 0.4) - rMat.opacity) * Math.min(1, dt * 6);
         glow.position.set(v.position.x, GROUND_Y + 0.05, v.position.z);
         glow.scale.setScalar(R * 1.25);
-        gMat.opacity = 0.12 + 0.08 * st.stage + st.flash * 0.25;
+        gMat.opacity = 0;   // (bỏ mảng sáng cộng trên cỏ — thành xanh chanh)
         return false;
     });
 }
