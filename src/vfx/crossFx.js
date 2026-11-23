@@ -450,7 +450,7 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             if (v) v.pulseBoost = 0.75;
             for (const s of data.shields ?? []) {
                 const tv = getView?.(data.casterId, s.targetIndex);
-                if (tv) spawnPixelFx('holy/divine-shield', { pos: tv.position, scale: 0.85 });
+                if (tv) spawnPixelFx('holy/divine-shield', { view: tv, bare: true, scale: 0.85 });   // gắn vào đúng người (không có -> thư viện vẽ hình người mẫu xám "như cái tượng")
             }
             break;
         }

@@ -161,12 +161,16 @@ function bareOf(A) {
     return bareCache.get(A);
 }
 
+/** Người "rỗng" (không điểm ảnh nào) — cho hiệu ứng cần người đứng giữa nhưng đặt ở 1 chỗ trên sân */
+const EMPTY_ACTOR = { mask: { w: 1, h: 1, data: new Uint8Array(1) }, pixels: new Uint32Array(1), x: 0, y: -ACTOR_H, w: 1, h: 1, k: 2, head: [0, -ACTOR_H], chest: [0, -Math.round(ACTOR_H * 0.6)] };
+
 const paletteOf = (p) => (typeof p === 'string' ? PAL[p] : p);
 
 /**
  * Lớp vẽ 1 hiệu ứng: { group, step(dt), stop(), done() }. group: chân hiệu ứng ở (0, 0, 0), cỡ 1 px = height / 44.
  */
 export function pixelLayer(mod, { height = 2.9, scale = 1, actor = null, palette, seed, flip = false, front = false, soft = 0, opts = {} } = {}) {
+    if (!actor && mod.meta.actor) actor = EMPTY_ACTOR;   // không có nhân vật -> KHÔNG để thư viện vẽ hình người mẫu xám ("cái tượng")
     const [W, H] = mod.meta.size, [OX, OY] = mod.meta.origin;
     const pad = 4, fw = W + pad * 2, fh = H + pad * 2;
     const layers = front ? ['front'] : ['back', 'front'];
@@ -250,7 +254,10 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
         const h = height ?? view?.height ?? 2.9;
         const f = flip ?? (view ? !!view.facingLeft : false);
         const A = view ? actorOf(view) : null;
-        const layer = pixelLayer(mod, { height: h, actor: bare ? bareOf(A) : A, flip: f, ...rest });
+        // (23/11) người chơi: "cái tượng" — hiệu ứng cần người đứng giữa (meta.actor) mà không gắn nhân vật thì thư viện tự vẽ
+        // HÌNH NGƯỜI MẪU xám. Không có nhân vật (hoặc tranh chưa tải) -> đưa 1 người "rỗng" để không vẽ gì.
+        const actor = A ? (bare ? bareOf(A) : A) : (mod.meta.actor ? EMPTY_ACTOR : null);
+        const layer = pixelLayer(mod, { height: h, actor, flip: f, ...rest });
         const g = layer.group;
         // hiệu ứng có gốc ở GIỮA (chỗ trúng đòn, VD zap-hit) thay vì ở chân -> nâng lên ngang ngực
         const up = lift ?? (CENTERED.has(name) ? h * 0.45 : 0);
