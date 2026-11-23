@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import { createFrame, clearFrame, createFx, composite, PAL } from '../vendor/pixelfx/core/index.js';
 import { addAnim } from './vfx.js';
+import { CHAR_FRONT_FX } from '../core/settings.js';
 import { GROUND_Y } from '../config.js';
 import * as swordSlash from '../vendor/pixelfx/fx/melee/sword-slash.js';
 import * as hitSpark from '../vendor/pixelfx/fx/impacts/hit-spark.js';
@@ -268,6 +269,7 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
         // HÌNH NGƯỜI MẪU xám. Không có nhân vật (hoặc tranh chưa tải) -> đưa 1 người "rỗng" để không vẽ gì.
         const actor = A ? (bare ? bareOf(A) : A) : (mod.meta.actor ? EMPTY_ACTOR : null);
         const layer = pixelLayer(mod, { height: h, actor, flip: f, ...rest });
+        if (MINOR_FX.test(name)) layer.group.traverse(o => { if (o.isMesh) o.renderOrder = CHAR_FRONT_FX; });   // tia chạm: trước nhân vật
         const g = layer.group;
         // hiệu ứng có gốc ở GIỮA (chỗ trúng đòn, VD zap-hit) thay vì ở chân -> nâng lên ngang ngực
         const up = lift ?? (CENTERED.has(name) ? h * 0.45 : 0);

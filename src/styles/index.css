@@ -660,8 +660,8 @@ body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: n
     padding: 7px 10px; font: 12px/1.45 'Outfit', sans-serif; color: #e2e8f0; box-shadow: 0 6px 18px rgba(0,0,0,.5);
 }
 .pause-settings { margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-#btn-shake, #btn-fx-level { background: rgba(30,41,59,.9); border: 1.5px solid #60a5fa; color: #bfdbfe; border-radius: 10px; padding: 9px 16px; font-family: 'Outfit', sans-serif; font-weight: 700; cursor: pointer; }
-#btn-shake.off, #btn-fx-level.minimal { border-color: #64748b; color: #94a3b8; }
+#btn-shake, #btn-fx-level, #btn-char-top { background: rgba(30,41,59,.9); border: 1.5px solid #60a5fa; color: #bfdbfe; border-radius: 10px; padding: 9px 16px; font-family: 'Outfit', sans-serif; font-weight: 700; cursor: pointer; }
+#btn-shake.off, #btn-fx-level.minimal, #btn-char-top.off { border-color: #64748b; color: #94a3b8; }
 
 /* Zerith: Lưỡi Hái Xuyên Hồn lần 2 miễn phí (Đêm Tử Thần) — viền tím nhấp nháy */
 .skill-btn.free.ready { border-color: #c084fc; box-shadow: 0 0 10px #a855f7, inset 0 0 8px rgba(168, 85, 247, 0.5); animation: free-pulse 0.8s ease-in-out infinite alternate; }

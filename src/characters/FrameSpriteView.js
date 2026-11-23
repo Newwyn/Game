@@ -19,6 +19,7 @@ import * as THREE from 'three';
 import { getTexture, markTextureFailed } from '../core/textures.js';
 import { CutoutCharacterView } from './CutoutCharacterView.js';
 import { GROUND_Y } from '../config.js';
+import { settings, CHAR_LAYER } from '../core/settings.js';
 
 const texCache = new Map();
 // trạng thái đứng / di chuyển -> tên clip (như CutoutCharacterView)
@@ -248,6 +249,7 @@ export class FrameSpriteView extends CutoutCharacterView {
     }
 
     _updateSprite(dt) {
+        if (this._spMesh) this._spMesh.renderOrder = settings.charTop ? CHAR_LAYER : 0;   // nhân vật nổi trên hiệu ứng (cài đặt)
         const { frame, cfg, n, lean } = this._pickFrame(dt);
         this._setFrame(frame);
         const dead = this._clipName === 'dead';

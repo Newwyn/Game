@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { createBarSprite, updateBarSprite } from './bars.js';
 import { SERVER_TICK_MS, GROUND_Y, timeState, gameNow } from '../config.js';
+import { settings, CHAR_BAR, CHAR_LAYER } from '../core/settings.js';
 
 const LUNGE_DURATION = 0.25; // giây
 const LUNGE_DISTANCE = 0.4;
@@ -193,6 +194,13 @@ export class CharacterView {
         const nowM = gameNow();
         const mark = member.statusEffects?.find(ef => ef.type === 'death_mark' && ef.endTime > nowM);   // Ấn Tử: vạch ngưỡng tử
         updateBarSprite(this.hpBar, member.maxHp > 0 ? member.hp / member.maxHp : 0, mark?.execute ?? 0);
+        this.hpBar.renderOrder = settings.charTop ? CHAR_BAR : 0;
+        // mọi kiểu nhân vật (khung xương, quái con nhộng...): mảnh hình của nhân vật vẽ SAU hiệu ứng — đổi khi bật / tắt cài đặt
+        if (this._charTopApplied !== settings.charTop) {
+            this._charTopApplied = settings.charTop;
+            const ro = settings.charTop ? CHAR_LAYER : 0;
+            this.root.traverse(o => { if (o.isMesh && o !== this.hpBar && !o.material?.userData?.isVfx && (o.renderOrder === 0 || o.renderOrder === CHAR_LAYER)) o.renderOrder = ro; });
+        }
 
         // Thanh vận chiêu
         const now = gameNow();
