@@ -232,9 +232,20 @@ export function pixelLayer(mod, { height = 2.9, scale = 1, actor = null, palette
  * Phát 1 hiệu ứng trong trận. view: gắn vào nhân vật (đi theo + dùng hình bóng của nó) · pos: đặt cố định trên sân.
  * Hiệu ứng lặp (meta.loop) chạy tới khi until() trả true (hoặc hết `maxLife` giây) rồi mờ dần.
  */
+// ---- Trận ĐÔNG (người chơi 23/11: "1 trận 8 tướng hiệu ứng nhiều quá, rối mắt"): đếm hiệu ứng điểm ảnh đang sống;
+//      đông (>= CROWD) thì bỏ các loé nhỏ của đòn đánh thường (tia chạm, vệt chém / loé tay) + mỗi loại tối đa 3 cái cùng lúc.
+//      Chiêu chính vẫn hiện đủ. ?fxCrowd=0 để tắt.
+const PF_LIVE = new Map();
+let pfTotal = 0;
+const CROWD = 10, CROWD_CAP = 3;
+const CROWD_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fxCrowd') === '0';
+const MINOR_FX = /^(impacts\/(hit-spark|blunt-hit|crit-hit|zap-hit)|custom\/cast-flash|melee\/(sword-slash|thrust))$/;
+export function pixelFxCrowded() { return !CROWD_OFF && pfTotal >= CROWD; }
+
 export function spawnPixelFx(name, { view = null, pos = null, flip, until = null, maxLife = 12, height, delay = 0, bare = false, lift, follow = true, getPos = null, ...rest } = {}) {
     const mod = LIB[name];
     if (!mod) { console.warn('pixelFx: chưa nạp', name); return null; }
+    if (pixelFxCrowded() && (MINOR_FX.test(name) || (PF_LIVE.get(name) ?? 0) >= CROWD_CAP)) return null;
     const go = () => {
         const h = height ?? view?.height ?? 2.9;
         const f = flip ?? (view ? !!view.facingLeft : false);
@@ -251,14 +262,18 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
             g.position.set(p.x, GROUND_Y + up + (view?._lift ?? 0) + (view?._hover ?? 0), (p.z ?? 0));
         };
         place();
-        let age = 0;
+        let age = 0, counted = true;
+        PF_LIVE.set(name, (PF_LIVE.get(name) ?? 0) + 1); pfTotal++;
+        const uncount = () => { if (!counted) return; counted = false; PF_LIVE.set(name, Math.max(0, (PF_LIVE.get(name) ?? 1) - 1)); pfTotal = Math.max(0, pfTotal - 1); };
+        g.addEventListener?.('removed', uncount);
         addAnim(g, maxLife + 1, (p, fx, dt = 0) => {
             age += dt;
+            if (p >= 1) uncount();
             if (getPos || (follow && view && view.root?.parent)) place();   // follow: false -> đứng yên chỗ bắt đầu (người lướt đi không kéo theo)
             if (until && until()) layer.stop();
             if (age >= maxLife) layer.stop();
             if (dt > 0) layer.step(dt);
-            if (layer.done()) fx.life = fx.age;   // xong -> vfx.js gỡ + giải phóng
+            if (layer.done()) { fx.life = fx.age; uncount(); }   // xong -> vfx.js gỡ + giải phóng
         });
         return layer;
     };
