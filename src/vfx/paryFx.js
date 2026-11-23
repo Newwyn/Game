@@ -24,6 +24,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import auraRingUrl from '../assets/sprites/pary_aura_ring.webp';
 import auraRunesUrl from '../assets/sprites/pary_aura_runes.webp';
 import lightWallUrl from '../assets/sprites/pary_light_wall.webp';
+import impactRingUrl from '../assets/sprites/pary_impact_ring.webp';
 
 const auras = new Map();
 let _hammerTex = null;
@@ -449,11 +450,13 @@ function startColossusHammer(casterId, casterIdx, castSec) {
     return st;
 }
 
-/** Hào quang lúc búa khổng lồ cắm đất: vòng phép búa thánh loé to ra trên mặt đất + vòng tường ánh sáng bung lên rồi tắt */
+/** Hào quang lúc búa khổng lồ cắm đất: mặt đất nứt toác + sóng sáng vàng (tranh Flow art/pary/impact-ring.png — người dùng 23/11:
+ *  "vòng khi đập khác đi", không dùng lại vòng phép của chiêu 2) loé to ra + vòng tường ánh sáng bung lên rồi tắt */
 function spawnImpactHalo(x, z, big) {
     const R = big ? 4.2 : 2.6;
-    const rMat = new THREE.MeshBasicMaterial({ map: getTexture(auraRunesUrl), transparent: true, depthWrite: false, fog: false, opacity: 1 });
+    const rMat = new THREE.MeshBasicMaterial({ map: getTexture(impactRingUrl), transparent: true, depthWrite: false, fog: false, opacity: 1 });
     const runes = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), rMat);
+    runes.rotation.z = Math.random() * Math.PI * 2;
     runes.rotation.x = -Math.PI / 2;
     runes.position.set(x, GROUND_Y + 0.06, z);
     const wTex = getTexture(lightWallUrl).clone();
@@ -464,13 +467,12 @@ function spawnImpactHalo(x, z, big) {
     wall.position.set(x, GROUND_Y + H / 2, z);
     scene.add(runes, wall);
     let t = 0;
-    const life = big ? 0.9 : 0.6;
+    const life = big ? 1.3 : 0.95;
     runLoop((dt) => {
         t += dt;
         const k = Math.min(1, t / life), e = 1 - (1 - k) * (1 - k);
-        runes.scale.setScalar(R * (0.4 + 0.6 * e));
-        runes.rotation.z += dt * 1.5;
-        rMat.opacity = 1 - k;
+        runes.scale.setScalar(R * 1.25 * (0.55 + 0.45 * e));
+        rMat.opacity = k < 0.55 ? 1 : 1 - (k - 0.55) / 0.45;   // đất nứt giữ rõ một lúc rồi mới mờ
         const wr = R * (0.3 + 0.75 * e);
         wall.scale.set(wr, Math.max(0.05, 1 - k * 0.6), wr);
         wall.position.y = GROUND_Y + H * wall.scale.y / 2;
