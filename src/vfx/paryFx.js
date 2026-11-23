@@ -225,12 +225,20 @@ if (HAMMER_GLB) {
             if (Q[i * 3] < -0.3) wLo = Math.max(wLo, w); else if (Q[i * 3] > 0.3) wHi = Math.max(wHi, w);
         }
         if (wLo > wHi) for (let i = 0; i < n; i++) { Q[i * 3] = -Q[i * 3]; Q[i * 3 + 1] = -Q[i * 3 + 1]; }
+        // (23/11) "đập không phải bằng mặt đầu búa": khối đầu búa phải nằm DỌC trục Y (trong mặt phẳng vung) để 2 MẶT ĐẬP
+        // (2 đầu khối) hướng xuống đất khi bổ. Đo bề dài khối đầu búa theo Y và Z; Z dài hơn -> xoay 90° quanh cán.
+        let eY = 0, eZ = 0;
+        for (let i = 0; i < n; i++) if (Q[i * 3] > 0.3) { eY = Math.max(eY, Math.abs(Q[i * 3 + 1])); eZ = Math.max(eZ, Math.abs(Q[i * 3 + 2])); }
+        if (eZ > eY) { for (let i = 0; i < n; i++) { const y = Q[i * 3 + 1]; Q[i * 3 + 1] = Q[i * 3 + 2]; Q[i * 3 + 2] = -y; } [eY, eZ] = [eZ, eY]; }
+        let hx0 = 1, hx1 = 0;   // khoảng X của khối đầu búa (điểm có |Y| lớn)
+        for (let i = 0; i < n; i++) if (Math.abs(Q[i * 3 + 1]) > eY * 0.6) { hx0 = Math.min(hx0, Q[i * 3]); hx1 = Math.max(hx1, Q[i * 3]); }
+        var headInfo = { half: eY, center: (hx0 + hx1) / 2 };
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(Q, 3));
         if (mesh.geometry.attributes.uv) geo.setAttribute('uv', mesh.geometry.attributes.uv);
         if (mesh.geometry.index) geo.setIndex(mesh.geometry.index);
         geo.computeBoundingSphere();
-        HAMMER3D = { geo, map: mesh.material.map ?? null };
+        HAMMER3D = { geo, map: mesh.material.map ?? null, headHalf: headInfo.half, headX: headInfo.center };
     }).catch(e => console.warn('[paryFx] không nạp được búa 3D — dùng búa tranh', e));
 }
 
@@ -345,19 +353,23 @@ function startColossusHammer(casterId, casterIdx, castSec) {
     const mat = new THREE.MeshBasicMaterial({ map: HAMMER3D.map, color: 0xfff1c4, transparent: true, opacity: 0, fog: false });
     const mesh = new THREE.Mesh(HAMMER3D.geo, mat);
     mesh.position.x = 0.46;          // nắm gần đuôi cán: đuôi cán (x = -0,5) nằm ngay sau nắm tay
-    mesh.rotation.x = -0.3;          // nghiêng mặt búa về phía camera
+    mesh.rotation.x = 0;             // khối đầu búa nằm trong mặt phẳng vung (mặt đập hướng theo chiều vung)
     const inner = new THREE.Group();
     inner.add(mesh);
     pivot.add(inner);
     const gmat = new THREE.SpriteMaterial({ map: glowTexture(), color: 0xfde68a, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0 });
     const glow = new THREE.Sprite(gmat);
-    scene.add(pivot, glow);
-    const st = { pivot, inner, mat, gmat, glow, mode: 'grow', t: 0, castSec: Math.max(0.3, castSec), slamT: 0, slamN: 0, landed: false, ang: 0, head: null };
+    // hào quang ôm cả cây búa (quầng sáng vàng dọc thân búa) + vệt sáng vàng theo đường vung (tranh Flow pary_swirl)
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xfff1b0, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+    const trailMat = new THREE.MeshBasicMaterial({ map: getTexture(swirlUrl), transparent: true, depthWrite: false, fog: false, opacity: 0, side: THREE.DoubleSide });
+    const trail = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), trailMat);
+    scene.add(pivot, glow, halo, trail);
+    const st = { pivot, inner, mat, gmat, glow, halo, trail, trailMat, mode: 'grow', t: 0, castSec: Math.max(0.3, castSec), slamT: 0, slamN: 0, landed: false, ang: 0, head: null };
     let alive = true;
     st.dispose = () => {
         if (!alive) return;
         alive = false;
-        scene.remove(pivot, glow); mat.dispose(); gmat.dispose(); colossi.delete(key);
+        scene.remove(pivot, glow, halo, trail); mat.dispose(); gmat.dispose(); halo.material.dispose(); trailMat.dispose(); trail.geometry.dispose(); colossi.delete(key);
     };
     colossi.set(key, st);
     const _h = new THREE.Vector3();
@@ -379,8 +391,10 @@ function startColossusHammer(casterId, casterIdx, castSec) {
         // Khung bổ xuống / chạm đất: tính góc để ĐẦU BÚA nằm vừa trên mặt đất trước mặt (theo độ cao nắm tay lúc đó)
         if (frame === 'colossus7' || frame === 'colossus8') {
             const Lnow = inner.scale.x || GIANT_LEN;
-            const c = THREE.MathUtils.clamp((GROUND_Y + 0.45 - grip.y) / (0.92 * Lnow), -1, 1);
-            const ground = Math.acos(c);   // góc tính từ phương thẳng đứng lên trên
+            const d = (0.46 + (HAMMER3D.headX ?? 0.4)) * Lnow, hh = (HAMMER3D.headHalf ?? 0.15) * Lnow;
+            // đầu búa ở d theo cán, khối đầu búa vuông góc cán: điểm thấp nhất = grip.y + d·cos a - hh·|sin a|
+            let ground = Math.PI * 0.75;
+            for (let a = 0.6; a < Math.PI; a += 0.01) { if (grip.y + d * Math.cos(a) - hh * Math.abs(Math.sin(a)) <= GROUND_Y + 0.05) { ground = a; break; } }
             target = frame === 'colossus8' ? ground : ground * 0.8;
         }
         st.ang += (target - st.ang) * Math.min(1, dt * 28);
@@ -397,6 +411,18 @@ function startColossusHammer(casterId, casterIdx, castSec) {
         st.head = _h.clone();
         glow.position.copy(_h);
         glow.scale.setScalar(L * (0.75 + 0.06 * Math.sin(st.t * 9)));
+        // quầng sáng dọc thân búa (giữa cán) — búa thánh luôn toả hào quang
+        st.halo.position.copy(pivot.position).lerp(_h, 0.55);
+        st.halo.scale.set(L * 1.05, L * 1.05, 1);
+        st.halo.material.opacity = 0.35 + 0.1 * Math.sin(st.t * 6);
+        // vệt sáng: đĩa đứng (mặt phẳng vung) tâm ở nắm tay, đầu sáng của vệt bám theo đầu búa; hiện khi vung / bổ
+        const swing = frame === 'colossus5' || frame === 'colossus6' || frame === 'colossus7' || (frame === 'colossus8' && st.mode === 'slam' && (st.slamT - (st.landAt ?? st.slamT)) < 0.15);
+        st.trail.position.set(pivot.position.x, pivot.position.y, pivot.position.z + 0.05);
+        // tranh vệt xoáy: đầu sáng ở góc ~80° (gần đỉnh), vòng xoáy bán kính ~0,36 cạnh ảnh -> phóng cho khớp đầu búa (0,86·L)
+        const TS = L * 1.2, bright = v.facingLeft ? Math.PI - 1.4 : 1.4;
+        st.trail.scale.set(TS * (v.facingLeft ? -1 : 1), TS, 1);
+        st.trail.rotation.set(0, 0, pivot.rotation.z - bright);
+        st.trailMat.opacity += ((swing ? 0.95 : 0) - st.trailMat.opacity) * Math.min(1, dt * (swing ? 30 : 8));
         gmat.opacity = st.mode === 'grow' ? 0.55 * (1 - grow) + 0.25 : 0.25;
         if (st.mode === 'grow') {
             if (st.t > st.castSec + 3) st.dispose();
@@ -408,6 +434,7 @@ function startColossusHammer(casterId, casterIdx, castSec) {
                 spawnShockwave({ x: gx, z: gz }, { color: 0xfacc15, radius: big ? 14 : 5, life: big ? 0.75 : 0.5 });
                 if (big) spawnShockwave({ x: gx, z: gz }, { color: 0xffffff, radius: 7, life: 0.45 });
                 safePixelFx(['impacts/heavy-landing'], { pos: { x: gx, z: gz }, scale: big ? 2.2 : 1.4 });
+                spawnImpactHalo(gx, gz, big);
                 st.landAt = st.slamT;
             }
             if (big && st.landed && st.slamT - st.landAt > 0.55) {
@@ -420,6 +447,37 @@ function startColossusHammer(casterId, casterIdx, castSec) {
         return false;
     });
     return st;
+}
+
+/** Hào quang lúc búa khổng lồ cắm đất: vòng phép búa thánh loé to ra trên mặt đất + vòng tường ánh sáng bung lên rồi tắt */
+function spawnImpactHalo(x, z, big) {
+    const R = big ? 4.2 : 2.6;
+    const rMat = new THREE.MeshBasicMaterial({ map: getTexture(auraRunesUrl), transparent: true, depthWrite: false, fog: false, opacity: 1 });
+    const runes = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), rMat);
+    runes.rotation.x = -Math.PI / 2;
+    runes.position.set(x, GROUND_Y + 0.06, z);
+    const wTex = getTexture(lightWallUrl).clone();
+    wTex.wrapS = THREE.RepeatWrapping; wTex.repeat.set(3, 1); wTex.needsUpdate = true;
+    const wMat = new THREE.MeshBasicMaterial({ map: wTex, transparent: true, depthWrite: false, fog: false, opacity: 1, side: THREE.DoubleSide });
+    const H = big ? 3.2 : 2.2;
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, H, 48, 1, true), wMat);
+    wall.position.set(x, GROUND_Y + H / 2, z);
+    scene.add(runes, wall);
+    let t = 0;
+    const life = big ? 0.9 : 0.6;
+    runLoop((dt) => {
+        t += dt;
+        const k = Math.min(1, t / life), e = 1 - (1 - k) * (1 - k);
+        runes.scale.setScalar(R * (0.4 + 0.6 * e));
+        runes.rotation.z += dt * 1.5;
+        rMat.opacity = 1 - k;
+        const wr = R * (0.3 + 0.75 * e);
+        wall.scale.set(wr, Math.max(0.05, 1 - k * 0.6), wr);
+        wall.position.y = GROUND_Y + H * wall.scale.y / 2;
+        wMat.opacity = (1 - k) * 0.95;
+        if (k >= 1) { scene.remove(runes, wall); rMat.dispose(); wMat.dispose(); wTex.dispose(); runes.geometry.dispose(); wall.geometry.dispose(); return true; }
+        return false;
+    });
 }
 
 /** 1 nhịp đập (server báo lúc trúng đòn): Pary nhảy lên cầm búa khổng lồ bổ xuống trước mặt */
