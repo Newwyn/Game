@@ -735,7 +735,7 @@ function statPanelHTML(m, now, key, side) {
                 ${row('Accuracy', 'acc', '%', pct)}
                 <hr style="border:0; border-top:1px solid #334155; margin:6px 0;">
                 ${row('Tốc đánh (ms)', 'atkSpeed')}
-                ${row('Speed (Move)', 'moveSpeed')}
+                ${row('Speed (Move)', 'moveSpeed', '', v => String(+(+v).toFixed(4)))}
                 ${row('MP Recov/Atk', 'mpAtk')}
                 ${row('Khiêu khích', 'threat')}
                 ${(eff.lifesteal ?? 0) > 0 ? row('Hút máu', 'lifesteal', '%', pct) : ''}
