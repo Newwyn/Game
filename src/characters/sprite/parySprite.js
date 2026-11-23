@@ -30,7 +30,8 @@ export const PARY_SPRITE = {
         // KN3: niệm gọi búa ánh sáng (giữ) -> mỗi nhịp: nhảy lên, cầm búa gõ xuống -> giữa 2 nhịp vẫn cầm búa trên đầu
         colossusCast: { mode: 'hold', intro: ['colossus1', 'colossus2'], introTime: 1.1, frames: ['colossus3', 'colossus4'], fps: 2.5 },
         colossusHold: { mode: 'hold', intro: ['colossus4'], introTime: 0.12, frames: ['colossus3'], fps: 1 },
-        slam:        { mode: 'strike', frames: ['colossus4', 'colossus5', 'colossus6', 'colossus7', 'colossus8'], release: 4, dur: 0.55 },
+        // 1 nhịp: thủ (0) -> vung ra sau (0,07) -> giơ qua đầu (0,17) -> bổ xuống (0,25) -> búa NẰM trên đất (0,3 -> 0,8)
+        slam:        { mode: 'strike', frames: ['colossus4', 'colossus5', 'colossus6', 'colossus7', 'colossus8'], release: 4, at: [0, 0.07, 0.17, 0.25, 0.3], dur: 0.8 },
         throw:       { mode: 'strike', frames: ['attack2', 'attack3', 'attack4', 'attack8'], release: 3 },   // TP1 quăng búa
         hurt:        { mode: 'clip', frames: r('hurt', 4) },
         stunned:     { mode: 'loop', frames: r('stun', 4), fps: 4 },

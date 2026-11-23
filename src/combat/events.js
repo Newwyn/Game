@@ -3389,7 +3389,7 @@ function onParyFx(d) {
         // nhảy lên cầm búa ánh sáng gõ xuống; giữa các nhịp vẫn giơ búa trên đầu, nhịp cuối xong thì về đứng
         cv?.playAction?.('slam', { onComplete: () => { if ((d.slam ?? 1) < 3) cv.playAction?.('colossusHold', { hold: true }); } });
         // rung + số sát thương lúc búa khổng lồ cắm đất (sau cú nhảy)
-        const landMs = d.slam === 3 ? 420 : 240;
+        const landMs = 300;   // khớp khung búa cắm đất (parySprite slam.at) + cú nhảy 0,3s
         gameTimeout(() => {
             cameraRig.shake(d.slam === 3 ? 0.4 : 0.18, d.slam === 3 ? 320 : 140);
             for (const eff of d.effects ?? []) {

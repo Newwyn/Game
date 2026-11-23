@@ -374,8 +374,16 @@ function startColossusHammer(casterId, casterIdx, castSec) {
         const grip = v.pointWorld?.('grip', { sticky: true }) ?? new THREE.Vector3(v.position.x, v.position.y + 2.2, v.position.z);
         pivot.position.set(grip.x, grip.y, grip.z + 0.35);   // trước thân Pary một chút
         const dir = v.facingLeft ? -1 : 1;
-        const target = (GIANT_ANG[frame] ?? st.ang) * Math.PI / 180;
-        st.ang += (target - st.ang) * Math.min(1, dt * 22);
+        let target = (GIANT_ANG[frame] ?? st.ang * 180 / Math.PI) * Math.PI / 180;
+        // (23/11) người dùng: búa đập xuống "sai logic" — góc cố định làm đầu búa dài 6,4 cắm xuyên xuống dưới đất.
+        // Khung bổ xuống / chạm đất: tính góc để ĐẦU BÚA nằm vừa trên mặt đất trước mặt (theo độ cao nắm tay lúc đó)
+        if (frame === 'colossus7' || frame === 'colossus8') {
+            const Lnow = inner.scale.x || GIANT_LEN;
+            const c = THREE.MathUtils.clamp((GROUND_Y + 0.45 - grip.y) / (0.92 * Lnow), -1, 1);
+            const ground = Math.acos(c);   // góc tính từ phương thẳng đứng lên trên
+            target = frame === 'colossus8' ? ground : ground * 0.8;
+        }
+        st.ang += (target - st.ang) * Math.min(1, dt * 28);
         pivot.rotation.z = Math.PI / 2 - st.ang * dir;      // trục +X của búa (về phía đầu búa) xoay theo góc
         // to dần khi niệm (búa mọc từ ánh sáng), nhịp 3 to hơn
         const big = st.mode === 'slam' && st.slamN === 3;
@@ -422,7 +430,7 @@ function colossusSlam(data) {
     const v = getView(data.casterId, data.casterIdx);
     if (v?.leapTo && v.basePos) {
         const big = (data.slam ?? 1) === 3;
-        v.leapTo(v.basePos.x, v.basePos.z, { duration: big ? 0.45 : 0.28, height: big ? 2.6 : 1.2, apex: 0.62 });
+        v.leapTo(v.basePos.x, v.basePos.z, { duration: 0.3, height: big ? 2.4 : 1.2, apex: 0.55 });   // chạm đất đúng lúc búa cắm đất (0,3s)
     }
 }
 
