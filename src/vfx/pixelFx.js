@@ -244,6 +244,16 @@ let pfTotal = 0;
 const CROWD = 10, CROWD_CAP = 3;
 const CROWD_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fxCrowd') === '0';
 const MINOR_FX = /^(impacts\/(hit-spark|blunt-hit|crit-hit|zap-hit)|custom\/cast-flash|melee\/(sword-slash|thrust))$/;
+// ---- Nổ / đập đất tắt NHANH (người chơi 23/11: "hiệu ứng explosion để lại rất lâu"): giữ nguyên lúc bùng lên, tới mốc
+//      (giây) dưới đây thì phần đuôi (khói, tàn lửa) chạy nhanh x3 và mờ dần ~0,45s rồi tắt. ?fxTail=0 để xem như cũ.
+const QUICK_TAIL = {
+    'explosions/small-explosion': 0.9, 'explosions/big-explosion': 1.2, 'explosions/smoke-bomb': 1.0, 'shadow/dark-explosion': 0.9,
+    'impacts/ground-slam': 0.8, 'impacts/heavy-landing': 0.7, 'nature/quake': 0.9, 'fire/meteor': 1.5, 'holy/smite': 1.1,
+    'arcane/star-fall': 1.2, 'lightning/thunderclap': 0.8, 'nature/poison-cloud': 1.5, 'nature/acid-splash': 0.8,
+};
+const TAIL_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fxTail') === '0';
+const TAIL_FADE = 0.45;
+
 export function pixelFxCrowded() { return !CROWD_OFF && pfTotal >= CROWD; }
 
 export function spawnPixelFx(name, { view = null, pos = null, flip, until = null, maxLife = 12, height, delay = 0, bare = false, lift, follow = true, getPos = null, ...rest } = {}) {
@@ -270,6 +280,8 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
         };
         place();
         let age = 0, counted = true;
+        const tailAt = TAIL_OFF ? null : (QUICK_TAIL[name] ?? null);
+        let tailMats = null;
         PF_LIVE.set(name, (PF_LIVE.get(name) ?? 0) + 1); pfTotal++;
         const uncount = () => { if (!counted) return; counted = false; PF_LIVE.set(name, Math.max(0, (PF_LIVE.get(name) ?? 1) - 1)); pfTotal = Math.max(0, pfTotal - 1); };
         g.addEventListener?.('removed', uncount);
@@ -279,6 +291,14 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
             if (getPos || (follow && view && view.root?.parent)) place();   // follow: false -> đứng yên chỗ bắt đầu (người lướt đi không kéo theo)
             if (until && until()) layer.stop();
             if (age >= maxLife) layer.stop();
+            if (tailAt != null && age > tailAt) {
+                // đuôi hiệu ứng: chạy nhanh x3 + mờ dần rồi tắt hẳn
+                const k = Math.min(1, (age - tailAt) / TAIL_FADE);
+                if (!tailMats) { tailMats = []; g.traverse(o => { if (o.material) tailMats.push([o.material, o.material.opacity]); }); }
+                for (const [m, o0] of tailMats) m.opacity = o0 * (1 - k);
+                if (dt > 0) layer.step(dt * 2);   // + bước thường bên dưới = x3
+                if (k >= 1) { fx.life = fx.age; uncount(); return; }
+            }
             if (dt > 0) layer.step(dt);
             if (layer.done()) { fx.life = fx.age; uncount(); }   // xong -> vfx.js gỡ + giải phóng
         });
