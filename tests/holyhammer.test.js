@@ -153,8 +153,14 @@ test('Pary: metadata, roster, shop, highest Lv1 defences and monsterScale isolat
     assert.ok(paryLv1.pAtk < rokLv1.pAtk, 'tấn công thấp hơn Rok');
 
     assert.equal(def.skills[0].orbCost, 2.5);
-    assert.equal(def.skills[0].castTime, 2000);
+    assert.equal(def.skills[0].chargeMax, 5000);
     assert.equal(def.skills[0].cooldown, 10000);
+    assert.equal(def.skills[0].edgeDist, undefined, 'đã bỏ cơ chế edgeDist');
+    assert.deepEqual(def.skills[0].stages, [
+        { at: 0, push: 3, mult: 1.0, stun: 600, knockTime: 380, arc: 'low' },
+        { at: 1667, push: 6, mult: 1.3, stun: 1000, knockTime: 520, arc: 'mid' },
+        { at: 5000, push: 12, mult: 1.8, stun: 1500, knockTime: 800, arc: 'high' },
+    ]);
     assert.equal(def.skills[1].orbCost, 3);
     assert.equal(def.skills[1].duration, 6000);
     assert.equal(def.skills[1].radius, 4.5);
@@ -203,63 +209,294 @@ test('Relocate flag: marks all relocation skills (NOT brakk_grab) and exposes it
 });
 
 // ============================================================
-// 3. Kỹ năng 1: Niệm 2s (-50% ST & miễn CC) -> Đập 1.4x, văng cách biên 2u + choáng 1s; mục tiêu không đẩy vẫn nhận ST + choáng
+// 3. Kỹ năng 1 (tụ lực tối đa 5s, 3 nấc): trạng thái tụ lực, -50% ST & miễn CC, thả sớm nấc 1/2, tự đập nấc 3, kẹp biên sân, đẩy xa nhất game, mục tiêu miễn đẩy, chết huỷ tụ lực, hồi chiêu tính từ lúc đập, AUTO
 // ============================================================
-test('Skill 1: 2s spin cast (-50% dmg, CC immune) and smash knockback to 2u from enemy bound; unpushable still takes dmg+stun', () => {
+test('Skill 1 charge: state, -50% dmg, CC immune, blocks other skills, early release ~1s -> stage 1 (push 3, stun 600) & cooldown at slam', () => {
     const h = harness();
     arena(h, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
     h.run(`
         var rok = foe('warrior');
         rok.x = 1.8; rok.z = 0; rok.dodge = 0; rok.block = 0; rok.tenacity = 0; rok.crit = 0; rok.mp = 0;
+        rok.maxHp = 50000; rok.hp = 50000;
         pary.dodge = 0; pary.block = 0; pary.crit = 0; pary.mp = pary.maxMp;
+        pary.maxHp = 50000; pary.hp = 50000;
     `);
     const baseDmg = h.run('calculateDamage(rok, pary, 1.0, room.clock, { isSkill: false }).damage');
+    const { handlers } = h.connectSocket('p1', 'fixture');
 
-    h.run('pary.queuedSkills.push(0);');
+    handlers.queueSkill({ memberIndex: 0, skillIndex: 0 });
     const step = realLoop(h);
-    step(2); // +100ms -> đang niệm 2000ms
-    assert.equal(h.run('pary.state'), 'casting');
-    assert.equal(h.run('pary.castingSkillId'), 0);
-    assert.equal(h.run('ccImmune(pary, room.clock)'), true, 'miễn khống chế khi đang gồng KN1');
+    step(1); // +50ms -> bắt đầu tụ lực
+    assert.equal(h.run('pary.state'), 'charging');
+    assert.equal(h.run('pary.charging.skillIdx'), 0);
+    assert.equal(h.run('pary.charging.max'), 5000);
+    assert.equal(h.run('pary.charging.stage'), 1);
+    assert.equal(h.run('ccImmune(pary, room.clock)'), true, 'miễn khống chế trong lúc tụ lực KN1');
+    assert.ok(h.run('pary.skillCooldowns[0] <= room.clock'), 'hồi chiêu chưa chạy trong lúc tụ lực');
+
+    const startEv = h.fx('paryFx', 'chargeStart')[0];
+    assert.deepEqual(startEv, { kind: 'chargeStart', casterId: 'p1', casterIdx: 0, chargeMax: 5000, stageAt: [0, 1667, 5000] });
 
     const spinDmg = h.run('calculateDamage(rok, pary, 1.0, room.clock, { isSkill: false }).damage');
     assert.ok(spinDmg <= Math.ceil(baseDmg * 0.55) && spinDmg >= Math.floor(baseDmg * 0.45),
-        `sát thương khi gồng KN1 phải giảm ~50%: base=${baseDmg}, spin=${spinDmg}`);
+        `sát thương khi tụ lực KN1 phải giảm ~50%: base=${baseDmg}, spin=${spinDmg}`);
 
-    // Choáng giữa lúc gồng -> KHÔNG ngắt chiêu
+    // Choáng trong lúc tụ lực -> KHÔNG ngắt
     h.run('applyStun(pary, 2000, room.clock)');
-    step(5); // +250ms
-    assert.equal(h.run('pary.state'), 'casting', 'choáng không được ngắt gồng KN1');
+    step(2); // +100ms elapsed
+    assert.equal(h.run('pary.state'), 'charging', 'choáng không được ngắt tụ lực KN1');
 
-    // Cho chạy hết 2000ms niệm + 220ms impact
+    // Kỹ năng khác không dùng / xếp hàng được khi đang tụ lực
+    handlers.queueSkill({ memberIndex: 0, skillIndex: 1 });
+    assert.equal(h.run('pary.queuedSkills.length'), 0, 'không xếp kỹ năng khác khi đang tụ lực');
+
+    // Tới ~1s (1000ms elapsed) -> bấm lại KN1 để đập sớm ở nấc 1
+    step(18);
+    assert.equal(h.run('pary.charging.stage'), 1);
+    assert.equal(h.fx('paryFx', 'chargeStage').length, 0);
+    const rokXBefore = h.run('rok.x');
     const rokHpBefore = h.run('rok.hp');
-    step(40);
-    const maxX = h.run('ARENA_BOUNDS.maxX');
-    const rokX = h.run('rok.x');
-    assert.equal(rokX, maxX - 2, 'Rok bị hất tới cách biên sân địch 2 đơn vị');
-    assert.ok(rokX <= maxX, 'không bao giờ vượt ngoài ARENA_BOUNDS');
-    assert.ok(h.run('rok.hp') < rokHpBefore, 'Rok chịu sát thương đập KN1');
-    assert.equal(h.run("rok.statusEffects.some(e => e.type === 'stun' && e.endTime > room.clock)"), true, 'Rok bị choáng sau khi đáp');
+    const slamClock = h.run('room.clock');
 
-    // Trường hợp không thể đẩy (Brakk hoá Khổng Lồ trong 5s đầu): không bay nhưng vẫn nhận sát thương + choáng 1s
+    handlers.queueSkill({ memberIndex: 0, skillIndex: 0 });
+    assert.equal(h.run('pary.charging'), null, 'thả sớm kết thúc trạng thái tụ lực');
+    assert.deepEqual(h.fx('paryFx', 'chargeRelease')[0], { kind: 'chargeRelease', casterId: 'p1', casterIdx: 0, stage: 1 });
+
+    const execEv = h.events.filter(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').at(-1)?.data;
+    assert.ok(execEv && execEv.effects.length === 1);
+    assert.equal(execEv.effects[0].stage, 1);
+    assert.equal(execEv.effects[0].arc, 'low');
+    assert.equal(execEv.effects[0].knockback, true);
+    assert.equal(execEv.effects[0].stunned, true);
+    assert.ok(Math.abs(h.run('rok.x') - (rokXBefore + 3)) < 1e-6, 'nấc 1 đẩy lùi đúng 3 đơn vị');
+
+    const knockEf = json(h, "rok.statusEffects.find(e => e.type === 'knocked')");
+    const stunEf = json(h, "rok.statusEffects.find(e => e.type === 'stun')");
+    assert.equal(stunEf.endTime - knockEf.endTime, 600, 'nấc 1 choáng 600ms sau khi đáp');
+    assert.equal(h.run('pary.skillCooldowns[0]'), slamClock + 600 + 10000, 'hồi chiêu 10s bắt đầu tính từ lúc đập (sau lock)');
+
+    step(5); // qua impact 220ms
+    assert.ok(h.run('rok.hp') < rokHpBefore, 'Rok chịu sát thương đập KN1 nấc 1');
+});
+
+test('Skill 1 charge: release at ~3s -> stage 2 (push 6, arc mid, stun 1000); no release -> auto slam at 5s -> stage 3 (push 12, arc high, stun 1500) with increasing damage', () => {
+    // Nấc 1 để so sánh sát thương chuẩn (mult 1.0)
+    const h1 = harness();
+    arena(h1, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
+    h1.run("var rok = foe('warrior'); rok.x = 1.8; rok.z = 0; rok.dodge = 0; rok.block = 0; rok.tenacity = 0; rok.crit = 0; rok.maxHp = 50000; rok.hp = 50000; pary.crit = 0; pary.targetIndex = 0; cast(0, { chargeStage: 1 });");
+    const dmg1 = h1.events.find(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').data.effects[0].damage;
+
+    // Nấc 2: thả ở ~3s (3000ms)
     const h2 = harness();
-    arena(h2, { pX: 0, pZ: 0, foeHeroes: ['wrestler'] });
+    arena(h2, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
     h2.run(`
+        var rok = foe('warrior');
+        rok.x = 1.8; rok.z = 0; rok.dodge = 0; rok.block = 0; rok.tenacity = 0; rok.crit = 0; rok.mp = 0;
+        rok.maxHp = 50000; rok.hp = 50000;
+        pary.dodge = 0; pary.block = 0; pary.crit = 0; pary.mp = pary.maxMp;
+        pary.maxHp = 50000; pary.hp = 50000;
+    `);
+    const { handlers: h2Sock } = h2.connectSocket('p1', 'fixture');
+    h2Sock.queueSkill({ memberIndex: 0, skillIndex: 0 });
+    const step2 = realLoop(h2);
+    step2(1);  // bắt đầu tụ lực
+    step2(60); // +3000ms elapsed
+    assert.equal(h2.run('pary.charging.stage'), 2);
+    assert.deepEqual(h2.fx('paryFx', 'chargeStage').map(e => e.stage), [2]);
+    const rokX2 = h2.run('rok.x');
+    const slam2Clock = h2.run('room.clock');
+    h2Sock.queueSkill({ memberIndex: 0, skillIndex: 0 });
+    assert.deepEqual(h2.fx('paryFx', 'chargeRelease')[0], { kind: 'chargeRelease', casterId: 'p1', casterIdx: 0, stage: 2 });
+    const exec2 = h2.events.filter(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').at(-1).data;
+    assert.equal(exec2.effects[0].stage, 2);
+    assert.equal(exec2.effects[0].arc, 'mid');
+    assert.ok(Math.abs(h2.run('rok.x') - (rokX2 + 6)) < 1e-6, 'nấc 2 đẩy lùi đúng 6 đơn vị');
+    const k2 = json(h2, "rok.statusEffects.find(e => e.type === 'knocked')");
+    const s2 = json(h2, "rok.statusEffects.find(e => e.type === 'stun')");
+    assert.equal(s2.endTime - k2.endTime, 1000, 'nấc 2 choáng 1000ms sau khi đáp');
+    assert.equal(h2.run('pary.skillCooldowns[0]'), slam2Clock + 600 + 10000);
+    const dmg2 = exec2.effects[0].damage;
+
+    // Nấc 3: không bấm lại -> tự đập ở đúng 5000ms
+    const h3 = harness();
+    arena(h3, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
+    h3.run(`
+        var rok = foe('warrior');
+        rok.x = 1.8; rok.z = 0; rok.dodge = 0; rok.block = 0; rok.tenacity = 0; rok.crit = 0; rok.mp = 0;
+        rok.maxHp = 50000; rok.hp = 50000;
+        pary.dodge = 0; pary.block = 0; pary.crit = 0; pary.mp = pary.maxMp;
+        pary.maxHp = 50000; pary.hp = 50000;
+    `);
+    h3.run('pary.queuedSkills.push(0);');
+    const step3 = realLoop(h3);
+    step3(1);  // bắt đầu tụ lực (elapsed = 0)
+    const startClock3 = h3.run('pary.charging.start');
+    step3(99); // elapsed = 4950ms -> vẫn đang ở nấc 2, chưa đập
+    assert.equal(h3.run('pary.state'), 'charging');
+    assert.equal(h3.run('pary.charging.stage'), 2, 'trước 5000ms vẫn ở nấc 2');
+    assert.equal(h3.fx('paryFx', 'chargeRelease').length, 0);
+    const rokX3 = h3.run('rok.x');
+
+    step3(1);  // elapsed = 5000ms -> lên nấc 3 và tự động đập
+    const slam3Clock = h3.run('room.clock');
+    assert.equal(slam3Clock - startClock3, 5000);
+    assert.equal(h3.run('pary.charging'), null);
+    assert.deepEqual(h3.fx('paryFx', 'chargeStage').map(e => e.stage), [2, 3]);
+    assert.deepEqual(h3.fx('paryFx', 'chargeRelease')[0], { kind: 'chargeRelease', casterId: 'p1', casterIdx: 0, stage: 3 });
+    const exec3 = h3.events.filter(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').at(-1).data;
+    assert.equal(exec3.effects[0].stage, 3);
+    assert.equal(exec3.effects[0].arc, 'high');
+    assert.ok(Math.abs(h3.run('rok.x') - (rokX3 + 12)) < 1e-6, 'nấc 3 đẩy lùi đúng 12 đơn vị');
+    const k3 = json(h3, "rok.statusEffects.find(e => e.type === 'knocked')");
+    const s3 = json(h3, "rok.statusEffects.find(e => e.type === 'stun')");
+    assert.equal(s3.endTime - k3.endTime, 1500, 'nấc 3 choáng 1500ms sau khi đáp');
+    assert.equal(h3.run('pary.skillCooldowns[0]'), slam3Clock + 600 + 10000, 'hồi chiêu tính từ lúc tự đập ở 5s');
+    const dmg3 = exec3.effects[0].damage;
+
+    assert.ok(dmg3 > dmg2 && dmg2 > dmg1, `sát thương tăng theo nấc: nấc1=${dmg1}, nấc2=${dmg2}, nấc3=${dmg3}`);
+});
+
+test('Skill 1 charge: push clamped inside arena, 12 > every other push in CLASS_DEFS, target fallback & ground slam', () => {
+    // 1. Kẹp trong ARENA_BOUNDS
+    const h = harness();
+    arena(h, { pX: 40, pZ: 0, foeHeroes: ['warrior'] });
+    h.run("var rok = foe('warrior'); rok.x = 42; rok.z = 0; rok.dodge = 0; rok.tenacity = 0; pary.targetIndex = 0; cast(0, { chargeStage: 3 });");
+    assert.equal(h.run('rok.x'), h.run('ARENA_BOUNDS.maxX'), 'đẩy 12 đơn vị sát biên phải phải kẹp ở ARENA_BOUNDS.maxX');
+
+    // 2. Stage 3 push (12) lớn hơn mọi giá trị push khác trong toàn bộ CLASS_DEFS
+    const otherPushes = h.run(`
+        (() => {
+            const out = [];
+            function walk(node, skip) {
+                if (!node || typeof node !== 'object' || node === skip) return;
+                if (Array.isArray(node)) { node.forEach(x => walk(x, skip)); return; }
+                for (const [k, v] of Object.entries(node)) {
+                    if (typeof v === 'number' && /push/i.test(k)) out.push({ k, v });
+                    else if (v && typeof v === 'object') walk(v, skip);
+                }
+            }
+            walk(CLASS_DEFS, CLASS_DEFS.holyhammer.skills[0]);
+            return out;
+        })()
+    `);
+    const stage3Push = h.run('CLASS_DEFS.holyhammer.skills[0].stages[2].push');
+    assert.equal(stage3Push, 12);
+    assert.ok(otherPushes.length > 0, 'phải tìm thấy các kỹ năng đẩy lùi khác (vd Rok push 5)');
+    for (const p of otherPushes) {
+        assert.ok(stage3Push > p.v, `nấc 3 (${stage3Push}) phải lớn hơn mọi push khác (${p.k}=${p.v})`);
+    }
+
+    // 3. Mục tiêu chính đi khỏi tầm -> đập địch gần nhất còn trong castRange; không có ai -> đập xuống đất vẫn mất hồi chiêu
+    const hNear = harness();
+    arena(hNear, { pX: 0, pZ: 0, foeHeroes: ['warrior', 'mage'] });
+    hNear.run(`
+        foe('warrior').x = 12; foe('warrior').z = 0;
+        foe('mage').x = 2.0; foe('mage').z = 0; foe('mage').dodge = 0;
+        pary.targetIndex = foes.indexOf(foe('warrior'));
+        cast(0, { chargeStage: 1 });
+    `);
+    assert.equal(hNear.run("foe('warrior').x"), 12, 'địch ngoài tầm không bị trúng');
+    assert.equal(hNear.run("foe('mage').x"), 5, 'đập địch gần nhất trong tầm castRange');
+
+    const hMiss = harness();
+    arena(hMiss, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
+    hMiss.run("foe('warrior').x = 12; foe('warrior').z = 0; pary.targetIndex = 0; cast(0, { chargeStage: 2 });");
+    const missEv = hMiss.events.filter(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').at(-1).data;
+    assert.equal(missEv.effects.length, 0, 'không có địch trong tầm -> đập xuống đất không trúng ai');
+    assert.ok(hMiss.run('pary.skillCooldowns[0] > room.clock'), 'đập hụt xuống đất vẫn mất hồi chiêu');
+});
+
+test('Skill 1 charge: unpushable target (Brakk giant) takes damage + stage stun without moving; death during charge emits chargeCancel with no hit', () => {
+    // Mục tiêu không thể đẩy (Brakk hoá Khổng Lồ trong 5s đầu): nhận sát thương + choáng đúng nấc, không bay
+    const hB = harness();
+    arena(hB, { pX: 0, pZ: 0, foeHeroes: ['wrestler'] });
+    hB.run(`
         var brakk = foe('wrestler');
         brakk.x = 2.0; brakk.z = 0; brakk.dodge = 0; brakk.block = 0; brakk.tenacity = 0; brakk.crit = 0;
         pary.dodge = 0; pary.block = 0; pary.crit = 0;
         executeSkill('fixture', 'p2', 0, 'p1', 2, { free: true });
         at((CLASS_DEFS.wrestler.skills[2].impact ?? 0) + 50);
     `);
-    assert.equal(h2.run('ccImmune(brakk, room.clock)'), true, 'Brakk Khổng Lồ đang miễn khống chế');
-    const brakkStartX = h2.run('brakk.x');
-    const brakkHpBefore = h2.run('brakk.hp');
-    h2.run('pary.targetIndex = 0; cast(0);');
-    const step2 = realLoop(h2);
-    step2(6); // +300ms (qua impact 220ms và chạy cả processBrakk mỗi nhịp)
-    assert.equal(h2.run('brakk.x'), brakkStartX, 'Brakk Khổng Lồ không bị đẩy bay');
-    assert.ok(h2.run('brakk.hp') < brakkHpBefore, 'Brakk Khổng Lồ vẫn nhận sát thương KN1');
-    assert.equal(h2.run("brakk.statusEffects.some(e => e.type === 'stun' && e.endTime > room.clock)"), true, 'Brakk Khổng Lồ vẫn bị choáng 1s (noCleanse)');
+    assert.equal(hB.run('ccImmune(brakk, room.clock)'), true, 'Brakk Khổng Lồ đang miễn khống chế');
+    const brakkStartX = hB.run('brakk.x');
+    const brakkHpBefore = hB.run('brakk.hp');
+    hB.run('pary.targetIndex = 0; cast(0, { chargeStage: 3 });');
+    const stepB = realLoop(hB);
+    stepB(6); // +300ms (qua impact 220ms và chạy processBrakk mỗi nhịp)
+    assert.equal(hB.run('brakk.x'), brakkStartX, 'Brakk Khổng Lồ không bị đẩy bay');
+    assert.ok(hB.run('brakk.hp') < brakkHpBefore, 'Brakk Khổng Lồ vẫn nhận sát thương KN1');
+    const brakkStun = json(hB, "brakk.statusEffects.find(e => e.type === 'stun' && e.endTime > room.clock)");
+    assert.ok(brakkStun && brakkStun.duration === 1500, 'Brakk Khổng Lồ chịu choáng đúng nấc 3 (1500ms)');
+
+    // Chết trong lúc tụ lực -> phát chargeCancel, không đập, không gây sát thương
+    const hD = harness();
+    arena(hD, { pX: 0, pZ: 0, foeHeroes: ['warrior'] });
+    hD.run(`
+        var rok = foe('warrior');
+        rok.x = 1.8; rok.z = 0; rok.mp = 0; rok.maxHp = 50000; rok.hp = 50000;
+        pary.mp = pary.maxMp; pary.queuedSkills.push(0);
+    `);
+    const stepD = realLoop(hD);
+    stepD(11); // bắt đầu tụ lực + 500ms
+    assert.equal(hD.run('pary.state'), 'charging');
+    hD.events.length = 0;
+    const rokX = hD.run('rok.x');
+    const rokHp = hD.run('rok.hp');
+    hD.run('pary.hp = 0; killMember(pary, team);');
+    assert.equal(hD.run('pary.charging'), null);
+    assert.deepEqual(hD.fx('paryFx', 'chargeCancel')[0], { kind: 'chargeCancel', casterId: 'p1', casterIdx: 0 });
+    stepD(110); // qua 5s vẫn không đập
+    assert.equal(hD.fx('paryFx', 'chargeRelease').length, 0, 'chết khi tụ lực không được đập');
+    assert.equal(hD.events.filter(e => e.name === 'skillExecuted' && e.data.type === 'holy_smash').length, 0);
+    assert.equal(hD.run('rok.x'), rokX);
+    assert.equal(hD.run('rok.hp'), rokHp);
+});
+
+test('Skill 1 charge AUTO: charges to stage 3 by default; early release on <30% HP, target leaving range, or manual click', () => {
+    // 1. AUTO mặc định tụ đủ 5s (nấc 3)
+    const hA = harness();
+    arena(hA, { pX: 0, pZ: 0, foes: [['monster_dummy', 2.0, 0]] });
+    hA.run('pary.skillCooldowns = [0, room.clock + 99999, room.clock + 99999]; pary.autoOn = true; pary.mp = pary.maxMp;');
+    const stepA = realLoop(hA);
+    stepA(120); // 6s
+    const relA = hA.fx('paryFx', 'chargeRelease')[0];
+    assert.ok(relA && relA.stage === 3, `AUTO mặc định phải tụ đủ nấc 3, nhận stage=${relA?.stage}`);
+    assert.equal(hA.run('foes[0].x'), 14, 'AUTO nấc 3 đẩy 12 ô (2 -> 14)');
+
+    // 2. AUTO thả sớm khi máu dưới 30%
+    const hLow = harness();
+    arena(hLow, { pX: 0, pZ: 0, foes: [['monster_dummy', 2.0, 0]] });
+    hLow.run('pary.skillCooldowns = [0, room.clock + 99999, room.clock + 99999]; pary.autoOn = true; pary.mp = pary.maxMp;');
+    const stepLow = realLoop(hLow);
+    stepLow(10); // đang tụ lực ở nấc 1
+    assert.equal(hLow.run('pary.charging.stage'), 1);
+    hLow.run('pary.hp = Math.floor(pary.maxHp * 0.25);');
+    stepLow(2);
+    assert.equal(hLow.fx('paryFx', 'chargeRelease')[0]?.stage, 1, 'AUTO máu < 30% phải thả sớm ngay');
+    assert.equal(hLow.run('foes[0].x'), 5);
+
+    // 3. AUTO thả sớm khi mục tiêu sắp rời tầm cận chiến
+    const hLeave = harness();
+    arena(hLeave, { pX: 0, pZ: 0, foes: [['monster_dummy', 2.0, 0]] });
+    hLeave.run('pary.skillCooldowns = [0, room.clock + 99999, room.clock + 99999]; pary.autoOn = true; pary.mp = pary.maxMp;');
+    const stepLeave = realLoop(hLeave);
+    stepLeave(10); // đã ghi khoảng cách 2.0
+    hLeave.run('foes[0].x = 2.4;'); // mục tiêu rời xa sắp vượt 2.8
+    stepLeave(1);
+    assert.equal(hLeave.fx('paryFx', 'chargeRelease')[0]?.stage, 1, 'AUTO thả sớm khi mục tiêu sắp rời tầm đập');
+    assert.ok(Math.abs(hLeave.run('foes[0].x') - 5.4) < 1e-6);
+
+    // 4. Đang bật AUTO mà người chơi bấm nút KN1 vẫn thả sớm ngay
+    const hClick = harness();
+    arena(hClick, { pX: 0, pZ: 0, foes: [['monster_dummy', 2.0, 0]] });
+    const { handlers } = hClick.connectSocket('p1', 'fixture');
+    hClick.run('pary.skillCooldowns = [0, room.clock + 99999, room.clock + 99999]; pary.autoOn = true; pary.mp = pary.maxMp;');
+    const stepClick = realLoop(hClick);
+    stepClick(10);
+    assert.equal(hClick.run('pary.charging.stage'), 1);
+    handlers.queueSkill({ memberIndex: 0, skillIndex: 0 });
+    assert.equal(hClick.run('pary.charging'), null);
+    assert.equal(hClick.fx('paryFx', 'chargeRelease')[0]?.stage, 1, 'bấm thủ công lúc đang AUTO vẫn thả sớm được');
 });
 
 // ============================================================
@@ -570,9 +807,9 @@ test('Talent 2 (Lv40): +8% pDef and mDef per alive enemy within 4.5u (cap 5 = +4
 });
 
 // ============================================================
-// 10. Trận PvP gương (Pary vs Pary) & đối xứng hất văng về biên trái cho phe Phải
+// 10. Trận PvP gương (Pary vs Pary) kết thúc có người thắng & đối xứng hất văng về phía trái cho phe Phải
 // ============================================================
-test('PvP mirror battle & right-side Skill 1 knockback symmetry', () => {
+test('PvP mirror battle ends with a winner & right-side Skill 1 knockback symmetry', () => {
     const h = harness();
     arena(h, {
         level: 40, rank: 2, mode: 'duel_hero',
@@ -584,10 +821,15 @@ test('PvP mirror battle & right-side Skill 1 knockback symmetry', () => {
         foes.forEach((m, i) => { m.x = 3 + i * 2; m.z = 0; m.mp = m.maxMp; });
     `);
     const tick = realLoop(h);
-    tick(240); // 12 giây giao tranh AUTO đầy đủ
-    assert.equal(h.run('team.concat(foes).some(m => m.hp < m.maxHp || !m.alive)'), true, 'trận PvP gương chạy sạch và giao tranh diễn ra');
+    let ticks = 0;
+    while (!h.run('!!room.winner') && ticks < 4200) {
+        tick(20);
+        ticks += 20;
+    }
+    assert.ok(h.run("room.winner === 'p1' || room.winner === 'p2'"), `trận PvP gương phải kết thúc có người thắng, nhận winner=${h.run('room.winner')}`);
+    assert.equal(h.run('team.concat(foes).some(m => m.charging != null)'), false, 'kết thúc trận không còn trạng thái tụ lực treo');
 
-    // Đối xứng phe Phải hất văng về ARENA_BOUNDS.minX + 2
+    // Đối xứng phe Phải đẩy lùi theo hướng ra xa Pary (-X) và kẹp ở ARENA_BOUNDS.minX
     const mir = harness();
     arena(mir, { pX: -10, pZ: 0, allies: ['warrior'], foeHeroes: ['holyhammer'] });
     mir.run(`
@@ -596,7 +838,19 @@ test('PvP mirror battle & right-side Skill 1 knockback symmetry', () => {
         var rightPary = foe('holyhammer'), RPI = foes.indexOf(rightPary);
         rightPary.x = 2; rightPary.z = 0; rightPary.mp = rightPary.maxMp; rightPary.targetIndex = team.indexOf(targetLeft);
         pary.x = -40;
-        executeSkill('fixture', 'p2', RPI, 'p1', 0);
+        executeSkill('fixture', 'p2', RPI, 'p1', 0, { chargeStage: 1 });
     `);
-    assert.equal(mir.run('targetLeft.x'), mir.run('ARENA_BOUNDS.minX + 2'), 'Pary phe Phải hất mục tiêu tới cách biên trái 2 đơn vị');
+    assert.equal(mir.run('targetLeft.x'), -3, 'Pary phe Phải nấc 1 đẩy mục tiêu sang trái 3 đơn vị');
+
+    mir.run(`
+        targetLeft.x = 0; targetLeft.statusEffects = [];
+        executeSkill('fixture', 'p2', RPI, 'p1', 0, { chargeStage: 3 });
+    `);
+    assert.equal(mir.run('targetLeft.x'), -12, 'Pary phe Phải nấc 3 đẩy mục tiêu sang trái 12 đơn vị');
+
+    mir.run(`
+        targetLeft.x = -44; rightPary.x = -42; targetLeft.statusEffects = [];
+        executeSkill('fixture', 'p2', RPI, 'p1', 0, { chargeStage: 3 });
+    `);
+    assert.equal(mir.run('targetLeft.x'), mir.run('ARENA_BOUNDS.minX'), 'Pary phe Phải sát biên trái kẹp ở ARENA_BOUNDS.minX');
 });

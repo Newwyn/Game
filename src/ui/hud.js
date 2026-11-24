@@ -105,6 +105,33 @@ function ensureCdOverlay(btn) {
     return el;
 }
 
+/** Lớp phủ tiến độ tụ lực trên nút kỹ năng (Pary KN1): vòng/thanh tiến độ 5s + 3 chấm nấc 1/2/3 */
+function updateChargeOverlay(btn, ch, pct, stage) {
+    let el = btn.querySelector('.charge-ui');
+    if (!ch) {
+        if (el) el.style.display = 'none';
+        btn.style.removeProperty('--chg-p');
+        btn.style.removeProperty('--chg-c');
+        return;
+    }
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'charge-ui';
+        el.innerHTML = '<div class="chg-head"><span class="chg-dots"><i></i><i></i><i></i></span><span class="chg-lbl">1/3</span></div><div class="chg-bar"><i></i></div>';
+        btn.appendChild(el);
+    }
+    el.style.display = 'flex';
+    const color = stage >= 3 ? '#fef08a' : stage === 2 ? '#fb923c' : '#facc15';
+    btn.style.setProperty('--chg-p', pct.toFixed(4));
+    btn.style.setProperty('--chg-c', color);
+    el.querySelectorAll('.chg-dots i').forEach((dot, idx) => dot.classList.toggle('on', idx < stage));
+    const lbl = el.querySelector('.chg-lbl');
+    const txt = `${stage}/3`;
+    if (lbl && lbl.textContent !== txt) lbl.textContent = txt;
+    const fill = el.querySelector('.chg-bar i');
+    if (fill) fill.style.width = `${(pct * 100).toFixed(1)}%`;
+}
+
 /** Nhãn giá kỹ năng: Lưu Thủy (Nerissa) không tốn Orb lúc bấm nhưng cần ≥1 Orb và đốt dần */
 const costLabel = (sk) => sk.orbCost ? `${sk.orbCost} orb` : sk.minOrbs ? `≥${sk.minOrbs} orb` : 'Miễn phí';
 
@@ -353,6 +380,20 @@ function updateMemberCard(member, i, now, ctx = {}) {
                 : `${sk.name} — ${costLabel(sk)}, ${sk.cooldown ? `hồi ${(sk.cooldown / 1000).toFixed(0)}s` : 'không hồi chiêu'} (click để ra lệnh)`;
             if (btn.title !== titleTxt) btn.title = titleTxt;
         }
+        // Pary KN1 tụ lực: đang gồng kỹ năng s -> hiện tiến độ 5s + nấc 1/2/3 và giữ nút bấm được để đập sớm
+        const ch = member.alive && member.charging && member.charging.skillIdx === s ? member.charging : null;
+        const otherCharging = !!(member.alive && member.charging && member.charging.skillIdx !== s);
+        let chPct = 0, chStage = 1;
+        if (ch) {
+            const chMax = Math.max(1, ch.max ?? sk.chargeMax ?? 5000);
+            const chElapsed = Math.max(0, Math.min(chMax, now - (ch.start ?? now)));
+            chPct = chElapsed / chMax;
+            const stageAt = Array.isArray(ch.stageAt) && ch.stageAt.length ? ch.stageAt : [0, 1667, 5000];
+            for (let k = 0; k < stageAt.length; k++) if (chElapsed >= stageAt[k]) chStage = k + 1;
+            if ((ch.stage ?? 1) > chStage) chStage = ch.stage;
+        }
+        updateChargeOverlay(btn, ch, chPct, chStage);
+
         // Zerith: lướt lần 2 lúc Đêm Tử Thần miễn phí (hiệu ứng reaper_echo)
         const free = sk.type === 'reaper_dash' && member.statusEffects?.some(e => e.type === 'reaper_echo' && e.endTime > now);
         // Elarion — Thiên Tài Nguyên Tố: phép kế tiếp giảm 1 Orb
@@ -360,7 +401,7 @@ function updateMemberCard(member, i, now, ctx = {}) {
         const cost = free ? 0 : Math.max(0, sk.orbCost - discount);
         const costEl = btn.querySelector('.cost');
         const hpc = sk.hpCost ? ` +${Math.round(sk.hpCost * 100)}%♥` : '';   // Brakk: tốn thêm % máu
-        const costTxt = free ? 'MIỄN PHÍ' : elem && s === 0 ? `${cost} orb · ${member.held?.length ?? 0}/3`
+        const costTxt = ch ? 'ĐẬP!' : free ? 'MIỄN PHÍ' : elem && s === 0 ? `${cost} orb · ${member.held?.length ?? 0}/3`
             : cross && s === 0 ? `${cost} orb · ${member.crosses?.length ?? 0}/4`
             : (elem && s === 1 && !member.spell) || locked ? '—' : sk.orbCost ? `${cost} orb${discount ? ' ↓' : ''}${hpc}` : costLabel(sk);
         if (costEl && costEl.textContent !== costTxt) costEl.textContent = costTxt;
@@ -377,9 +418,9 @@ function updateMemberCard(member, i, now, ctx = {}) {
 
         // Đếm ngược hồi chiêu
         const cd = ensureCdOverlay(btn);
-        // Hồi chiêu chỉ bắt đầu chạy khi diễn xong động tác (server cộng thêm thời gian diễn) -> trong lúc diễn / niệm giữ nguyên số đầy
+        // Hồi chiêu chỉ bắt đầu chạy khi diễn xong động tác (server cộng thêm thời gian diễn) -> trong lúc diễn / niệm / tụ lực giữ nguyên hoặc ẩn
         const cdMs = Math.min(member.skillCooldowns[s] - now, Math.max(sk.cooldown ?? 0, elem ? 1000 : 0));
-        const remainingCd = act ? 0 : Math.max(0, cdMs / 1000 / timeState.scale); // giây thật (đang chạy: hồi chiêu chưa tính)
+        const remainingCd = (act || ch) ? 0 : Math.max(0, cdMs / 1000 / timeState.scale); // giây thật (đang chạy / tụ lực: hồi chiêu chưa tính)
         if (remainingCd > 0) {
             cd.style.display = 'flex';
             cd.textContent = remainingCd.toFixed(1) + 's';
@@ -395,12 +436,14 @@ function updateMemberCard(member, i, now, ctx = {}) {
         }
 
         let cls = 'skill-btn' + (s === 2 ? ' ultimate' : '') + (free ? ' free' : '') + (locked ? ' locked' : '') + (sk.dragTarget ? ' drag-target' : '');
-        if (!member.alive || locked) {
+        if (ch) {
+            cls += ` charging charge-s${chStage}`;
+        } else if (!member.alive || locked) {
             cls += ' disabled';
         } else {
             const need = Math.max(cost, free ? 0 : (sk.minOrbs ?? 0));
             // Elarion: Sách cần đủ 3 viên ngọc, nút phép cần có phép
-            let usable = !elem || (s === 0 ? (member.held?.length ?? 0) >= 3 : s === 1 ? !!member.spell : true);
+            let usable = !otherCharging && (!elem || (s === 0 ? (member.held?.length ?? 0) >= 3 : s === 1 ? !!member.spell : true));
             // chưa có đối thủ trong tầm đánh -> chưa dùng được (bấm vẫn xếp hàng chờ); không hiện nhãn chú thích
             if (!chess && !foeNear(member, ctx.oppSquad, sk)) usable = false;
             const isReady = !act && usable && member.mp >= need * ORB_COST && now > member.skillCooldowns[s];
@@ -410,11 +453,13 @@ function updateMemberCard(member, i, now, ctx = {}) {
             else if (!isReady && !isQueued) cls += ' disabled';
         }
         btn.className = cls + (relocateLocked ? ' relocate-locked' : '');
-        if (relocateLocked) btn.title = `${sk.name} — 🚫 Khoá dịch chuyển`;
+        if (ch) btn.title = `${sk.name} — Nấc ${chStage}/3 · Bấm lần nữa để đập`;
+        else if (relocateLocked) btn.title = `${sk.name} — 🚫 Khoá dịch chuyển`;
         else if (!chess) btn.title = `${sk.name} — ${costLabel(sk)}${sk.cooldown ? `, hồi ${(sk.cooldown / 1000).toFixed(0)}s` : ''}`;
-        if (btn.disabled !== locked) btn.disabled = locked;
-        btn.style.opacity = locked ? '0.4' : '';
-        btn.style.cursor = locked ? 'not-allowed' : '';
+        const btnDisabled = ch ? false : locked;
+        if (btn.disabled !== btnDisabled) btn.disabled = btnDisabled;
+        btn.style.opacity = btnDisabled ? '0.4' : '';
+        btn.style.cursor = ch ? 'pointer' : (btnDisabled ? 'not-allowed' : '');
     }
 }
 
@@ -461,7 +506,7 @@ function effectInfo(ef, m) {
         case 'holy_aura_ally_shield': return ['🛡️', '#fef08a', 'Khiên Thánh Thần', `Khiên từ Hào Quang Pary: ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)} sát thương`];
         case 'pary_throw_shield': return ['🔨', '#fbbf24', 'Khiên Búa Bay', `Hấp thụ ${Math.round(ef.hp ?? 0)}/${Math.round(ef.maxHp ?? 0)} sát thương`];
         case 'pary_surround_def': return ['🔰', '#38bdf8', `Hộ Giáp Bủa Vây (${ef.stacks ?? 0})`, `+${pc(ef.value)}% P.DEF & M.DEF (mỗi địch trong 4.5 đơn vị +8%, tối đa 5)`];
-        case 'pary_spin_guard': return ['🌀', '#fbbf24', 'Xoay Búa Phán Quyết', 'Giảm 50% sát thương nhận & miễn khống chế trong lúc niệm'];
+        case 'pary_spin_guard': return ['🌀', '#fbbf24', 'Xoay Búa Phán Quyết', 'Giảm 50% sát thương nhận & miễn khống chế trong lúc tụ lực'];
         case 'pary_colossus': return ['⚡', '#f59e0b', 'Búa Thánh Khổng Lồ', 'Miễn khống chế suốt 3 nhịp giáng búa'];
         case 'stealth': return ['👤', '#4ade80', ef.shadow ? 'Bóng Ẩn' : 'Tàng Hình', 'Không bị chọn làm mục tiêu · chỉ trúng đòn DIỆN RỘNG · +20% P.ATK · +10% tốc đánh'];
         case 'stun': return ['💫', '#facc15', 'Choáng', 'Không thể di chuyển, đánh, niệm', true];

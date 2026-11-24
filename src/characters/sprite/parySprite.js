@@ -18,14 +18,20 @@ export const PARY_SPRITE = {
     },
     defaultIdle: 'A',
     juice: 'melee',
+    synthClips: true,   // động tác riêng (spin / smash / slam...) không có trong khung xương Rok -> FrameSpriteView tự tạo động tác ẩn
     clips: {
         ready:       { mode: 'loop', frames: r('ready', 4), fps: 5 },
         attack:      { mode: 'strike', frames: r('attack', 8), release: 4 },                      // búa đập xuống
         move:        { mode: 'loop', frames: r('run', 8), fps: 11 },
-        spin:        { mode: 'hold', intro: ['spin1', 'spin2'], introTime: 0.25, frames: ['spin2', 'spin3', 'spin4'], fps: 9 },   // KN1 niệm: xoay búa
-        smash:       { mode: 'strike', frames: ['spin5', 'spin6', 'spin7', 'spin8'], release: 2 }, // KN1 đập
+        // KN1 tụ lực: giơ tay nắm đuôi cán (búa thật vẽ riêng, paryFx quay vòng bầu dục quanh điểm 'fist' trên đầu)
+        spin:        { mode: 'hold', intro: ['whirl1'], introTime: 0.08, frames: r('whirl', 4), fps: 4 },
+        smash:       { mode: 'strike', frames: ['whirl5', 'whirl6', 'whirl7', 'whirl8'], release: 3, dur: 0.6 },   // KN1 đập xuống
         aura:        { mode: 'strike', frames: r('aura', 8), release: 4 },                        // KN2 cắm búa mở hào quang
-        slam:        { mode: 'strike', frames: r('slam', 8), release: 3 },                        // KN3 đập 3 lần
+        // KN3: niệm gọi búa ánh sáng (giữ) -> mỗi nhịp: nhảy lên, cầm búa gõ xuống -> giữa 2 nhịp vẫn cầm búa trên đầu
+        colossusCast: { mode: 'hold', intro: ['colossus1', 'colossus2'], introTime: 1.1, frames: ['colossus3', 'colossus4'], fps: 2.5 },
+        colossusHold: { mode: 'hold', intro: ['colossus4'], introTime: 0.12, frames: ['colossus3'], fps: 1 },
+        // 1 nhịp: thủ (0) -> vung ra sau (0,07) -> giơ qua đầu (0,17) -> bổ xuống (0,25) -> búa NẰM trên đất (0,3 -> 0,8)
+        slam:        { mode: 'strike', frames: ['colossus4', 'colossus5', 'colossus6', 'colossus7', 'colossus8'], release: 4, at: [0, 0.07, 0.17, 0.25, 0.3], dur: 0.8 },
         throw:       { mode: 'strike', frames: ['attack2', 'attack3', 'attack4', 'attack8'], release: 3 },   // TP1 quăng búa
         hurt:        { mode: 'clip', frames: r('hurt', 4) },
         stunned:     { mode: 'loop', frames: r('stun', 4), fps: 4 },

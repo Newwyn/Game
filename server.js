@@ -615,8 +615,15 @@ const CLASS_DEFS = {
         autoHitFrame: 3,
         autoImpact: 240,
         skills: [
-            { name: 'Búa Thánh Phán Quyết', orbCost: 2.5, cooldown: 10000, castTime: 2000, type: 'holy_smash',
-              multiplier: 1.4, castRange: 2.8, castDmgReduce: 0.5, castCcImmune: true, edgeDist: 2, stun: 1000, knockTime: 480, impact: 220, lock: 600 },
+            // Búa Thánh Phán Quyết: tụ lực tối đa 5s (3 nấc: 0 / 1667 / 5000ms), bấm lại để đập sớm; giảm 50% sát thương nhận & miễn khống chế khi tụ lực
+            { name: 'Búa Thánh Phán Quyết', orbCost: 2.5, cooldown: 10000, castTime: 0, type: 'holy_smash',
+              chargeMax: 5000,
+              stages: [
+                  { at: 0, push: 3, mult: 1.0, stun: 600, knockTime: 380, arc: 'low' },
+                  { at: 1667, push: 6, mult: 1.3, stun: 1000, knockTime: 520, arc: 'mid' },
+                  { at: 5000, push: 12, mult: 1.8, stun: 1500, knockTime: 800, arc: 'high' },
+              ],
+              multiplier: 1.0, castRange: 2.8, castDmgReduce: 0.5, castCcImmune: true, impact: 220, lock: 600 },
             { name: 'Hào Quang Thánh Thần', orbCost: 3, cooldown: 15000, castTime: 0, type: 'holy_aura',
               duration: 6000, radius: 4.5, shieldBase: 0.08, shieldPerUnit: 0.25, maxUnits: 5, allyMult: 0.5, blockHealPct: 0.15, multiplier: 0, impact: 200, lock: 450, active: 'holy_aura', activeColor: '#fde047' },
             { name: 'Búa Thánh Khổng Lồ', orbCost: 4, cooldown: 25000, castTime: 2000, type: 'holy_colossus', castRange: 5,
@@ -1900,8 +1907,9 @@ function calculateDamage(attacker, target, skillMultiplier = 1.0, now, opts = {}
     const mitigation = effectiveDef / (effectiveDef + 300); // DR Formula: Def / (Def + K)
     
     // 7. FINAL DAMAGE PIPELINE
-    // Đang niệm chiêu giảm sát thương (Pary KN1 Xoay Búa: -50% sát thương nhận)
-    const castDr = target.state === 'casting' && target.castingSkillId != null ? (skillsOf(target)[target.castingSkillId]?.castDmgReduce ?? 0) : 0;
+    // Đang niệm / tụ lực chiêu giảm sát thương (Pary KN1 Xoay Búa: -50% sát thương nhận)
+    const castSkillIdx = target.charging ? target.charging.skillIdx : (target.state === 'casting' ? target.castingSkillId : null);
+    const castDr = castSkillIdx != null ? (skillsOf(target)[castSkillIdx]?.castDmgReduce ?? 0) : 0;
     if (castDr > 0) damage *= 1 - castDr;
     // Thành Trì: giảm sát thương nhận
     const fort = target.statusEffects?.find(ef => ef.type === 'fortress' && ef.endTime > now);
@@ -2367,6 +2375,20 @@ io.on('connection', (socket) => {
         const member = playerData.squad[data.memberIndex];
         const skillIndex = data.skillIndex;
         if (!member || !member.alive || skillIndex === undefined || member.summon) return;
+
+        // Đang tụ lực (Pary KN1): bấm lại đúng kỹ năng đó -> đập ngay; các kỹ năng khác không dùng được lúc đang tụ lực
+        if (member.charging) {
+            if (skillIndex === member.charging.skillIdx) {
+                const room = rooms[roomId];
+                if (room.status === 'active' && !room.winner) {
+                    curRoom = room;
+                    releaseParyCharge(room, socket.id, data.memberIndex, room.clock ?? Date.now());
+                } else {
+                    member.charging.releaseNow = true;
+                }
+            }
+            return;
+        }
 
         if (isSealed(member, rooms[roomId].clock)) return;
         const qSk = skillsOf(member)[skillIndex];
@@ -3001,6 +3023,7 @@ io.on('connection', (socket) => {
         }
 
         // Restart logic
+        cancelRoomParyCharges(room);
         cancelRoomCrosses(room, 'reset');
         Object.values(room.players).forEach(p => {
             p.squad = room.isBotMatch ? (p.isNPC ? enemySquadFor(room) : mySquadFor(room, p))
@@ -3121,7 +3144,7 @@ function startBattleLoop(roomId) {
             if (opponentData) {
                 playerData.squad.forEach((member, idx) => {
                     if (!(playerData.autoMode || member.autoOn)) return;
-                    if (!member.alive || member.queuedSkills.length > 0 || member.state === 'casting') return;
+                    if (!member.alive || member.queuedSkills.length > 0 || member.state === 'casting' || member.charging) return;
                     if (now < (member.actionUntil ?? 0)) return; // đang diễn chiêu: chờ diễn xong (buff / hiệu ứng mới có) rồi mới tính tiếp
                     if (now < (member.aiNext ?? 0)) return;
                     member.aiNext = now + 300;
@@ -3341,6 +3364,27 @@ function startBattleLoop(roomId) {
                 const targetIdx = target ? opponentData.squad.indexOf(target) : -1;
                 member.targetIndex = targetIdx;
 
+                // ĐANG TỤ LỰC KỸ NĂNG (Pary KN1 — Búa Thánh Phán Quyết): không di chuyển / đánh thường; chạm nấc phát sự kiện; thả sớm hoặc hết giờ thì đập
+                if (member.charging) {
+                    const ch = member.charging;
+                    const chSk = skillsOf(member)[ch.skillIdx];
+                    const chMax = ch.max ?? chSk?.chargeMax ?? 5000;
+                    const elapsed = Math.max(0, now - ch.start);
+                    const stageNow = holySmashStageIndex(chSk, elapsed) + 1;
+                    while (ch.stage < stageNow) {
+                        ch.stage += 1;
+                        emitPary(roomId, { kind: 'chargeStage', casterId: playerId, casterIdx: memberIndex, stage: ch.stage });
+                    }
+                    const autoRel = (playerData.autoMode || member.autoOn) && shouldAutoReleaseParyCharge(member, opponentData?.squad, chSk, now);
+                    if (ch.releaseNow || autoRel || elapsed >= chMax) {
+                        releaseParyCharge(room, playerId, memberIndex, now);
+                    } else {
+                        member.state = 'charging';
+                    }
+                    return; // Không di chuyển / đánh thường khi đang tụ lực
+                }
+                if (member.state === 'charging') member.state = 'idle';
+
                 // CHECK SKILL QUEUE & CASTING
                 if (member.state === 'casting') {
                     if (now >= member.castEndTime) {
@@ -3395,6 +3439,24 @@ function startBattleLoop(roomId) {
                             const targetPt = member.queuedTargets?.[skillIdxToCast] ?? null;
                             if (member.queuedTargets) delete member.queuedTargets[skillIdxToCast];
                             if (!playerData.debugNoMana) member.mp -= cost;
+
+                            // Kỹ năng tụ lực (Pary KN1 — Búa Thánh Phán Quyết): bắt đầu tụ lực tối đa chargeMax, hồi chiêu chỉ tính từ lúc đập
+                            if (skillDef.chargeMax > 0) {
+                                const chargeMax = skillDef.chargeMax;
+                                const stageAt = (skillDef.stages ?? [{ at: 0 }]).map(s => s.at ?? 0);
+                                member.state = 'charging';
+                                member.castingSkillId = null;
+                                member.castEndTime = now + chargeMax;
+                                member.charging = { skillIdx: skillIdxToCast, start: now, max: chargeMax, stage: 1, stageAt };
+                                _paryChargeDists.delete(member);
+                                if (skillDef.castCcImmune || skillDef.castDmgReduce) {
+                                    member.statusEffects = member.statusEffects.filter(ef => ef.type !== 'pary_spin_guard');
+                                    member.statusEffects.push({ type: 'pary_spin_guard', endTime: now + chargeMax, duration: chargeMax, dmgReduce: skillDef.castDmgReduce ?? 0, ccImmune: !!skillDef.castCcImmune });
+                                }
+                                emitPary(roomId, { kind: 'chargeStart', casterId: playerId, casterIdx: memberIndex, chargeMax, stageAt });
+                                return; // Bắt đầu tụ lực
+                            }
+
                             // hồi chiêu = gồng + diễn + hồi (executeSkill đặt lại chính xác lúc diễn xong;
                             // trong lúc gồng / diễn HUD giữ nguyên số đầy, diễn xong mới đếm)
                             const castMs = castTimeOf(member, skillDef, now);
@@ -3885,7 +3947,7 @@ function onAllyDeath(dead, squad) {
         // Thiên Thần Hộ Mệnh: 2 giây bất tử ngay sau khi sống lại
         const tNow = curRoom?.clock ?? Date.now();
         if (t.invuln) dead.statusEffects.push({ type: 'revive_guard', endTime: tNow + t.invuln, duration: t.invuln });
-        dead.actionUntil = 0; dead.castingSkillId = null;
+        dead.actionUntil = 0; dead.castingSkillId = null; dead.charging = null;
         if (roomId) io.to(roomId).emit('revived', { casterId: playerId, casterIdx: pi, targetIdx: idx, hp: dead.hp });
     });
 }
@@ -3906,7 +3968,7 @@ function skillLock(skillDef, member, opponentData, now) {
 function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = {}) {
     const room = rooms[roomId];
     const member = room.players[casterId].squad[casterIdx];
-    if (member.ult || (isSealed(member, room.clock) && member.state !== 'casting')) return;
+    if (member.ult || (isSealed(member, room.clock) && member.state !== 'casting' && !opts.chargeStage)) return;
     if (room.mode === 'campaign' && room.stage && casterId === room.stage.socketId && !member.summon && !opts.free) room.stage.skills = (room.stage.skills ?? 0) + 1;   // 📜 đếm lần dùng kỹ năng cho nhiệm vụ
     const skillDef = skillsOf(member)[skillIdx];
     const playerIds = Object.keys(room.players);
@@ -4202,7 +4264,7 @@ function executeSkill(roomId, casterId, casterIdx, opponentId, skillIdx, opts = 
         castCrossSkill(room, casterId, casterIdx, actualOpponentId, skillIdx, skillDef, now, effects, extra, pt);
     } else if (skillDef.type === 'holy_smash' || skillDef.type === 'holy_aura' || skillDef.type === 'holy_colossus') {
         // ---- Pary (Búa Thánh): Phán Quyết · Hào Quang Thánh Thần · Búa Thánh Khổng Lồ ----
-        castParySkill(room, casterId, casterIdx, actualOpponentId, skillIdx, skillDef, now, effects, extra);
+        castParySkill(room, casterId, casterIdx, actualOpponentId, skillIdx, skillDef, now, effects, extra, opts);
     } else if (skillDef.type === 'goblin_flask') {
         extra.flasks = goblinFlasks(room, member, opponentData.squad, skillDef, now);
         for (const flask of extra.flasks)
@@ -5131,6 +5193,17 @@ function killMember(target, squad) {
     if (tryCrossRevive(curRoom, target, curRoom?.clock ?? Date.now())) return;
     target.alive = false; target.state = 'dead';
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'judged' && ef.type !== 'goblin_float');
+    // Pary gục trong lúc tụ lực KN1: huỷ tụ lực, không đập
+    if (target.charging) {
+        const at = locate(target);
+        if (at && curRoom) cancelParyCharge(curRoom, at.pid, at.idx);
+        else {
+            target.charging = null;
+            target.castingSkillId = null;
+            target.castEndTime = 0;
+            target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'pary_spin_guard');
+        }
+    }
     // Pary gục: tắt hào quang & mở khoá dịch chuyển cho địch ngay
     if (target.statusEffects.some(ef => ef.blocksRelocate)) {
         const at = locate(target);
@@ -5541,7 +5614,7 @@ function afterHpLoss(m) {
 }
 /** Trùm chương 1: máu dưới ngưỡng -> giai đoạn 2 (1 lần): +tấn công, +tốc đánh, (Valdric) hồi máu + đổi tranh bùng lửa */
 function isSealed(m, now) { return m.statusEffects?.some(e => e.type === 'sealed' && e.endTime > now); }
-function skillHasCC(sk) { return !!(sk.stun || sk.push || sk.knockup || ['grab', 'knockback', 'uplift', 'reap'].includes(sk.type)); }
+function skillHasCC(sk) { return !!(sk.stun || sk.push || sk.knockup || sk.stages?.some(s => s.stun || s.push) || ['grab', 'knockback', 'uplift', 'reap', 'holy_smash'].includes(sk.type)); }
 // BOSS_SKILLS_BEGIN: isolated data / pure helpers, also exercised by node:test.
 const BOSS_SKILLS = {
     b_wolf: [
@@ -5629,6 +5702,7 @@ function processStageTimer(room) {
     if (!winnerId || !loserId) return false;
     room.winner = winnerId; room.stageTimeout = true;
     cancelRoomJudgments(room);
+    cancelRoomParyCharges(room);
     if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
     if (typeof cancelRoomCrosses === 'function') cancelRoomCrosses(room, 'battleEnd');
     io.to(room.id).emit('battleEnd', { winnerId, loserId, timeout: true });
@@ -6042,6 +6116,7 @@ function checkJudgement(target) {
     _judgeKeep.set(target, new Set(target.statusEffects));
     target.judgePos = { x: target.x, z: target.z || 0 };
     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'goblin_float');
+    if (target.charging) cancelParyCharge(curRoom, tAt.pid, tAt.idx);
     target.castingSkillId = null; target.queuedSkills = [];
     target.state = 'judged';
     const roomId = curRoom.id;
@@ -8198,11 +8273,111 @@ function parySurroundDefBonus(member, now = curRoom?.clock ?? Date.now()) {
     return Math.min(t.maxEnemies ?? 5, n) * (t.perEnemy ?? 0.08);
 }
 
-/** Pary đang miễn khống chế? (gồng KN1 hoặc trong 3 nhịp giáng búa KN3) */
+/** Pary đang miễn khống chế? (tụ lực / gồng KN1 hoặc trong 3 nhịp giáng búa KN3) */
 function parySpinOrColossusCcImmune(m, now) {
     if (!m?.alive) return false;
+    if (m.charging && skillsOf(m)[m.charging.skillIdx]?.castCcImmune) return true;
     if (m.state === 'casting' && m.castingSkillId != null && skillsOf(m)[m.castingSkillId]?.castCcImmune) return true;
     return !!m.statusEffects?.some(ef => ef.type === 'pary_colossus' && ef.endTime > now);
+}
+
+/** Bộ nhớ khoảng cách địch ở nhịp trước để AI AUTO phát hiện mục tiêu sắp rời tầm đập (không gửi trong stateUpdate) */
+const _paryChargeDists = new WeakMap();
+
+/** Chỉ số nấc tụ lực (0..2) ứng với thời gian đã tụ `elapsed` (ms trận) */
+function holySmashStageIndex(sk, elapsed) {
+    const stages = sk?.stages ?? [
+        { at: 0, push: 3, mult: 1.0, stun: 600, knockTime: 380, arc: 'low' },
+        { at: 1667, push: 6, mult: 1.3, stun: 1000, knockTime: 520, arc: 'mid' },
+        { at: 5000, push: 12, mult: 1.8, stun: 1500, knockTime: 800, arc: 'high' },
+    ];
+    let idx = 0;
+    for (let i = 0; i < stages.length; i++) {
+        if (elapsed >= (stages[i].at ?? 0)) idx = i;
+    }
+    return idx;
+}
+
+/** AI AUTO khi Pary đang tụ lực KN1: mặc định tụ đủ 5s (nấc 3); chỉ thả sớm khi máu < 30% hoặc mục tiêu sắp rời tầm cận chiến */
+function shouldAutoReleaseParyCharge(member, oppSquad, sk, now) {
+    const ch = member?.charging;
+    if (!ch) return false;
+    if (member.maxHp > 0 && member.hp / member.maxHp < 0.3) return true;
+    const castRange = sk?.castRange ?? 2.8;
+    const distTo = (e) => Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0));
+    const curDists = new Map();
+    const inRange = [];
+    for (const e of oppSquad ?? []) {
+        if (!canBeTargeted(e, now, member)) continue;
+        const d = distTo(e);
+        curDists.set(e, d);
+        if (d <= castRange + 0.001) inRange.push({ e, d });
+    }
+    const prev = _paryChargeDists.get(member);
+    _paryChargeDists.set(member, curDists);
+    if (!prev || inRange.length === 0) return false;
+    const curTarget = oppSquad?.[member.targetIndex];
+    const focus = (curTarget && inRange.find(o => o.e === curTarget)) || [...inRange].sort((a, b) => a.d - b.d)[0];
+    if (!focus) return false;
+    const prevD = prev.get(focus.e);
+    if (prevD == null) return false;
+    const delta = focus.d - prevD;
+    if (delta > 0.02 && focus.d + Math.max(delta, 0.55) > castRange) {
+        const otherStaying = inRange.some(o => o.e !== focus.e && (o.d - (prev.get(o.e) ?? o.d)) <= 0.02 && o.d <= castRange - 0.3);
+        if (!otherStaying) return true;
+    }
+    return false;
+}
+
+/** Thả tụ lực KN1 và đập ngay (bấm sớm, AI thả sớm, hoặc đủ 5s tự đập) */
+function releaseParyCharge(room, casterId, casterIdx, now) {
+    const team = room?.players?.[casterId];
+    const member = team?.squad?.[casterIdx];
+    const ch = member?.charging;
+    if (!ch || !member.alive || room.winner) return false;
+    const sk = skillsOf(member)[ch.skillIdx];
+    const elapsed = Math.max(0, now - ch.start);
+    const stageIdx = holySmashStageIndex(sk, elapsed);
+    const stage = stageIdx + 1;
+    while (ch.stage < stage) {
+        ch.stage += 1;
+        emitPary(room.id, { kind: 'chargeStage', casterId, casterIdx, stage: ch.stage });
+    }
+    member.charging = null;
+    _paryChargeDists.delete(member);
+    member.state = 'idle';
+    member.castingSkillId = null;
+    member.castEndTime = 0;
+    member.statusEffects = (member.statusEffects ?? []).filter(ef => ef.type !== 'pary_spin_guard');
+
+    const opponentId = Object.keys(room.players).find(id => id !== casterId);
+    emitPary(room.id, { kind: 'chargeRelease', casterId, casterIdx, stage });
+    executeSkill(room.id, casterId, casterIdx, opponentId, ch.skillIdx, { chargeStage: stage, chargeStageIdx: stageIdx });
+    return true;
+}
+
+/** Huỷ tụ lực KN1 không đập (chết, kết thúc trận, reset, bị phán quyết) */
+function cancelParyCharge(room, casterId, casterIdx) {
+    const member = room?.players?.[casterId]?.squad?.[casterIdx];
+    if (!member?.charging) return false;
+    member.charging = null;
+    _paryChargeDists.delete(member);
+    if (member.state === 'charging') member.state = member.alive ? 'idle' : 'dead';
+    member.castingSkillId = null;
+    member.castEndTime = 0;
+    member.statusEffects = (member.statusEffects ?? []).filter(ef => ef.type !== 'pary_spin_guard');
+    emitPary(room?.id, { kind: 'chargeCancel', casterId, casterIdx });
+    return true;
+}
+
+/** Huỷ mọi tụ lực KN1 còn dang dở trong phòng (kết thúc trận / reset) */
+function cancelRoomParyCharges(room) {
+    if (!room?.players) return;
+    for (const [pid, team] of Object.entries(room.players)) {
+        (team?.squad ?? []).forEach((m, idx) => {
+            if (m?.charging) cancelParyCharge(room, pid, idx);
+        });
+    }
 }
 
 /** Đồng bộ icon Hộ Giáp Bủa Vây cho HUD mỗi nhịp */
@@ -8235,48 +8410,69 @@ function syncParyEffects(room, pid, idx, oppId, now) {
 }
 
 /** Thực thi 3 kỹ năng của Pary (`holy_smash`, `holy_aura`, `holy_colossus`) */
-function castParySkill(room, casterId, casterIdx, opponentId, skillIdx, sk, now, effects, extra) {
+function castParySkill(room, casterId, casterIdx, opponentId, skillIdx, sk, now, effects, extra, opts = {}) {
     const roomId = room.id;
     const team = room.players[casterId], member = team.squad[casterIdx];
     const opp = room.players[opponentId];
     member.statusEffects = (member.statusEffects ?? []).filter(ef => ef.type !== 'pary_spin_guard');
 
     if (sk.type === 'holy_smash') {
+        const stages = sk.stages ?? [
+            { at: 0, push: 3, mult: 1.0, stun: 600, knockTime: 380, arc: 'low' },
+            { at: 1667, push: 6, mult: 1.3, stun: 1000, knockTime: 520, arc: 'mid' },
+            { at: 5000, push: 12, mult: 1.8, stun: 1500, knockTime: 800, arc: 'high' },
+        ];
+        const rawIdx = opts.chargeStageIdx != null ? opts.chargeStageIdx : (opts.chargeStage != null ? opts.chargeStage - 1 : 0);
+        const stageIdx = Math.max(0, Math.min(stages.length - 1, rawIdx));
+        const stage = stageIdx + 1;
+        const st = stages[stageIdx];
+        const push = st.push ?? 3;
+        const mult = (st.mult ?? 1.0) * (sk.multiplier ?? 1.0);
+        const stunMs = st.stun ?? 600;
+        const knockTime = st.knockTime ?? 380;
+        const arc = st.arc ?? 'low';
+        extra.stage = stage;
+        extra.arc = arc;
+
+        // Chọn mục tiêu ngay tại lúc đập: ưu tiên mục tiêu hiện tại nếu còn trong tầm castRange, không thì địch gần nhất trong tầm; không có ai -> đập xuống đất (không trúng, vẫn mất hồi chiêu)
+        const castRange = sk.castRange ?? 2.8;
+        const distTo = (e) => Math.hypot(e.x - member.x, (e.z || 0) - (member.z || 0));
+        const inRange = (opp?.squad ?? []).filter(e => canBeTargeted(e, now, member) && distTo(e) <= castRange + 0.001);
         const cur = opp?.squad?.[member.targetIndex];
-        const target = (cur?.alive && canBeTargeted(cur, now, member)) ? cur : (opp?.squad ? findBestTarget(member, opp.squad, now) : null);
+        const target = (cur && inRange.includes(cur))
+            ? cur
+            : (inRange.length ? inRange.sort((a, b) => distTo(a) - distTo(b))[0] : null);
         if (!target) return;
+
         const ti = opp.squad.indexOf(target);
         const impact = sk.impact ?? 220;
-        const eff = hitTarget(member, target, ti, opp, sk.multiplier, now, { cc: true, delay: impact });
+        const eff = hitTarget(member, target, ti, opp, mult, now, { cc: true, delay: impact });
         const fromX = target.x;
         const canPush = takesDebuffs(target) && !ccImmune(target, now);
-        const enemyIsRight = (member.side ?? team.side) === 'left' || (!(member.side ?? team.side) && target.x >= member.x);
-        const edge = sk.edgeDist ?? 2;
-        const wallX = enemyIsRight ? ARENA_BOUNDS.maxX - edge : ARENA_BOUNDS.minX + edge;
-        const clampedWallX = Math.max(ARENA_BOUNDS.minX, Math.min(ARENA_BOUNDS.maxX, wallX));
+        const dir = Math.sign(target.x - member.x) || ((member.side ?? team.side) === 'left' ? 1 : -1);
 
         if (!eff.isMiss && target.alive) {
             if (canPush) {
-                target.x = clampedWallX;
+                target.x += dir * push;
                 clampToArena(target);
                 const hitAt = now + impact;
-                const landAt = hitAt + (sk.knockTime ?? 480);
+                const landAt = hitAt + knockTime;
                 target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'knocked' && ef.type !== 'stun');
                 target.statusEffects.push({ type: 'knocked', endTime: landAt });
-                target.statusEffects.push({ type: 'stun', endTime: landAt + ccTime(target, sk.stun ?? 1000, now) });
+                target.statusEffects.push({ type: 'stun', endTime: landAt + ccTime(target, stunMs, now) });
                 target.lastAttackTime = now;
             } else {
-                // Không đẩy được (vd Brakk Khổng Lồ): vẫn chịu sát thương + choáng 1s, không bay
+                // Không đẩy được (vd Brakk Khổng Lồ): vẫn chịu sát thương + choáng đúng nấc, không bay
                 if (target.ult) {
                     damageJudgmentShield(target, 0, true);
                 } else {
                     const hitAt = now + impact;
                     target.statusEffects = target.statusEffects.filter(ef => ef.type !== 'stun');
-                    target.statusEffects.push({ type: 'stun', endTime: hitAt + (sk.stun ?? 1000), duration: sk.stun ?? 1000, noCleanse: true });
+                    target.statusEffects.push({ type: 'stun', endTime: hitAt + stunMs, duration: stunMs, noCleanse: true });
                 }
             }
         }
-        effects.push({ ...eff, knockback: canPush && !eff.isMiss, fromX, toX: target.x, toZ: target.z || 0, stunned: !eff.isMiss });
+        effects.push({ ...eff, knockback: canPush && !eff.isMiss, fromX, toX: target.x, toZ: target.z || 0, stunned: !eff.isMiss, stage, arc });
         return;
     }
 
@@ -9927,6 +10123,7 @@ function checkWinCondition(roomId) {
     if (dead.length >= 2) {
         room.winner = 'draw';
         cancelRoomJudgments(room);
+        cancelRoomParyCharges(room);
         cancelRoomSwordFormations(room, 'battleEnd');
         cancelRoomCrosses(room, 'battleEnd');
         io.to(roomId).emit('battleEnd', { draw: true, winnerId: null, loserId: null });
@@ -9937,6 +10134,7 @@ function checkWinCondition(roomId) {
     const winnerId = ids.find(id => id !== loserId);
     room.winner = winnerId;
     cancelRoomJudgments(room);
+    cancelRoomParyCharges(room);
     cancelRoomSwordFormations(room, 'battleEnd');
     cancelRoomCrosses(room, 'battleEnd');
     io.to(roomId).emit('battleEnd', { winnerId, loserId });
@@ -10053,6 +10251,7 @@ function processSuddenDeath(room, now) {
             broadcastState(room.id);
             room.winner = winnerId;
             cancelRoomJudgments(room);
+            cancelRoomParyCharges(room);
             if (typeof cancelRoomSwordFormations === 'function') cancelRoomSwordFormations(room, 'battleEnd');
             if (typeof cancelRoomCrosses === 'function') cancelRoomCrosses(room, 'battleEnd');
             io.to(room.id).emit('battleEnd', { winnerId, loserId, suddenDeath: true });

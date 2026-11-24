@@ -450,17 +450,14 @@ export function playCrossFxEvent(data, { getView, opponentIdOf, onDamageNumber, 
             if (v) v.pulseBoost = 0.75;
             for (const s of data.shields ?? []) {
                 const tv = getView?.(data.casterId, s.targetIndex);
-                if (tv) spawnPixelFx('holy/divine-shield', { pos: tv.position, scale: 0.85 });
+                if (tv) spawnPixelFx('holy/divine-shield', { view: tv, bare: true, scale: 0.85 });   // gắn vào đúng người (không có -> thư viện vẽ hình người mẫu xám "như cái tượng")
             }
             break;
         }
         case 'hymn': {
             // người chơi 21/11: bỏ vòng sóng vàng (xấu) -> lông vũ thánh bung quanh Caelum + mỗi Thánh giá (và cây Thần Quang)
             // bừng sáng 3 nhịp (hào quang vẽ tay sáng lên), mỗi nhịp 1 vòng sáng mảnh đúng màu loại
-            if (caster) {
-                spawnPixelFx('holy/feather-burst', { view: caster, scale: 1.0 });
-                spawnPixelFx('holy/blessing', { view: caster, maxLife: 1.6 });
-            }
+            // (23/11) người chơi: bỏ "hiệu ứng tượng" (Blessing vẽ thêm bóng trắng hình nhân vật) + lông vũ — rối, xấu
             const list = [];
             for (const c of data.crosses ?? []) {
                 const v = activeCrosses.get(c.id);

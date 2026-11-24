@@ -93,6 +93,94 @@
     ]
    ],
    "ground": "group"
+  },
+  "whirl": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/pary/sprite/sss-whirl.png",
+   "anchor": "heel",
+   "points": {
+    "1": {
+     "fist": [
+      83,
+      140
+     ]
+    },
+    "2": {
+     "fist": [
+      371,
+      140
+     ]
+    },
+    "3": {
+     "fist": [
+      659,
+      140
+     ]
+    },
+    "4": {
+     "fist": [
+      947,
+      140
+     ]
+    }
+   }
+  },
+  "colossus": {
+   "scale": 1.333,
+   "split": true,
+   "file": "art/pary/sprite/sss-colossus.png",
+   "anchor": "heel",
+   "points": {
+    "1": {
+     "grip": [
+      145,
+      205
+     ]
+    },
+    "2": {
+     "grip": [
+      382,
+      235
+     ]
+    },
+    "3": {
+     "grip": [
+      668,
+      235
+     ]
+    },
+    "4": {
+     "grip": [
+      950,
+      245
+     ]
+    },
+    "5": {
+     "grip": [
+      178,
+      600
+     ]
+    },
+    "6": {
+     "grip": [
+      495,
+      605
+     ]
+    },
+    "7": {
+     "grip": [
+      712,
+      705
+     ]
+    },
+    "8": {
+     "grip": [
+      990,
+      735
+     ]
+    }
+   }
   }
  },
  "minSize": 12000

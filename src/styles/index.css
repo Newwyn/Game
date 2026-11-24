@@ -254,7 +254,7 @@ body {
 /* ô kỹ năng có hình (src/assets/skills/<lớp>_<0..2>.webp) */
 .skill-btn:has(> .sk-art) { overflow: hidden; justify-content: flex-end; min-height: 58px; }
 .skill-btn .sk-art { position: absolute; inset: 0; background-size: cover; background-position: center; z-index: 0; filter: grayscale(.75) brightness(.5); transition: filter .25s; pointer-events: none; }
-.skill-btn.ready .sk-art, .skill-btn.active .sk-art { filter: none; }
+.skill-btn.ready .sk-art, .skill-btn.active .sk-art, .skill-btn.charging .sk-art { filter: none; }
 .skill-btn:has(> .sk-art)::selection { background: none; }
 .skill-btn:has(> .sk-art) .skill-icon, .skill-btn:has(> .sk-art) .cost { position: relative; z-index: 1; }
 .skill-btn:has(> .sk-art) .queue-num { z-index: 2; }
@@ -660,8 +660,8 @@ body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: n
     padding: 7px 10px; font: 12px/1.45 'Outfit', sans-serif; color: #e2e8f0; box-shadow: 0 6px 18px rgba(0,0,0,.5);
 }
 .pause-settings { margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-#btn-shake, #btn-fx-level { background: rgba(30,41,59,.9); border: 1.5px solid #60a5fa; color: #bfdbfe; border-radius: 10px; padding: 9px 16px; font-family: 'Outfit', sans-serif; font-weight: 700; cursor: pointer; }
-#btn-shake.off, #btn-fx-level.minimal { border-color: #64748b; color: #94a3b8; }
+#btn-shake, #btn-fx-level, #btn-char-top { background: rgba(30,41,59,.9); border: 1.5px solid #60a5fa; color: #bfdbfe; border-radius: 10px; padding: 9px 16px; font-family: 'Outfit', sans-serif; font-weight: 700; cursor: pointer; }
+#btn-shake.off, #btn-fx-level.minimal, #btn-char-top.off { border-color: #64748b; color: #94a3b8; }
 
 /* Zerith: Lưỡi Hái Xuyên Hồn lần 2 miễn phí (Đêm Tử Thần) — viền tím nhấp nháy */
 .skill-btn.free.ready { border-color: #c084fc; box-shadow: 0 0 10px #a855f7, inset 0 0 8px rgba(168, 85, 247, 0.5); animation: free-pulse 0.8s ease-in-out infinite alternate; }
@@ -692,6 +692,56 @@ body.mode-duel #progress-tool, body.mode-duel #enemy-debug-controls { display: n
 .skill-btn.active .cost { background: color-mix(in srgb, var(--act-c, #5eead4) 25%, transparent); color: #fff; }
 .skill-btn.active.combo::before { animation-duration: 0.7s; }
 @keyframes act-spin { to { --act-spin: 360deg; } }
+
+/* Kỹ năng ĐANG TỤ LỰC (Pary KN1 — Búa Thánh Phán Quyết): vòng tiến độ đầy dần 5s + 3 chấm nấc 1/2/3 + bấm lại để đập sớm */
+.skill-btn.charging {
+    color: #fff; border-color: var(--chg-c, #facc15);
+    background: color-mix(in srgb, var(--chg-c, #facc15) 22%, rgba(15, 23, 42, 0.72));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--chg-c, #facc15) 65%, transparent), inset 0 0 8px color-mix(in srgb, var(--chg-c, #facc15) 35%, transparent);
+    animation: chg-pulse 0.7s ease-in-out infinite alternate;
+}
+.skill-btn.charging::before {
+    content: ''; position: absolute; inset: 0; border-radius: 8px; padding: 2.5px; pointer-events: none; z-index: 2;
+    background: conic-gradient(var(--chg-c, #facc15) calc(var(--chg-p, 0) * 360deg), rgba(255, 255, 255, 0.16) 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.skill-btn.charging .cost {
+    background: color-mix(in srgb, var(--chg-c, #facc15) 85%, #000);
+    color: #0f172a; font-weight: 900; letter-spacing: 0.4px;
+}
+.skill-btn.charging:hover { transform: translateY(-2px) scale(1.03); }
+.charge-ui {
+    position: absolute; inset: 0; pointer-events: none; z-index: 3;
+    display: none; flex-direction: column; justify-content: space-between; padding: 3px 4px;
+}
+.chg-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 3px;
+    background: rgba(2, 6, 23, 0.76); border-radius: 4px; padding: 1px 4px;
+}
+.chg-dots { display: inline-flex; gap: 2.5px; align-items: center; }
+.chg-dots i {
+    display: block; width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25); transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.chg-dots i.on {
+    background: var(--chg-c, #facc15);
+    box-shadow: 0 0 5px var(--chg-c, #facc15);
+    transform: scale(1.15);
+}
+.chg-lbl { font-size: 9px; font-weight: 900; color: var(--chg-c, #facc15); line-height: 1; }
+.chg-bar {
+    width: 100%; height: 3.5px; border-radius: 2px; overflow: hidden;
+    background: rgba(2, 6, 23, 0.72);
+}
+.chg-bar i {
+    display: block; height: 100%; width: 0%; background: var(--chg-c, #facc15);
+    box-shadow: 0 0 6px var(--chg-c, #facc15); transition: width 0.06s linear;
+}
+@keyframes chg-pulse {
+    from { box-shadow: 0 0 8px color-mix(in srgb, var(--chg-c, #facc15) 50%, transparent); }
+    to { box-shadow: 0 0 18px color-mix(in srgb, var(--chg-c, #facc15) 85%, transparent); }
+}
 
 /* Elarion: 3 ô Ngọc Nguyên Tố đang giữ trên thẻ */
 /* Elarion — khay ngọc trên thẻ: ngọc rơi ra hiện ở đây, bấm để nhặt (không phụ thuộc camera) */

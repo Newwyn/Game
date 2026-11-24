@@ -44,6 +44,11 @@ export function updateShakeButton() {
     if (b) { b.textContent = `📳 Rung màn hình: ${settings.shake ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.shake); }
 }
 
+export function updateCharTopButton() {
+    const b = document.getElementById('btn-char-top');
+    if (b) { b.textContent = `🧍 Nhân vật nổi trên hiệu ứng: ${settings.charTop ? 'BẬT' : 'TẮT'}`; b.classList.toggle('off', !settings.charTop); }
+}
+
 const FX_LABELS = { soft: 'DỊU NHẸ', minimal: 'TỐI GIẢN', full: 'ĐẦY ĐỦ' };
 export function updateFxLevelButton() {
     const b = document.getElementById('btn-fx-level');
@@ -119,10 +124,12 @@ const ACTIONS = {
         net.backToMenu();
     },
     toggleShake: () => { setSetting('shake', !settings.shake); updateShakeButton(); },
+    toggleCharTop: () => { setSetting('charTop', !settings.charTop); updateCharTopButton(); },
     cycleFxLevel: () => {
         const i = FX_LEVELS.indexOf(settings.fxLevel);
         setSetting('fxLevel', FX_LEVELS[(i + 1) % FX_LEVELS.length]);
         updateFxLevelButton();
+    updateCharTopButton();
     },
 };
 

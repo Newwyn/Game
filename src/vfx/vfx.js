@@ -100,7 +100,7 @@ export function spawnDamageNumber(pos, value, type = 'normal') {
 // Trận đông (4v4, nhiều chiêu nổ cùng lúc) từng sinh vài trăm mảnh sáng cùng lúc — mỗi mảnh là 1 lần vẽ riêng.
 // Càng nhiều mảnh đang sống thì các hiệu ứng "rắc thêm" (tia lửa, đốm sáng, tàn lửa, vệt sau đạn) sinh càng ít;
 // phần chính của chiêu (vệt chém, vụ nổ, hình vẽ) luôn hiện đủ.
-const FX_SOFT = 70, FX_HARD = 220;
+const FX_SOFT = 40, FX_HARD = 160;   // (23/11) trận đông: bắt đầu mờ bớt hiệu ứng cộng sáng sớm hơn (trước 70 / 220)
 let liveFx = 0;
 /** 0 = rảnh … 1 = quá tải */
 export function fxLoad() { return Math.min(1, Math.max(0, (liveFx - FX_SOFT) / (FX_HARD - FX_SOFT))); }
@@ -1344,7 +1344,7 @@ function updateSeals(dt) {
 export function updateVfx(dt) {
     const k = dt * 60; // các hằng số gốc được viết cho 60 FPS
     // Giảm chói: càng nhiều hiệu ứng đang sống, hiệu ứng cộng sáng càng mờ bớt (tối đa −40%) -> không phủ trắng nhân vật
-    fxDim.k += ((1 - 0.4 * fxLoad()) - fxDim.k) * Math.min(1, dt * 6);
+    fxDim.k += ((1 - 0.5 * fxLoad()) - fxDim.k) * Math.min(1, dt * 6);
 
     damageNumbers = damageNumbers.filter(dn => {
         dn.life -= 0.02 * k;

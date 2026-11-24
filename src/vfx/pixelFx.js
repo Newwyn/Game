@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import { createFrame, clearFrame, createFx, composite, PAL } from '../vendor/pixelfx/core/index.js';
 import { addAnim } from './vfx.js';
+import { CHAR_FRONT_FX } from '../core/settings.js';
 import { GROUND_Y } from '../config.js';
 import * as swordSlash from '../vendor/pixelfx/fx/melee/sword-slash.js';
 import * as hitSpark from '../vendor/pixelfx/fx/impacts/hit-spark.js';
@@ -161,12 +162,16 @@ function bareOf(A) {
     return bareCache.get(A);
 }
 
+/** Người "rỗng" (không điểm ảnh nào) — cho hiệu ứng cần người đứng giữa nhưng đặt ở 1 chỗ trên sân */
+const EMPTY_ACTOR = { mask: { w: 1, h: 1, data: new Uint8Array(1) }, pixels: new Uint32Array(1), x: 0, y: -ACTOR_H, w: 1, h: 1, k: 2, head: [0, -ACTOR_H], chest: [0, -Math.round(ACTOR_H * 0.6)] };
+
 const paletteOf = (p) => (typeof p === 'string' ? PAL[p] : p);
 
 /**
  * Lớp vẽ 1 hiệu ứng: { group, step(dt), stop(), done() }. group: chân hiệu ứng ở (0, 0, 0), cỡ 1 px = height / 44.
  */
 export function pixelLayer(mod, { height = 2.9, scale = 1, actor = null, palette, seed, flip = false, front = false, soft = 0, opts = {} } = {}) {
+    if (!actor && mod.meta.actor) actor = EMPTY_ACTOR;   // không có nhân vật -> KHÔNG để thư viện vẽ hình người mẫu xám ("cái tượng")
     const [W, H] = mod.meta.size, [OX, OY] = mod.meta.origin;
     const pad = 4, fw = W + pad * 2, fh = H + pad * 2;
     const layers = front ? ['front'] : ['back', 'front'];
@@ -232,14 +237,39 @@ export function pixelLayer(mod, { height = 2.9, scale = 1, actor = null, palette
  * Phát 1 hiệu ứng trong trận. view: gắn vào nhân vật (đi theo + dùng hình bóng của nó) · pos: đặt cố định trên sân.
  * Hiệu ứng lặp (meta.loop) chạy tới khi until() trả true (hoặc hết `maxLife` giây) rồi mờ dần.
  */
+// ---- Trận ĐÔNG (người chơi 23/11: "1 trận 8 tướng hiệu ứng nhiều quá, rối mắt"): đếm hiệu ứng điểm ảnh đang sống;
+//      đông (>= CROWD) thì bỏ các loé nhỏ của đòn đánh thường (tia chạm, vệt chém / loé tay) + mỗi loại tối đa 3 cái cùng lúc.
+//      Chiêu chính vẫn hiện đủ. ?fxCrowd=0 để tắt.
+const PF_LIVE = new Map();
+let pfTotal = 0;
+const CROWD = 10, CROWD_CAP = 3;
+const CROWD_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fxCrowd') === '0';
+const MINOR_FX = /^(impacts\/(hit-spark|blunt-hit|crit-hit|zap-hit)|custom\/cast-flash|melee\/(sword-slash|thrust))$/;
+// ---- Nổ / đập đất tắt NHANH (người chơi 23/11: "hiệu ứng explosion để lại rất lâu"): giữ nguyên lúc bùng lên, tới mốc
+//      (giây) dưới đây thì phần đuôi (khói, tàn lửa) chạy nhanh x3 và mờ dần ~0,45s rồi tắt. ?fxTail=0 để xem như cũ.
+const QUICK_TAIL = {
+    'explosions/small-explosion': 0.9, 'explosions/big-explosion': 1.2, 'explosions/smoke-bomb': 1.0, 'shadow/dark-explosion': 0.9,
+    'impacts/ground-slam': 0.8, 'impacts/heavy-landing': 0.7, 'nature/quake': 0.9, 'fire/meteor': 1.5, 'holy/smite': 1.1,
+    'arcane/star-fall': 1.2, 'lightning/thunderclap': 0.8, 'nature/poison-cloud': 1.5, 'nature/acid-splash': 0.8,
+};
+const TAIL_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).get('fxTail') === '0';
+const TAIL_FADE = 0.45;
+
+export function pixelFxCrowded() { return !CROWD_OFF && pfTotal >= CROWD; }
+
 export function spawnPixelFx(name, { view = null, pos = null, flip, until = null, maxLife = 12, height, delay = 0, bare = false, lift, follow = true, getPos = null, ...rest } = {}) {
     const mod = LIB[name];
     if (!mod) { console.warn('pixelFx: chưa nạp', name); return null; }
+    if (pixelFxCrowded() && (MINOR_FX.test(name) || (PF_LIVE.get(name) ?? 0) >= CROWD_CAP)) return null;
     const go = () => {
         const h = height ?? view?.height ?? 2.9;
         const f = flip ?? (view ? !!view.facingLeft : false);
         const A = view ? actorOf(view) : null;
-        const layer = pixelLayer(mod, { height: h, actor: bare ? bareOf(A) : A, flip: f, ...rest });
+        // (23/11) người chơi: "cái tượng" — hiệu ứng cần người đứng giữa (meta.actor) mà không gắn nhân vật thì thư viện tự vẽ
+        // HÌNH NGƯỜI MẪU xám. Không có nhân vật (hoặc tranh chưa tải) -> đưa 1 người "rỗng" để không vẽ gì.
+        const actor = A ? (bare ? bareOf(A) : A) : (mod.meta.actor ? EMPTY_ACTOR : null);
+        const layer = pixelLayer(mod, { height: h, actor, flip: f, ...rest });
+        if (MINOR_FX.test(name)) layer.group.traverse(o => { if (o.isMesh) o.renderOrder = CHAR_FRONT_FX; });   // tia chạm: trước nhân vật
         const g = layer.group;
         // hiệu ứng có gốc ở GIỮA (chỗ trúng đòn, VD zap-hit) thay vì ở chân -> nâng lên ngang ngực
         const up = lift ?? (CENTERED.has(name) ? h * 0.45 : 0);
@@ -251,14 +281,28 @@ export function spawnPixelFx(name, { view = null, pos = null, flip, until = null
             g.position.set(p.x, GROUND_Y + up + (view?._lift ?? 0) + (view?._hover ?? 0), (p.z ?? 0));
         };
         place();
-        let age = 0;
+        let age = 0, counted = true;
+        const tailAt = TAIL_OFF ? null : (QUICK_TAIL[name] ?? null);
+        let tailMats = null;
+        PF_LIVE.set(name, (PF_LIVE.get(name) ?? 0) + 1); pfTotal++;
+        const uncount = () => { if (!counted) return; counted = false; PF_LIVE.set(name, Math.max(0, (PF_LIVE.get(name) ?? 1) - 1)); pfTotal = Math.max(0, pfTotal - 1); };
+        g.addEventListener?.('removed', uncount);
         addAnim(g, maxLife + 1, (p, fx, dt = 0) => {
             age += dt;
+            if (p >= 1) uncount();
             if (getPos || (follow && view && view.root?.parent)) place();   // follow: false -> đứng yên chỗ bắt đầu (người lướt đi không kéo theo)
             if (until && until()) layer.stop();
             if (age >= maxLife) layer.stop();
+            if (tailAt != null && age > tailAt) {
+                // đuôi hiệu ứng: chạy nhanh x3 + mờ dần rồi tắt hẳn
+                const k = Math.min(1, (age - tailAt) / TAIL_FADE);
+                if (!tailMats) { tailMats = []; g.traverse(o => { if (o.material) tailMats.push([o.material, o.material.opacity]); }); }
+                for (const [m, o0] of tailMats) m.opacity = o0 * (1 - k);
+                if (dt > 0) layer.step(dt * 2);   // + bước thường bên dưới = x3
+                if (k >= 1) { fx.life = fx.age; uncount(); return; }
+            }
             if (dt > 0) layer.step(dt);
-            if (layer.done()) fx.life = fx.age;   // xong -> vfx.js gỡ + giải phóng
+            if (layer.done()) { fx.life = fx.age; uncount(); }   // xong -> vfx.js gỡ + giải phóng
         });
         return layer;
     };
