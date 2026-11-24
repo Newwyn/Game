@@ -5,6 +5,21 @@ Mô tả cho lần đẩy GitHub kế tiếp nằm trong `mo_ta_cap_nhat.txt` �
 
 ---
 
+## 21–24/11/2026 — Anh hùng thứ 17 PARY (Goblin búa thánh, tank chặn dịch chuyển) · nhân vật nổi trên hiệu ứng · bản đồ hết nhoè
+
+Kiểm tra: `npm test` 331/331 qua, `npx vite build` qua. Đã bấm thử thật trong bản ứng dụng.
+
+- **Pary (holyhammer):** tank Goblin, thủ cao nhất game. Tranh 3 bậc S / SS / SSS + 6 icon vẽ bằng Flow; luật do Antigravity viết.
+  - **Chiêu 1 Búa Thánh Phán Quyết (2,5 Orb):** bấm để tụ lực tối đa 5 giây (3 nấc), bấm lại để đập sớm. Đẩy xa 3 / 6 / 12 ô, choáng 0,6 / 1 / 1,5 giây (xa nhất game). Lúc tụ lực: giảm 50% sát thương, kháng khống chế. Búa thánh 3D (Meshy) quay kiểu cánh quạt trên tay.
+  - **Chiêu 2 Hào Quang Thánh Thần (3 Orb):** vòng phép khắc chữ + tường ánh sáng; chặn mọi chiêu DỊCH CHUYỂN của địch (nhãn "↗ Dịch chuyển" trên chiêu, "🚫 Khoá dịch chuyển", chữ "Bị chặn!"); khiên theo số người trong vùng.
+  - **Chiêu 3 Búa Thánh Khổng Lồ (4 Orb):** cầm búa 3D khổng lồ nhảy lên đập 3 lần, nhịp 3 hất tung toàn sân (kéo cả YunYou đang bay xuống). Vệt sáng theo đường vung, đất nứt lúc chạm.
+  - Thiên phú: cứ 3 đòn thường quăng búa vào hàng sau · mỗi địch đứng gần +8% thủ (tối đa 5).
+- **Sửa lỗi cũ:** động tác riêng của nhân vật mượn khung xương (Pary) trước đây không chạy; hình người mẫu xám ("cái tượng") hiện ở vài hiệu ứng (khiên Thánh Ca của Caelum) đã hết; bảng chỉ số hiện Speed gọn.
+- **Trận đấu đỡ rối:** nút mới trong bảng Tạm dừng **"🧍 Nhân vật nổi trên hiệu ứng"** (mặc định BẬT): hiệu ứng vẽ sau lưng nhân vật. Hiệu ứng nổ / đập đất tắt nhanh hơn. Trận đông tự bỏ bớt tia loé nhỏ.
+- **Caelum:** chiêu 2 bỏ bóng trắng + lông vũ.
+- **Bản đồ thế giới:** chế độ Tự động không còn hạ độ nét xuống 60% trên máy tầm trung (giờ thấp nhất 80%, mức Nhẹ vẫn có loá sáng); cây / nhà 3D ngoài khung hình không còn bị vẽ; mức Đẹp hết mảng tối chữ nhật dưới mây.
+- Chưa làm: búa 3D riêng cho bậc S / SS (đang dùng chung búa SSS); thêm chi tiết cho làng Ashford.
+
 ## 19–21/11/2026 — Skin Giấy cho Rok + Ignar · anh hùng thứ 16 CAELUM (Tu sĩ Thánh Giá, kéo thả chiêu) · camera tự lùi
 
 Kiểm tra: `npm test` 317/317 qua, `npx vite build` qua. Đã bấm thử thật trong bản ứng dụng (chuột thật).
