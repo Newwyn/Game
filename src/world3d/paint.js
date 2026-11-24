@@ -549,6 +549,7 @@ export function paintMapClouds(group, cols, rows) {
             g.add(sp);
         }
         g.traverse(o => { o.frustumCulled = false; });
+        g.userData.noAO = true;   // (24/11) lớp tối góc (GTAO) coi tấm mây là vật đặc -> mảng tối CHỮ NHẬT trên đất; view.js ẩn nhóm noAO khi tính tối góc
         group.add(g);
         clouds.push({ g, mat, x0: random() * (cols + 30) - 15, z: random() * (rows + 10) - 5, y: 5.2 + random() * 1.6, v: 0.16 + random() * 0.14, max: 0.34 + random() * 0.14 });
     }
