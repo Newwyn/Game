@@ -112,11 +112,21 @@ class Batch {
             // Indoor copies must not alter the shared outdoor model materials.
             const mat = this.indoor ? patchMaterial(p.mat.clone(), { sway: 0, occlude: true, cloud: false }) : p.mat;
             if (this.indoor && mat.map && mat.emissive) { mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = mat.map; mat.emissiveIntensity = 0.24; }   // (13/11) tường đá trong nhà tối như mực -> tự sáng nhẹ theo chính màu của nó
-            const im = new THREE.InstancedMesh(p.geo, mat, mats.length);
-            mats.forEach((m, k) => im.setMatrixAt(k, m));
-            im.castShadow = im.receiveShadow = true;
-            im.computeBoundingSphere();
-            group.add(im);
+            // (24/11) máy yếu (GT 1030 chỉ ~12 khung/giây): InstancedMesh không tự bỏ từng bản sao ngoài khung hình -> mô hình nặng
+            // (cây / nhà Meshy vài nghìn tam giác × cả trăm bản) bị vẽ CẢ BẢN ĐỒ mỗi khung. Chia theo ô 9×9 -> mỗi cụm 1 InstancedMesh
+            // có vùng bao riêng, three.js tự bỏ cụm ngoài khung hình (cả lượt vẽ bóng).
+            const tris = (p.geo.index ? p.geo.index.count : p.geo.attributes.position.count) / 3;
+            const heavy = !this.indoor && tris * mats.length > 20000 && mats.length > 4;
+            const cells = new Map();
+            if (heavy) { const v = new THREE.Vector3(); for (const m of mats) { v.setFromMatrixPosition(m); const ck = Math.floor(v.x / 9) + ',' + Math.floor(v.z / 9); if (!cells.has(ck)) cells.set(ck, []); cells.get(ck).push(m); } }
+            else cells.set('all', mats);
+            for (const list of cells.values()) {
+                const im = new THREE.InstancedMesh(p.geo, mat, list.length);
+                list.forEach((m, k) => im.setMatrixAt(k, m));
+                im.castShadow = im.receiveShadow = true;
+                im.computeBoundingSphere();
+                group.add(im);
+            }
         }
     }
 }

@@ -83,7 +83,7 @@ export function createView(host) {
     const hemi = new THREE.HemisphereLight(0xffe8cc, 0x5c6d38, 1.05);
     const sun = new THREE.DirectionalLight(0xffcb88, 2.55);
     sun.castShadow = true;
-    Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 80 });
+    Object.assign(sun.shadow.camera, { left: -17, right: 17, top: 17, bottom: -17, near: 1, far: 80 });   // (24/11) ±22 -> ±17: vừa đủ trùm khung nhìn, bớt vật phải vẽ bóng
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.032;
     const rim = new THREE.DirectionalLight(0xffdfaa, 0.55);   // viền sáng ấm buổi chiều từ phía ngược nắng
     scene.add(hemi, sun, sun.target, rim, rim.target);
@@ -105,9 +105,10 @@ export function createView(host) {
             gtao.blendIntensity = 0.85;
             gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.5, thickness: 1.5, scale: 1.1, samples: 8 });
             composer.addPass(new VisPass(false)); composer.addPass(gtao); composer.addPass(new VisPass(true));
-            bloom = new UnrealBloomPass(new THREE.Vector2(800, 450), 0.22, 0.6, 0.88);
-            composer.addPass(bloom);
         }
+        // (24/11) loá sáng ấm có ở cả mức Nhẹ (rẻ: vẽ ở cỡ 800×450) — mức Nhẹ chỉ bỏ tối góc (GTAO), không mất chất "lung linh"
+        bloom = new UnrealBloomPass(new THREE.Vector2(800, 450), q === 'high' ? 0.22 : 0.18, 0.6, 0.88);
+        composer.addPass(bloom);
         composer.addPass(new OutputPass());
         grade = new ShaderPass(GradeShader); composer.addPass(grade);
         hts = new ShaderPass(HorizontalTiltShiftShader); vts = new ShaderPass(VerticalTiltShiftShader);
@@ -349,9 +350,10 @@ export function createView(host) {
             if (now - this.t0 < 3000) return;
             const fps = this.n * 1000 / (now - this.t0);
             this.t0 = 0; this.n = 0;
-            if (fps >= 48) return;
-            if (quality === 'high') { setQuality('low'); onAuto?.('low', fps); }
-            else if (resScale > 0.6) { resScale = Math.max(0.6, resScale - 0.15); applyRes(); this.skipUntil = now + 1500; onAuto?.('res', fps); }
+            // (24/11) trước: dưới 48 khung/giây là hạ tới 60% độ nét -> máy tầm trung (GT 1030) ra hình NHOÈ dù mức Nhẹ đủ nét
+            // vẫn chạy ~27 khung/giây. Giờ: dưới 40 -> mức Nhẹ; chỉ khi dưới 22 mới giảm độ nét, và không dưới 80%.
+            if (quality === 'high') { if (fps < 40) { setQuality('low'); onAuto?.('low', fps); } }
+            else if (fps < 22 && resScale > 0.8) { resScale = Math.max(0.8, resScale - 0.1); applyRes(); this.skipUntil = now + 1500; onAuto?.('res', fps); }
         },
     };
     let autoQ = false;
@@ -371,6 +373,7 @@ export function createView(host) {
     /** chụp ảnh khung 3D (chỉ để kiểm tra khi chạy thử) */
     const snapshot = (q = 0.85) => { composer.render(); return renderer.domElement.toDataURL('image/jpeg', q); };
     setQuality('high');
+    if (typeof window !== 'undefined') window.__wdView = { get composer() { return composer; }, renderer, scene, get quality() { return quality; }, get resScale() { return resScale; } };   // soi khi chạy thử
     const hsv = new THREE.Vector3();
     /** Vị trí nhân vật trên màn hình (px, tính trong khung vẽ) — để đặt thanh thể lực ngay cạnh nhân vật */
     function heroScreen() { hsv.copy(uHeroPos.value).project(camera); const el = renderer.domElement; return { x: (hsv.x * 0.5 + 0.5) * el.clientWidth, y: (-hsv.y * 0.5 + 0.5) * el.clientHeight, el }; }
